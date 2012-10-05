@@ -9,6 +9,6 @@ function read_header(fname)
    return contents
 end
 
-ffi.cdef(read_header("u5c_defs.h"))
+ffi.cdef(read_header("test_type.h"))
 
-for k,v in pairs(ffi.C) do print(k,v) end
+print(ffi.C.new("struct kdl_vector"))

@@ -34,6 +34,7 @@ i.e. buffering, rendevouz, sending via network. See also Ptolomy.
 * Big questions
 
 ** Types
+   =local tm = ffi.cast('TimeMsg*', tm_rtt:tolud())=
 
   - Types safety must be guaranteed. Hash types in some
     way. I.e. sha256 the struct def?
