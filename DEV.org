@@ -1,0 +1,88 @@
+# u5c: fiveC compliant function block composition
+#+STARTUP: showall
+#+STARTUP: hidestars
+
+
+
+* Important Links
+
+- http://gcc.gnu.org/onlinedocs/cpp/Macros.html
+- http://luajit.org/ext_ffi.html
+- http://www.zeromq.org/intro:start
+
+* Requirements
+
+  - *Block model*: in, in-event/out ports
+  - Meta-data: used to define constraints on blocks, periodicity,
+    etc. JSON? or pure lua
+  - Ports: in/outs (correspond to in-args and out-args + retval)
+  - Composition of blocks.
+  - Pure C + Lua. Light, embeddable.
+  - Dynamic creation of interfaces: ie. dynamic creation of youbot arms.
+
+Interaction model: defines what happens on read-write to a port,
+i.e. buffering, rendevouz, sending via network. See also Ptolomy.
+
+* Elements
+
+** Components:
+   define:
+   - set of typed in and out ports
+   - configuration
+   - activity
+
+* Big questions
+
+** Types
+
+  - Types safety must be guaranteed. Hash types in some
+    way. I.e. sha256 the struct def?
+
+  - To which extent can we avoid boxing and explicit serialization. I
+    think the latter is mandatory for non-trivial structs. We _must_
+    also be able to support protocol buffers, boost serialization etc.
+
+   *Options*:
+
+  - Constrain to structs? C++ Objects can be mapped to structs
+    (potentially automatically) but that may be non-intuitve. Ok for
+    first go.
+
+  - Support full type serialization. Necessary eventually.
+
+  - Requirements
+    + types must be *uniquely identified* throughout a (distributed
+      system). That can be the name or some hash calculated from the
+      struct definition, etc.
+
+    + types must be *registered* with Lua such it knows how to
+      interpret these. Probably there will be several classes: 
+
+      1. plain structs (easy using ffi)
+      2. protocol buffers
+      3. ROS types
+      4. luabind
+      5. ...
+
+
+* Future Ideas
+** C only definition?
+
+    - How to define type ports, configuration, etc.
+
+** event driven ports
+
+  How to support event-driven ports? when storing data in an event
+  port, set owner component as runnable. Or instead offer a trigger
+  method that can be implemented by the activity mechanism?  I.e. a
+  static schedule will ignore the request, but a thread will be woken
+  up?
+
+
+* Future Ideas
+
+  - Auto-generating fblocks from Linux drivers (or interfaces) maybe
+    from sysfs?
+
+
+
