@@ -5,7 +5,7 @@
 
 /* normally the user would have to box/unbox his value himself. This
  * would generate a typed, automatic boxing version for
- * conveniance. */
+ * convenience. */
 #define gen_write(function_name, typename) \
 void function_name(u5c_port* port, typename *outval) \
 { \

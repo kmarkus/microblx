@@ -29,10 +29,12 @@ struct rand_config config = { .min = 10, .max=1000 };
 static int init(u5c_component *c)
 {
 	DBG("");
-	c->ports = malloc(3*sizeof(u5c_port*));
-	c->ports[0] = alloc_port("random", PORT_DIR_OUT, "int");
-	c->ports[1] = alloc_port("seed", PORT_DIR_IN, "long int");
-	c->ports[2] = NULL;
+	/* this is dynamic port creation:
+	   c->ports = malloc(3*sizeof(u5c_port*));
+	   c->ports[0] = alloc_port("random", PORT_DIR_OUT, "int");
+	   c->ports[1] = alloc_port("seed", PORT_DIR_IN, "long int");
+	   c->ports[2] = NULL;
+	*/
 
 	/* alloc all component data here: component, ports, config */
 	return 0;

@@ -13,23 +13,63 @@
 * Requirements
 
   - *Block model*: in, in-event/out ports
+  - a block must have life-cycle.
   - Meta-data: used to define constraints on blocks, periodicity,
     etc. JSON? or pure lua
   - Ports: in/outs (correspond to in-args and out-args + retval)
-  - Composition of blocks.
+  - Composition of blocks. different methods possible:
+    - using functional programming
+    - specifying all connections. this connections-spec can then be
+      compiled into one single new function block or just
+      instantiated.
+
   - Pure C + Lua. Light, embeddable.
   - Dynamic creation of interfaces: ie. dynamic creation of youbot arms.
+    - dynamically adding ports vs. dynamically instatiation
+      subcomponents. For the youbot subcomponents would work
+      nicely. But if you want to handle an unkown amount of identical
+      devices (minor#) the dynamical version is better.
+
 
 Interaction model: defines what happens on read-write to a port,
 i.e. buffering, rendevouz, sending via network. See also Ptolomy.
 
 * Elements
 
+  - Should we separate between types and instances: ComponentDef
+    vs. ComponentInst? Probably yes!
+
 ** Components:
    define:
    - set of typed in and out ports
    - configuration
    - activity
+   issues:
+   - thread safety: instances must not share mutable data!
+
+   interface representation
+   - declarative yaml vs. procedural C interface. -> both necessary,
+     even if the former should be preferred normally.
+
+** Interactions
+
+** Ports
+
+
+** Type (only fixed size)
+
+   - universally unique and human readable ID
+   - ffi spec. should this be optional or not?
+   - attributes: fixed size/variable size
+   - serialization
+     - serialize/deserialize functions
+     - type: boost serial, GooglePB, ...
+     - autoserialize using ffi spec info?!
+   - 
+
+** Value
+   - type
+   - void data*
 
 * Big questions
 
@@ -49,7 +89,9 @@ i.e. buffering, rendevouz, sending via network. See also Ptolomy.
     (potentially automatically) but that may be non-intuitve. Ok for
     first go.
 
-  - Support full type serialization. Necessary eventually.
+  - Support full type serialization. Necessary eventually.  But
+    serialization should only take place when necessary, e.g. upon
+    leaving a process boundary.
 
   - Requirements
     + types must be *uniquely identified* throughout a (distributed
