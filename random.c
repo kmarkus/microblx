@@ -14,17 +14,14 @@
 # define DBG(fmt, args...)  do {} while (0)
 #endif
 
-static u5c_port pout_random = { .name="random", .attrs=PORT_DIR_OUT, .data_type="long int" };
+/* static u5c_port pout_random = { .name="random", .attrs=PORT_DIR_OUT, .data_type="long int" }; */
 
 u5c_port ports[] = {
-
 	{ .name="seed", .attrs=PORT_DIR_IN, .data_type="unsigned int" },
 	{ NULL },
 };
 
 struct rand_config config = { .min = 10, .max=1000 };
-
-
 
 static int init(u5c_component *c)
 {
@@ -40,22 +37,14 @@ static int init(u5c_component *c)
 	return 0;
 }
 
-static void exec(u5c_component *c)
-{
-	DBG("");
-
-}
-
-static void cleanup(u5c_component *c)
-{
-	DBG("");
-}
+static void exec(u5c_component *c) { DBG(""); }
+static void cleanup(u5c_component *c) { DBG(""); }
 
 /* The following fields are filled in dynamically:
  * name
  */
-u5c_component comp = {
-	.type = "random",
+u5c_component random_comp = {
+	.name = "random",
 	.meta = "{ \"doc\": a generator of random numbers, \"license\": LGPL }",
 	.config = { .type = "struct rand_config", .data = &config },
 	.ports = ports,
@@ -63,3 +52,16 @@ u5c_component comp = {
 	.exec = exec,
 	.cleanup = cleanup,
 };
+
+static int random_init(void)
+{
+	return register_component(&random_comp);
+}
+
+static void random_cleanup(void)
+{
+	unregister_component(&random_comp);
+}
+
+fblock_init(random_init)
+fblock_cleanup(random_cleanup)

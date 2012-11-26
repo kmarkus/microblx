@@ -1,7 +1,7 @@
 CFLAGS=-Wall -Werror
 
-testcomp: testcomp.c u5c.h
-	gcc -c ${CFLAGS} testcomp.c
+random: random.c u5c.h
+	gcc -c ${CFLAGS} random.c
 
 clean:
 	rm -f *.o *~

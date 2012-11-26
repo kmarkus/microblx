@@ -9,6 +9,16 @@ function read_header(fname)
    return contents
 end
 
-ffi.cdef(read_header("test_type.h"))
+struct_rand_config = ffi.cdef(read_header("struct_rand_config.h"))
 
-print(ffi.C.new("struct kdl_vector"))
+x = ffi.new("struct rand_config")
+print(x)
+print(ffi.typeof(x))
+print(x.min)
+print("offset min:", ffi.offsetof(x, "min"));\
+
+print("offset max:", ffi.offsetof(x, "max"));
+print("offset asd:", ffi.offsetof(x, "asd"));
+x.min=3
+print(x.min)
+print(getmetatable(x))
