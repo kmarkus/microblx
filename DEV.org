@@ -9,6 +9,7 @@
 - http://gcc.gnu.org/onlinedocs/cpp/Macros.html
 - http://luajit.org/ext_ffi.html
 - http://www.zeromq.org/intro:start
+- https://live.gnome.org/GObjectIntrospection/
 
 - http://www.isotton.com/devel/docs/C++-dlopen-mini-HOWTO/C++-dlopen-mini-HOWTO.html
 
@@ -45,6 +46,11 @@
       devices (minor#) the dynamical version is better. Thread safety,
       no statics!
 
+* Example use cases that must be nicely satisfied
+  - youbot driver: autodetection of arms
+  - local function calls: i.e. how to plug services
+  - 
+
 
 Interaction model: defines what happens on read-write to a port,
 i.e. buffering, rendevouz, sending via network. See also Ptolomy.
@@ -71,6 +77,35 @@ i.e. buffering, rendevouz, sending via network. See also Ptolomy.
      of data must be represented in the meta-data (two options:
      inport->outport tag or bidirectional port.)
 
+** Ports
+   
+   Bidirectional ports are useful for properties that can be read or
+   written. Possible to "disable", e.g. writing/reading will cause an
+   error. Or should this be in the interaction? *-> no, whether a
+   parameter can be changed at runtime or not depends on the block*
+   
+   - Port states: PORT_DISBALED | PORT_ENABLED
+     
+
+   
+
+*** Triggering
+    
+    Distinguish between =triggered= and =stepped=? I.e. a component
+    must be triggered by the availability of data before it can be
+    stepped.
+
+    Trigger specification language?
+    trigger{(p1:new or p2:new) and p3:data}
+
+    =new=: new data available
+    =data=: old or new, but not none
+    =dontcare=: whatever
+
+    Maybe triggering should be an additional debugging layer.
+
+
+
 ** Interactions
    this is a special component that implements read and write and that
    can define ports to represent different
@@ -84,15 +119,32 @@ i.e. buffering, rendevouz, sending via network. See also Ptolomy.
    - control oriented interactions:
      - may block the writer/reader
 
+   - Can all locking be contained in interactions?
+     E.g. multiplexer:
 
-** Ports
-   
-   Bidirectional ports are useful for properties that can be read or
-   written. Possible to "disable", e.g. writing/reading will cause an
-   error. Or should this be in the interaction?
-   
-   Port states: PORT_DISBALED | PORT_ENABLED |
 
+
+** Function calls on Function Blocks
+   
+   fb {
+     pin i1, i2;
+     pout out1;
+     pout out2;
+     pout out3;
+   }
+
+   call{name="foo", in={i1,i2}, out={out1&out2&out3}}
+   
+   foo(1,2} -> <out1>, <out2>, <out3>
+
+   Use cases for this
+
+   - pluggable functions: i.e. itasc solver
+   - causing side-effects, ie. print_this
+
+     Making this explicit adds structure, but its not a fundamental
+     requirement. All you need is the ability to drop in a custom fb
+     into an existing composition, i.e. a parametrizable composite.
 
 ** Type (only fixed size)
 
@@ -156,6 +208,10 @@ i.e. buffering, rendevouz, sending via network. See also Ptolomy.
       4. luabind
       5. ...
 
+
+* Compilation
+  
+  A composition of blocks needs to be compilable into a new block.
 
 * Future Ideas
 
