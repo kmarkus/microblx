@@ -3,6 +3,13 @@
 #+STARTUP: hidestars
 
 
+* Milestones
+  - [ ] Launch the random component stdalone and test it from the lua
+    cmdline: configure seed, write, step, read.
+
+  - [ ] Connect two components with an interaction and exchange data
+
+  - [ ] Build a more complex topology
 
 * Important Links
 
@@ -49,11 +56,11 @@
 * Example use cases that must be nicely satisfied
   - youbot driver: autodetection of arms
   - local function calls: i.e. how to plug services
-  - 
+  - adding support for nasty C++ types.
 
 
-Interaction model: defines what happens on read-write to a port,
-i.e. buffering, rendevouz, sending via network. See also Ptolomy.
+  Interaction model: defines what happens on read-write to a port,
+  i.e. buffering, rendevouz, sending via network. See also Ptolomy.
 
 * Elements
 
@@ -85,9 +92,16 @@ i.e. buffering, rendevouz, sending via network. See also Ptolomy.
    parameter can be changed at runtime or not depends on the block*
    
    - Port states: PORT_DISBALED | PORT_ENABLED
-     
 
-   
+   - No OldData! Old is a too fuzzy concept, and causes a lot of
+     problems, such as *ancient* data lingering and causing extreme
+     motions etc.
+
+     The OldData can be realized by an interaction which returns a
+     piece of data on read while it can be considered new.
+
+
+
 
 *** Triggering
     
@@ -95,32 +109,118 @@ i.e. buffering, rendevouz, sending via network. See also Ptolomy.
     must be triggered by the availability of data before it can be
     stepped.
 
-    Trigger specification language?
-    trigger{(p1:new or p2:new) and p3:data}
+    1. Trigger specification language?
+          =trigger{(p1:new or p2:new) and p3:data}=
 
+    2. Components could define is_triggered C function:
+       If not available assumes that is always triggered.
+    
     =new=: new data available
     =data=: old or new, but not none
     =dontcare=: whatever
 
     Maybe triggering should be an additional debugging layer.
 
+    *Open issue*
+     Passive vs. active components:
+     - should comm comps always be passive?
+     - How to realize "pull" semantics, i.e. have a read trigger the
+       generation of data.
+
+       a) via a /pull/ communication comp: use the computational
+       components =read= to trigger a producer to generate data that
+       can be returned to the read callee.
+
 
 
 ** Interactions
+
    this is a special component that implements read and write and that
-   can define ports to represent different
+   can define ports itself to represent different
    information. e.g. statistics, errors, etc.
-      
+
+          
    - communication like interactions:
      - dataport: just store one sample, no locks.
      - buffer: store multiple.
      - multiplexer: one in- multiple
 
    - control oriented interactions:
-     - may block the writer/reader
-
+     - may block the writer/reader, ie. CSP alike rendevouz:
+       
+    
    - Can all locking be contained in interactions?
      E.g. multiplexer:
+
+     *Danger:* calling read/write on a port not connected to an
+     interaction will call a segfault. Solutions: Always attach a
+     dummy interaction, or use a port_write(port, data) function that
+     checks instead of doing port->write yourself.
+
+     Use cases:
+     
+     - Connect one-to-one
+     - Connect one-to-many
+     - Connect many-to-one
+
+
+   (Where are locks needed?)
+   
+   - For connecting and disconnecting ports with
+     interactions. Possibly this function pointer setting can be done
+     using atomic ops.
+
+
+   
+
+** Buffering and zero copy semantics
+
+   One-to-one:
+
+   c1.a ->[i]-> c2.b
+
+   - write(): interaction provided write is called and data stored in
+     interaction buffer.
+
+   - read(): interaction provided read is called and returns the data.
+
+   - in this case the interaction requires no activity itself! But for
+     a remote interaction (ZMQ) there might be a thread allocated for
+     sending out data.
+
+   - Copy semantics:
+     1. With copying: c1 has it's own copy of the data. When it writes
+        to port 'a', the interaction [i] makes a copy. c2.b again has
+        it's own copy => *two copies*
+
+     2. The c2 attaches its buffer to the read-port. When c1 writes,
+        the interaction directly stores the data into the c2's read
+        buffer.
+
+     3. Zero copying: 
+	
+	Rule: Writing means releasing data. Could check this with
+        reference count (ie. it is an error if refcnt is != 0 on
+        write). Thus, buffer interactions only store data-objects
+        (pointers to data).
+	
+	Collect when refcnt goes 0.
+
+   - How to support both?
+     1. DIY version of RTT
+     2. v2 if possible
+
+	
+   
+
+   One-to-many:
+
+     c1.a -> [i] -> c2.b
+                 -> c3.c 
+
+     write as above.
+     read must either a) lock b) 
+
 
 
 
@@ -145,6 +245,8 @@ i.e. buffering, rendevouz, sending via network. See also Ptolomy.
      Making this explicit adds structure, but its not a fundamental
      requirement. All you need is the ability to drop in a custom fb
      into an existing composition, i.e. a parametrizable composite.
+
+     A C representation of a call is necessary! Plugin modules!
 
 ** Type (only fixed size)
 
@@ -231,4 +333,9 @@ i.e. buffering, rendevouz, sending via network. See also Ptolomy.
    from sysfs?
 
 
+
+* Debunking (robotic) software framework myths
+
+  - They are very complicated and hence must be developed my many
+    people or by few people for a long time.
 

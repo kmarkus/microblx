@@ -1,7 +1,10 @@
 CFLAGS=-Wall -Werror
 
-random: random.c u5c.h
-	gcc -c ${CFLAGS} random.c
+random.so: random.o
+	gcc -shared -o random.so random.o
+
+random.o: random.c u5c.h
+	gcc -fPIC -c ${CFLAGS} random.c
 
 clean:
-	rm -f *.o *~
+	rm -f *.o *.so *~

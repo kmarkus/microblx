@@ -1,18 +1,14 @@
 /*
  * A fblock that generates random numbers.
  */
+
+
+
+#define DEBUG 1
 #include <stdio.h>
 #include "u5c.h"
 
 #include "struct_rand_config.h"
-
-#ifdef DEBUG
-# define DBG(fmt, args...) ( fprintf(stderr, "%s: ", __FUNCTION__), \
-			     fprintf(stderr, fmt, ##args),	    \
-			     fprintf(stderr, "\n") )
-#else
-# define DBG(fmt, args...)  do {} while (0)
-#endif
 
 /* static u5c_port pout_random = { .name="random", .attrs=PORT_DIR_OUT, .data_type="long int" }; */
 
@@ -25,7 +21,7 @@ struct rand_config config = { .min = 10, .max=1000 };
 
 static int init(u5c_component *c)
 {
-	DBG("");
+	DBG(" ");
 	/* this is dynamic port creation:
 	   c->ports = malloc(3*sizeof(u5c_port*));
 	   c->ports[0] = alloc_port("random", PORT_DIR_OUT, "int");
@@ -37,8 +33,8 @@ static int init(u5c_component *c)
 	return 0;
 }
 
-static void exec(u5c_component *c) { DBG(""); }
-static void cleanup(u5c_component *c) { DBG(""); }
+static void exec(u5c_component *c) { DBG(" "); }
+static void cleanup(u5c_component *c) { DBG(" "); }
 
 /* The following fields are filled in dynamically:
  * name
@@ -55,12 +51,15 @@ u5c_component random_comp = {
 
 static int random_init(void)
 {
-	return register_component(&random_comp);
+	DBG(" ");	
+	/* return register_component(&random_comp); */
+	return 0;
 }
 
 static void random_cleanup(void)
 {
-	unregister_component(&random_comp);
+	DBG(" ");
+	/* unregister_component(&random_comp); */
 }
 
 fblock_init(random_init)
