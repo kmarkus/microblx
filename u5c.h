@@ -14,7 +14,7 @@ typedef int(*u5c_deserialize)(void*, struct u5c_value*);
 
 /* a typed */
 typedef struct u5c_type {
-	const char* name;		/* name */
+	const char* name;		/* name: dir/header.h/struct foo*/
 	uint32_t class;			/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
 	u5c_serialize serialize;	/* optional (de-) serialization */
 	u5c_deserialize deserialize;
@@ -153,9 +153,13 @@ void __cleanup_module(void) { exitfn(); }
 /* 
  * runtime API 
 */
+
+
+/* typically used by a main */
 int u5c_initialize(u5c_node_info* ni);
 void u5c_cleanup(u5c_node_info* ni);
 
+/* used by components, etc */
 int u5c_register_component(u5c_node_info *ni, u5c_component* comp);
 void u5c_unregister_component(u5c_node_info *ni, u5c_component* comp);
 
@@ -181,3 +185,14 @@ int u5c_disconnect(u5c_component* comp1, u5c_component* comp1, u5c_interaction* 
 #else
 # define DBG(fmt, args...)  do {} while (0)
 #endif
+
+#define ERR(fmt, args...) ( fprintf(stderr, "%s: ", __FUNCTION__),	\
+			    fprintf(stderr, fmt, ##args),		\
+			    fprintf(stderr, "\n") )
+
+/* same as ERR but errnum */
+#define ERR2(err_num, fmt, args...) ( fprintf(stderr, "%s: ", __FUNCTION__), \
+				      fprintf(stderr, fmt, ##args), \
+				      fprintf(stderr, ": %s", strerror(err_num)), \
+				      fprintf(stderr, "\n") )
+

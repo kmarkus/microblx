@@ -6,7 +6,7 @@
 void function_name(u5c_port* port, typename *outval) \
 { \
  u5c_value val; \
- val.data = x; \
+ val.data = outval; \
  val.type = port->data_type_id; \
  port->write(&val); \
 } \
@@ -18,7 +18,7 @@ void function_name(u5c_port* port, typename *outval) \
 uint32_t function_name(u5c_port* port, typename *inval) \
 { \
  u5c_value val; \
- val.data = x; \
+ val.data = inval;	  \
  return port->read(&val); \
 } \
 

@@ -14,6 +14,7 @@
 
 u5c_port ports[] = {
 	{ .name="seed", .attrs=PORT_DIR_IN, .data_type="unsigned int" },
+	{ .name="output", .attrs=PORT_DIR_OUT, .data_type="unsigned int" },
 	{ NULL },
 };
 
@@ -41,7 +42,7 @@ static void cleanup(u5c_component *c) { DBG(" "); }
  */
 u5c_component random_comp = {
 	.name = "random",
-	.meta = "{ \"doc\": a generator of random numbers, \"license\": LGPL }",
+	.meta = "{ doc='a generator of random numbers', license='LGPL' }",
 	.config = { .type = "struct rand_config", .data = &config },
 	.ports = ports,
 	.init = init,
