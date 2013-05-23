@@ -12,17 +12,24 @@
 
 /* static u5c_port pout_random = { .name="random", .attrs=PORT_DIR_OUT, .data_type="long int" }; */
 
-u5c_port ports[] = {
+const char* =
+	"{ doc='A random number generator function block',"
+	"  license='LGPL',"
+	"  real-time=true,"
+	"}";
+
+u5c_port_t ports[] = {
 	{ .name="seed", .attrs=PORT_DIR_IN, .data_type="unsigned int" },
 	{ .name="output", .attrs=PORT_DIR_OUT, .data_type="unsigned int" },
 	{ NULL },
 };
 
-struct rand_config config = { .min = 10, .max=1000 };
+gen_read("read_uint", "unsigned int")
 
 static int init(u5c_component *c)
 {
 	DBG(" ");
+	
 	/* this is dynamic port creation:
 	   c->ports = malloc(3*sizeof(u5c_port*));
 	   c->ports[0] = alloc_port("random", PORT_DIR_OUT, "int");
@@ -34,7 +41,15 @@ static int init(u5c_component *c)
 	return 0;
 }
 
-static void exec(u5c_component *c) { DBG(" "); }
+static void exec(u5c_component *c) { 
+	/* cache in instance */
+	DBG(" ");
+	u5c_port_t seed_port* = u5c_get_port(c, "seed");
+	u5c_port_t rand_port* = u5c_get_port(c, "rand");
+
+	int seed = read_int(seed_port);
+}
+
 static void cleanup(u5c_component *c) { DBG(" "); }
 
 /* The following fields are filled in dynamically:
@@ -53,7 +68,7 @@ u5c_component random_comp = {
 static int random_init(void)
 {
 	DBG(" ");	
-	/* return register_component(&random_comp); */
+	return register_component(&random_comp);
 	return 0;
 }
 

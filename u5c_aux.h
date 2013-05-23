@@ -21,5 +21,3 @@ uint32_t function_name(u5c_port* port, typename *inval) \
  val.data = inval;	  \
  return port->read(&val); \
 } \
-
-/* last line */

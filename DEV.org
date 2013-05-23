@@ -3,6 +3,19 @@
 #+STARTUP: hidestars
 
 
+* Focus
+  - only in-out ports (maybe instead of multi-valued ports it's better
+    to solve this at the type level, e.g. define a composite type
+    instead. -> I really think so!)
+
+  - dealing with C-struct types (later: automatic conversion to hdf5
+    and rosmsg)
+
+  - separate definition and instance.
+
+  - 
+    
+
 * Milestones
   - [ ] Launch the random component stdalone and test it from the lua
     cmdline: configure seed, write, step, read.

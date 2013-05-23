@@ -32,7 +32,31 @@ int u5c_register_component(u5c_node_info *ni, u5c_component* comp)
 	ni->components[components_len-1]=comp;
 }
 
+/* lowlevel port read */
+uint32_t __port_read(u5c_port_t* port, u5c_type_t* res)
+{
+	uint32_t ret = PORT_READ_NODATA;
 
+	if (!port) {
+		ERR("port null");
+		ret = PORT_INVALID;
+		goto out;
+	};
+
+	if (port->type && PORT_DIR_OUT) {
+		ERR("can't read out port");
+		ret = PORT_INVALID_TYPE;
+		goto out;
+	};
+
+	if (!port->read || !port->interaction)
+		goto out;
+
+	ret = port->read(port->interaction)
+		
+ out:
+	return ret;
+}
 
 void u5c_unregister_component(u5c_node_info *ni, u5c_component* comp);
 int u5c_register_interaction(u5c_node_info *ni, u5c_interaction* inter);
