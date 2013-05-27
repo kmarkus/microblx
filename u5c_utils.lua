@@ -1,6 +1,6 @@
 local md5sum = require "md5sum"
 
-
+--- Convert a string to a hex representation of a string.
 local function str_to_hexstr(str,spacer)
    return (string.gsub(str,"(.)",
 		       function (c)
@@ -8,9 +8,19 @@ local function str_to_hexstr(str,spacer)
 		       end ) )
 end
 
+--- Generate a hex md5sum of a string.
+-- @param str string to hash
+-- @return hex string
+local function md5sum_hex(str) return str_to_hexstr(md5.sum(str)) end
 
-local function md5sum_hex(str)
-   return str_to_hexstr(md5.sum(str))
+--- Read the entire contents of a file.
+-- @param file name of file
+-- @return string contents
+function read_file(file)
+   local f = io.open(file, "rb")
+   local data = f:read("*all")
+   f:close()
+   return data
 end
 
 
@@ -23,5 +33,6 @@ end
 
 return { 
    str_to_hexstr = str_to_hexstr,
-   md5sum_hex    = md5sum_hex
+   md5sum_hex    = md5sum_hex,
+   read_file	 = read_file,
 }

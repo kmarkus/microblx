@@ -13,7 +13,10 @@
 
   - separate definition and instance.
 
-  - 
+
+* Supporting frameworks
+- uthash
+- libmowgli-2
     
 
 * Milestones

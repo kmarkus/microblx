@@ -1,12 +1,11 @@
 
 -- Lua API for u5c.
--- should sink to c eventually.
+-- should sink to C eventually.
 
 local ffi = require "ffi"
+local u5c_utils = require "u5c_utils"
 
-ffi.cdef[[
-
-]]
+ffi.cdef(u5c_utils.read_file("u5c_types.h"))
 
 ---
 --- Low level plumbing API

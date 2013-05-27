@@ -6,27 +6,30 @@
 
 #define DEBUG 1
 #include <stdio.h>
+#include <stdlib.h>
+
 #include "u5c.h"
 
 #include "struct_rand_config.h"
 
 /* static u5c_port pout_random = { .name="random", .attrs=PORT_DIR_OUT, .data_type="long int" }; */
 
-const char* =
+const char* meta_data =
 	"{ doc='A random number generator function block',"
 	"  license='LGPL',"
 	"  real-time=true,"
 	"}";
 
 u5c_port_t ports[] = {
-	{ .name="seed", .attrs=PORT_DIR_IN, .data_type="unsigned int" },
-	{ .name="output", .attrs=PORT_DIR_OUT, .data_type="unsigned int" },
+	{ .name="seed", .attrs=PORT_DIR_IN, .in_type_name="unsigned int" },
+	{ .name="output", .attrs=PORT_DIR_OUT, .out_type_name="unsigned int" },
 	{ NULL },
 };
 
-gen_read("read_uint", "unsigned int")
+gen_read(read_uint, unsigned int)
+gen_write(write_longint, long int)
 
-static int init(u5c_component *c)
+static int rnd_init(u5c_component_t *c)
 {
 	DBG(" ");
 	
@@ -41,35 +44,49 @@ static int init(u5c_component *c)
 	return 0;
 }
 
-static void exec(u5c_component *c) { 
-	/* cache in instance */
-	DBG(" ");
-	u5c_port_t seed_port* = u5c_get_port(c, "seed");
-	u5c_port_t rand_port* = u5c_get_port(c, "rand");
-
-	int seed = read_int(seed_port);
+static int rnd_start(u5c_component_t *c)
+{
+	uint32_t seed, ret;
+	u5c_port_t* seed_port = u5c_port_get(c, "seed");
+	ret = read_uint(seed_port, &seed);
+	if(ret==PORT_READ_NEWDATA)
+		srandom(seed);
+	DBG("starting component. Using seed: %d", seed);
+	return 0; /* Ok */
 }
 
-static void cleanup(u5c_component *c) { DBG(" "); }
+static void rnd_step(u5c_component_t *c) { 
+	/* cache in instance */
+	long int rand_val;
+
+	DBG(" ");
+
+	u5c_port_t* rand_port = u5c_port_get(c, "rand");
+
+	rand_val = random();
+	write_longint(rand_port, &rand_val);
+}
+
+static void rnd_cleanup(u5c_component_t *c) { DBG(" "); }
 
 /* The following fields are filled in dynamically:
  * name
  */
-u5c_component random_comp = {
+u5c_component_def_t random_comp = {
 	.name = "random",
-	.meta = "{ doc='a generator of random numbers', license='LGPL' }",
+	.meta = meta_data,
 	.config = { .type = "struct rand_config", .data = &config },
 	.ports = ports,
-	.init = init,
-	.exec = exec,
-	.cleanup = cleanup,
+	.init = rnd_init,
+	.start = rnd_start,
+	.step = rnd_step,
+	.cleanup = rnd_cleanup,
 };
 
 static int random_init(void)
 {
 	DBG(" ");	
-	return register_component(&random_comp);
-	return 0;
+	return 0; /* return register_component(&random_comp); */
 }
 
 static void random_cleanup(void)
