@@ -10,17 +10,25 @@
 
 #include "u5c.h"
 
-#include "struct_rand_config.h"
+#include "random_config.h"
 
 /* static u5c_port pout_random = { .name="random", .attrs=PORT_DIR_OUT, .data_type="long int" }; */
 
-const char* meta_data =
+const char rnd_meta[] =
 	"{ doc='A random number generator function block',"
 	"  license='LGPL',"
 	"  real-time=true,"
 	"}";
 
-u5c_port_t ports[] = {
+/* declare configuration */
+struct rand_config config;
+
+const u5c_config_t rnd_config[] = {
+	{ .type_name = "random/struct rand_config", .data = &config },
+	{ NULL },
+};
+
+const u5c_port_t rnd_ports[] = {
 	{ .name="seed", .attrs=PORT_DIR_IN, .in_type_name="unsigned int" },
 	{ .name="output", .attrs=PORT_DIR_OUT, .out_type_name="unsigned int" },
 	{ NULL },
@@ -72,11 +80,11 @@ static void rnd_cleanup(u5c_component_t *c) { DBG(" "); }
 /* The following fields are filled in dynamically:
  * name
  */
-u5c_component_def_t random_comp = {
+u5c_component_t random_comp = {
 	.name = "random",
-	.meta = meta_data,
-	.config = { .type = "struct rand_config", .data = &config },
-	.ports = ports,
+	.meta_data = rnd_meta,
+	.configs = rnd_config,
+	.ports = rnd_ports,
 	.init = rnd_init,
 	.start = rnd_start,
 	.step = rnd_step,

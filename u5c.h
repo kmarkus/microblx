@@ -30,7 +30,7 @@ void function_name(u5c_port_t* port, typename *outval) \
 { \
  u5c_data_t val; \
  val.data = outval; \
- val.type = port->data_type_id; \
+ val.type = port->out_type; \
  __port_write(port, &val);	\
 } \
 
