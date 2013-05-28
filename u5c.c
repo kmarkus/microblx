@@ -1,20 +1,22 @@
 
 #include "u5c.h"
 
-int u5c_initialize(u5c_node_info_t* ni)
+int u5c_node_init(u5c_node_info_t* ni)
 {
-	if(mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
-		ERR2(errno, " ");
-		goto out_err;
-	};
+	/* if(mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { */
+	/* 	ERR2(errno, " "); */
+	/* 	goto out_err; */
+	/* }; */
 
-	ni->cdefs=NULL;
-	ni->cdefs_len=0;
+	ni->components=NULL; ni->components_len=0;
+	ni->interactions=NULL; ni->interactions_len=0;
+	ni->triggers=NULL; ni->triggers_len=0;
+	ni->types=NULL; ni->types_len=0;
 
 	return 0;
 
- out_err:
-	return -1;
+ /* out_err: */
+ /* 	return -1; */
 }
 
 void u5c_cleanup(u5c_node_info_t* ni)
@@ -24,8 +26,8 @@ void u5c_cleanup(u5c_node_info_t* ni)
 
 int u5c_register_component(u5c_node_info_t *ni, u5c_component_t* comp)
 {
-	ni->cdefs = (u5c_component_t**) realloc(ni->cdefs, ++ni->cdefs_len * sizeof(u5c_component_t*));
-	ni->cdefs[ni->cdefs_len-1]=comp;
+	ni->components = (u5c_component_t**) realloc(ni->components, ++ni->components_len * sizeof(u5c_component_t*));
+	ni->components[ni->components_len-1]=comp;
 	return 0;
 }
 
@@ -33,26 +35,26 @@ int u5c_unregister_component(u5c_node_info_t* ni, u5c_component_t* comp)
 {
 	int ret=0;
 
-	if(ni->cdefs_len<=0) {
+	if(ni->components_len<=0) {
 		ERR("no components registered");
 		ret=-1;
 		goto out;
 	};
 
 	/* copy the entry into the one to be removed */
-	if(ni->cdefs_len>=2) {
+	if(ni->components_len>=2) {
 		int i;
-		for(i=0; i<ni->cdefs_len; i++)
-			if(ni->cdefs[i] == comp)
+		for(i=0; i<ni->components_len; i++)
+			if(ni->components[i] == comp)
 				break;
-		ni->cdefs[i] = ni->cdefs[ni->cdefs_len-1];
+		ni->components[i] = ni->components[ni->components_len-1];
 	}
 
-	/* if cdefs_len=1 the array simple is destructed */
+	/* if components_len=1 the array simple is destructed */
 	
 
 	/* shrink by one */
-	ni->cdefs = (u5c_component_t**) realloc(ni->cdefs, --ni->cdefs_len * sizeof(u5c_component_t*));
+	ni->components = (u5c_component_t**) realloc(ni->components, --ni->components_len * sizeof(u5c_component_t*));
  out:
 	return ret;
 }

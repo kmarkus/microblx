@@ -14,6 +14,6 @@ ni=ffi.new("u5c_node_info_t")
 comp = ffi.load("./random.so")
 
 comp.__initialize_module(ni)
-print(ni.cdefs_len)
+print(ni.components_len)
 comp.__cleanup_module(ni)
-print(ni.cdefs_len)
+print(ni.components_len)

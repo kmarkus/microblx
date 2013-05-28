@@ -183,15 +183,17 @@ typedef struct u5c_trigger {
 typedef struct u5c_node_info {
 	const char *name;
 
-	u5c_component_t **cdefs;	  /* known component types */
-	uint32_t cdefs_len;
+	u5c_component_t **components;	  /* known component types */
+	uint32_t components_len;
 
-	u5c_interaction_t **idefs;	  /* known interaction types */
-	uint32_t idefs_len;
+	u5c_interaction_t **interactions;	  /* known interaction types */
+	uint32_t interactions_len;
 
-	u5c_type_t **tdefs;		  /* known types */
-	uint32_t tdefs_len;
+	u5c_trigger_t **triggers;
+	uint32_t triggers_len;
 
+	u5c_type_t **types;		  /* known types */
+	uint32_t types_len;
 } u5c_node_info_t;
 
 
