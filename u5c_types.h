@@ -209,16 +209,16 @@ void u5c_node_cleanup(u5c_node_info_t* ni);
 
 /* register/unregister different entities */
 int u5c_register_component(u5c_node_info_t *ni, u5c_component_t* comp);
-void u5c_unregister_component(u5c_node_info_t *ni, u5c_component_t* comp);
+int u5c_unregister_component(u5c_node_info_t *ni, u5c_component_t* comp);
 
 int u5c_register_type(u5c_node_info_t* ni, u5c_type_t* type);
-void u5c_unregister_type(u5c_node_info_t* ni, u5c_type_t* type);
+int u5c_unregister_type(u5c_node_info_t* ni, u5c_type_t* type);
 
 int u5c_register_interaction(u5c_node_info_t* ni, u5c_interaction_t* inter);
 void u5c_unregister_interaction(u5c_node_info_t* ni, u5c_interaction_t* inter);
 
 int u5c_register_trigger(u5c_node_info_t* ni, u5c_trigger_t* inter);
-void u5c_unregister_trigger(u5c_node_info_t* ni, u5c_trigger_t* inter);
+int u5c_unregister_trigger(u5c_node_info_t* ni, u5c_trigger_t* inter);
 
 /* int u5c_register_trig(u5c_node_info_t* ni, u5c_interaction_t* inter); */
 /* void u5c_unregister_trigger(u5c_node_info_t* ni, u5c_interaction_t* inter); */
@@ -237,4 +237,8 @@ u5c_port_t* u5c_port_rm(u5c_component_t* comp);
 
 uint32_t __port_read(u5c_port_t* port, u5c_data_t* res);
 void __port_write(u5c_port_t* port, u5c_data_t* res);
+
+/* module init/cleanup */
+int __initialize_module(u5c_node_info_t* ni);
+void __cleanup_module(u5c_node_info_t* ni);
 

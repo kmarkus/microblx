@@ -1,4 +1,4 @@
-local md5sum = require "md5sum"
+local md5 = require "md5"
 
 --- Convert a string to a hex representation of a string.
 local function str_to_hexstr(str,spacer)

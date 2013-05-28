@@ -1,15 +1,15 @@
-CFLAGS=-Wall -Werror
+CFLAGS=-Wall -Werror -g
 
-all: u5c.so random.so
+all: libu5c.so random.so
 
-u5c.so: u5c.o
-	gcc -shared -o u5c.so u5c.o
+libu5c.so: u5c.o
+	gcc -shared -o libu5c.so u5c.o
 
 u5c.o: u5c.c u5c.h
 	gcc -fPIC -c ${CFLAGS} u5c.c
 
-random.so: random.o
-	gcc -shared -o random.so random.o
+random.so: random.o libu5c.so
+	gcc -shared -l:./libu5c.so -o random.so random.o
 
 random.o: random.c u5c.h
 	gcc -fPIC -c ${CFLAGS} random.c

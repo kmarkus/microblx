@@ -8,9 +8,8 @@ int u5c_initialize(u5c_node_info_t* ni)
 		goto out_err;
 	};
 
-	/* ni->components=NULL; components_len=0; */
-	/* ni->interactions=NULL; interactions_len=0; */
-	/* ni->types=NULL; types_len=0; */
+	ni->cdefs=NULL;
+	ni->cdefs_len=0;
 
 	return 0;
 
@@ -23,12 +22,39 @@ void u5c_cleanup(u5c_node_info_t* ni)
 	/* */
 }
 
-int u5c_register_component(u5c_node_info_t *ni, u5c_component_def_t* comp)
+int u5c_register_component(u5c_node_info_t *ni, u5c_component_t* comp)
 {
-	/* sarray = (structName **) realloc(sarray, (sarray_len + offset) * sizeof(structName *)); */
-	ni->cdefs = (u5c_component_def_t**) realloc(ni->cdefs, ++ni->cdefs_len * sizeof(u5c_component_def_t*));
+	ni->cdefs = (u5c_component_t**) realloc(ni->cdefs, ++ni->cdefs_len * sizeof(u5c_component_t*));
 	ni->cdefs[ni->cdefs_len-1]=comp;
 	return 0;
+}
+
+int u5c_unregister_component(u5c_node_info_t* ni, u5c_component_t* comp)
+{
+	int ret=0;
+
+	if(ni->cdefs_len<=0) {
+		ERR("no components registered");
+		ret=-1;
+		goto out;
+	};
+
+	/* copy the entry into the one to be removed */
+	if(ni->cdefs_len>=2) {
+		int i;
+		for(i=0; i<ni->cdefs_len; i++)
+			if(ni->cdefs[i] == comp)
+				break;
+		ni->cdefs[i] = ni->cdefs[ni->cdefs_len-1];
+	}
+
+	/* if cdefs_len=1 the array simple is destructed */
+	
+
+	/* shrink by one */
+	ni->cdefs = (u5c_component_t**) realloc(ni->cdefs, --ni->cdefs_len * sizeof(u5c_component_t*));
+ out:
+	return ret;
 }
 
 /* lowlevel port read */
@@ -52,7 +78,7 @@ uint32_t __port_read(u5c_port_t* port, u5c_data_t* res)
 		goto out;
 
 	/* this is madness */
-	ret = port->in_interaction->interaction_def->read(port->in_interaction, res);
+	ret = port->in_interaction->read(port->in_interaction, res);
 		
  out:
 	return ret;

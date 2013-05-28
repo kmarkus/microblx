@@ -91,16 +91,16 @@ u5c_component_t random_comp = {
 	.cleanup = rnd_cleanup,
 };
 
-static int random_init(void)
+static int random_init(u5c_node_info_t* ni)
 {
 	DBG(" ");	
-	return 0; /* return register_component(&random_comp); */
+	return u5c_register_component(ni, &random_comp);
 }
 
-static void random_cleanup(void)
+static void random_cleanup(u5c_node_info_t *ni)
 {
 	DBG(" ");
-	/* unregister_component(&random_comp); */
+	u5c_unregister_component(ni, &random_comp);
 }
 
 fblock_init(random_init)
