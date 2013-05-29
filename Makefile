@@ -11,7 +11,7 @@ u5c.o: u5c.c u5c.h
 random.so: random.o libu5c.so
 	gcc -shared -l:./libu5c.so -o random.so random.o
 
-random.o: random.c u5c.h
+random.o: random.c libu5c.so
 	gcc -fPIC -c ${CFLAGS} random.c
 
 clean:

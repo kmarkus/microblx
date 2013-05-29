@@ -15,7 +15,7 @@ typedef struct u5c_serialization {
 
 	int(*serialize)(struct u5c_data*, char* buffer, uint32_t max_size); 
 	int(*deserialize)(void*, struct u5c_data*);
-	/* UT_hash_handle hh; */
+	UT_hash_handle hh;
 } u5c_serialization_t;
 
 
@@ -30,7 +30,7 @@ typedef struct u5c_type {
 	const char* name;		/* name: dir/header.h/struct foo*/
 	uint32_t class;			/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
 	u5c_serialization_t* serializations;
-	/* UT_hash_handle hh; */
+	UT_hash_handle hh;
 } u5c_type_t;
 
 typedef struct u5c_data {
@@ -123,8 +123,10 @@ typedef struct u5c_component {
 
 	/* statistics, todo step duration */
 	uint32_t stat_num_steps;
-	
+
 	void* private_data;
+
+	UT_hash_handle hh;
 
 } u5c_component_t;
 
@@ -151,8 +153,8 @@ typedef struct u5c_interaction {
 	void(*write)(struct u5c_interaction* interaction, u5c_data_t* value);
 
 	struct u5c_interaction* prototype;
-	struct u5c_interaction** instances;
 
+	UT_hash_handle hh;
 } u5c_interaction_t;
 
 
@@ -174,6 +176,8 @@ typedef struct u5c_trigger {
 
 	/* List of component to trigger */
 	u5c_component_t **trig_comps;
+
+	UT_hash_handle hh;
 } u5c_trigger_t;
 
 
@@ -183,17 +187,11 @@ typedef struct u5c_trigger {
 typedef struct u5c_node_info {
 	const char *name;
 
-	u5c_component_t **components;	  /* known component types */
-	uint32_t components_len;
-
-	u5c_interaction_t **interactions;	  /* known interaction types */
-	uint32_t interactions_len;
-
-	u5c_trigger_t **triggers;
-	uint32_t triggers_len;
-
-	u5c_type_t **types;		  /* known types */
-	uint32_t types_len;
+	u5c_component_t *components;	 	/* known component types */
+	u5c_interaction_t *interactions;	/* known interaction types */
+	u5c_trigger_t *triggers;		/* known trigger types */
+	u5c_type_t *types;			/* known types */
+	
 } u5c_node_info_t;
 
 
@@ -211,7 +209,8 @@ void u5c_node_cleanup(u5c_node_info_t* ni);
 
 /* register/unregister different entities */
 int u5c_register_component(u5c_node_info_t *ni, u5c_component_t* comp);
-int u5c_unregister_component(u5c_node_info_t *ni, u5c_component_t* comp);
+int u5c_unregister_component(u5c_node_info_t *ni, const char* name);
+int u5c_num_components(u5c_node_info_t* ni);
 
 int u5c_register_type(u5c_node_info_t* ni, u5c_type_t* type);
 int u5c_unregister_type(u5c_node_info_t* ni, u5c_type_t* type);
@@ -225,7 +224,7 @@ int u5c_unregister_trigger(u5c_node_info_t* ni, u5c_trigger_t* inter);
 /* int u5c_register_trig(u5c_node_info_t* ni, u5c_interaction_t* inter); */
 /* void u5c_unregister_trigger(u5c_node_info_t* ni, u5c_interaction_t* inter); */
 
-int u5c_create_component(char *type, char* name);
+int u5c_create_component(u5c_node_info_t* ni, const char *type, const char* name);
 int u5c_destroy_component(char *name);
 
 int u5c_connect(u5c_component_t* comp1, u5c_component_t* comp2, u5c_interaction_t* ia);
@@ -243,4 +242,16 @@ void __port_write(u5c_port_t* port, u5c_data_t* res);
 /* module init/cleanup */
 int __initialize_module(u5c_node_info_t* ni);
 void __cleanup_module(u5c_node_info_t* ni);
+
+
+
+
+
+
+
+
+
+
+
+
 

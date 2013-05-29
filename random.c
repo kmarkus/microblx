@@ -100,7 +100,7 @@ static int random_init(u5c_node_info_t* ni)
 static void random_cleanup(u5c_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_unregister_component(ni, &random_comp);
+	u5c_unregister_component(ni, "random");
 }
 
 fblock_init(random_init)
