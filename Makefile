@@ -1,4 +1,4 @@
-CFLAGS=-Wall -Werror -g
+CFLAGS=-Wall -Werror -g -ggdb
 
 all: libu5c.so random.so
 
@@ -15,4 +15,4 @@ random.o: random.c libu5c.so
 	gcc -fPIC -c ${CFLAGS} random.c
 
 clean:
-	rm -f *.o *.so *~
+	rm -f *.o *.so *~ core

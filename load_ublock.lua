@@ -20,5 +20,12 @@ comp = ffi.load("./random.so")
 print(u5c.u5c_num_components(ni))
 comp.__initialize_module(ni)
 print(u5c.u5c_num_components(ni))
+
+
+rnd_inst = u5c.u5c_create_component(ni, "random", "random1")
+
+
 comp.__cleanup_module(ni)
 print(u5c.u5c_num_components(ni))
+
+

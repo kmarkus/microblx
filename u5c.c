@@ -1,4 +1,5 @@
 
+#define DEBUG 1
 #include "u5c.h"
 
 int u5c_node_init(u5c_node_info_t* ni)
@@ -66,31 +67,93 @@ int u5c_num_components(u5c_node_info_t* ni)
 	return HASH_COUNT(ni->components);
 }
 
-/* clone component */
-int u5c_create_component(u5c_node_info_t* ni, const char* type, const char* name)
+/* create a copy of the given port
+ * Function ALLOCATES
+ */
+int u5c_clone_port_data(const u5c_port_t *psrc, u5c_port_t *pcopy)
 {
-	int ret = -1;
-	/* find prototype */
-	u5c_component_t *newc, *prot;
+	DBG("cloning port 0x%lx, '%s'\n", (uint64_t) psrc, psrc->name);
 
+	memset(pcopy, 0x0, sizeof(u5c_port_t));
+
+	if((pcopy->name=strdup(psrc->name))==NULL)
+		goto out_err;
+
+	if(psrc->meta_data)
+		if((pcopy->meta_data=strdup(psrc->meta_data))==NULL)
+			goto out_err_free;
+
+	if(psrc->in_type_name)
+		if((pcopy->in_type_name=strdup(psrc->in_type_name))==NULL)
+			goto out_err_free;
+
+	if(psrc->out_type_name)
+		if((pcopy->out_type_name=strdup(psrc->out_type_name))==NULL)
+			goto out_err_free;
+	
+	pcopy->attrs=psrc->attrs;
+	pcopy->state=psrc->state;
+
+	/* all ok */
+	return 0;
+
+ out_err_free:
+	if(pcopy->out_type_name) free(pcopy->out_type_name);
+	if(pcopy->in_type_name) free(pcopy->in_type_name);
+	if(pcopy->meta_data) free(pcopy->meta_data);
+	if(pcopy->name) free(pcopy->name);
+ out_err:
+ 	return -1;
+}
+
+/* clone component
+ * Function ALLOCATES
+ */
+u5c_component_t* u5c_create_component(u5c_node_info_t* ni, const char* type, const char* name)
+{
+	int i;
+	u5c_component_t *newc, *prot;
+	const u5c_port_t *port_ptr;
+
+	/* find prototype */
 	HASH_FIND_STR(ni->components, type, prot);
 
 	if(prot==NULL) {
 		ERR("no component definition named '%s'.", type);
-		goto out;
+		goto out_err;
 	}
 
 	/* clone */
 	newc = malloc(sizeof(u5c_component_t));
-	memcpy(newc, prot, sizeof(u5c_component_t));
-	newc->name=strdup(name);
+	memset(newc, 0x0, sizeof(u5c_component_t));
+	
+	if((newc->name=strdup(name))==NULL) goto out_free_all;
+	if((newc->meta_data=strdup(prot->meta_data))==NULL) goto out_free_all;
+	if((newc->prototype=strdup(prot->name))==NULL) goto out_free_all;
 
-	/* to be continued */
+	/* ports */
+	for(port_ptr=prot->ports,i=1; port_ptr->name!=NULL; port_ptr++,i++) {
+		newc->ports = realloc(newc->ports, sizeof(u5c_port_t) * i);
+		if (newc->ports==NULL)
+			goto out_free_all;
+		if(u5c_clone_port_data(port_ptr, &newc->ports[i-1]) != 0)
+			goto out_free_all;
+	}
+
+	newc->ports = realloc(newc->ports, sizeof(u5c_port_t) * (i+1));
+	memset(&newc->ports[i], 0x0, sizeof(u5c_port_t));
 
 	/* all ok */
-	ret=0;
- out:
-	return ret;
+	return newc;
+
+ out_free_all:
+	if(newc->prototype) free(newc->prototype);
+	if(newc->meta_data) free(newc->meta_data);
+	if(newc->name) free(newc->name);
+	if(newc) free(newc);
+ out_err:
+	ERR("insufficient memory");
+	return NULL;
 }
 
 /* lowlevel port read */

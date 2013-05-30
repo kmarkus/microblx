@@ -65,12 +65,12 @@ enum {
  * no distinction between type and value
  */
 typedef struct u5c_port {
-	const char* name;		/* name of port */
-	const char* in_type_name;	/* string data type name */
-	const char* out_type_name;	/* string data type name */
+	char* name;		/* name of port */
+	char* in_type_name;	/* string data type name */
+	char* out_type_name;	/* string data type name */
 
-	const u5c_type_t* in_type;    	/* filled in automatically */
-	const u5c_type_t* out_type;    	/* filled in automatically */
+	u5c_type_t* in_type;    	/* filled in automatically */
+	u5c_type_t* out_type;    	/* filled in automatically */
 
 	char* meta_data;		/* doc, etc. */
 	uint32_t attrs;			/* FP_DIR_IN or FP_DIR_OUT */
@@ -105,10 +105,10 @@ typedef struct u5c_config {
 
 /* component definition */
 typedef struct u5c_component {
-	const char* name;	/* type name */
-	const char* meta_data;	/* doc, etc. */
+	char* name;	/* type name */
+	char* meta_data;	/* doc, etc. */
 
-	const u5c_port_t* ports;
+	u5c_port_t* ports;
 	const u5c_config_t* configs;
 
 	/* component methods */
@@ -118,8 +118,7 @@ typedef struct u5c_component {
 	void(*cleanup) (struct u5c_component*);
 	void(*step) (struct u5c_component*);
 
-	struct u5c_component* prototype;
-	struct u5c_component** instances;
+	char *prototype; /* name of prototype, NULL if none */
 
 	/* statistics, todo step duration */
 	uint32_t stat_num_steps;
@@ -224,7 +223,7 @@ int u5c_unregister_trigger(u5c_node_info_t* ni, u5c_trigger_t* inter);
 /* int u5c_register_trig(u5c_node_info_t* ni, u5c_interaction_t* inter); */
 /* void u5c_unregister_trigger(u5c_node_info_t* ni, u5c_interaction_t* inter); */
 
-int u5c_create_component(u5c_node_info_t* ni, const char *type, const char* name);
+u5c_component_t* u5c_create_component(u5c_node_info_t* ni, const char *type, const char* name);
 int u5c_destroy_component(char *name);
 
 int u5c_connect(u5c_component_t* comp1, u5c_component_t* comp2, u5c_interaction_t* ia);
@@ -242,16 +241,3 @@ void __port_write(u5c_port_t* port, u5c_data_t* res);
 /* module init/cleanup */
 int __initialize_module(u5c_node_info_t* ni);
 void __cleanup_module(u5c_node_info_t* ni);
-
-
-
-
-
-
-
-
-
-
-
-
-

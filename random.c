@@ -2,9 +2,8 @@
  * A fblock that generates random numbers.
  */
 
-
-
 #define DEBUG 1
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -14,7 +13,7 @@
 
 /* static u5c_port pout_random = { .name="random", .attrs=PORT_DIR_OUT, .data_type="long int" }; */
 
-const char rnd_meta[] =
+char rnd_meta[] =
 	"{ doc='A random number generator function block',"
 	"  license='LGPL',"
 	"  real-time=true,"
@@ -28,7 +27,7 @@ const u5c_config_t rnd_config[] = {
 	{ NULL },
 };
 
-const u5c_port_t rnd_ports[] = {
+u5c_port_t rnd_ports[] = {
 	{ .name="seed", .attrs=PORT_DIR_IN, .in_type_name="unsigned int" },
 	{ .name="output", .attrs=PORT_DIR_OUT, .out_type_name="unsigned int" },
 	{ NULL },
