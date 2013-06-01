@@ -20,7 +20,7 @@ int u5c_node_init(u5c_node_info_t* ni)
 	/* return -1; */
 }
 
-void u5c_cleanup(u5c_node_info_t* ni)
+void u5c_node_cleanup(u5c_node_info_t* ni)
 {
 	/* clean up all entities */
 }
@@ -44,27 +44,33 @@ int u5c_register_component(u5c_node_info_t *ni, u5c_component_t* comp)
 	return ret;
 }
 
-int u5c_unregister_component(u5c_node_info_t* ni, const char* name)
+u5c_component_t* u5c_unregister_component(u5c_node_info_t* ni, const char* name)
 {
-	int ret = 0;
 	u5c_component_t* tmpc;
 
 	HASH_FIND_STR(ni->components, name, tmpc);
 
 	if(tmpc==NULL) {
 		ERR("no component '%s' registered.", name);
-		ret=-1;
 		goto out;
 	};
 
 	HASH_DEL(ni->components, tmpc);
  out:
-	return ret;
+	return tmpc;
 }
 
 int u5c_num_components(u5c_node_info_t* ni)
 {
 	return HASH_COUNT(ni->components);
+}
+
+void u5c_port_free_data(u5c_port_t* p)
+{
+	if(p->out_type_name) free(p->out_type_name);
+	if(p->in_type_name) free(p->in_type_name);
+	if(p->meta_data) free(p->meta_data);
+	if(p->name) free(p->name);
 }
 
 /* create a copy of the given port
@@ -98,18 +104,16 @@ int u5c_clone_port_data(const u5c_port_t *psrc, u5c_port_t *pcopy)
 	return 0;
 
  out_err_free:
-	if(pcopy->out_type_name) free(pcopy->out_type_name);
-	if(pcopy->in_type_name) free(pcopy->in_type_name);
-	if(pcopy->meta_data) free(pcopy->meta_data);
-	if(pcopy->name) free(pcopy->name);
+	u5c_port_free_data(pcopy);
  out_err:
  	return -1;
 }
 
+
 /* clone component
  * Function ALLOCATES
  */
-u5c_component_t* u5c_create_component(u5c_node_info_t* ni, const char* type, const char* name)
+u5c_component_t* u5c_component_create(u5c_node_info_t* ni, const char* type, const char* name)
 {
 	int i;
 	u5c_component_t *newc, *prot;
@@ -123,8 +127,18 @@ u5c_component_t* u5c_create_component(u5c_node_info_t* ni, const char* type, con
 		goto out_err;
 	}
 
+	/* check if name is already used */
+	HASH_FIND_STR(ni->components, name, newc);
+	
+	if(newc!=NULL) {
+		ERR("there already exists a component named '%s'", name);
+		goto out_err;
+	}
+
 	/* clone */
-	newc = malloc(sizeof(u5c_component_t));
+	if((newc = malloc(sizeof(u5c_component_t)))==NULL)
+		goto out_err_nomem;
+
 	memset(newc, 0x0, sizeof(u5c_component_t));
 	
 	if((newc->name=strdup(name))==NULL) goto out_free_all;
@@ -140,8 +154,19 @@ u5c_component_t* u5c_create_component(u5c_node_info_t* ni, const char* type, con
 			goto out_free_all;
 	}
 
+	/* ops */
+	newc->init=prot->init;
+	newc->start=prot->start;
+	newc->stop=prot->stop;
+	newc->cleanup=prot->cleanup;
+	newc->step=prot->step;
+
 	newc->ports = realloc(newc->ports, sizeof(u5c_port_t) * (i+1));
 	memset(&newc->ports[i], 0x0, sizeof(u5c_port_t));
+
+	/* register component */
+	if(u5c_register_component(ni, newc))
+		goto out_err;
 
 	/* all ok */
 	return newc;
@@ -151,9 +176,42 @@ u5c_component_t* u5c_create_component(u5c_node_info_t* ni, const char* type, con
 	if(newc->meta_data) free(newc->meta_data);
 	if(newc->name) free(newc->name);
 	if(newc) free(newc);
- out_err:
+ out_err_nomem:
 	ERR("insufficient memory");
+ out_err:
 	return NULL;
+}
+
+int u5c_component_destroy(u5c_node_info_t *ni, char* name)
+{
+	int ret=-1;
+	u5c_component_t *c;
+	u5c_port_t *port_ptr;
+
+	c = u5c_unregister_component(ni, name);
+	
+	if(c==NULL) {
+		ERR("no component named '%s'", name);
+		goto out;
+	}
+
+	/* ports */
+	for(port_ptr=c->ports; port_ptr->name!=NULL; port_ptr++) {
+		u5c_port_free_data(port_ptr);
+	}
+	
+	if(c->ports)
+		free(c->ports);
+
+	if(c->prototype) free(c->prototype);
+	if(c->meta_data) free(c->meta_data);
+	if(c->name) free(c->name);
+	if(c) free(c);
+
+	/* all ok */
+	ret=0;
+ out:
+	return ret;
 }
 
 /* lowlevel port read */

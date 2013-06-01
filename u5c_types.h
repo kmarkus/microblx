@@ -208,7 +208,7 @@ void u5c_node_cleanup(u5c_node_info_t* ni);
 
 /* register/unregister different entities */
 int u5c_register_component(u5c_node_info_t *ni, u5c_component_t* comp);
-int u5c_unregister_component(u5c_node_info_t *ni, const char* name);
+u5c_component_t* u5c_unregister_component(u5c_node_info_t *ni, const char* name);
 int u5c_num_components(u5c_node_info_t* ni);
 
 int u5c_register_type(u5c_node_info_t* ni, u5c_type_t* type);
@@ -223,8 +223,8 @@ int u5c_unregister_trigger(u5c_node_info_t* ni, u5c_trigger_t* inter);
 /* int u5c_register_trig(u5c_node_info_t* ni, u5c_interaction_t* inter); */
 /* void u5c_unregister_trigger(u5c_node_info_t* ni, u5c_interaction_t* inter); */
 
-u5c_component_t* u5c_create_component(u5c_node_info_t* ni, const char *type, const char* name);
-int u5c_destroy_component(char *name);
+u5c_component_t* u5c_component_create(u5c_node_info_t* ni, const char *type, const char* name);
+int u5c_component_destroy(u5c_node_info_t *ni, char *name);
 
 int u5c_connect(u5c_component_t* comp1, u5c_component_t* comp2, u5c_interaction_t* ia);
 int u5c_disconnect(u5c_component_t* comp1, const char* portname);

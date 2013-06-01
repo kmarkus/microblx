@@ -53,6 +53,7 @@ static int rnd_init(u5c_component_t *c)
 
 static int rnd_start(u5c_component_t *c)
 {
+	DBG("in");
 	uint32_t seed, ret;
 	u5c_port_t* seed_port = u5c_port_get(c, "seed");
 	ret = read_uint(seed_port, &seed);

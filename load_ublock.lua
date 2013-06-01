@@ -21,8 +21,13 @@ print(u5c.u5c_num_components(ni))
 comp.__initialize_module(ni)
 print(u5c.u5c_num_components(ni))
 
+print("creating instance");
+rnd_inst = u5c.u5c_component_create(ni, "random", "random1")
 
-rnd_inst = u5c.u5c_create_component(ni, "random", "random1")
+print("running init")
+rnd_inst.init(rnd_inst)
+
+print("freeing", u5c.u5c_component_destroy(ni, rnd_inst.name))
 
 
 comp.__cleanup_module(ni)
