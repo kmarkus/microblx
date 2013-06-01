@@ -4,8 +4,7 @@
 
 struct u5c_type;
 struct u5c_data;
-struct u5c_component; /* forward declaration */
-
+struct u5c_block; 
 
 /* serialization */
 typedef struct u5c_serialization {
@@ -81,8 +80,8 @@ typedef struct u5c_port {
 	uint32_t attrs;			/* FP_DIR_IN or FP_DIR_OUT */
 	uint32_t state;			/* active/inactive */
 
-	struct u5c_component* in_interaction;
-	struct u5c_component** out_interaction;
+	struct u5c_block* in_interaction;
+	struct u5c_block** out_interaction;
 
 	/* statistics */
 	uint32_t stat_writes;
@@ -102,46 +101,46 @@ typedef struct u5c_config {
 } u5c_config_t;
 
 /* 
- * u5c component
+ * u5c block
  */
 
-/* Component types */
+/* Block types */
 enum {
 	BLOCK_TYPE_COMPUTATION,
 	BLOCK_TYPE_INTERACTION,
 	BLOCK_TYPE_TRIGGER,
 };
 
-/* component definition */
-typedef struct u5c_component {
+/* block definition */
+typedef struct u5c_block {
 	char* name;		/* type name */
 	char* meta_data;	/* doc, etc. */
-	char* type;		/* type, (computation, interaction, trigger) */
+	uint32_t type;		/* type, (computation, interaction, trigger) */
 
 	u5c_port_t* ports;
 	const u5c_config_t* configs;
 
-	int(*init) (struct u5c_component*);
-	int(*start) (struct u5c_component*);
-	void(*stop) (struct u5c_component*);
-	void(*cleanup) (struct u5c_component*);
+	int(*init) (struct u5c_block*);
+	int(*start) (struct u5c_block*);
+	void(*stop) (struct u5c_block*);
+	void(*cleanup) (struct u5c_block*);
 
-	/* type dependent component methods */
+	/* type dependent block methods */
 	union {
 		/* COMP_TYPE_COMPUTATION */
-		void(*step) (struct u5c_component*);
+		void(*step) (struct u5c_block*);
 	
 		/* COMP_TYPE_INTERACTION */
 		struct {
 			/* read and write: these are implemented by interactions and
 			 * called by the ports read/write */
-			int(*read)(struct u5c_component* interaction, u5c_data_t* value);
-			void(*write)(struct u5c_component* interaction, u5c_data_t* value);
+			int(*read)(struct u5c_block* interaction, u5c_data_t* value);
+			void(*write)(struct u5c_block* interaction, u5c_data_t* value);
 		};
 		
 		/* COMP_TYPE_TRIGGER - no special ops */
 		struct {
-			int(*add)(struct u5c_component* cblock);
+			int(*add)(struct u5c_block* cblock);
 			int(*rm)(const char *name);
 		};
 	};
@@ -156,60 +155,64 @@ typedef struct u5c_component {
 
 	UT_hash_handle hh;
 
-} u5c_component_t;
+} u5c_block_t;
 
 
-/* process global data
- * This contains arrays of known component types, types
+/* node information
+ * holds references to all known blocks and types
  */
 typedef struct u5c_node_info {
 	const char *name;
 
-	u5c_component_t *components;	 	/* known component types */
-	u5c_component_t *interactions;	/* known interaction types */
-	u5c_component_t *triggers;		/* known trigger types */
-	u5c_type_t *types;			/* known types */
-	
+	u5c_block_t *cblocks;	/* known computation blocks */
+	u5c_block_t *iblocks;	/* known interaction blocks */
+	u5c_block_t *tblocks;	/* known trigger blocks */
+	u5c_type_t *types;	/* known types */
 } u5c_node_info_t;
 
 
 /* 
  * runtime API 
-*/
-
+ */
 
 /* initalize a node: typically used by a main */
 int u5c_node_init(u5c_node_info_t* ni);
 void u5c_node_cleanup(u5c_node_info_t* ni);
 
-int u5c_num_components(u5c_node_info_t* ni);
-
+int u5c_num_cblocks(u5c_node_info_t* ni);
+int u5c_num_iblocks(u5c_node_info_t* ni);
+int u5c_num_tblocks(u5c_node_info_t* ni);
+int u5c_num_types(u5c_node_info_t* ni);
 
 /* register/unregister different entities */
-int u5c_computation_register(u5c_node_info_t *ni, u5c_component_t* comp);
-u5c_component_t* u5c_computation_unregister(u5c_node_info_t *ni, const char* name);
+int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block);
+u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, const char* name, uint32_t type);
+u5c_block_t* u5c_block_create(u5c_node_info_t *ni, const char *name, const char *type);
+int u5c_block_destroy(u5c_node_info_t *ni, char *name, uint32_t block_type);
+
+/* int u5c_cblock_register(u5c_node_info_t *ni, u5c_block_t* comp); */
+/* u5c_block_t* u5c_cblock_unregister(u5c_node_info_t *ni, const char* name); */
+
+/* int u5c_iblock_register(u5c_node_info_t* ni, u5c_block_t* inter); */
+/* void u5c_iblock_unregister(u5c_node_info_t* ni, u5c_block_t* inter); */
+
+/* int u5c_tblock_register(u5c_node_info_t* ni, u5c_block_t* trig); */
+/* int u5c_tblock_unregister(u5c_node_info_t* ni, u5c_block_t* trig); */
 
 int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type);
 int u5c_type_unregister(u5c_node_info_t* ni, u5c_type_t* type);
 
-int u5c_register_interaction(u5c_node_info_t* ni, u5c_component_t* inter);
-void u5c_unregister_interaction(u5c_node_info_t* ni, u5c_component_t* inter);
+u5c_block_t* u5c_cblock_create(u5c_node_info_t* ni, const char *type, const char* name);
 
-int u5c_register_trigger(u5c_node_info_t* ni, u5c_component_t* trig);
-int u5c_unregister_trigger(u5c_node_info_t* ni, u5c_component_t* trig);
+int u5c_connect(u5c_block_t* cblock1, u5c_block_t* cblock2, u5c_block_t* iblock);
+int u5c_disconnect(u5c_block_t* comp1, const char* portname);
+int u5c_disconnect_link(u5c_block_t* cblock1, const char* port1, u5c_block_t* cblock2, const char *port2);
 
-u5c_component_t* u5c_computation_create(u5c_node_info_t* ni, const char *type, const char* name);
-
-int u5c_component_destroy(u5c_node_info_t *ni, char *name);
-
-int u5c_connect(u5c_component_t* comp1, u5c_component_t* comp2, u5c_component_t* ia);
-int u5c_disconnect(u5c_component_t* comp1, const char* portname);
-
-
-/* intra-component  API */
-u5c_port_t* u5c_port_get(u5c_component_t* comp, const char *name);
-u5c_port_t* u5c_port_add(u5c_component_t* comp, const char *name, const char *type);
-u5c_port_t* u5c_port_rm(u5c_component_t* comp);
+/* intra-block API */
+u5c_port_t* u5c_port_get(u5c_block_t* comp, const char *name);
+u5c_port_t* u5c_port_add(u5c_block_t* comp, const char *name, const char *type);
+u5c_port_t* u5c_port_rm(u5c_block_t* comp);
+/* FOR_EACH_INPORT, FOR_EACH_OUTPORT */
 
 uint32_t __port_read(u5c_port_t* port, u5c_data_t* res);
 void __port_write(u5c_port_t* port, u5c_data_t* res);

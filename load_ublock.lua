@@ -17,24 +17,24 @@ print("u5c_node_init:", u5c.u5c_node_init(ni))
 
 comp = ffi.load("./random.so")
 
-print(u5c.u5c_num_components(ni))
+print(u5c.u5c_num_cblocks(ni))
 comp.__initialize_module(ni)
 
-print("num components: ", u5c.u5c_num_components(ni))
+print("num components: ", u5c.u5c_num_cblocks(ni))
 
 print("creating instance");
-rnd_inst=u5c.u5c_computation_create(ni, "random", "random1")
+rnd_inst=u5c.u5c_block_create(ni, "random", "random1")
 
-print("num components: ", u5c.u5c_num_components(ni))
+print("num components: ", u5c.u5c_num_cblocks(ni))
 
 print("running init")
 rnd_inst.init(rnd_inst)
 
-print("freeing", u5c.u5c_component_destroy(ni, rnd_inst.name))
-print("freeing", u5c.u5c_component_destroy(ni, ffi.new("char[?]", 20, "fruba1")))
+print("freeing", u5c.u5c_block_destroy(ni, rnd_inst.name, ffi.C.BLOCK_TYPE_COMPUTATION))
+print("freeing", u5c.u5c_block_destroy(ni, ffi.new("char[?]", 20, "fruba1"), 3))
 
 
 comp.__cleanup_module(ni)
-print(u5c.u5c_num_components(ni))
+print(u5c.u5c_num_cblocks(ni))
 
 

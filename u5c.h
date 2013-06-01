@@ -15,10 +15,10 @@
 
 
 /* module init, cleanup */
-#define fblock_init(initfn) \
+#define module_init(initfn) \
 int __initialize_module(u5c_node_info_t* ni) { return initfn(ni); }
 
-#define fblock_cleanup(exitfn) \
+#define module_cleanup(exitfn) \
 void __cleanup_module(u5c_node_info_t* ni) { exitfn(ni); }
 
 

@@ -36,7 +36,7 @@ u5c_port_t rnd_ports[] = {
 gen_read(read_uint, unsigned int)
 gen_write(write_longint, long int)
 
-static int rnd_init(u5c_component_t *c)
+static int rnd_init(u5c_block_t *c)
 {
 	DBG(" ");
 	
@@ -51,7 +51,7 @@ static int rnd_init(u5c_component_t *c)
 	return 0;
 }
 
-static int rnd_start(u5c_component_t *c)
+static int rnd_start(u5c_block_t *c)
 {
 	DBG("in");
 	uint32_t seed, ret;
@@ -63,7 +63,7 @@ static int rnd_start(u5c_component_t *c)
 	return 0; /* Ok */
 }
 
-static void rnd_step(u5c_component_t *c) { 
+static void rnd_step(u5c_block_t *c) { 
 	/* cache in instance */
 	long int rand_val;
 
@@ -75,12 +75,12 @@ static void rnd_step(u5c_component_t *c) {
 	write_longint(rand_port, &rand_val);
 }
 
-static void rnd_cleanup(u5c_component_t *c) { DBG(" "); }
+static void rnd_cleanup(u5c_block_t *c) { DBG(" "); }
 
 /* The following fields are filled in dynamically:
  * name
  */
-u5c_component_t random_comp = {
+u5c_block_t random_comp = {
 	.name = "random",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = rnd_meta,
@@ -95,14 +95,14 @@ u5c_component_t random_comp = {
 static int random_init(u5c_node_info_t* ni)
 {
 	DBG(" ");	
-	return u5c_computation_register(ni, &random_comp);
+	return u5c_block_register(ni, &random_comp);
 }
 
 static void random_cleanup(u5c_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_computation_unregister(ni, "random");
+	u5c_block_unregister(ni, "random", BLOCK_TYPE_COMPUTATION);
 }
 
-fblock_init(random_init)
-fblock_cleanup(random_cleanup)
+module_init(random_init)
+module_cleanup(random_cleanup)
