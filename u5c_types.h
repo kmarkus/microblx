@@ -45,6 +45,7 @@ enum {
 	PORT_DIR_OUT   =	1 << 1,
 };
 
+/* Port state */
 enum {
 	PORT_ACTIVE = 1 << 0,
 };
@@ -80,9 +81,6 @@ typedef struct u5c_port {
 	uint32_t attrs;			/* FP_DIR_IN or FP_DIR_OUT */
 	uint32_t state;			/* active/inactive */
 
-	/* uint32_t(*read)(struct u5c_port* port, u5c_data_t* value); */
-	/* void(**write)(struct u5c_port* port, u5c_data_t* value);          /\* many target interactions, end with NULL *\/ */
-
 	struct u5c_component* in_interaction;
 	struct u5c_component** out_interaction;
 
@@ -107,6 +105,7 @@ typedef struct u5c_config {
  * u5c component
  */
 
+/* Component types */
 enum {
 	BLOCK_TYPE_COMPUTATION,
 	BLOCK_TYPE_INTERACTION,
@@ -136,11 +135,15 @@ typedef struct u5c_component {
 		struct {
 			/* read and write: these are implemented by interactions and
 			 * called by the ports read/write */
-			uint32_t(*read)(struct u5c_component* interaction, u5c_data_t* value);
+			int(*read)(struct u5c_component* interaction, u5c_data_t* value);
 			void(*write)(struct u5c_component* interaction, u5c_data_t* value);
 		};
 		
 		/* COMP_TYPE_TRIGGER - no special ops */
+		struct {
+			int(*add)(struct u5c_component* cblock);
+			int(*rm)(const char *name);
+		};
 	};
 
 
@@ -204,8 +207,8 @@ int u5c_disconnect(u5c_component_t* comp1, const char* portname);
 
 
 /* intra-component  API */
-u5c_port_t* u5c_port_get(u5c_component_t* comp, const char* name);
-u5c_port_t* u5c_port_add(u5c_component_t* comp);
+u5c_port_t* u5c_port_get(u5c_component_t* comp, const char *name);
+u5c_port_t* u5c_port_add(u5c_component_t* comp, const char *name, const char *type);
 u5c_port_t* u5c_port_rm(u5c_component_t* comp);
 
 uint32_t __port_read(u5c_port_t* port, u5c_data_t* res);
