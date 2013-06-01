@@ -78,7 +78,7 @@ void u5c_port_free_data(u5c_port_t* p)
  */
 int u5c_clone_port_data(const u5c_port_t *psrc, u5c_port_t *pcopy)
 {
-	DBG("cloning port 0x%lx, '%s'\n", (uint64_t) psrc, psrc->name);
+	/* DBG("cloning port 0x%lx, '%s'\n", (uint64_t) psrc, psrc->name); */
 
 	memset(pcopy, 0x0, sizeof(u5c_port_t));
 

@@ -19,15 +19,19 @@ comp = ffi.load("./random.so")
 
 print(u5c.u5c_num_components(ni))
 comp.__initialize_module(ni)
-print(u5c.u5c_num_components(ni))
+
+print("num components: ", u5c.u5c_num_components(ni))
 
 print("creating instance");
-rnd_inst = u5c.u5c_component_create(ni, "random", "random1")
+u5c.u5c_component_create(ni, "random", "random1")
+
+print("num components: ", u5c.u5c_num_components(ni))
 
 print("running init")
 rnd_inst.init(rnd_inst)
 
 print("freeing", u5c.u5c_component_destroy(ni, rnd_inst.name))
+print("freeing", u5c.u5c_component_destroy(ni, ffi.new("char[?]", 20, "fruba1")))
 
 
 comp.__cleanup_module(ni)
