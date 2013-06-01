@@ -4,7 +4,6 @@
 
 struct u5c_type;
 struct u5c_data;
-struct u5c_interaction;
 struct u5c_component; /* forward declaration */
 
 
@@ -51,14 +50,19 @@ enum {
 };
 
 
-/* return values for read */
+/* return values */
 enum {
 	PORT_READ_NODATA   = 1,
 	PORT_READ_NEWDATA  = 2,
 
 	/* ERROR conditions */
-	PORT_INVALID       = -1,
-	PORT_INVALID_TYPE  = -2,
+	EPORT_INVALID       = -1,
+	EPORT_INVALID_TYPE  = -2,
+	
+	/* Registration, etc */
+	EINVALID_BLOCK_TYPE = -3,
+	ENOSUCHBLOCK        = -4,
+	EALREADY_REGISTERED = -5,
 };
 
 /* Port
@@ -79,8 +83,8 @@ typedef struct u5c_port {
 	/* uint32_t(*read)(struct u5c_port* port, u5c_data_t* value); */
 	/* void(**write)(struct u5c_port* port, u5c_data_t* value);          /\* many target interactions, end with NULL *\/ */
 
-	struct u5c_interaction* in_interaction;
-	struct u5c_interaction** out_interaction;
+	struct u5c_component* in_interaction;
+	struct u5c_component** out_interaction;
 
 	/* statistics */
 	uint32_t stat_writes;
@@ -103,20 +107,42 @@ typedef struct u5c_config {
  * u5c component
  */
 
+enum {
+	BLOCK_TYPE_COMPUTATION,
+	BLOCK_TYPE_INTERACTION,
+	BLOCK_TYPE_TRIGGER,
+};
+
 /* component definition */
 typedef struct u5c_component {
-	char* name;	/* type name */
+	char* name;		/* type name */
 	char* meta_data;	/* doc, etc. */
+	char* type;		/* type, (computation, interaction, trigger) */
 
 	u5c_port_t* ports;
 	const u5c_config_t* configs;
 
-	/* component methods */
 	int(*init) (struct u5c_component*);
 	int(*start) (struct u5c_component*);
 	void(*stop) (struct u5c_component*);
 	void(*cleanup) (struct u5c_component*);
-	void(*step) (struct u5c_component*);
+
+	/* type dependent component methods */
+	union {
+		/* COMP_TYPE_COMPUTATION */
+		void(*step) (struct u5c_component*);
+	
+		/* COMP_TYPE_INTERACTION */
+		struct {
+			/* read and write: these are implemented by interactions and
+			 * called by the ports read/write */
+			uint32_t(*read)(struct u5c_component* interaction, u5c_data_t* value);
+			void(*write)(struct u5c_component* interaction, u5c_data_t* value);
+		};
+		
+		/* COMP_TYPE_TRIGGER - no special ops */
+	};
+
 
 	char *prototype; /* name of prototype, NULL if none */
 
@@ -130,56 +156,6 @@ typedef struct u5c_component {
 } u5c_component_t;
 
 
-/* 
- * u5c interaction (aka connection, communication)
- */
-typedef struct u5c_interaction {
-	const char* name;	    /* name */
-	char *meta_data;
-
-	const u5c_port_t* ports;      /* Interaction outport, e.g. log, overflows, ... */
-	const u5c_config_t* configs;  /* Interaction configuration */
-	
-	/* component methods */
-	int(*init) (struct u5c_interaction*);
-	int(*start) (struct u5c_interaction*);
-	void(*stop) (struct u5c_interaction*);
-	void(*cleanup) (struct u5c_interaction*);
-
-	/* read and write: these are implemented by interactions and
-	 * called by the ports read/write */
-	uint32_t(*read)(struct u5c_interaction* interaction, u5c_data_t* value);
-	void(*write)(struct u5c_interaction* interaction, u5c_data_t* value);
-
-	struct u5c_interaction* prototype;
-
-	UT_hash_handle hh;
-} u5c_interaction_t;
-
-
-/*
- * u5c trigger component (aka activity)
- */
-typedef struct u5c_trigger {
-	const char* name;
-	char *meta_data;
-
-	u5c_port_t* ports;      /* Interaction outport, e.g. log, overflows, ... */
-	u5c_config_t* configs;  /* Interaction configuration */
-
-	/* component methods */
-	int(*init) (struct u5c_interaction*);
-	int(*start) (struct u5c_interaction*);
-	void(*stop) (struct u5c_interaction*);
-	void(*cleanup) (struct u5c_interaction*);
-
-	/* List of component to trigger */
-	u5c_component_t **trig_comps;
-
-	UT_hash_handle hh;
-} u5c_trigger_t;
-
-
 /* process global data
  * This contains arrays of known component types, types
  */
@@ -187,8 +163,8 @@ typedef struct u5c_node_info {
 	const char *name;
 
 	u5c_component_t *components;	 	/* known component types */
-	u5c_interaction_t *interactions;	/* known interaction types */
-	u5c_trigger_t *triggers;		/* known trigger types */
+	u5c_component_t *interactions;	/* known interaction types */
+	u5c_component_t *triggers;		/* known trigger types */
 	u5c_type_t *types;			/* known types */
 	
 } u5c_node_info_t;
@@ -203,30 +179,27 @@ typedef struct u5c_node_info {
 int u5c_node_init(u5c_node_info_t* ni);
 void u5c_node_cleanup(u5c_node_info_t* ni);
 
-/* load libraries */
+int u5c_num_components(u5c_node_info_t* ni);
 
 
 /* register/unregister different entities */
-int u5c_register_component(u5c_node_info_t *ni, u5c_component_t* comp);
-u5c_component_t* u5c_unregister_component(u5c_node_info_t *ni, const char* name);
-int u5c_num_components(u5c_node_info_t* ni);
+int u5c_computation_register(u5c_node_info_t *ni, u5c_component_t* comp);
+u5c_component_t* u5c_computation_unregister(u5c_node_info_t *ni, const char* name);
 
-int u5c_register_type(u5c_node_info_t* ni, u5c_type_t* type);
-int u5c_unregister_type(u5c_node_info_t* ni, u5c_type_t* type);
+int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type);
+int u5c_type_unregister(u5c_node_info_t* ni, u5c_type_t* type);
 
-int u5c_register_interaction(u5c_node_info_t* ni, u5c_interaction_t* inter);
-void u5c_unregister_interaction(u5c_node_info_t* ni, u5c_interaction_t* inter);
+int u5c_register_interaction(u5c_node_info_t* ni, u5c_component_t* inter);
+void u5c_unregister_interaction(u5c_node_info_t* ni, u5c_component_t* inter);
 
-int u5c_register_trigger(u5c_node_info_t* ni, u5c_trigger_t* inter);
-int u5c_unregister_trigger(u5c_node_info_t* ni, u5c_trigger_t* inter);
+int u5c_register_trigger(u5c_node_info_t* ni, u5c_component_t* trig);
+int u5c_unregister_trigger(u5c_node_info_t* ni, u5c_component_t* trig);
 
-/* int u5c_register_trig(u5c_node_info_t* ni, u5c_interaction_t* inter); */
-/* void u5c_unregister_trigger(u5c_node_info_t* ni, u5c_interaction_t* inter); */
+u5c_component_t* u5c_computation_create(u5c_node_info_t* ni, const char *type, const char* name);
 
-u5c_component_t* u5c_component_create(u5c_node_info_t* ni, const char *type, const char* name);
 int u5c_component_destroy(u5c_node_info_t *ni, char *name);
 
-int u5c_connect(u5c_component_t* comp1, u5c_component_t* comp2, u5c_interaction_t* ia);
+int u5c_connect(u5c_component_t* comp1, u5c_component_t* comp2, u5c_component_t* ia);
 int u5c_disconnect(u5c_component_t* comp1, const char* portname);
 
 

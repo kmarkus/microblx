@@ -23,7 +23,7 @@ comp.__initialize_module(ni)
 print("num components: ", u5c.u5c_num_components(ni))
 
 print("creating instance");
-u5c.u5c_component_create(ni, "random", "random1")
+rnd_inst=u5c.u5c_computation_create(ni, "random", "random1")
 
 print("num components: ", u5c.u5c_num_components(ni))
 

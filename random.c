@@ -82,6 +82,7 @@ static void rnd_cleanup(u5c_component_t *c) { DBG(" "); }
  */
 u5c_component_t random_comp = {
 	.name = "random",
+	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = rnd_meta,
 	.configs = rnd_config,
 	.ports = rnd_ports,
@@ -94,13 +95,13 @@ u5c_component_t random_comp = {
 static int random_init(u5c_node_info_t* ni)
 {
 	DBG(" ");	
-	return u5c_register_component(ni, &random_comp);
+	return u5c_computation_register(ni, &random_comp);
 }
 
 static void random_cleanup(u5c_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_unregister_component(ni, "random");
+	u5c_computation_unregister(ni, "random");
 }
 
 fblock_init(random_init)

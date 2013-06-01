@@ -25,10 +25,13 @@ void u5c_node_cleanup(u5c_node_info_t* ni)
 	/* clean up all entities */
 }
 
-int u5c_register_component(u5c_node_info_t *ni, u5c_component_t* comp)
+int u5c_computation_register(u5c_node_info_t *ni, u5c_component_t* comp)
 {
 	int ret = 0;
 	u5c_component_t* tmpc;
+
+	if(comp->type != BLOCK_TYPE_COMPUTATION)
+		ret=EINVALID_BLOCK_TYPE;
 
 	HASH_FIND_STR(ni->components, comp->name, tmpc);
 
@@ -44,7 +47,7 @@ int u5c_register_component(u5c_node_info_t *ni, u5c_component_t* comp)
 	return ret;
 }
 
-u5c_component_t* u5c_unregister_component(u5c_node_info_t* ni, const char* name)
+u5c_component_t* u5c_computation_unregister(u5c_node_info_t* ni, const char* name)
 {
 	u5c_component_t* tmpc;
 
@@ -113,7 +116,7 @@ int u5c_clone_port_data(const u5c_port_t *psrc, u5c_port_t *pcopy)
 /* clone component
  * Function ALLOCATES
  */
-u5c_component_t* u5c_component_create(u5c_node_info_t* ni, const char* type, const char* name)
+u5c_component_t* u5c_computation_create(u5c_node_info_t* ni, const char* type, const char* name)
 {
 	int i;
 	u5c_component_t *newc, *prot;
@@ -165,7 +168,7 @@ u5c_component_t* u5c_component_create(u5c_node_info_t* ni, const char* type, con
 	memset(&newc->ports[i], 0x0, sizeof(u5c_port_t));
 
 	/* register component */
-	if(u5c_register_component(ni, newc))
+	if(u5c_computation_register(ni, newc))
 		goto out_err;
 
 	/* all ok */
@@ -184,14 +187,15 @@ u5c_component_t* u5c_component_create(u5c_node_info_t* ni, const char* type, con
 
 int u5c_component_destroy(u5c_node_info_t *ni, char* name)
 {
-	int ret=-1;
+	int ret;
 	u5c_component_t *c;
 	u5c_port_t *port_ptr;
 
-	c = u5c_unregister_component(ni, name);
+	c = u5c_computation_unregister(ni, name);
 	
 	if(c==NULL) {
 		ERR("no component named '%s'", name);
+		ret = ENOSUCHBLOCK;
 		goto out;
 	}
 
@@ -221,20 +225,19 @@ uint32_t __port_read(u5c_port_t* port, u5c_data_t* res)
 
 	if (!port) {
 		ERR("port null");
-		ret = PORT_INVALID;
+		ret = EPORT_INVALID;
 		goto out;
 	};
 
 	if ((port->attrs & PORT_DIR_IN) == 0) {
 		ERR("not an IN-port");
-		ret = PORT_INVALID_TYPE;
+		ret = EPORT_INVALID_TYPE;
 		goto out;
 	};
 
 	if (!port->in_interaction)
 		goto out;
 
-	/* this is madness */
 	ret = port->in_interaction->read(port->in_interaction, res);
 		
  out:
