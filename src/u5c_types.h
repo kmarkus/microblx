@@ -1,17 +1,17 @@
-/* 
+/*
  * u5c defintions
  */
 
 struct u5c_type;
 struct u5c_data;
-struct u5c_block; 
+struct u5c_block;
 
 /* serialization */
 typedef struct u5c_serialization {
 	const char* name;		/* serialization name */
 	const char* type;		/* serialization type */\
 
-	int(*serialize)(struct u5c_data*, char* buffer, uint32_t max_size); 
+	int(*serialize)(struct u5c_data*, char* buffer, uint32_t max_size);
 	int(*deserialize)(void*, struct u5c_data*);
 	UT_hash_handle hh;
 } u5c_serialization_t;
@@ -58,7 +58,7 @@ enum {
 	/* ERROR conditions */
 	EPORT_INVALID       = -1,
 	EPORT_INVALID_TYPE  = -2,
-	
+
 	/* Registration, etc */
 	EINVALID_BLOCK_TYPE = -3,
 	ENOSUCHBLOCK        = -4,
@@ -73,8 +73,8 @@ typedef struct u5c_port {
 	char* in_type_name;	/* string data type name */
 	char* out_type_name;	/* string data type name */
 
-	u5c_type_t* in_type;    	/* filled in automatically */
-	u5c_type_t* out_type;    	/* filled in automatically */
+	u5c_type_t* in_type;		/* filled in automatically */
+	u5c_type_t* out_type;	 	/* filled in automatically */
 
 	char* meta_data;		/* doc, etc. */
 	uint32_t attrs;			/* FP_DIR_IN or FP_DIR_OUT */
@@ -86,7 +86,7 @@ typedef struct u5c_port {
 	/* statistics */
 	uint32_t stat_writes;
 	uint32_t stat_reades;
-	
+
 	/* todo time stats */
 } u5c_port_t;
 
@@ -100,13 +100,13 @@ typedef struct u5c_config {
 	void *data;
 } u5c_config_t;
 
-/* 
+/*
  * u5c block
  */
 
 /* Block types */
 enum {
-	BLOCK_TYPE_COMPUTATION,
+	BLOCK_TYPE_COMPUTATION=1,
 	BLOCK_TYPE_INTERACTION,
 	BLOCK_TYPE_TRIGGER,
 };
@@ -120,6 +120,11 @@ typedef struct u5c_block {
 	u5c_port_t* ports;
 	const u5c_config_t* configs;
 
+
+	uint32_t state;  /* state of lifecycle */
+	char *prototype; /* name of prototype, NULL if none */
+
+
 	int(*init) (struct u5c_block*);
 	int(*start) (struct u5c_block*);
 	void(*stop) (struct u5c_block*);
@@ -129,7 +134,7 @@ typedef struct u5c_block {
 	union {
 		/* COMP_TYPE_COMPUTATION */
 		void(*step) (struct u5c_block*);
-	
+
 		/* COMP_TYPE_INTERACTION */
 		struct {
 			/* read and write: these are implemented by interactions and
@@ -137,7 +142,7 @@ typedef struct u5c_block {
 			int(*read)(struct u5c_block* interaction, u5c_data_t* value);
 			void(*write)(struct u5c_block* interaction, u5c_data_t* value);
 		};
-		
+
 		/* COMP_TYPE_TRIGGER - no special ops */
 		struct {
 			int(*add)(struct u5c_block* cblock);
@@ -145,8 +150,6 @@ typedef struct u5c_block {
 		};
 	};
 
-
-	char *prototype; /* name of prototype, NULL if none */
 
 	/* statistics, todo step duration */
 	uint32_t stat_num_steps;
@@ -171,8 +174,8 @@ typedef struct u5c_node_info {
 } u5c_node_info_t;
 
 
-/* 
- * runtime API 
+/*
+ * runtime API
  */
 
 /* initalize a node: typically used by a main */
@@ -186,9 +189,9 @@ int u5c_num_types(u5c_node_info_t* ni);
 
 /* register/unregister different entities */
 int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block);
-u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, const char* name, uint32_t type);
-u5c_block_t* u5c_block_create(u5c_node_info_t *ni, const char *name, const char *type);
-int u5c_block_destroy(u5c_node_info_t *ni, char *name, uint32_t block_type);
+u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char* name);
+u5c_block_t* u5c_block_create(u5c_node_info_t *ni, uint32_t block_type, const char *name, const char *type);
+int u5c_block_destroy(u5c_node_info_t *ni, uint32_t block_type, char *name);
 
 /* int u5c_cblock_register(u5c_node_info_t *ni, u5c_block_t* comp); */
 /* u5c_block_t* u5c_cblock_unregister(u5c_node_info_t *ni, const char* name); */

@@ -1,6 +1,18 @@
 
 #define DEBUG 1
+
 #include "u5c.h"
+
+u5c_block_t** get_block_list(u5c_node_info_t* ni, uint32_t type)
+{
+	switch(type) {
+	case BLOCK_TYPE_COMPUTATION: return &ni->cblocks;
+	case BLOCK_TYPE_INTERACTION: return &ni->iblocks;
+	case BLOCK_TYPE_TRIGGER: return &ni->tblocks;
+	default: ERR("invalid block type");
+	}
+	return NULL;
+}
 
 int u5c_node_init(u5c_node_info_t* ni)
 {
@@ -28,11 +40,19 @@ void u5c_node_cleanup(u5c_node_info_t* ni)
 int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block)
 {
 	int ret = 0;
-	u5c_block_t* tmpc;
+	u5c_block_t *tmpc, **blocklist;
+
+	blocklist = get_block_list(ni, block->type);
+
+	if(blocklist==NULL) {
+		ERR("invalid block type %d", block->type);
+		ret=-1;
+		goto out;
+	}
 
 	/* TODO consistency check */
 
-	HASH_FIND_STR(ni->cblocks, block->name, tmpc);
+	HASH_FIND_STR(*blocklist, block->name, tmpc);
 
 	if(tmpc!=NULL) {
 		ERR("component '%s' already registered.", block->name);
@@ -40,24 +60,31 @@ int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block)
 		goto out;
 	};
 
-	HASH_ADD_KEYPTR(hh, ni->cblocks, block->name, strlen(block->name), block);
+	HASH_ADD_KEYPTR(hh, *blocklist, block->name, strlen(block->name), block);
 
  out:
 	return ret;
 }
 
-u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, const char* name, uint32_t type)
+u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char* name)
 {
-	u5c_block_t* tmpc;
+	u5c_block_t **blocklist, *tmpc=NULL;
 
-	HASH_FIND_STR(ni->cblocks, name, tmpc);
+	blocklist = get_block_list(ni, type);
+
+	if(blocklist==NULL) {
+		ERR("invalid block type %d", type);
+		goto out;
+	}
+
+	HASH_FIND_STR(*blocklist, name, tmpc);
 
 	if(tmpc==NULL) {
 		ERR("no component '%s' registered.", name);
 		goto out;
 	};
 
-	HASH_DEL(ni->cblocks, tmpc);
+	HASH_DEL(*blocklist, tmpc);
  out:
 	return tmpc;
 }
@@ -98,7 +125,7 @@ static int u5c_clone_port_data(const u5c_port_t *psrc, u5c_port_t *pcopy)
 	if(psrc->out_type_name)
 		if((pcopy->out_type_name=strdup(psrc->out_type_name))==NULL)
 			goto out_err_free;
-	
+
 	pcopy->attrs=psrc->attrs;
 	pcopy->state=psrc->state;
 
@@ -115,14 +142,19 @@ static int u5c_clone_port_data(const u5c_port_t *psrc, u5c_port_t *pcopy)
 /* clone component
  * Function ALLOCATES
  */
-u5c_block_t* u5c_block_create(u5c_node_info_t* ni, const char* type, const char* name)
+u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const char* type, const char* name)
 {
 	int i;
-	u5c_block_t *newc, *prot;
+	u5c_block_t *newc, *prot, **blocklist;
 	const u5c_port_t *port_ptr;
 
+	if((blocklist = get_block_list(ni, block_type))==NULL) {
+		ERR("invalid block type %d", block_type);
+		goto out_err;
+	}
+
 	/* find prototype */
-	HASH_FIND_STR(ni->cblocks, type, prot);
+	HASH_FIND_STR(*blocklist, type, prot);
 
 	if(prot==NULL) {
 		ERR("no component definition named '%s'.", type);
@@ -130,8 +162,8 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, const char* type, const char*
 	}
 
 	/* check if name is already used */
-	HASH_FIND_STR(ni->cblocks, name, newc);
-	
+	HASH_FIND_STR(*blocklist, name, newc);
+
 	if(newc!=NULL) {
 		ERR("there already exists a component named '%s'", name);
 		goto out_err;
@@ -142,7 +174,10 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, const char* type, const char*
 		goto out_err_nomem;
 
 	memset(newc, 0x0, sizeof(u5c_block_t));
-	
+
+	/* copy attributes of prototype */
+	newc->type = prot->type;
+
 	if((newc->name=strdup(name))==NULL) goto out_free_all;
 	if((newc->meta_data=strdup(prot->meta_data))==NULL) goto out_free_all;
 	if((newc->prototype=strdup(prot->name))==NULL) goto out_free_all;
@@ -186,14 +221,15 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, const char* type, const char*
 	return NULL;
 }
 
-int u5c_block_destroy(u5c_node_info_t *ni, char* name, uint32_t block_type)
+/* unregister a block and free it's memory */
+int u5c_block_destroy(u5c_node_info_t *ni, uint32_t block_type, char* name)
 {
 	int ret;
 	u5c_block_t *c;
 	u5c_port_t *port_ptr;
 
-	c = u5c_block_unregister(ni, name, block_type);
-	
+	c = u5c_block_unregister(ni, block_type, name);
+
 	if(c==NULL) {
 		ERR("no component named '%s'", name);
 		ret = ENOSUCHBLOCK;
@@ -204,7 +240,7 @@ int u5c_block_destroy(u5c_node_info_t *ni, char* name, uint32_t block_type)
 	for(port_ptr=c->ports; port_ptr->name!=NULL; port_ptr++) {
 		u5c_port_free_data(port_ptr);
 	}
-	
+
 	if(c->ports)
 		free(c->ports);
 
@@ -240,7 +276,7 @@ uint32_t __port_read(u5c_port_t* port, u5c_data_t* res)
 		goto out;
 
 	ret = port->in_interaction->read(port->in_interaction, res);
-		
+
  out:
 	return ret;
 }
@@ -253,7 +289,7 @@ void __port_write(u5c_port_t* port, u5c_data_t* res)
 		/* report error */
 		goto out;
 	};
-	
+
 	if ((port->attrs & PORT_DIR_OUT) == 0) {
 		ERR("not an OUT-port");
 		/* report error */

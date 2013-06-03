@@ -1,20 +1,43 @@
-CC=clang
-CFLAGS=-Wall -Werror -g -ggdb
-SUBDIRS = std_blocks/random
+export CC=clang
+export CFLAGS=-Wall -Werror -g -ggdb
+export INCLUDE_DIR=$(CURDIR)/src/
 
-.PHONY: subdirs $(SUBDIRS)
-subdirs: libu5c.so $(SUBDIRS)
+DIRS=src std_blocks/random std_blocks/interstdout
 
-$(SUBDIRS):
-	$(MAKE) -C $@
+SHELL = /bin/sh
+INSTALL = /usr/bin/install
+INSTALL_PROGRAM = $(INSTALL)
+INSTALL_DATA = $(INSTALL) -m 644
+# include Makefile.conf
 
-all: libu5c.so subdirs
+BUILDDIRS = $(DIRS:%=build-%)
+INSTALLDIRS = $(DIRS:%=install-%)
+CLEANDIRS = $(DIRS:%=clean-%)
+TESTDIRS = $(DIRS:%=test-%)
 
-libu5c.so: u5c.o
-	${CC} -shared -o $@ $^
+all: $(BUILDDIRS)
+$(DIRS): $(BUILDDIRS)
+$(BUILDDIRS):
+	$(MAKE) -C $(@:build-%=%)
 
-u5c.o: u5c.c u5c.h
-	${CC} -fPIC -c ${CFLAGS} u5c.c
+# # the utils need the libraries in dev built first
+# build-utils: build-dev
 
-clean:
-	rm -f *.o *.so *~ core
+install: $(INSTALLDIRS) all
+$(INSTALLDIRS):
+	$(MAKE) -C $(@:install-%=%) install
+
+test: $(TESTDIRS) all
+$(TESTDIRS):
+	$(MAKE) -C $(@:test-%=%) test
+
+clean: $(CLEANDIRS)
+$(CLEANDIRS):
+	$(MAKE) -C $(@:clean-%=%) clean
+
+.PHONY: subdirs $(DIRS)
+.PHONY: subdirs $(BUILDDIRS)
+.PHONY: subdirs $(INSTALLDIRS)
+.PHONY: subdirs $(TESTDIRS)
+.PHONY: subdirs $(CLEANDIRS)
+.PHONY: all install clean test

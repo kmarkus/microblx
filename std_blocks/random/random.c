@@ -77,15 +77,15 @@ static void rnd_step(u5c_block_t *c) {
 
 static void rnd_cleanup(u5c_block_t *c) { DBG(" "); }
 
-/* The following fields are filled in dynamically:
- * name
- */
+/* put everything together */
 u5c_block_t random_comp = {
 	.name = "random",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = rnd_meta,
 	.configs = rnd_config,
 	.ports = rnd_ports,
+	
+	/* ops */
 	.init = rnd_init,
 	.start = rnd_start,
 	.step = rnd_step,
@@ -101,7 +101,7 @@ static int random_init(u5c_node_info_t* ni)
 static void random_cleanup(u5c_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_block_unregister(ni, "random", BLOCK_TYPE_COMPUTATION);
+	u5c_block_unregister(ni, BLOCK_TYPE_COMPUTATION, "random");
 }
 
 module_init(random_init)

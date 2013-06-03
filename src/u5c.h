@@ -57,12 +57,12 @@ uint32_t function_name(u5c_port_t* port, typename *inval) \
 # define DBG(fmt, args...)  do {} while (0)
 #endif
 
-#define ERR(fmt, args...) ( fprintf(stderr, "%s: ", __FUNCTION__),	\
+#define ERR(fmt, args...) ( fprintf(stderr, "ERR %s: ", __FUNCTION__),	\
 			    fprintf(stderr, fmt, ##args),		\
 			    fprintf(stderr, "\n") )
 
 /* same as ERR but errnum */
-#define ERR2(err_num, fmt, args...) ( fprintf(stderr, "%s: ", __FUNCTION__), \
+#define ERR2(err_num, fmt, args...) ( fprintf(stderr, "ERR %s: ", __FUNCTION__), \
 				      fprintf(stderr, fmt, ##args), \
 				      fprintf(stderr, ": %s", strerror(err_num)), \
 				      fprintf(stderr, "\n") )
