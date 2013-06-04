@@ -1,5 +1,5 @@
 /*
- * A fblock that generates stdout numbers.
+ * An interaction block that hexdumps the data to stdout.
  */
 
 #define DEBUG 1
@@ -9,8 +9,8 @@
 
 #include "u5c.h"
 
-char stdoutmeta[] =
-	"{ doc='stdout interaction',"
+char hexdumpmeta[] =
+	"{ doc='hexdump interaction',"
 	"  license='MIT',"
 	"  real-time=false,"
 	"}";
@@ -33,33 +33,33 @@ static void hexdump(unsigned char *buf, unsigned long index, unsigned long width
 	printf("\n");
 }
 
-static void stdout_write(u5c_block_t *i, u5c_data_t* data) {
+static void hexdump_write(u5c_block_t *i, u5c_data_t* data) {
 	const char* typename = get_typename(data);
 	printf("hexdumping data of type %s", (typename!=NULL) ? typename : "unknown");
-	hexdump(data->data, data->len, 16);
+	hexdump(data->data, data_len(data), 16);
 }
 
 /* put everything together */
-u5c_block_t stdout_comp = {
-	.name = "stdout",
+u5c_block_t hexdump_comp = {
+	.name = "hexdump",
 	.type = BLOCK_TYPE_INTERACTION,
-	.meta_data = stdoutmeta,
+	.meta_data = hexdumpmeta,
 	
 	/* ops */
-	.write=stdout_write,
+	.write=hexdump_write,
 };
 
-static int stdout_mod_init(u5c_node_info_t* ni)
+static int hexdump_mod_init(u5c_node_info_t* ni)
 {
 	DBG(" ");	
-	return u5c_block_register(ni, &stdout_comp);
+	return u5c_block_register(ni, &hexdump_comp);
 }
 
-static void stdout_mod_cleanup(u5c_node_info_t *ni)
+static void hexdump_mod_cleanup(u5c_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_block_unregister(ni, BLOCK_TYPE_INTERACTION, "stdout");
+	u5c_block_unregister(ni, BLOCK_TYPE_INTERACTION, "hexdump");
 }
 
-module_init(stdout_mod_init)
-module_cleanup(stdout_mod_cleanup)
+module_init(hexdump_mod_init)
+module_cleanup(hexdump_mod_cleanup)

@@ -193,12 +193,14 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 	if((newc->prototype=strdup(prot->name))==NULL) goto out_free_all;
 
 	/* ports */
-	for(port_ptr=prot->ports,i=1; port_ptr->name!=NULL; port_ptr++,i++) {
-		newc->ports = realloc(newc->ports, sizeof(u5c_port_t) * i);
-		if (newc->ports==NULL)
-			goto out_free_all;
-		if(u5c_clone_port_data(port_ptr, &newc->ports[i-1]) != 0)
-			goto out_free_all;
+	if(prot->ports) {
+		for(port_ptr=prot->ports,i=1; port_ptr->name!=NULL; port_ptr++,i++) {
+			newc->ports = realloc(newc->ports, sizeof(u5c_port_t) * i);
+			if (newc->ports==NULL)
+				goto out_free_all;
+			if(u5c_clone_port_data(port_ptr, &newc->ports[i-1]) != 0)
+				goto out_free_all;
+		}
 	}
 
 	/* ops */
@@ -241,7 +243,7 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
  *
  * @return
  */
-int u5c_block_destroy(u5c_node_info_t *ni, uint32_t block_type, char* name)
+int u5c_block_destroy(u5c_node_info_t *ni, uint32_t block_type, const char* name)
 {
 	int ret;
 	u5c_block_t *c;

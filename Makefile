@@ -2,7 +2,7 @@ export CC=clang
 export CFLAGS=-Wall -Werror -g -ggdb
 export INCLUDE_DIR=$(CURDIR)/src/
 
-DIRS=src std_blocks/random std_blocks/interstdout
+DIRS=src std_blocks/random std_blocks/hexdump
 
 SHELL = /bin/sh
 INSTALL = /usr/bin/install

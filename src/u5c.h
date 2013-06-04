@@ -45,6 +45,9 @@ uint32_t function_name(u5c_port_t* port, typename *inval) \
  return __port_read(port, &val);	\
 } \
 
+
+#define data_len(d) (d->length * d->type->size)
+
 /*
  * Debug stuff
  */

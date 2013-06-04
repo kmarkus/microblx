@@ -197,7 +197,7 @@ u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char
 
 /* create and destroy different blocks */
 u5c_block_t* u5c_block_create(u5c_node_info_t *ni, uint32_t block_type, const char *name, const char *type);
-int u5c_block_destroy(u5c_node_info_t *ni, uint32_t block_type, char *name);
+int u5c_block_destroy(u5c_node_info_t *ni, uint32_t block_type, const char *name);
 
 int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type);
 int u5c_type_unregister(u5c_node_info_t* ni, u5c_type_t* type);
