@@ -15,25 +15,29 @@ char stdoutmeta[] =
 	"  real-time=false,"
 	"}";
 
-static int stdout_init(u5c_block_t *c)
+/* hexdump a buffer */
+static void hexdump(unsigned char *buf, unsigned long index, unsigned long width)
 {
-	DBG(" ");
-	return 0;
+	unsigned long i, fill;
+
+	for (i=0;i<index;i++) { printf("%02x ", buf[i]); } /* dump data */
+	for (fill=index; fill<width; fill++) printf("");   /* pad on right */
+
+	printf(": ");
+
+	/* add ascii repesentation */
+	for (i=0; i<index; i++) {
+		if (buf[i] < 32) printf(".");
+		else printf("%c", buf[i]);
+	}
+	printf("\n");
 }
 
-static int stdout_start(u5c_block_t *c)
-{
-	DBG("in");
-	return 0; /* Ok */
+static void stdout_write(u5c_block_t *i, u5c_data_t* data) {
+	const char* typename = get_typename(data);
+	printf("hexdumping data of type %s", (typename!=NULL) ? typename : "unknown");
+	hexdump(data->data, data->len, 16);
 }
-
-static void stdout_stop(u5c_block_t *c) { DBG("in"); }
-
-static void stdout_write(u5c_block_t *i, u5c_data_t* value) {
-	DBG(" ");
-}
-
-static void stdout_cleanup(u5c_block_t *c) { DBG(" "); }
 
 /* put everything together */
 u5c_block_t stdout_comp = {
@@ -42,10 +46,6 @@ u5c_block_t stdout_comp = {
 	.meta_data = stdoutmeta,
 	
 	/* ops */
-	.init = stdout_init,
-	.start = stdout_start,
-	.stop = stdout_stop,
-	.cleanup = stdout_cleanup,
 	.write=stdout_write,
 };
 
@@ -58,7 +58,7 @@ static int stdout_mod_init(u5c_node_info_t* ni)
 static void stdout_mod_cleanup(u5c_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_block_unregister(ni, BLOCK_TYPE_COMPUTATION, "stdout");
+	u5c_block_unregister(ni, BLOCK_TYPE_INTERACTION, "stdout");
 }
 
 module_init(stdout_mod_init)

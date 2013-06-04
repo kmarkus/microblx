@@ -3,7 +3,10 @@
 
 #include "u5c.h"
 
-u5c_block_t** get_block_list(u5c_node_info_t* ni, uint32_t type)
+/*
+ * Internal helper functions
+ */
+static u5c_block_t** get_block_list(u5c_node_info_t* ni, uint32_t type)
 {
 	switch(type) {
 	case BLOCK_TYPE_COMPUTATION: return &ni->cblocks;
@@ -11,6 +14,13 @@ u5c_block_t** get_block_list(u5c_node_info_t* ni, uint32_t type)
 	case BLOCK_TYPE_TRIGGER: return &ni->tblocks;
 	default: ERR("invalid block type");
 	}
+	return NULL;
+}
+
+const char* get_typename(u5c_data_t *data)
+{
+	if(data && data->type)
+		return data->type->name;
 	return NULL;
 }
 
@@ -221,7 +231,16 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 	return NULL;
 }
 
-/* unregister a block and free it's memory */
+
+/**
+ * u5c_block_destroy - unregister a block and free its memory.
+ *
+ * @param ni
+ * @param block_type
+ * @param name
+ *
+ * @return
+ */
 int u5c_block_destroy(u5c_node_info_t *ni, uint32_t block_type, char* name)
 {
 	int ret;
@@ -255,10 +274,19 @@ int u5c_block_destroy(u5c_node_info_t *ni, uint32_t block_type, char* name)
 	return ret;
 }
 
-/* lowlevel port read */
-uint32_t __port_read(u5c_port_t* port, u5c_data_t* res)
+/**
+ * @brief
+ *
+ * @param port port from which to read
+ * @param data u5c_data_t to store result
+ *
+ * @return status value
+ */
+uint32_t __port_read(u5c_port_t* port, u5c_data_t* data)
 {
-	uint32_t ret = PORT_READ_NODATA;
+	uint32_t ret;
+	const char *tp;
+	u5c_block_t *iaptr;
 
 	if (!port) {
 		ERR("port null");
@@ -272,18 +300,34 @@ uint32_t __port_read(u5c_port_t* port, u5c_data_t* res)
 		goto out;
 	};
 
-	if (!port->in_interaction)
+	if(port->in_type != data->type) {
+		tp=get_typename(data);
+		ERR("mismatching types data: %s, port: %s", tp, port->in_type->name);
 		goto out;
+	}
 
-	ret = port->in_interaction->read(port->in_interaction, res);
+	/* loop over all in-interactions until data is read */
+	for(iaptr=port->in_interaction; iaptr->name!=NULL; iaptr++) {
+		if((ret=iaptr->read(iaptr, data)) == PORT_READ_NEWDATA)
+			goto out;
+	}
 
  out:
 	return ret;
 }
 
-
-void __port_write(u5c_port_t* port, u5c_data_t* res)
+/**
+ * __port_write - write a sample to a port
+ * @param port
+ * @param data
+ *
+ * This function will not check if the type matches.
+ */
+void __port_write(u5c_port_t* port, u5c_data_t* data)
 {
+	const char *tp;
+	u5c_block_t *iaptr;
+
 	if (!port) {
 		ERR("port null");
 		/* report error */
@@ -296,7 +340,17 @@ void __port_write(u5c_port_t* port, u5c_data_t* res)
 		goto out;
 	};
 
+	if(port->out_type != data->type) {
+		tp=get_typename(data);
+		ERR("mismatching types data: %s, port: %s", tp, port->out_type->name);
+		goto out;
+	}
+
 	/* iterate over all write-interactions and call their write method */
+	for(iaptr=port->out_interaction; iaptr->name!=NULL; iaptr++)
+		iaptr->write(iaptr, data);
+
+	port->stat_writes++;
  out:
 	return;
 }

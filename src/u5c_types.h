@@ -27,14 +27,16 @@ enum {
 typedef struct u5c_type {
 	const char* name;		/* name: dir/header.h/struct foo*/
 	uint32_t class;			/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
+	unsigned long size;		/* size in bytes */
 	u5c_serialization_t* serializations;
 	UT_hash_handle hh;
 } u5c_type_t;
 
+
 typedef struct u5c_data {
 	const u5c_type_t* type;	/* link to u5c_type */
-	void* data;
-	uint32_t size;
+	unsigned long length;	/* if length> 1 then length of array, else ignored */
+	void* data;		/* buffer with size (type->size * length) */
 } u5c_data_t;
 
 
@@ -81,7 +83,7 @@ typedef struct u5c_port {
 	uint32_t state;			/* active/inactive */
 
 	struct u5c_block* in_interaction;
-	struct u5c_block** out_interaction;
+	struct u5c_block* out_interaction;
 
 	/* statistics */
 	uint32_t stat_writes;
@@ -178,6 +180,8 @@ typedef struct u5c_node_info {
  * runtime API
  */
 
+const char* get_typename(u5c_data_t* data);
+
 /* initalize a node: typically used by a main */
 int u5c_node_init(u5c_node_info_t* ni);
 void u5c_node_cleanup(u5c_node_info_t* ni);
@@ -190,26 +194,20 @@ int u5c_num_types(u5c_node_info_t* ni);
 /* register/unregister different entities */
 int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block);
 u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char* name);
+
+/* create and destroy different blocks */
 u5c_block_t* u5c_block_create(u5c_node_info_t *ni, uint32_t block_type, const char *name, const char *type);
 int u5c_block_destroy(u5c_node_info_t *ni, uint32_t block_type, char *name);
-
-/* int u5c_cblock_register(u5c_node_info_t *ni, u5c_block_t* comp); */
-/* u5c_block_t* u5c_cblock_unregister(u5c_node_info_t *ni, const char* name); */
-
-/* int u5c_iblock_register(u5c_node_info_t* ni, u5c_block_t* inter); */
-/* void u5c_iblock_unregister(u5c_node_info_t* ni, u5c_block_t* inter); */
-
-/* int u5c_tblock_register(u5c_node_info_t* ni, u5c_block_t* trig); */
-/* int u5c_tblock_unregister(u5c_node_info_t* ni, u5c_block_t* trig); */
 
 int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type);
 int u5c_type_unregister(u5c_node_info_t* ni, u5c_type_t* type);
 
 u5c_block_t* u5c_cblock_create(u5c_node_info_t* ni, const char *type, const char* name);
 
-int u5c_connect(u5c_block_t* cblock1, u5c_block_t* cblock2, u5c_block_t* iblock);
-int u5c_disconnect(u5c_block_t* comp1, const char* portname);
-int u5c_disconnect_link(u5c_block_t* cblock1, const char* port1, u5c_block_t* cblock2, const char *port2);
+/* connect ports */
+int u5c_connect(u5c_port_t* p1, u5c_port_t* p2, u5c_block_t* iblock);
+/* int u5c_disconnect(u5c_block_t* comp1, const char* portname); */
+/* int u5c_disconnect_link(u5c_block_t* cblock1, const char* port1, u5c_block_t* cblock2, const char *port2); */
 
 /* intra-block API */
 u5c_port_t* u5c_port_get(u5c_block_t* comp, const char *name);
