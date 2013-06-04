@@ -212,6 +212,7 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 	/* this needs something smarter to work for all block types */
 	newc->step=prot->step;
 
+	/* TODO: check result for NULL */
 	newc->ports = realloc(newc->ports, sizeof(u5c_port_t) * (i+1));
 	memset(&newc->ports[i], 0x0, sizeof(u5c_port_t));
 
@@ -231,6 +232,47 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 	ERR("insufficient memory");
  out_err:
 	return NULL;
+}
+
+int block_array_add(u5c_block_t **arr, u5c_block_t *newblock)
+{
+	int ret;
+	u5c_block_t *tmp;
+	unsigned long newlen;
+
+	/* determine newlen
+	 * with one element, the array is size two to hold the terminating NULL element.
+	 */
+	if(*arr!=NULL)
+		for(tmp=*arr, newlen=2; tmp->name!=NULL; tmp++,newlen++);
+	else
+		newlen=2;
+
+	if((*arr=realloc(*arr, sizeof(u5c_block_t*) * newlen))==NULL) {
+		ERR("insufficient memory");
+		ret=EOUTOFMEM;
+		goto out;
+	}
+
+	arr[newlen-1]=newblock;
+	arr[newlen]=NULL;
+	ret=0;
+ out:
+	return ret;
+}
+
+/* TODO:
+ * properly disconnect already connected ports in case of errors
+ */
+int u5c_connect(u5c_port_t* p1, u5c_port_t* p2, u5c_block_t* iblock)
+{
+	int ret;
+	if((ret=block_array_add(&p1->in_interaction, iblock))!=0) goto out;
+	if((ret=block_array_add(&p1->out_interaction, iblock))!=0) goto out;
+	if((ret=block_array_add(&p2->in_interaction, iblock))!=0) goto out;
+	if((ret=block_array_add(&p2->out_interaction, iblock))!=0) goto out;
+ out:
+	return ret;
 }
 
 

@@ -65,6 +65,7 @@ enum {
 	EINVALID_BLOCK_TYPE = -3,
 	ENOSUCHBLOCK        = -4,
 	EALREADY_REGISTERED = -5,
+	EOUTOFMEM = -6,
 };
 
 /* Port
@@ -206,8 +207,6 @@ u5c_block_t* u5c_cblock_create(u5c_node_info_t* ni, const char *type, const char
 
 /* connect ports */
 int u5c_connect(u5c_port_t* p1, u5c_port_t* p2, u5c_block_t* iblock);
-/* int u5c_disconnect(u5c_block_t* comp1, const char* portname); */
-/* int u5c_disconnect_link(u5c_block_t* cblock1, const char* port1, u5c_block_t* cblock2, const char *port2); */
 
 /* intra-block API */
 u5c_port_t* u5c_port_get(u5c_block_t* comp, const char *name);
