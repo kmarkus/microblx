@@ -73,15 +73,16 @@ enum {
  */
 typedef struct u5c_port {
 	char* name;		/* name of port */
+	char* meta_data;		/* doc, etc. */
+
+	uint32_t attrs;			/* FP_DIR_IN or FP_DIR_OUT */
+	uint32_t state;			/* active/inactive */
+
 	char* in_type_name;	/* string data type name */
 	char* out_type_name;	/* string data type name */
 
-	u5c_type_t* in_type;		/* filled in automatically */
-	u5c_type_t* out_type;	 	/* filled in automatically */
-
-	char* meta_data;		/* doc, etc. */
-	uint32_t attrs;			/* FP_DIR_IN or FP_DIR_OUT */
-	uint32_t state;			/* active/inactive */
+	u5c_type_t* in_type;		/* resolved in automatically */
+	u5c_type_t* out_type;	 	/* resolved in automatically */
 
 	struct u5c_block* in_interaction;
 	struct u5c_block* out_interaction;
@@ -207,6 +208,7 @@ u5c_block_t* u5c_cblock_create(u5c_node_info_t* ni, const char *type, const char
 
 /* connect ports */
 int u5c_connect(u5c_port_t* p1, u5c_port_t* p2, u5c_block_t* iblock);
+int u5c_connect_one(u5c_port_t* p, u5c_block_t* iblock);
 
 /* intra-block API */
 u5c_port_t* u5c_port_get(u5c_block_t* comp, const char *name);

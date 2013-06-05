@@ -29,6 +29,7 @@ void __cleanup_module(u5c_node_info_t* ni) { exitfn(ni); }
 void function_name(u5c_port_t* port, typename *outval) \
 { \
  u5c_data_t val; \
+ if(port==NULL) { ERR("port is NULL"); return; } \
  val.data = outval; \
  val.type = port->out_type; \
  __port_write(port, &val);	\

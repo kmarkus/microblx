@@ -64,6 +64,15 @@ ni_stat()
 print("running random1 init", random1.init(random1))
 -- print("running hexdump1 init", hexdump1.init(hexdump1))
 
+rand_port=u5c.u5c_port_get(random1, "rnd")
+
+u5c.u5c_connect_one(rand_port, hexdump1)
+
+for i=1,10 do
+   random1.step(random1)
+   os.execute("sleep 1")
+end
+
 print("cleaning up")
 print("freeing random1", u5c.u5c_block_destroy(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "random1"))
 print("freeing hexdump1", u5c.u5c_block_destroy(ni, ffi.C.BLOCK_TYPE_INTERACTION, "hexdump1"))

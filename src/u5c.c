@@ -104,16 +104,36 @@ int u5c_num_iblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->iblocks); }
 int u5c_num_tblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->tblocks); }
 int u5c_num_types(u5c_node_info_t* ni) { return HASH_COUNT(ni->types); }
 
+
+/**
+ * u5c_port_free_data - free additional memory used by port.
+ *
+ * @param p port pointer
+ */
 static void u5c_port_free_data(u5c_port_t* p)
 {
 	if(p->out_type_name) free(p->out_type_name);
 	if(p->in_type_name) free(p->in_type_name);
+
+	ERR("port %s, p->out_interaction: 0x%lx, p->in_interaction: 0x%lx",
+	    p->name, (unsigned long) p->out_interaction, (unsigned long) p->in_interaction);
+
+	if(p->in_interaction) free(p->in_interaction);
+	/* if(p->out_interaction) free(p->out_interaction); */
+
 	if(p->meta_data) free(p->meta_data);
 	if(p->name) free(p->name);
 }
 
-/* create a copy of the given port
- * Function ALLOCATES
+/**
+ * u5c_clone_port_data - clone the additional port data
+ *
+ * @param psrc pointer to the source port
+ * @param pcopy pointer to the existing target port
+ *
+ * @return less than zero if an error occured, 0 otherwise.
+ *
+ * This function allocates memory.
  */
 static int u5c_clone_port_data(const u5c_port_t *psrc, u5c_port_t *pcopy)
 {
@@ -148,9 +168,15 @@ static int u5c_clone_port_data(const u5c_port_t *psrc, u5c_port_t *pcopy)
  	return -1;
 }
 
-
-/* clone component
- * Function ALLOCATES
+/**
+ * u5c_block_create - clone a new block from an existing one.
+ *
+ * @param ni
+ * @param block_type
+ * @param type
+ * @param name
+ *
+ * @return
  */
 u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const char* type, const char* name)
 {
@@ -158,6 +184,7 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 	u5c_block_t *newc, *prot, **blocklist;
 	const u5c_port_t *port_ptr;
 
+	/* retrieve the list corresponding to the block_type */
 	if((blocklist = get_block_list(ni, block_type))==NULL) {
 		ERR("invalid block type %d", block_type);
 		goto out_err;
@@ -192,7 +219,7 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 	if((newc->meta_data=strdup(prot->meta_data))==NULL) goto out_free_all;
 	if((newc->prototype=strdup(prot->name))==NULL) goto out_free_all;
 
-	/* ports */
+	/* do we have ports? */
 	if(prot->ports) {
 		for(port_ptr=prot->ports,i=1; port_ptr->name!=NULL; port_ptr++,i++) {
 			newc->ports = realloc(newc->ports, sizeof(u5c_port_t) * i);
@@ -201,6 +228,12 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 			if(u5c_clone_port_data(port_ptr, &newc->ports[i-1]) != 0)
 				goto out_free_all;
 		}
+
+		/* increase size by one for NULL element */
+		if((newc->ports = realloc(newc->ports, sizeof(u5c_port_t) * i))==NULL)
+			goto out_free_all;
+
+		memset(&newc->ports[i-1], 0x0, sizeof(u5c_port_t));
 	}
 
 	/* ops */
@@ -209,12 +242,20 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 	newc->stop=prot->stop;
 	newc->cleanup=prot->cleanup;
 
-	/* this needs something smarter to work for all block types */
-	newc->step=prot->step;
-
-	/* TODO: check result for NULL */
-	newc->ports = realloc(newc->ports, sizeof(u5c_port_t) * (i+1));
-	memset(&newc->ports[i], 0x0, sizeof(u5c_port_t));
+	/* copy special ops */
+	switch(block_type) {
+	case BLOCK_TYPE_COMPUTATION:
+		newc->step=prot->step;
+		break;
+	case BLOCK_TYPE_INTERACTION:
+		newc->read=prot->read;
+		newc->write=prot->write;
+		break;
+	case BLOCK_TYPE_TRIGGER:
+		newc->add=prot->add;
+		newc->rm=prot->rm;
+		break;
+	}
 
 	/* register component */
 	if(u5c_block_register(ni, newc))
@@ -234,19 +275,19 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 	return NULL;
 }
 
-int block_array_add(u5c_block_t **arr, u5c_block_t *newblock)
+int array_block_add(u5c_block_t **arr, u5c_block_t *newblock)
 {
 	int ret;
-	u5c_block_t *tmp;
-	unsigned long newlen;
+	unsigned long newlen; /* new length of array including NULL element */
+	u5c_block_t *tmpb;
 
 	/* determine newlen
 	 * with one element, the array is size two to hold the terminating NULL element.
 	 */
-	if(*arr!=NULL)
-		for(tmp=*arr, newlen=2; tmp->name!=NULL; tmp++,newlen++);
-	else
+	if(*arr==NULL)
 		newlen=2;
+	else
+		for(tmpb=*arr, newlen=2; tmpb->name!=NULL; tmpb++,newlen++);
 
 	if((*arr=realloc(*arr, sizeof(u5c_block_t*) * newlen))==NULL) {
 		ERR("insufficient memory");
@@ -254,26 +295,105 @@ int block_array_add(u5c_block_t **arr, u5c_block_t *newblock)
 		goto out;
 	}
 
-	arr[newlen-1]=newblock;
-	arr[newlen]=NULL;
+	arr[newlen-2]=newblock;
+	arr[newlen-1]=NULL;
 	ret=0;
  out:
 	return ret;
 }
 
-/* TODO:
- * properly disconnect already connected ports in case of errors
+/**
+ * u5c_connect - connect a port with an interaction.
+ *
+ * @param p1
+ * @param iblock
+ *
+ * @return
+ *
+ * This should be made real-time safe by adding an operation
+ * u5c_interaction_set_max_conn[in|out]
+ */
+int u5c_connect_one(u5c_port_t* p, u5c_block_t* iblock)
+{
+	int ret;
+
+	if(p->attrs & PORT_DIR_IN)
+		if((ret=array_block_add(&p->in_interaction, iblock))!=0)
+			goto out_err;
+	if(p->attrs & PORT_DIR_OUT)
+		if((ret=array_block_add(&p->out_interaction, iblock))!=0)
+			goto out_err;
+
+	/* all ok */
+	goto out;
+
+ out_err:
+	ERR("failed to connect port");
+ out:
+	return ret;
+}
+
+/**
+ * u5c_connect - connect to ports with a given interaction.
+ *
+ * @param p1
+ * @param p2
+ * @param iblock
+ *
+ * @return
+ *
+ * This should be made real-time safe by adding an operation
+ * u5c_interaction_set_max_conn[in|out]
  */
 int u5c_connect(u5c_port_t* p1, u5c_port_t* p2, u5c_block_t* iblock)
 {
 	int ret;
-	if((ret=block_array_add(&p1->in_interaction, iblock))!=0) goto out;
-	if((ret=block_array_add(&p1->out_interaction, iblock))!=0) goto out;
-	if((ret=block_array_add(&p2->in_interaction, iblock))!=0) goto out;
-	if((ret=block_array_add(&p2->out_interaction, iblock))!=0) goto out;
+	if(iblock->type != BLOCK_TYPE_INTERACTION) {
+		ERR("block not of type interaction");
+		ret=-1;
+		goto out;
+	}
+		
+
+	if((ret=u5c_connect_one(p1, iblock))!=0) goto out_err;
+	if((ret=u5c_connect_one(p2, iblock))!=0) goto out_err;
+
+	/* all ok */
+	goto out;
+
+ out_err:
+	ERR("failed to connect ports");
  out:
 	return ret;
 }
+
+
+/**
+ * u5c_port_get - retrieve a component port by name
+ *
+ * @param comp
+ * @param name
+ *
+ * @return port pointer or NULL
+ */
+u5c_port_t* u5c_port_get(u5c_block_t* comp, const char *name)
+{
+	u5c_port_t *port_ptr;
+
+	if(comp->ports==NULL)
+		goto out_notfound;
+
+	for(port_ptr=comp->ports; port_ptr->name!=NULL; port_ptr++)
+		if(strcmp(port_ptr->name, name)==0)
+			goto out;
+ out_notfound:
+	port_ptr=NULL;
+ out:
+	return port_ptr;
+}
+
+/* u5c_port_t* u5c_port_add(u5c_block_t* comp, const char *name, const char *type); */
+/* u5c_port_t* u5c_port_rm(u5c_block_t* comp); */
 
 
 /**
@@ -300,12 +420,12 @@ int u5c_block_destroy(u5c_node_info_t *ni, uint32_t block_type, const char* name
 	}
 
 	/* ports */
-	for(port_ptr=c->ports; port_ptr->name!=NULL; port_ptr++) {
-		u5c_port_free_data(port_ptr);
-	}
+	if(c->ports!=NULL) {
+		for(port_ptr=c->ports; port_ptr->name!=NULL; port_ptr++)
+			u5c_port_free_data(port_ptr);
 
-	if(c->ports)
 		free(c->ports);
+	}
 
 	if(c->prototype) free(c->prototype);
 	if(c->meta_data) free(c->meta_data);
@@ -372,15 +492,13 @@ void __port_write(u5c_port_t* port, u5c_data_t* data)
 	const char *tp;
 	u5c_block_t *iaptr;
 
-	if (!port) {
+	if (port==NULL) {
 		ERR("port null");
-		/* report error */
 		goto out;
 	};
 
 	if ((port->attrs & PORT_DIR_OUT) == 0) {
 		ERR("not an OUT-port");
-		/* report error */
 		goto out;
 	};
 

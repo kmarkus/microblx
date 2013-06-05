@@ -29,7 +29,7 @@ const u5c_config_t rnd_config[] = {
 
 u5c_port_t rnd_ports[] = {
 	{ .name="seed", .attrs=PORT_DIR_IN, .in_type_name="unsigned int" },
-	{ .name="output", .attrs=PORT_DIR_OUT, .out_type_name="unsigned int" },
+	{ .name="rnd", .attrs=PORT_DIR_OUT, .out_type_name="unsigned int" },
 	{ NULL },
 };
 
@@ -39,14 +39,6 @@ gen_write(write_longint, long int)
 static int rnd_init(u5c_block_t *c)
 {
 	DBG(" ");
-	
-	/* this is dynamic port creation:
-	   c->ports = malloc(3*sizeof(u5c_port*));
-	   c->ports[0] = alloc_port("random", PORT_DIR_OUT, "int");
-	   c->ports[1] = alloc_port("seed", PORT_DIR_IN, "long int");
-	   c->ports[2] = NULL;
-	*/
-
 	/* alloc all component data here: component, ports, config */
 	return 0;
 }
@@ -69,7 +61,7 @@ static void rnd_step(u5c_block_t *c) {
 
 	DBG(" ");
 
-	u5c_port_t* rand_port = u5c_port_get(c, "rand");
+	u5c_port_t* rand_port = u5c_port_get(c, "rnd");
 
 	rand_val = random();
 	write_longint(rand_port, &rand_val);
