@@ -70,7 +70,7 @@ u5c.u5c_connect_one(rand_port, hexdump1)
 
 for i=1,10 do
    random1.step(random1)
-   os.execute("sleep 1")
+   -- os.execute("sleep 0.1")
 end
 
 print("cleaning up")

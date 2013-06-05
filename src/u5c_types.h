@@ -84,8 +84,8 @@ typedef struct u5c_port {
 	u5c_type_t* in_type;		/* resolved in automatically */
 	u5c_type_t* out_type;	 	/* resolved in automatically */
 
-	struct u5c_block* in_interaction;
-	struct u5c_block* out_interaction;
+	struct u5c_block** in_interaction;
+	struct u5c_block** out_interaction;
 
 	/* statistics */
 	uint32_t stat_writes;

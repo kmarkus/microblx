@@ -115,11 +115,8 @@ static void u5c_port_free_data(u5c_port_t* p)
 	if(p->out_type_name) free(p->out_type_name);
 	if(p->in_type_name) free(p->in_type_name);
 
-	ERR("port %s, p->out_interaction: 0x%lx, p->in_interaction: 0x%lx",
-	    p->name, (unsigned long) p->out_interaction, (unsigned long) p->in_interaction);
-
 	if(p->in_interaction) free(p->in_interaction);
-	/* if(p->out_interaction) free(p->out_interaction); */
+	if(p->out_interaction) free(p->out_interaction);
 
 	if(p->meta_data) free(p->meta_data);
 	if(p->name) free(p->name);
@@ -275,7 +272,7 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 	return NULL;
 }
 
-int array_block_add(u5c_block_t **arr, u5c_block_t *newblock)
+int array_block_add(u5c_block_t ***arr, u5c_block_t *newblock)
 {
 	int ret;
 	unsigned long newlen; /* new length of array including NULL element */
@@ -287,7 +284,7 @@ int array_block_add(u5c_block_t **arr, u5c_block_t *newblock)
 	if(*arr==NULL)
 		newlen=2;
 	else
-		for(tmpb=*arr, newlen=2; tmpb->name!=NULL; tmpb++,newlen++);
+		for(tmpb=**arr, newlen=2; tmpb->name!=NULL; tmpb++,newlen++);
 
 	if((*arr=realloc(*arr, sizeof(u5c_block_t*) * newlen))==NULL) {
 		ERR("insufficient memory");
@@ -295,8 +292,8 @@ int array_block_add(u5c_block_t **arr, u5c_block_t *newblock)
 		goto out;
 	}
 
-	arr[newlen-2]=newblock;
-	arr[newlen-1]=NULL;
+	(*arr)[newlen-2]=newblock;
+	(*arr)[newlen-1]=NULL;
 	ret=0;
  out:
 	return ret;
@@ -471,7 +468,7 @@ uint32_t __port_read(u5c_port_t* port, u5c_data_t* data)
 	}
 
 	/* loop over all in-interactions until data is read */
-	for(iaptr=port->in_interaction; iaptr->name!=NULL; iaptr++) {
+	for(iaptr=port->in_interaction[0]; iaptr->name!=NULL; iaptr++) {
 		if((ret=iaptr->read(iaptr, data)) == PORT_READ_NEWDATA)
 			goto out;
 	}
@@ -509,7 +506,12 @@ void __port_write(u5c_port_t* port, u5c_data_t* data)
 	}
 
 	/* iterate over all write-interactions and call their write method */
-	for(iaptr=port->out_interaction; iaptr->name!=NULL; iaptr++)
+	iaptr=port->out_interaction[0];
+
+	if(iaptr==NULL)
+		goto out;
+
+	for(; iaptr->name!=NULL; iaptr++)
 		iaptr->write(iaptr, data);
 
 	port->stat_writes++;
