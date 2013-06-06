@@ -1,5 +1,7 @@
 /*
- * u5c defintions
+ * u5c type a function definitions.
+ *
+ * This file is luajit-ffi parsable, the rest goes into u5c.h
  */
 
 struct u5c_type;
@@ -20,6 +22,7 @@ typedef struct u5c_serialization {
 /* type and value (data) */
 
 enum {
+	TYPE_CLASS_BASIC=1,
 	TYPE_CLASS_STRUCT,	/* simple consecutive struct */
 	TYPE_CLASS_CUSTOM	/* requires custom serialization */
 };
@@ -201,8 +204,8 @@ u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char
 u5c_block_t* u5c_block_create(u5c_node_info_t *ni, uint32_t block_type, const char *name, const char *type);
 int u5c_block_destroy(u5c_node_info_t *ni, uint32_t block_type, const char *name);
 
-int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type);
-int u5c_type_unregister(u5c_node_info_t* ni, u5c_type_t* type);
+int u5c_type_register(u5c_node_info_t* ni, const u5c_type_t* type);
+int u5c_type_unregister(u5c_node_info_t* ni, const char* name);
 
 u5c_block_t* u5c_cblock_create(u5c_node_info_t* ni, const char *type, const char* name);
 

@@ -25,7 +25,7 @@ void __cleanup_module(u5c_node_info_t* ni) { exitfn(ni); }
 /* normally the user would have to box/unbox his value himself. This
  * would generate a typed, automatic boxing version for
  * convenience. */
-#define gen_write(function_name, typename) \
+#define def_write_fun(function_name, typename) \
 void function_name(u5c_port_t* port, typename *outval) \
 { \
  u5c_data_t val; \
@@ -38,7 +38,7 @@ void function_name(u5c_port_t* port, typename *outval) \
 /* generate a typed read function: arguments to the function are the
  * port and a pointer to the result value. 
  */
-#define gen_read(function_name, typename) \
+#define def_read_fun(function_name, typename) \
 uint32_t function_name(u5c_port_t* port, typename *inval) \
 { \
  u5c_data_t val; 		\
