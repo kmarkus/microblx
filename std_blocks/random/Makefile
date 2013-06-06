@@ -1,5 +1,6 @@
-include ../../make.conf
-INCLUDE_DIR=../../src/
+ROOT_DIR=$(CURDIR)/../..
+include $(ROOT_DIR)/make.conf
+INCLUDE_DIR=$(ROOT_DIR)/src/
 
 random.so: random.o $(INCLUDE_DIR)/libu5c.so
 	${CC} -shared -l:$(INCLUDE_DIR)/libu5c.so -o random.so random.o
