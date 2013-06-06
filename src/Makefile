@@ -1,3 +1,6 @@
+include ../make.conf
+INCLUDE_DIR=../../src/
+
 libu5c.so: u5c.o
 	${CC} -shared -o $@ $^
 

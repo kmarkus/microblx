@@ -1,7 +1,6 @@
-export CC=clang
-export CFLAGS=-Wall -Werror -g -ggdb
-export INCLUDE_DIR=$(CURDIR)/src/
+include make.conf
 
+INCLUDE_DIR=$(CURDIR)/src/
 DIRS=src std_blocks/random std_blocks/hexdump
 
 SHELL = /bin/sh
