@@ -2,6 +2,14 @@
 #+STARTUP: showall
 #+STARTUP: hidestars
 
+* Next steps
+  
+** TODO Implement u5c_type_register/unregister
+** TODO add functions to change life-cycle state and check that the FSM is respected.
+** TODO resolve types
+** TODO Test a minimal example with basic types
+** TODO Test a minimal example with arrays of basic types
+** TODO implement a nice high level lua library.
 
 *  =valgrind --leak-check=full --track-origins=yes luajit rnd_to_hexdump.lua 2>&1 | less=
 
