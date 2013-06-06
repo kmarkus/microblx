@@ -1,7 +1,7 @@
 include make.conf
 
 INCLUDE_DIR=$(CURDIR)/src/
-DIRS=src std_blocks/random std_blocks/hexdump
+DIRS=src std_blocks/random std_blocks/hexdump std_types/stdtypes
 
 SHELL = /bin/sh
 INSTALL = /usr/bin/install

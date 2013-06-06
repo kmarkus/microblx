@@ -6,6 +6,15 @@
 /*
  * Internal helper functions
  */
+
+/**
+ * get_block_list - retrieve the right block hashtable for the given type.
+ *
+ * @param ni
+ * @param type
+ *
+ * @return pointer to node_info hashtable pointer
+ */
 static u5c_block_t** get_block_list(u5c_node_info_t* ni, uint32_t type)
 {
 	switch(type) {
@@ -17,6 +26,13 @@ static u5c_block_t** get_block_list(u5c_node_info_t* ni, uint32_t type)
 	return NULL;
 }
 
+/**
+ * get_typename - return the type-name of the given data.
+ *
+ * @param data
+ *
+ * @return type name
+ */
 const char* get_typename(u5c_data_t *data)
 {
 	if(data && data->type)
@@ -24,6 +40,14 @@ const char* get_typename(u5c_data_t *data)
 	return NULL;
 }
 
+
+/**
+ * initalize node_info
+ *
+ * @param ni
+ *
+ * @return
+ */
 int u5c_node_init(u5c_node_info_t* ni)
 {
 	/* if(mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { */
@@ -47,6 +71,14 @@ void u5c_node_cleanup(u5c_node_info_t* ni)
 	/* clean up all entities */
 }
 
+/**
+ * u5c_block_register - register a block with the given node_info.
+ *
+ * @param ni
+ * @param block
+ *
+ * @return 0 if Ok, < 0 otherwise.
+ */
 int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block)
 {
 	int ret = 0;
@@ -76,6 +108,15 @@ int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block)
 	return ret;
 }
 
+/**
+ * u5c_block_unregister - unregister a block.
+ *
+ * @param ni
+ * @param type
+ * @param name
+ *
+ * @return the unregistered block or NULL in case of failure.
+ */
 u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char* name)
 {
 	u5c_block_t **blocklist, *tmpc=NULL;
@@ -272,6 +313,14 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 	return NULL;
 }
 
+/**
+ * array_block_add - add a given array to a block
+ *
+ * @param arr
+ * @param newblock
+ *
+ * @return
+ */
 int array_block_add(u5c_block_t ***arr, u5c_block_t *newblock)
 {
 	int ret;
@@ -350,7 +399,7 @@ int u5c_connect(u5c_port_t* p1, u5c_port_t* p2, u5c_block_t* iblock)
 		ret=-1;
 		goto out;
 	}
-		
+
 
 	if((ret=u5c_connect_one(p1, iblock))!=0) goto out_err;
 	if((ret=u5c_connect_one(p2, iblock))!=0) goto out_err;
