@@ -3,6 +3,8 @@
 #+STARTUP: hidestars
 
 
+*  =valgrind --leak-check=full --track-origins=yes luajit rnd_to_hexdump.lua 2>&1 | less=
+
 * Focus
   - only in-out ports (maybe instead of multi-valued ports it's better
     to solve this at the type level, e.g. define a composite type

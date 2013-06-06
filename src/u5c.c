@@ -447,7 +447,7 @@ uint32_t __port_read(u5c_port_t* port, u5c_data_t* data)
 {
 	uint32_t ret;
 	const char *tp;
-	u5c_block_t *iaptr;
+	u5c_block_t **iaptr;
 
 	if (!port) {
 		ERR("port null");
@@ -467,12 +467,15 @@ uint32_t __port_read(u5c_port_t* port, u5c_data_t* data)
 		goto out;
 	}
 
-	/* loop over all in-interactions until data is read */
-	for(iaptr=port->in_interaction[0]; iaptr->name!=NULL; iaptr++) {
-		if((ret=iaptr->read(iaptr, data)) == PORT_READ_NEWDATA)
-			goto out;
-	}
+	/* port completely unconnected? */
+	if(port->in_interaction==NULL)
+		goto out;
 
+	for(iaptr=port->in_interaction; *iaptr!=NULL; iaptr++)
+		if((ret=(*iaptr)->read(*iaptr, data)) == PORT_READ_NEWDATA) {
+			port->stat_reades++;
+			goto out;
+		}
  out:
 	return ret;
 }
@@ -482,12 +485,13 @@ uint32_t __port_read(u5c_port_t* port, u5c_data_t* data)
  * @param port
  * @param data
  *
- * This function will not check if the type matches.
+ * This function will check if the type matches.
  */
 void __port_write(u5c_port_t* port, u5c_data_t* data)
 {
+	/* int i; */
 	const char *tp;
-	u5c_block_t *iaptr;
+	u5c_block_t **iaptr;
 
 	if (port==NULL) {
 		ERR("port null");
@@ -505,14 +509,18 @@ void __port_write(u5c_port_t* port, u5c_data_t* data)
 		goto out;
 	}
 
-	/* iterate over all write-interactions and call their write method */
-	iaptr=port->out_interaction[0];
-
-	if(iaptr==NULL)
+	/* port completely unconnected? */
+	if(port->out_interaction==NULL)
 		goto out;
 
-	for(; iaptr->name!=NULL; iaptr++)
-		iaptr->write(iaptr, data);
+	/* pump it out */
+	for(iaptr=port->out_interaction; *iaptr!=NULL; iaptr++)
+		(*iaptr)->write(*iaptr, data);
+
+	/* above looks nicer */
+	/* for(i=0; port->out_interaction[i]!=NULL; i++) */
+	/* 	port->out_interaction[i]->write(port->out_interaction[i], data); */
+
 
 	port->stat_writes++;
  out:

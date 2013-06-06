@@ -88,8 +88,8 @@ typedef struct u5c_port {
 	struct u5c_block** out_interaction;
 
 	/* statistics */
-	uint32_t stat_writes;
-	uint32_t stat_reades;
+	unsigned long stat_writes;
+	unsigned long stat_reades;
 
 	/* todo time stats */
 } u5c_port_t;
@@ -156,7 +156,7 @@ typedef struct u5c_block {
 
 
 	/* statistics, todo step duration */
-	uint32_t stat_num_steps;
+	unsigned long stat_num_steps;
 
 	void* private_data;
 
