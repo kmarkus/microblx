@@ -31,10 +31,10 @@ function unload_modules()
 end
 
 function ni_stat()
-   print(
-      tostring(u5c.u5c_num_cblocks(ni)).." cblocks, "..
-      tostring(u5c.u5c_num_iblocks(ni)).." iblocks, "..
-   tostring(u5c.u5c_num_tblocks(ni)).." tblocks")
+   print(tostring(u5c.u5c_num_cblocks(ni)).." cblocks, ",
+	 tostring(u5c.u5c_num_iblocks(ni)).." iblocks, ",
+	 tostring(u5c.u5c_num_tblocks(ni)).." tblocks",
+	 tostring(u5c.u5c_num_types(ni)).." tblocks")
 end
 
 -- prog starts here.
@@ -50,6 +50,7 @@ block_type_to_name={
 
 load_module(ni, "std_blocks/random/random.so")
 load_module(ni, "std_blocks/hexdump/hexdump.so")
+load_module(ni, "std_types/stdtypes/stdtypes.so")
 
 ni_stat()
 

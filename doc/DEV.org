@@ -10,6 +10,18 @@
 ** TODO Test a minimal example with basic types
 ** TODO Test a minimal example with arrays of basic types
 ** TODO implement a nice high level lua library.
+** TODO test compilation with g++ and clang++ (*sigh*)
+   #ifdef __cplusplus
+   # define REALLOC(ptr, size, type) ((type *)realloc(ptr, size))
+   #else
+   # define REALLOC(ptr, size, type) realloc(ptr, size)
+   #endif
+
+   #ifdef __cplusplus
+   # define MALLOC(type, count) ((type *)calloc(count, sizeof(type)))
+   #else
+   # define MALLOC(type, count) (calloc(count, sizeof(type)))
+   #endif
 
 *  =valgrind --leak-check=full --track-origins=yes luajit rnd_to_hexdump.lua 2>&1 | less=
 

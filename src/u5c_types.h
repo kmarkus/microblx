@@ -29,7 +29,7 @@ enum {
 
 typedef struct u5c_type {
 	const char* name;		/* name: dir/header.h/struct foo*/
-	uint32_t class;			/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
+	uint32_t type_class;		/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
 	unsigned long size;		/* size in bytes */
 	u5c_serialization_t* serializations;
 	UT_hash_handle hh;
@@ -204,8 +204,8 @@ u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char
 u5c_block_t* u5c_block_create(u5c_node_info_t *ni, uint32_t block_type, const char *name, const char *type);
 int u5c_block_destroy(u5c_node_info_t *ni, uint32_t block_type, const char *name);
 
-int u5c_type_register(u5c_node_info_t* ni, const u5c_type_t* type);
-int u5c_type_unregister(u5c_node_info_t* ni, const char* name);
+int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type);
+u5c_type_t* u5c_type_unregister(u5c_node_info_t* ni, const char* name);
 
 u5c_block_t* u5c_cblock_create(u5c_node_info_t* ni, const char *type, const char* name);
 

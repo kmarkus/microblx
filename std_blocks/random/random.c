@@ -11,7 +11,7 @@
 
 #include "random_config.h"
 
-#define def_basic_ctype(typename) { .name=#typename, .class=TYPE_CLASS_STRUCT, .size=sizeof(typename) }
+#define def_basic_ctype(typename) { .name=#typename, .type_class=TYPE_CLASS_STRUCT, .size=sizeof(typename) }
 
 /* declare types */
 const u5c_type_t basic_types[] = {

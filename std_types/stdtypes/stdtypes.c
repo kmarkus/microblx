@@ -8,10 +8,10 @@
 
 #include "u5c.h"
 
-#define def_basic_ctype(typename) { .name=#typename, .class=TYPE_CLASS_BASIC, .size=sizeof(typename) }
+#define def_basic_ctype(typename) { .name=#typename, .type_class=TYPE_CLASS_BASIC, .size=sizeof(typename) }
 
 /* declare types */
-const u5c_type_t basic_types[] = {
+u5c_type_t basic_types[] = {
 	/* basic types */
 	def_basic_ctype(char),	     def_basic_ctype(unsigned char),	   def_basic_ctype(signed char),
 	def_basic_ctype(short),      def_basic_ctype(unsigned short),	   def_basic_ctype(signed short),
@@ -32,7 +32,7 @@ const u5c_type_t basic_types[] = {
 static int stdtypes_init(u5c_node_info_t* ni)
 {
 	DBG(" ");	
-	const u5c_type_t *tptr;
+	u5c_type_t *tptr;
 	for(tptr=basic_types; tptr->name!=NULL; tptr++) {
 		/* TODO check for errors */
 		u5c_type_register(ni, tptr);

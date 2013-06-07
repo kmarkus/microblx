@@ -140,6 +140,49 @@ u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char
 	return tmpc;
 }
 
+
+int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type)
+{
+	int ret = -1;
+	u5c_type_t* tmptype;
+
+	if(type==NULL) {
+		ERR("given type is NULL");
+		goto out;
+	}
+
+	/* TODO consistency checkm type->name must exists,... */
+	HASH_FIND_STR(ni->types, type->name, tmptype);
+
+	if(tmptype!=NULL) {
+		/* check if types are the same, if yes no error */
+		ERR("type '%s' already registered.", type->name);
+		goto out;
+	};
+
+	HASH_ADD_KEYPTR(hh, ni->types, type->name, strlen(type->name), type);
+	ret = 0;
+ out:
+	return ret;
+}
+
+u5c_type_t* u5c_type_unregister(u5c_node_info_t* ni, const char* name)
+{
+	u5c_type_t* ret = NULL;
+
+	HASH_FIND_STR(ni->types, name, ret);
+
+	if(ret==NULL) {
+		ERR("no type '%s' registered.", name);
+		goto out;
+	};
+
+	HASH_DEL(ni->types, ret);
+ out:
+	return ret;
+}
+
+
 int u5c_num_cblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->cblocks); }
 int u5c_num_iblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->iblocks); }
 int u5c_num_tblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->tblocks); }
