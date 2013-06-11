@@ -47,10 +47,9 @@ block_type_to_name={
    [ffi.C.BLOCK_TYPE_TRIGGER]="tblock",
 }
 
-
+load_module(ni, "std_types/stdtypes/stdtypes.so")
 load_module(ni, "std_blocks/random/random.so")
 load_module(ni, "std_blocks/hexdump/hexdump.so")
-load_module(ni, "std_types/stdtypes/stdtypes.so")
 
 ni_stat()
 

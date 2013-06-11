@@ -196,6 +196,8 @@ int u5c_num_iblocks(u5c_node_info_t* ni);
 int u5c_num_tblocks(u5c_node_info_t* ni);
 int u5c_num_types(u5c_node_info_t* ni);
 
+int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b);
+
 /* register/unregister different entities */
 int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block);
 u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char* name);

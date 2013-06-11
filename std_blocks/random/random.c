@@ -11,18 +11,6 @@
 
 #include "random_config.h"
 
-#define def_basic_ctype(typename) { .name=#typename, .type_class=TYPE_CLASS_STRUCT, .size=sizeof(typename) }
-
-/* declare types */
-const u5c_type_t basic_types[] = {
-	def_basic_ctype(char),	     def_basic_ctype(unsigned char),	   def_basic_ctype(signed char),
-	def_basic_ctype(short),      def_basic_ctype(unsigned short),	   def_basic_ctype(signed short),
-	def_basic_ctype(int), 	     def_basic_ctype(unsigned int),	   def_basic_ctype(signed int),
-	def_basic_ctype(long),       def_basic_ctype(unsigned long),	   def_basic_ctype(signed long),
-	def_basic_ctype(long long),  def_basic_ctype(unsigned long long),  def_basic_ctype(signed long long),
-	def_basic_ctype(float),      def_basic_ctype(double),
-};
-
 char rnd_meta[] =
 	"{ doc='A random number generator function block',"
 	"  license='LGPL',"
@@ -38,8 +26,8 @@ const u5c_config_t rnd_config[] = {
 };
 
 u5c_port_t rnd_ports[] = {
-	{ .name="seed", .attrs=PORT_DIR_IN, .in_type_name="long int" },
-	{ .name="rnd", .attrs=PORT_DIR_OUT, .out_type_name="long int" },
+	{ .name="seed", .attrs=PORT_DIR_IN, .in_type_name="unsigned int" },
+	{ .name="rnd", .attrs=PORT_DIR_OUT, .out_type_name="unsigned int" },
 	{ NULL },
 };
 

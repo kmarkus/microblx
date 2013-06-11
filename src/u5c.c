@@ -102,6 +102,10 @@ int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block)
 		goto out;
 	};
 
+	/* resolve types */
+	if((ret=u5c_resolve_types(ni, block)) !=0)
+		goto out;
+
 	HASH_ADD_KEYPTR(hh, *blocklist, block->name, strlen(block->name), block);
 
  out:
@@ -144,7 +148,7 @@ u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char
 int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type)
 {
 	int ret = -1;
-	u5c_type_t* tmptype;
+	u5c_type_t* typ;
 
 	if(type==NULL) {
 		ERR("given type is NULL");
@@ -152,9 +156,9 @@ int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type)
 	}
 
 	/* TODO consistency checkm type->name must exists,... */
-	HASH_FIND_STR(ni->types, type->name, tmptype);
+	HASH_FIND_STR(ni->types, type->name, typ);
 
-	if(tmptype!=NULL) {
+	if(typ!=NULL) {
 		/* check if types are the same, if yes no error */
 		ERR("type '%s' already registered.", type->name);
 		goto out;
@@ -182,6 +186,55 @@ u5c_type_t* u5c_type_unregister(u5c_node_info_t* ni, const char* name)
 	return ret;
 }
 
+/**
+ * u5c_resolve_types - resolve string type references to real type object.
+ *
+ * @param ni
+ * @param b
+ *
+ * @return 0 if all types are resolved, -1 if not.
+ */
+int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b)
+{
+	int ret = -1;
+	u5c_type_t* typ;
+	u5c_port_t* port_ptr;
+
+	/* ports */
+	if(b->ports==NULL) {
+		ret = 0;
+		goto out;
+	}
+
+	/* for each port locate type and resolve */
+	for(port_ptr=b->ports; port_ptr->name!=NULL; port_ptr++) {
+		/* in-type */
+		if(port_ptr->in_type_name) {
+			HASH_FIND_STR(ni->types, port_ptr->in_type_name, typ);
+			if(typ==NULL) {
+				ERR("failed to resolve type %s of in-port %s of block %s.",
+				    port_ptr->in_type_name, port_ptr->name, b->name);
+				goto out;
+			}
+			port_ptr->in_type=typ;
+		}
+
+		/* out-type */
+		if(port_ptr->out_type_name) {
+			HASH_FIND_STR(ni->types, port_ptr->out_type_name, typ);
+			if(typ==NULL) {
+				ERR("failed to resolve type %s of out-port %s of block %s.",
+				    port_ptr->out_type_name, port_ptr->name, b->name);
+				goto out;
+			}
+			port_ptr->out_type=typ;
+		}
+	}
+	/* all ok */
+	ret = 0;
+ out:
+	return ret;
+}
 
 int u5c_num_cblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->cblocks); }
 int u5c_num_iblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->iblocks); }
@@ -296,23 +349,23 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 	/* copy attributes of prototype */
 	newc->type = prot->type;
 
-	if((newc->name=strdup(name))==NULL) goto out_free_all;
-	if((newc->meta_data=strdup(prot->meta_data))==NULL) goto out_free_all;
-	if((newc->prototype=strdup(prot->name))==NULL) goto out_free_all;
+	if((newc->name=strdup(name))==NULL) goto out_err_nomem;
+	if((newc->meta_data=strdup(prot->meta_data))==NULL) goto out_err_nomem;
+	if((newc->prototype=strdup(prot->name))==NULL) goto out_err_nomem;
 
 	/* do we have ports? */
 	if(prot->ports) {
 		for(port_ptr=prot->ports,i=1; port_ptr->name!=NULL; port_ptr++,i++) {
 			newc->ports = realloc(newc->ports, sizeof(u5c_port_t) * i);
 			if (newc->ports==NULL)
-				goto out_free_all;
+				goto out_err_nomem;
 			if(u5c_clone_port_data(port_ptr, &newc->ports[i-1]) != 0)
-				goto out_free_all;
+				goto out_err_nomem;
 		}
 
 		/* increase size by one for NULL element */
 		if((newc->ports = realloc(newc->ports, sizeof(u5c_port_t) * i))==NULL)
-			goto out_free_all;
+			goto out_err_nomem;
 
 		memset(&newc->ports[i-1], 0x0, sizeof(u5c_port_t));
 	}
@@ -340,18 +393,18 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 
 	/* register component */
 	if(u5c_block_register(ni, newc))
-		goto out_err;
+		goto out_free;
 
 	/* all ok */
 	return newc;
 
- out_free_all:
+ out_err_nomem:
+	ERR("insufficient memory");
+ out_free:
 	if(newc->prototype) free(newc->prototype);
 	if(newc->meta_data) free(newc->meta_data);
 	if(newc->name) free(newc->name);
 	if(newc) free(newc);
- out_err_nomem:
-	ERR("insufficient memory");
  out_err:
 	return NULL;
 }
