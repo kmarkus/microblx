@@ -23,7 +23,7 @@ typedef struct u5c_serialization {
 
 enum {
 	TYPE_CLASS_BASIC=1,
-	TYPE_CLASS_STRUCT,	/* simple consecutive struct */
+	TYPE_CLASS_STRUCT,	/* simple sequential memory struct */
 	TYPE_CLASS_CUSTOM	/* requires custom serialization */
 };
 
@@ -38,7 +38,7 @@ typedef struct u5c_type {
 
 typedef struct u5c_data {
 	const u5c_type_t* type;	/* link to u5c_type */
-	unsigned long length;	/* if length> 1 then length of array, else ignored */
+	unsigned long len;	/* if length> 1 then length of array, else ignored */
 	void* data;		/* buffer with size (type->size * length) */
 } u5c_data_t;
 

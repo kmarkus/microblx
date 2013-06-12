@@ -212,7 +212,7 @@ int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b)
 		if(port_ptr->in_type_name) {
 			HASH_FIND_STR(ni->types, port_ptr->in_type_name, typ);
 			if(typ==NULL) {
-				ERR("failed to resolve type %s of in-port %s of block %s.",
+				ERR("failed to resolve type '%s' of in-port '%s' of block '%s'.",
 				    port_ptr->in_type_name, port_ptr->name, b->name);
 				goto out;
 			}
@@ -223,7 +223,7 @@ int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b)
 		if(port_ptr->out_type_name) {
 			HASH_FIND_STR(ni->types, port_ptr->out_type_name, typ);
 			if(typ==NULL) {
-				ERR("failed to resolve type %s of out-port %s of block %s.",
+				ERR("failed to resolve type '%s' of out-port '%s' of block '%s'.",
 				    port_ptr->out_type_name, port_ptr->name, b->name);
 				goto out;
 			}

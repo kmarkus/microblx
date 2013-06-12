@@ -32,6 +32,7 @@ void function_name(u5c_port_t* port, typename *outval) \
  if(port==NULL) { ERR("port is NULL"); return; } \
  val.data = outval; \
  val.type = port->out_type; \
+ val.len=1; \
  __port_write(port, &val);	\
 } \
 
@@ -47,7 +48,7 @@ uint32_t function_name(u5c_port_t* port, typename *inval) \
 } \
 
 
-#define data_len(d) (d->length * d->type->size)
+#define data_len(d) (d->len * d->type->size)
 
 /*
  * Debug stuff
