@@ -82,6 +82,7 @@ void u5c_node_cleanup(u5c_node_info_t* ni)
 	/* clean up all entities */
 }
 
+
 /**
  * u5c_block_register - register a block with the given node_info.
  *
@@ -552,14 +553,12 @@ u5c_port_t* u5c_port_get(u5c_block_t* comp, const char *name)
 
 
 /**
- * u5c_block_init - run init function of given block.
- *
- * TODO: how to report failure to switch the state?
+ * u5c_block_init - initalize a function block.
  *
  * @param ni
  * @param b
  *
- * @return result of init function.
+ * @return 0 if state was changed, -1 otherwise.
  */
 int u5c_block_init(u5c_node_info_t* ni, u5c_block_t* b)
 {
@@ -585,6 +584,14 @@ int u5c_block_init(u5c_node_info_t* ni, u5c_block_t* b)
 	return ret;
 }
 
+/**
+ * u5c_block_start - start a function block.
+ *
+ * @param ni
+ * @param b
+ *
+ * @return 0 if state was changed, -1 otherwise.
+ */
 int u5c_block_start(u5c_node_info_t* ni, u5c_block_t* b)
 {
 	int ret = -1;
@@ -609,6 +616,14 @@ int u5c_block_start(u5c_node_info_t* ni, u5c_block_t* b)
 	return ret;
 }
 
+/**
+ * u5c_block_stop - stop a function block
+ *
+ * @param ni
+ * @param b
+ *
+ * @return
+ */
 int u5c_block_stop(u5c_node_info_t* ni, u5c_block_t* b)
 {
 	int ret = -1;
@@ -630,6 +645,14 @@ int u5c_block_stop(u5c_node_info_t* ni, u5c_block_t* b)
 	return ret;
 }
 
+/**
+ * u5c_block_cleanup - bring function block back to preinit state.
+ *
+ * @param ni
+ * @param b
+ *
+ * @return 0 if state was changed, -1 otherwise.
+ */
 int u5c_block_cleanup(u5c_node_info_t* ni, u5c_block_t* b)
 {
 	int ret=-1;

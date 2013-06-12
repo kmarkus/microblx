@@ -11,6 +11,10 @@
    -> in u5c_resolve_types: need to check whether port has namein or outport is 
 ** DONE test hexdump interaction with variable types
    CLOSED: [2013-06-12 Wed 12:55]
+** TODO add namespace to struct type's string spec and load into ffi
+** TODO implement a buffered interaction
+   - and test by writing data from the lua shell
+
 ** TODO test communicating struct types
 ** TODO Test a minimal example with basic types
 ** TODO Test a minimal example with arrays of basic types
