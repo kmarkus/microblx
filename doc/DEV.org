@@ -38,7 +38,10 @@
 
 * Usefull stuff:
 **  =valgrind --leak-check=full --track-origins=yes luajit rnd_to_hexdump.lua 2>&1 | less=
-** 
+** [[http://p99.gforge.inria.fr/][P99]] - Preprocessor macros and functions for C99
+** uthash
+** libmowgli-2
+
 
 * Focus
   - only in-out ports (maybe instead of multi-valued ports it's better
@@ -49,12 +52,6 @@
     and rosmsg)
 
   - separate definition and instance.
-
-
-* Supporting frameworks
-- uthash
-- libmowgli-2
-    
 
 * Milestones
   - [ ] Launch the random component stdalone and test it from the lua
