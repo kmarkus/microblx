@@ -6,7 +6,8 @@
   
 ** DONE Implement u5c_type_register/unregister
    CLOSED: [2013-06-11 Tue 13:09]
-** TODO resolve types
+** DONE resolve types
+   CLOSED: [2013-06-12 Wed 11:02]
    -> in u5c_resolve_types: need to check whether port has namein or outport is 
 ** TODO Test a minimal example with basic types
 ** TODO Test a minimal example with arrays of basic types

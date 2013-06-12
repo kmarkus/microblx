@@ -118,6 +118,12 @@ enum {
 	BLOCK_TYPE_TRIGGER,
 };
 
+enum {
+	BLOCK_STATE_PREINIT,
+	BLOCK_STATE_INACTIVE,
+	BLOCK_STATE_ACTIVE,
+};
+
 /* block definition */
 typedef struct u5c_block {
 	char* name;		/* type name */
@@ -128,7 +134,7 @@ typedef struct u5c_block {
 	const u5c_config_t* configs;
 
 
-	uint32_t state;  /* state of lifecycle */
+	int block_state;  /* state of lifecycle */
 	char *prototype; /* name of prototype, NULL if none */
 
 
@@ -196,8 +202,6 @@ int u5c_num_iblocks(u5c_node_info_t* ni);
 int u5c_num_tblocks(u5c_node_info_t* ni);
 int u5c_num_types(u5c_node_info_t* ni);
 
-int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b);
-
 /* register/unregister different entities */
 int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block);
 u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char* name);
@@ -206,6 +210,13 @@ u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char
 u5c_block_t* u5c_block_create(u5c_node_info_t *ni, uint32_t block_type, const char *name, const char *type);
 int u5c_block_destroy(u5c_node_info_t *ni, uint32_t block_type, const char *name);
 
+/* block life cycle */
+int u5c_block_init(u5c_node_info_t* ni, u5c_block_t* b);
+int u5c_block_start(u5c_node_info_t* ni, u5c_block_t* b);
+int u5c_block_stop(u5c_node_info_t* ni, u5c_block_t* b);
+int u5c_block_cleanup(u5c_node_info_t* ni, u5c_block_t* b);
+
+int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b);
 int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type);
 u5c_type_t* u5c_type_unregister(u5c_node_info_t* ni, const char* name);
 

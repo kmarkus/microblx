@@ -61,8 +61,8 @@ hexdump1=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_INTERACTION, "hexdump", "hexd
 
 ni_stat()
 
-print("running random1 init", random1.init(random1))
--- print("running hexdump1 init", hexdump1.init(hexdump1))
+print("running random1 init", u5c.u5c_block_init(ni, random1))
+print("running hexdump1 init", u5c.u5c_block_init(ni, hexdump1))
 
 rand_port=u5c.u5c_port_get(random1, "rnd")
 

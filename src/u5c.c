@@ -26,6 +26,17 @@ static u5c_block_t** get_block_list(u5c_node_info_t* ni, uint32_t type)
 	return NULL;
 }
 
+/* for pretty printing */
+const char *block_states[] = {	"preinit", "inactive", "active" };
+
+const char* block_state_tostr(int state)
+{
+	if(state>=sizeof(block_states))
+		return "invalid";
+	return block_states[state];
+}
+
+
 /**
  * get_typename - return the type-name of the given data.
  *
@@ -346,6 +357,8 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 
 	memset(newc, 0x0, sizeof(u5c_block_t));
 
+	newc->block_state = BLOCK_STATE_PREINIT;
+
 	/* copy attributes of prototype */
 	newc->type = prot->type;
 
@@ -536,6 +549,107 @@ u5c_port_t* u5c_port_get(u5c_block_t* comp, const char *name)
 
 /* u5c_port_t* u5c_port_add(u5c_block_t* comp, const char *name, const char *type); */
 /* u5c_port_t* u5c_port_rm(u5c_block_t* comp); */
+
+
+/**
+ * u5c_block_init - run init function of given block.
+ *
+ * TODO: how to report failure to switch the state?
+ *
+ * @param ni
+ * @param b
+ *
+ * @return result of init function.
+ */
+int u5c_block_init(u5c_node_info_t* ni, u5c_block_t* b)
+{
+	int ret = -1;
+
+	if(b->block_state!=BLOCK_STATE_PREINIT) {
+		ERR("block '%s' not in state preinit, but in %s",
+		    b->name, block_state_tostr(b->block_state));
+		goto out;
+	}
+
+	if(b->init==NULL) goto out_ok;
+
+	if(b->init(b)!=0) {
+		ERR("block '%s' init function failed.", b->name);
+		goto out;
+	}
+
+ out_ok:
+	b->block_state=BLOCK_STATE_INACTIVE;
+	ret=0;
+ out:
+	return ret;
+}
+
+int u5c_block_start(u5c_node_info_t* ni, u5c_block_t* b)
+{
+	int ret = -1;
+
+	if(b->block_state!=BLOCK_STATE_INACTIVE) {
+		ERR("block '%s' not in state inactive, but in %s",
+		    b->name, block_state_tostr(b->block_state));
+		goto out;
+	}
+
+	if(b->start==NULL) goto out_ok;
+
+	if(b->start(b)!=0) {
+		ERR("block '%s' start function failed.", b->name);
+		goto out;
+	}
+
+ out_ok:
+	b->block_state=BLOCK_STATE_ACTIVE;
+	ret=0;
+ out:
+	return ret;
+}
+
+int u5c_block_stop(u5c_node_info_t* ni, u5c_block_t* b)
+{
+	int ret = -1;
+
+	if(b->block_state!=BLOCK_STATE_ACTIVE) {
+		ERR("block '%s' not in state active, but in %s",
+		    b->name, block_state_tostr(b->block_state));
+		goto out;
+	}
+
+	if(b->stop==NULL) goto out_ok;
+
+	b->stop(b);
+
+ out_ok:
+	b->block_state=BLOCK_STATE_INACTIVE;
+	ret=0;
+ out:
+	return ret;
+}
+
+int u5c_block_cleanup(u5c_node_info_t* ni, u5c_block_t* b)
+{
+	int ret=-1;
+
+	if(b->block_state!=BLOCK_STATE_INACTIVE) {
+		ERR("block '%s' not in state inactive, but in %s",
+		    b->name, block_state_tostr(b->block_state));
+		goto out;
+	}
+
+	if(b->cleanup==NULL) goto out_ok;
+
+	b->cleanup(b);
+
+ out_ok:
+	b->block_state=BLOCK_STATE_PREINIT;
+	ret=0;
+ out:
+	return ret;
+}
 
 
 /**
