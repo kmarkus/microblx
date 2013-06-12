@@ -198,6 +198,13 @@ u5c_type_t* u5c_type_unregister(u5c_node_info_t* ni, const char* name)
 	return ret;
 }
 
+u5c_type_t* u5c_type_get(u5c_node_info_t* ni, const char* name)
+{
+	u5c_type_t* ret=NULL;
+	HASH_FIND_STR(ni->types, name, ret);
+	return ret;
+}
+
 /**
  * u5c_resolve_types - resolve string type references to real type object.
  *

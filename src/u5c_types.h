@@ -220,6 +220,7 @@ int u5c_block_cleanup(u5c_node_info_t* ni, u5c_block_t* b);
 int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b);
 int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type);
 u5c_type_t* u5c_type_unregister(u5c_node_info_t* ni, const char* name);
+u5c_type_t* u5c_type_get(u5c_node_info_t* ni, const char* name);
 
 u5c_block_t* u5c_cblock_create(u5c_node_info_t* ni, const char *type, const char* name);
 

@@ -2,6 +2,20 @@
 
 local ffi = require("ffi")
 local u5c_utils = require("lua/u5c_utils")
+local ts=tostring
+
+function print_type(ni, name)
+   t=u5c.u5c_type_get(ni, name)
+   if t==nil then
+      print("no type '"..name.. "' found")
+      return
+   end
+   print("name: "..ffi.string(t.name).. ", class: "..ts(t.type_class)..", size: "..ts(t.size))
+   if t.type_class==u5c.TYPE_CLASS_STRUCT and t.private_data ~= nil then
+      --print("struct spec")
+      print("struct spec:\n"..ts(ffi.string(t.private_data)))
+   end
+end
 
 function init_node()
    -- load u5c_types and library
@@ -55,6 +69,8 @@ ni_stat()
 
 print("creating instance of 'random'")
 random1=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "random", "random1")
+
+print_type(ni, "random/struct random_config")
 
 print("creating instance of 'hexdump'")
 hexdump1=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_INTERACTION, "hexdump", "hexdump1")
