@@ -32,7 +32,7 @@ u5c_port_t rnd_ports[] = {
 };
 
 def_read_fun(read_uint, unsigned int)
-def_write_fun(write_longint, long int)
+def_write_fun(write_longint, unsigned int)
 
 static int rnd_init(u5c_block_t *c)
 {
@@ -55,7 +55,7 @@ static int rnd_start(u5c_block_t *c)
 
 static void rnd_step(u5c_block_t *c) { 
 	/* cache in instance */
-	long int rand_val;
+	unsigned int rand_val;
 
 	DBG(" ");
 
