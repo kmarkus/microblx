@@ -1,5 +1,5 @@
 
-struct rand_config {
+struct random_config {
 	int min;
 	int max;
 };

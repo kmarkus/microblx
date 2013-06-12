@@ -31,6 +31,7 @@ typedef struct u5c_type {
 	const char* name;		/* name: dir/header.h/struct foo*/
 	uint32_t type_class;		/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
 	unsigned long size;		/* size in bytes */
+	void* private_data;		/* private data. */
 	u5c_serialization_t* serializations;
 	UT_hash_handle hh;
 } u5c_type_t;
@@ -104,7 +105,7 @@ typedef struct u5c_port {
 typedef struct u5c_config {
 	const char* name;
 	const char* type_name;
-	void *data;
+	u5c_data_t *value;
 } u5c_config_t;
 
 /*

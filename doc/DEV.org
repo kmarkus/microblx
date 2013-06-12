@@ -9,6 +9,9 @@
 ** DONE resolve types
    CLOSED: [2013-06-12 Wed 11:02]
    -> in u5c_resolve_types: need to check whether port has namein or outport is 
+** DONE test hexdump interaction with variable types
+   CLOSED: [2013-06-12 Wed 12:55]
+** TODO test communicating struct types
 ** TODO Test a minimal example with basic types
 ** TODO Test a minimal example with arrays of basic types
 ** TODO implement a nice high level lua library.
@@ -25,7 +28,8 @@
    # define MALLOC(type, count) (calloc(count, sizeof(type)))
    #endif
 
-** TODO add functions to change life-cycle state and check that the FSM is respected.
+** DONE add functions to change life-cycle state and check that the FSM is respected.
+   CLOSED: [2013-06-12 Wed 12:54]
 
 
 * Usefull stuff:
