@@ -32,7 +32,7 @@ u5c_port_t rnd_ports[] = {
 };
 
 def_read_fun(read_uint, unsigned int)
-def_write_fun(write_longint, unsigned int)
+def_write_fun(write_uint, unsigned int)
 
 static int rnd_init(u5c_block_t *c)
 {
@@ -62,7 +62,7 @@ static void rnd_step(u5c_block_t *c) {
 	u5c_port_t* rand_port = u5c_port_get(c, "rnd");
 
 	rand_val = random();
-	write_longint(rand_port, &rand_val);
+	write_uint(rand_port, &rand_val);
 }
 
 static void rnd_cleanup(u5c_block_t *c) { DBG(" "); }

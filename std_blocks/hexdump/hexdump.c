@@ -34,10 +34,9 @@ static void hexdump(unsigned char *buf, unsigned long index, unsigned long width
 }
 
 static void hexdump_write(u5c_block_t *i, u5c_data_t* data) {
-	/* const char* typename = get_typename(data); */
-	/* printf("hexdumping data of type %s", (typename!=NULL) ? typename : "unknown"); */
-	/* hexdump(data->data, data_len(data), 16); */
-	hexdump(data->data, sizeof(unsigned int), 16);
+	const char* typename = get_typename(data);
+	printf("hexdump (%s): ", (typename!=NULL) ? typename : "unknown");
+	hexdump(data->data, data_len(data), 16);
 }
 
 /* put everything together */
