@@ -1,5 +1,10 @@
 #!/usr/bin/env lua
 
+---
+--- Convert the contents of a file to a C-struct representation. The
+--- data is \0 terminated.
+---
+
 local utils=require "utils"
 
 function filename(path)
@@ -12,7 +17,6 @@ if #arg < 1 then
    print("usage: "..arg[0].." <file> <array name>")
    os.exit(1)
 end
-
 
 outfile=arg[1]..".hexarr"
 structname=arg[2] or string.gsub(filename(arg[1]), "[-.]", "_")
