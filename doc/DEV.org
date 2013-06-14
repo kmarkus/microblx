@@ -11,9 +11,15 @@
    -> in u5c_resolve_types: need to check whether port has namein or outport is 
 ** DONE test hexdump interaction with variable types
    CLOSED: [2013-06-12 Wed 12:55]
-** TODO add namespace to struct type's string spec and load into ffi
+** DONE add namespace to struct type's string spec and load into ffi
+   CLOSED: [2013-06-13 Thu 15:56]
+** TODO load a configuration 
 ** TODO implement a buffered interaction
    - and test by writing data from the lua shell
+
+** Fix leak upon failure: e.g. in alloc
+   if realloc fails the original block is untouched and NULL is
+   returned. Then we need to "unroll".
 
 ** TODO test communicating struct types
 ** TODO Test a minimal example with basic types

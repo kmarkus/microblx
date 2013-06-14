@@ -322,73 +322,137 @@ static int u5c_clone_port_data(const u5c_port_t *psrc, u5c_port_t *pcopy)
 }
 
 /**
- * u5c_block_create - clone a new block from an existing one.
+ * u5c_clear_config_data - free a config's extra memory
+ *
+ * @param c config whose data to free
+ */
+static void u5c_free_config_data(u5c_config_t *c)
+{
+	if(c->name) free(c->name);
+	if(c->type_name) free(c->type_name);
+	if(c->value.data) free(c->value.data);
+}
+
+/**
+ * u5c_clone_conf_data - clone the additional config data
+ *
+ * @param psrc pointer to the source config
+ * @param pcopy pointer to the existing target config
+ *
+ * @return less than zero if an error occured, 0 otherwise.
+ *
+ * This function allocates memory.
+ */
+static int u5c_clone_config_data(const u5c_config_t *csrc, u5c_config_t *ccopy)
+{
+	memset(ccopy, 0x0, sizeof(u5c_config_t));
+
+	if((ccopy->name=strdup(csrc->name))==NULL)
+		goto out_err;
+
+	if((ccopy->type_name=strdup(csrc->type_name))==NULL)
+		goto out_err;
+
+	ccopy->value.len=csrc->value.len;
+
+	return 0; /* all ok */
+
+ out_err:
+	u5c_free_config_data(ccopy);
+ 	return -1;
+}
+
+
+/**
+ * u5c_block_free - free all memory related to a block
  *
  * @param ni
  * @param block_type
- * @param type
  * @param name
  *
  * @return
  */
-u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const char* type, const char* name)
+void u5c_block_free(u5c_node_info_t *ni, u5c_block_t *b)
+{
+	u5c_port_t *port_ptr;
+	u5c_config_t *config_ptr;
+
+	/* configs */
+	if(b->configs!=NULL) {
+		for(config_ptr=b->configs; config_ptr->name!=NULL; config_ptr++)
+			u5c_free_config_data(config_ptr);
+
+		free(b->configs);
+	}
+
+	/* ports */
+	if(b->ports!=NULL) {
+		for(port_ptr=b->ports; port_ptr->name!=NULL; port_ptr++)
+			u5c_port_free_data(port_ptr);
+
+		free(b->ports);
+	}
+
+	if(b->prototype) free(b->prototype);
+	if(b->meta_data) free(b->meta_data);
+	if(b->name) free(b->name);
+	if(b) free(b);
+}
+
+
+/**
+ * u5c_block_clone - create a copy of an existing block from an existing one.
+ *
+ * @param ni node info ptr
+ * @param prot prototype block which to clone
+ * @param name name of new block
+ *
+ * @return a pointer to the newly allocated block. Must be freed with
+ */
+static u5c_block_t* u5c_block_clone(u5c_node_info_t* ni, u5c_block_t* prot, const char* name)
 {
 	int i;
-	u5c_block_t *newc, *prot, **blocklist;
-	const u5c_port_t *port_ptr;
+	u5c_block_t *newc;
+	u5c_port_t *srcport, *tgtport;
+	u5c_config_t *srcconf, *tgtconf;
 
-	/* retrieve the list corresponding to the block_type */
-	if((blocklist = get_block_list(ni, block_type))==NULL) {
-		ERR("invalid block type %d", block_type);
-		goto out_err;
-	}
-
-	/* find prototype */
-	HASH_FIND_STR(*blocklist, type, prot);
-
-	if(prot==NULL) {
-		ERR("no component definition named '%s'.", type);
-		goto out_err;
-	}
-
-	/* check if name is already used */
-	HASH_FIND_STR(*blocklist, name, newc);
-
-	if(newc!=NULL) {
-		ERR("there already exists a component named '%s'", name);
-		goto out_err;
-	}
-
-	/* clone */
-	if((newc = malloc(sizeof(u5c_block_t)))==NULL)
-		goto out_err_nomem;
-
-	memset(newc, 0x0, sizeof(u5c_block_t));
+	if((newc = calloc(1, sizeof(u5c_block_t)))==NULL)
+		goto out_free;
 
 	newc->block_state = BLOCK_STATE_PREINIT;
 
 	/* copy attributes of prototype */
 	newc->type = prot->type;
 
-	if((newc->name=strdup(name))==NULL) goto out_err_nomem;
-	if((newc->meta_data=strdup(prot->meta_data))==NULL) goto out_err_nomem;
-	if((newc->prototype=strdup(prot->name))==NULL) goto out_err_nomem;
+	if((newc->name=strdup(name))==NULL) goto out_free;
+	if((newc->meta_data=strdup(prot->meta_data))==NULL) goto out_free;
+	if((newc->prototype=strdup(prot->name))==NULL) goto out_free;
+
+	/* copy configuration */
+	if(prot->configs) {
+		for(i=0; prot->configs[i].name!=NULL; i++); /* compute length */
+
+		if((newc->configs = calloc(i+1, sizeof(u5c_config_t)))==NULL)
+			goto out_free;
+
+		for(srcconf=prot->configs, tgtconf=newc->configs; srcconf->name!=NULL; srcconf++,tgtconf++) {
+			if(u5c_clone_config_data(srcconf, tgtconf) != 0)
+				goto out_free;
+		}
+	}
+
 
 	/* do we have ports? */
 	if(prot->ports) {
-		for(port_ptr=prot->ports,i=1; port_ptr->name!=NULL; port_ptr++,i++) {
-			newc->ports = realloc(newc->ports, sizeof(u5c_port_t) * i);
-			if (newc->ports==NULL)
-				goto out_err_nomem;
-			if(u5c_clone_port_data(port_ptr, &newc->ports[i-1]) != 0)
-				goto out_err_nomem;
+		for(i=0; prot->ports[i].name!=NULL; i++); /* find number of ports */
+
+		if((newc->ports = calloc(i+1, sizeof(u5c_port_t)))==NULL)
+			goto out_free;
+
+		for(srcport=prot->ports, tgtport=newc->ports; srcport->name!=NULL; srcport++,tgtport++) {
+			if(u5c_clone_port_data(srcport, tgtport) != 0)
+				goto out_free;
 		}
-
-		/* increase size by one for NULL element */
-		if((newc->ports = realloc(newc->ports, sizeof(u5c_port_t) * i))==NULL)
-			goto out_err_nomem;
-
-		memset(&newc->ports[i-1], 0x0, sizeof(u5c_port_t));
 	}
 
 	/* ops */
@@ -398,7 +462,7 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 	newc->cleanup=prot->cleanup;
 
 	/* copy special ops */
-	switch(block_type) {
+	switch(prot->type) {
 	case BLOCK_TYPE_COMPUTATION:
 		newc->step=prot->step;
 		break;
@@ -412,33 +476,95 @@ u5c_block_t* u5c_block_create(u5c_node_info_t* ni, uint32_t block_type, const ch
 		break;
 	}
 
-	/* register component */
-	if(u5c_block_register(ni, newc))
-		goto out_free;
-
 	/* all ok */
 	return newc;
 
- out_err_nomem:
-	ERR("insufficient memory");
  out_free:
-	if(newc->prototype) free(newc->prototype);
-	if(newc->meta_data) free(newc->meta_data);
-	if(newc->name) free(newc->name);
-	if(newc) free(newc);
- out_err:
+	u5c_block_free(ni, newc);
+ 	ERR("insufficient memory");
 	return NULL;
 }
 
+
 /**
- * array_block_add - add a given array to a block
+ *
+ *
+ * @param ni
+ * @param block_type
+ * @param name
+ *
+ * @return
+ */
+u5c_block_t* u5c_block_create(u5c_node_info_t *ni, uint32_t block_type, const char *type, const char* name)
+{
+	u5c_block_t *prot, *newc, **blocklist;
+	newc=NULL;
+
+	/* retrieve the list corresponding to the block_type */
+	if((blocklist = get_block_list(ni, block_type))==NULL) {
+		ERR("invalid block type %d", block_type);
+		goto out;
+	}
+
+	/* find prototype */
+	HASH_FIND_STR(*blocklist, type, prot);
+
+	if(prot==NULL) {
+		ERR("no component definition named '%s'.", type);
+		goto out;
+	}
+
+	/* check if name is already used */
+	HASH_FIND_STR(*blocklist, name, newc);
+
+	if(newc!=NULL) {
+		ERR("existing component named '%s'", name);
+		goto out;
+	}
+
+	if((newc=u5c_block_clone(ni, prot, name))==NULL)
+		goto out;
+
+	/* register block */
+	if(u5c_block_register(ni, newc) !=0){
+		ERR("failed to register block %s", name);
+		u5c_block_free(ni, newc);
+		goto out;
+	}
+ out:
+	return newc;
+}
+
+int u5c_block_rm(u5c_node_info_t *ni, uint32_t block_type, const char* name)
+{
+	int ret;
+	u5c_block_t *b;
+
+	b = u5c_block_unregister(ni, block_type, name);
+
+	if(b==NULL) {
+		ERR("no component named '%s'", name);
+		ret = ENOSUCHBLOCK;
+		goto out;
+	}
+
+	u5c_block_free(ni, b);
+	ret=0;
+ out:
+	return ret;
+}
+
+/**
+ * array_block_add - add a block to an array
+ *
+ * grow/shrink the array if necessary.
  *
  * @param arr
  * @param newblock
  *
  * @return
  */
-int array_block_add(u5c_block_t ***arr, u5c_block_t *newblock)
+static int array_block_add(u5c_block_t ***arr, u5c_block_t *newblock)
 {
 	int ret;
 	unsigned long newlen; /* new length of array including NULL element */
@@ -682,47 +808,6 @@ int u5c_block_cleanup(u5c_node_info_t* ni, u5c_block_t* b)
 }
 
 
-/**
- * u5c_block_destroy - unregister a block and free its memory.
- *
- * @param ni
- * @param block_type
- * @param name
- *
- * @return
- */
-int u5c_block_destroy(u5c_node_info_t *ni, uint32_t block_type, const char* name)
-{
-	int ret;
-	u5c_block_t *c;
-	u5c_port_t *port_ptr;
-
-	c = u5c_block_unregister(ni, block_type, name);
-
-	if(c==NULL) {
-		ERR("no component named '%s'", name);
-		ret = ENOSUCHBLOCK;
-		goto out;
-	}
-
-	/* ports */
-	if(c->ports!=NULL) {
-		for(port_ptr=c->ports; port_ptr->name!=NULL; port_ptr++)
-			u5c_port_free_data(port_ptr);
-
-		free(c->ports);
-	}
-
-	if(c->prototype) free(c->prototype);
-	if(c->meta_data) free(c->meta_data);
-	if(c->name) free(c->name);
-	if(c) free(c);
-
-	/* all ok */
-	ret=0;
- out:
-	return ret;
-}
 
 /**
  * @brief

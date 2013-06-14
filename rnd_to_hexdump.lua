@@ -114,10 +114,12 @@ for i=1,10 do
 end
 
 print("cleaning up")
-print("freeing random1", u5c.u5c_block_destroy(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "random1"))
-print("freeing hexdump1", u5c.u5c_block_destroy(ni, ffi.C.BLOCK_TYPE_INTERACTION, "hexdump1"))
+print("freeing random1", u5c.u5c_block_rm(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "random1"))
+print("freeing hexdump1", u5c.u5c_block_rm(ni, ffi.C.BLOCK_TYPE_INTERACTION, "hexdump1"))
 
 unload_modules()
 print(tostring(u5c.u5c_num_cblocks(ni)).." blocks loaded")
 
 ni_stat()
+
+os.exit(1)

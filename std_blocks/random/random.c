@@ -44,7 +44,7 @@ char rnd_meta[] =
  *
  * if an array is required, then .value = { .len=<LENGTH> } can be used.
  */
-const u5c_config_t rnd_config[] = {
+u5c_config_t rnd_config[] = {
 	{ .name="random_config", .type_name = "random/struct rand_config" },
 	{ NULL },
 };
