@@ -335,6 +335,9 @@ static int u5c_clone_port_data(const u5c_port_t *psrc, u5c_port_t *pcopy)
 		if((pcopy->out_type_name=strdup(psrc->out_type_name))==NULL)
 			goto out_err_free;
 
+	pcopy->in_data_len = (psrc->in_data_len==0) ? 1 : psrc->in_data_len;
+	pcopy->out_data_len = (psrc->out_data_len==0) ? 1 : psrc->out_data_len;
+
 	pcopy->attrs=psrc->attrs;
 	pcopy->state=psrc->state;
 
