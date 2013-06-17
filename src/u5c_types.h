@@ -88,6 +88,9 @@ typedef struct u5c_port {
 	u5c_type_t* in_type;		/* resolved in automatically */
 	u5c_type_t* out_type;	 	/* resolved in automatically */
 
+	unsigned long in_data_len;	/* max array size of in/out data */
+	unsigned long out_data_len;
+
 	struct u5c_block** in_interaction;
 	struct u5c_block** out_interaction;
 

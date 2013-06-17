@@ -157,6 +157,14 @@ u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char
 }
 
 
+/**
+ * u5c_type_register - register a type with a node.
+ *
+ * @param ni
+ * @param type
+ *
+ * @return
+ */
 int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type)
 {
 	int ret = -1;
@@ -182,6 +190,16 @@ int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type)
 	return ret;
 }
 
+/**
+ * u5c_type_unregister - unregister type with node
+ *
+ * TODO: use count handling, only succeed unloading when not used!
+ *
+ * @param ni
+ * @param name
+ *
+ * @return
+ */
 u5c_type_t* u5c_type_unregister(u5c_node_info_t* ni, const char* name)
 {
 	u5c_type_t* ret = NULL;
@@ -198,6 +216,14 @@ u5c_type_t* u5c_type_unregister(u5c_node_info_t* ni, const char* name)
 	return ret;
 }
 
+/**
+ * u5c_type_get - find a u5c_type by name.
+ *
+ * @param ni
+ * @param name
+ *
+ * @return pointer to u5c_type or NULL if not found.
+ */
 u5c_type_t* u5c_type_get(u5c_node_info_t* ni, const char* name)
 {
 	u5c_type_t* ret=NULL;
