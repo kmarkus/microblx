@@ -46,34 +46,34 @@ typedef struct u5c_data {
 
 /* Port attributes */
 enum {
-	PORT_DIR_IN    =	1 << 0,
-	PORT_DIR_OUT   =	1 << 1,
+	PORT_DIR_IN 	= 1 << 0,
+	PORT_DIR_OUT 	= 1 << 1,
 };
 
 /* Port state */
 enum {
-	PORT_ACTIVE = 1 << 0,
+	PORT_ACTIVE 	= 1 << 0,
 };
 
 
 /* return values */
 enum {
-	PORT_READ_NODATA   = 1,
-	PORT_READ_NEWDATA  = 2,
+	PORT_READ_NODATA   	= -1,
+	PORT_READ_NEWDATA  	= -2,
 
 	/* ERROR conditions */
-	EPORT_INVALID       = -1,
-	EPORT_INVALID_TYPE  = -2,
+	EPORT_INVALID       	= -3,
+	EPORT_INVALID_TYPE  	= -4,
 
 	/* Registration, etc */
-	EINVALID_BLOCK_TYPE = -3,
-	ENOSUCHBLOCK        = -4,
-	EALREADY_REGISTERED = -5,
-	EOUTOFMEM = -6,
+	EINVALID_BLOCK_TYPE 	= -5,
+	ENOSUCHBLOCK        	= -6,
+	EALREADY_REGISTERED	= -7,
+	EOUTOFMEM 		= -8,
 };
 
 /* Port
- * no distinction between type and value
+h * no distinction between type and value
  */
 typedef struct u5c_port {
 	char* name;		/* name of port */
@@ -136,7 +136,6 @@ typedef struct u5c_block {
 
 	u5c_port_t* ports;
 	u5c_config_t* configs;
-
 
 	int block_state;  /* state of lifecycle */
 	char *prototype; /* name of prototype, NULL if none */
@@ -251,10 +250,13 @@ u5c_port_t* u5c_port_add(u5c_block_t* comp, const char *name, const char *type);
 u5c_port_t* u5c_port_rm(u5c_block_t* comp);
 /* FOR_EACH_INPORT, FOR_EACH_OUTPORT */
 
+u5c_config_t* u5c_config_get(u5c_block_t* b, const char *name);
+int u5c_config_set(u5c_block_t* b, const char *name, u5c_data_t* value);
+u5c_data_t* u5c_config_get_data(u5c_block_t* b, const char *name);
+
+
 uint32_t __port_read(u5c_port_t* port, u5c_data_t* res);
 void __port_write(u5c_port_t* port, u5c_data_t* res);
 
+u5c_data_t* u5c_alloc_data(u5c_node_info_t *ni, const char* typename, unsigned long array_len);
 
-/*
- * private API
- */

@@ -3,6 +3,45 @@
 local ffi = require("ffi")
 local u5c_utils = require("lua/u5c_utils")
 local ts=tostring
+local u5c, retvals
+
+local err2str = {
+   [0] ='OK',
+   [-1] ='PORT_READ_NODATA',
+   [-2] ='PORT_READ_NEWDATA',  
+   [-3] ='EPORT_INVALID',
+   [-4] ='EPORT_INVALID_TYPE',
+   [-5] ='EINVALID_BLOCK_TYPE',
+   [-6] ='ENOSUCHBLOCK',
+   [-7] ='EALREADY_REGISTERED',
+   [-8] ='EOUTOFMEM'
+}
+
+--- print an u5c_data_t
+function data2str(d)
+   if d.type.type_class~=u5c.TYPE_CLASS_BASIC then
+      return "can currently only print TYPE_CLASS_BASIC types"
+   end
+   ptrname = ffi.string(d.type.name).."*"
+   dptr = ffi.new(ptrname, d.data)
+   return string.format("0x%x", dptr[0]), "("..ts(dptr)..", "..ffi.string(d.type.name)..")"
+end
+
+-- function set_config
+-- end
+
+function interaction_read(i)
+   -- figure this out automatically.
+   local rddat=u5c.u5c_alloc_data(ni, "unsigned int", 1)
+   local res
+   local res=i.read(i, rddat)
+   if res <= 0 then res=err2str(num) end
+   return res, rddat
+end
+
+function interaction_write(i, val)
+end
+
 
 function u5c_type_pp(t)
    if t==nil then error("NULL type"); return end
@@ -86,6 +125,7 @@ block_type_to_name={
 load_module(ni, "std_types/stdtypes/stdtypes.so")
 load_module(ni, "std_blocks/random/random.so")
 load_module(ni, "std_blocks/hexdump/hexdump.so")
+load_module(ni, "std_blocks/buffer/buffer.so")
 
 ni_stat()
 
@@ -98,28 +138,41 @@ ffi_load_types(ni)
 
 print("creating instance of 'hexdump'")
 hexdump1=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_INTERACTION, "hexdump", "hexdump1")
+buffer1=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_INTERACTION, "buffer", "buffer1")
 
 ni_stat()
 
 print("running random1 init", u5c.u5c_block_init(ni, random1))
 print("running hexdump1 init", u5c.u5c_block_init(ni, hexdump1))
+print("running buffer1 init", u5c.u5c_block_init(ni, buffer1))
 
 rand_port=u5c.u5c_port_get(random1, "rnd")
 
 u5c.u5c_connect_one(rand_port, hexdump1)
+u5c.u5c_connect_one(rand_port, buffer1)
 
+local res, dat
 for i=1,10 do
    random1.step(random1)
+   res, dat = interaction_read(buffer1)
+   print("buffer1 read", res, data2str(dat))
    -- os.execute("sleep 0.1")
 end
 
 print("cleaning up")
 print("freeing random1", u5c.u5c_block_rm(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "random1"))
 print("freeing hexdump1", u5c.u5c_block_rm(ni, ffi.C.BLOCK_TYPE_INTERACTION, "hexdump1"))
+print("freeing buffer1", u5c.u5c_block_rm(ni, ffi.C.BLOCK_TYPE_INTERACTION, "buffer1"))
 
-unload_modules()
+
 print(tostring(u5c.u5c_num_cblocks(ni)).." blocks loaded")
 
 ni_stat()
 
+-- l1=u5c.u5c_alloc_data(ni, "unsigned long", 1)
+-- if l1~=nil then print_data(l1) end
+
+
 os.exit(1)
+
+unload_modules()

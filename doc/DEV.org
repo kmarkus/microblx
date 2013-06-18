@@ -17,7 +17,8 @@
 ** TODO implement a buffered interaction
    - and test by writing data from the lua shell
 
-** Fix leak upon failure: e.g. in alloc
+** DONE Fix leak upon failure: e.g. in alloc
+   CLOSED: [2013-06-17 Mon 11:02]
    if realloc fails the original block is untouched and NULL is
    returned. Then we need to "unroll".
 
@@ -48,6 +49,7 @@
 ** uthash
 ** libmowgli-2
 ** [[https://bitbucket.org/zserge/jsmn][jsmn ANSI C json parser with permissive mode]]
+** Lua jit Application Programming Helper Libraries ([[https://github.com/Wiladams/LAPHLibs][github]])
 
 
 * Focus

@@ -241,45 +241,96 @@ u5c_type_t* u5c_type_get(u5c_node_info_t* ni, const char* name)
  */
 int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b)
 {
-	int ret = -1;
+	int ret = 0;
 	u5c_type_t* typ;
 	u5c_port_t* port_ptr;
-
-	/* ports */
-	if(b->ports==NULL) {
-		ret = 0;
-		goto out;
-	}
+	u5c_config_t *config_ptr;
 
 	/* for each port locate type and resolve */
-	for(port_ptr=b->ports; port_ptr->name!=NULL; port_ptr++) {
-		/* in-type */
-		if(port_ptr->in_type_name) {
-			HASH_FIND_STR(ni->types, port_ptr->in_type_name, typ);
-			if(typ==NULL) {
-				ERR("failed to resolve type '%s' of in-port '%s' of block '%s'.",
-				    port_ptr->in_type_name, port_ptr->name, b->name);
-				goto out;
-			}
-			port_ptr->in_type=typ;
-		}
+	if(b->ports) {
+		for(port_ptr=b->ports; port_ptr->name!=NULL; port_ptr++) {
+			/* in-type */
+			if(port_ptr->in_type_name) {
+				HASH_FIND_STR(ni->types, port_ptr->in_type_name, typ);
+				if(typ==NULL) {
+					ERR("failed to resolve type '%s' of in-port '%s' of block '%s'.",
+					    port_ptr->in_type_name, port_ptr->name, b->name);
+					ret=-1;
+					goto out;
+				}
+				port_ptr->in_type=typ;
 
-		/* out-type */
-		if(port_ptr->out_type_name) {
-			HASH_FIND_STR(ni->types, port_ptr->out_type_name, typ);
-			if(typ==NULL) {
-				ERR("failed to resolve type '%s' of out-port '%s' of block '%s'.",
-				    port_ptr->out_type_name, port_ptr->name, b->name);
-				goto out;
 			}
-			port_ptr->out_type=typ;
+
+
+			/* out-type */
+			if(port_ptr->out_type_name) {
+				HASH_FIND_STR(ni->types, port_ptr->out_type_name, typ);
+				if(typ==NULL) {
+					ERR("failed to resolve type '%s' of out-port '%s' of block '%s'.",
+					    port_ptr->out_type_name, port_ptr->name, b->name);
+					ret=-1;
+					goto out;
+				}
+				port_ptr->out_type=typ;
+			}
 		}
 	}
+
+	/* configs */
+	if(b->configs!=NULL) {
+		for(config_ptr=b->configs; config_ptr->name!=NULL; config_ptr++) {
+			HASH_FIND_STR(ni->types, config_ptr->type_name, typ);
+			if(typ==NULL)  {
+				ERR("failed to resolve type '%s' of config '%s' of block '%s'.",
+				    config_ptr->type_name, config_ptr->name, b->name);
+				ret=-1;
+				goto out;
+			}
+			config_ptr->value.type=typ;
+		}
+	}
+
 	/* all ok */
 	ret = 0;
  out:
 	return ret;
 }
+
+u5c_data_t* u5c_alloc_data(u5c_node_info_t *ni, const char* typename, unsigned long array_len)
+{
+	u5c_type_t* t = NULL;
+	u5c_data_t* d = NULL;
+
+	if(array_len == 0) {
+		ERR("invalid array_len 0");
+		goto out;
+	}
+
+	if((t=u5c_type_get(ni, typename))==NULL) {
+		ERR("unknown type '%s'", typename);
+		goto out;
+	}
+
+	if((d=calloc(1, sizeof(u5c_data_t)))==NULL)
+		goto out_nomem;
+
+	d->type = t;
+	d->len = array_len;
+
+	if((d->data=calloc(array_len, t->size))==NULL)
+		goto out_nomem;
+
+	/* all ok */
+	goto out;
+
+ out_nomem:
+	ERR("memory allocation failed");
+	if(d) free(d);
+ out:
+	return d;
+}
+
 
 int u5c_num_cblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->cblocks); }
 int u5c_num_iblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->iblocks); }
@@ -374,6 +425,11 @@ static void u5c_free_config_data(u5c_config_t *c)
  */
 static int u5c_clone_config_data(const u5c_config_t *csrc, u5c_config_t *ccopy)
 {
+	if(csrc->value.type==NULL) {
+		ERR("unresolved source config");
+		goto out_err;
+	}
+
 	memset(ccopy, 0x0, sizeof(u5c_config_t));
 
 	if((ccopy->name=strdup(csrc->name))==NULL)
@@ -382,7 +438,13 @@ static int u5c_clone_config_data(const u5c_config_t *csrc, u5c_config_t *ccopy)
 	if((ccopy->type_name=strdup(csrc->type_name))==NULL)
 		goto out_err;
 
-	ccopy->value.len=csrc->value.len;
+	ccopy->value.type = csrc->value.type;
+
+	/* TODO: fix this during registration */
+	ccopy->value.len=(csrc->value.len==0) ? 1 : csrc->value.len;
+
+	/* alloc actual buffer */
+	ccopy->value.data = calloc(ccopy->value.len, ccopy->value.type->size);
 
 	return 0; /* all ok */
 
@@ -564,6 +626,18 @@ u5c_block_t* u5c_block_create(u5c_node_info_t *ni, uint32_t block_type, const ch
 	return newc;
 }
 
+/**
+ * u5c_block_rm - remove a block from a node.
+ * This will unregister a block and free it's data.
+ *
+ * TODO: fail if not in state PREINIT.
+ *
+ * @param ni
+ * @param block_type
+ * @param name
+ *
+ * @return 0 if ok, error code otherwise.
+ */
 int u5c_block_rm(u5c_node_info_t *ni, uint32_t block_type, const char* name)
 {
 	int ret;
@@ -597,7 +671,7 @@ static int array_block_add(u5c_block_t ***arr, u5c_block_t *newblock)
 {
 	int ret;
 	unsigned long newlen; /* new length of array including NULL element */
-	u5c_block_t *tmpb;
+	u5c_block_t **tmpb;
 
 	/* determine newlen
 	 * with one element, the array is size two to hold the terminating NULL element.
@@ -605,7 +679,7 @@ static int array_block_add(u5c_block_t ***arr, u5c_block_t *newblock)
 	if(*arr==NULL)
 		newlen=2;
 	else
-		for(tmpb=**arr, newlen=2; tmpb->name!=NULL; tmpb++,newlen++);
+		for(tmpb=*arr, newlen=2; *tmpb!=NULL; tmpb++,newlen++);
 
 	if((*arr=realloc(*arr, sizeof(u5c_block_t*) * newlen))==NULL) {
 		ERR("insufficient memory");
@@ -613,6 +687,7 @@ static int array_block_add(u5c_block_t ***arr, u5c_block_t *newblock)
 		goto out;
 	}
 
+	DBG("newlen %ld, *arr=%p", newlen, *arr);
 	(*arr)[newlen-2]=newblock;
 	(*arr)[newlen-1]=NULL;
 	ret=0;
@@ -685,6 +760,56 @@ int u5c_connect(u5c_port_t* p1, u5c_port_t* p2, u5c_block_t* iblock)
 	return ret;
 }
 
+/*
+ * Configuration
+ */
+
+/**
+ * u5c_config_get - retrieve a configuration type by name.
+ *
+ * @param b
+ * @param name
+ *
+ * @return u5c_config_t pointer or NULL if not found.
+ */
+u5c_config_t* u5c_config_get(u5c_block_t* b, const char* name)
+{
+	u5c_config_t* conf = NULL;
+
+	if(b->configs==NULL || name==NULL)
+		goto out;
+
+	for(conf=b->configs; conf->name!=NULL; conf++)
+		if(strcmp(conf->name, name)==0)
+			goto out;
+	conf=NULL;
+ out:
+	return conf;
+}
+
+/**
+ * u5c_config_get_data - return the data associated with a configuration value.
+ *
+ * @param b
+ * @param name
+ *
+ * @return u5c_data_t pointer or NULL
+ */
+u5c_data_t* u5c_config_get_data(u5c_block_t* b, const char *name)
+{
+	u5c_config_t *conf = NULL;
+	u5c_data_t *data;
+
+	if((conf=u5c_config_get(b, name))==NULL)
+		goto out;
+	data=conf->value.data;
+ out:
+	return data;
+}
+
+/*
+ * Ports
+ */
 
 /**
  * u5c_port_get - retrieve a component port by name
@@ -725,6 +850,11 @@ u5c_port_t* u5c_port_get(u5c_block_t* comp, const char *name)
 int u5c_block_init(u5c_node_info_t* ni, u5c_block_t* b)
 {
 	int ret = -1;
+
+	if(b==NULL) {
+		ERR("invalid block");
+		goto out;
+	}
 
 	if(b->block_state!=BLOCK_STATE_PREINIT) {
 		ERR("block '%s' not in state preinit, but in %s",
@@ -917,8 +1047,10 @@ void __port_write(u5c_port_t* port, u5c_data_t* data)
 		goto out;
 
 	/* pump it out */
-	for(iaptr=port->out_interaction; *iaptr!=NULL; iaptr++)
+	for(iaptr=port->out_interaction; *iaptr!=NULL; iaptr++) {
+		DBG("writing to interaction '%s'", (*iaptr)->name);
 		(*iaptr)->write(*iaptr, data);
+	}
 
 	/* above looks nicer */
 	/* for(i=0; port->out_interaction[i]!=NULL; i++) */

@@ -9,7 +9,7 @@ HEXARRS:=$(TYPES:%=%.hexarr)
 	../../tools/file2carr.lua $<
 
 random.so: random.o $(INCLUDE_DIR)/libu5c.so 
-	${CC} -shared -l:$(INCLUDE_DIR)/libu5c.so -o random.so random.o
+	${CC} $(CFLAGS_SHARED) -l:$(INCLUDE_DIR)/libu5c.so -o random.so random.o
 
 random.o: random.c $(INCLUDE_DIR)/u5c.h $(INCLUDE_DIR)/u5c_types.h $(INCLUDE_DIR)/u5c.c $(HEXARRS)
 	${CC} -fPIC -I$(INCLUDE_DIR) -c $(CFLAGS) random.c

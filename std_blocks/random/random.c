@@ -12,7 +12,7 @@
 #include "types/random_config.h"
 #include "types/random_config.h.hexarr"
 
-u5c_type_t rand_config_type = { 
+u5c_type_t random_config_type = { 
 	.name="random/struct random_config",
 	.type_class=TYPE_CLASS_STRUCT,
 	.size=sizeof(struct random_config),
@@ -45,7 +45,7 @@ char rnd_meta[] =
  * if an array is required, then .value = { .len=<LENGTH> } can be used.
  */
 u5c_config_t rnd_config[] = {
-	{ .name="random_config", .type_name = "random/struct rand_config" },
+	{ .name="random_config", .type_name = "random/struct random_config" },
 	{ NULL },
 };
 
@@ -112,7 +112,7 @@ u5c_block_t random_comp = {
 static int random_init(u5c_node_info_t* ni)
 {
 	DBG(" ");	
-	u5c_type_register(ni, &rand_config_type);
+	u5c_type_register(ni, &random_config_type);
 	return u5c_block_register(ni, &random_comp);
 }
 

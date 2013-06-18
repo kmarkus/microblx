@@ -72,3 +72,7 @@ uint32_t function_name(u5c_port_t* port, typename *inval) \
 				      fprintf(stderr, ": %s", strerror(err_num)), \
 				      fprintf(stderr, "\n") )
 
+
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
