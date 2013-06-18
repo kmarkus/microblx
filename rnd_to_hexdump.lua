@@ -35,7 +35,7 @@ function interaction_read(i)
    local rddat=u5c.u5c_alloc_data(ni, "unsigned int", 1)
    local res
    local res=i.read(i, rddat)
-   if res <= 0 then res=err2str(num) end
+   if res <= 0 then res=err2str[res] end
    return res, rddat
 end
 
@@ -152,12 +152,21 @@ u5c.u5c_connect_one(rand_port, hexdump1)
 u5c.u5c_connect_one(rand_port, buffer1)
 
 local res, dat
-for i=1,10 do
+for i=1,8 do
    random1.step(random1)
+   --res, dat = interaction_read(buffer1)
+   --print("buffer1 read", res, data2str(dat))
+   -- os.execute("sleep 0.1")
+end
+
+for i=1,8 do
    res, dat = interaction_read(buffer1)
    print("buffer1 read", res, data2str(dat))
    -- os.execute("sleep 0.1")
 end
+
+
+print("running buffer1 cleanup", u5c.u5c_block_cleanup(ni, buffer1))
 
 print("cleaning up")
 print("freeing random1", u5c.u5c_block_rm(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "random1"))

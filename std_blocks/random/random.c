@@ -84,8 +84,6 @@ static void rnd_step(u5c_block_t *c) {
 	/* cache in instance */
 	unsigned int rand_val;
 
-	DBG(" ");
-
 	u5c_port_t* rand_port = u5c_port_get(c, "rnd");
 
 	rand_val = random();

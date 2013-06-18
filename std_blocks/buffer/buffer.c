@@ -107,8 +107,6 @@ static void buffer_write(u5c_block_t *i, u5c_data_t* msg)
 
 	len = data_len(msg);
 
-	DBG("len=%lu, space=%lu", len, (bbi->size - (bbi->buff_cur - bbi->buff)));
-
 	/* enough space? */
 	if(bbi->size - (bbi->buff_cur - bbi->buff) < len) {
 		bbi->overruns++;
@@ -129,7 +127,7 @@ static void buffer_write(u5c_block_t *i, u5c_data_t* msg)
 static int buffer_read(u5c_block_t *i, u5c_data_t* msg)
 {
 	int ret;
-	unsigned long readsz, bufsz;
+	unsigned long readsz, buf_used;
 	struct buffer_block_info *bbi;
 
 	bbi = (struct buffer_block_info*) i->private_data;
@@ -145,19 +143,17 @@ static int buffer_read(u5c_block_t *i, u5c_data_t* msg)
 	}
 
 	if(msg->type != bbi->type) {
-		ERR("%p, %p", msg->type, bbi->type);
 		ERR("invalid read type '%s' (expected '%s'", get_typename(msg), bbi->type->name);
 		ret=EPORT_INVALID_TYPE;
 		goto out_unlock;
 	}
 
 	/* bytes */
-	bufsz = bbi->size - (bbi->buff_cur - bbi->buff);	/* size of filled buffer */
-	readsz = MIN(data_len(msg), bufsz);			/* size to read out */
-	bbi->buff_cur-=readsz;					/* update buffer ptr */
+	buf_used = bbi->buff_cur - bbi->buff;	/* size of filled buffer */
+	readsz = MIN(data_len(msg), buf_used);	/* size to read out */
+	bbi->buff_cur-=readsz;			/* update buffer ptr */
 	memcpy(msg->data, bbi->buff_cur, readsz);
-	DBG("read %lu bytes, buff_cur=%p", readsz, bbi->buff_cur);
-	ret=readsz/bbi->type->size;				/* compute # elements read */
+	ret=readsz/bbi->type->size;		/* compute # elements read */
  out_unlock:
 	pthread_mutex_unlock(&bbi->mutex);
  out:
