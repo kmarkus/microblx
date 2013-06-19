@@ -126,8 +126,12 @@ load_module(ni, "std_types/stdtypes/stdtypes.so")
 load_module(ni, "std_blocks/random/random.so")
 load_module(ni, "std_blocks/hexdump/hexdump.so")
 load_module(ni, "std_blocks/buffer/buffer.so")
+load_module(ni, "std_blocks/webif/webif.so")
 
 ni_stat()
+
+print("creating instance of 'webif'")
+webif1=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "webif", "webif1")
 
 print("creating instance of 'random'")
 random1=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "random", "random1")
@@ -141,6 +145,9 @@ hexdump1=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_INTERACTION, "hexdump", "hexd
 buffer1=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_INTERACTION, "buffer", "buffer1")
 
 ni_stat()
+
+print("running webif init", u5c.u5c_block_init(ni, webif1))
+print("running webif start", u5c.u5c_block_start(ni, webif1))
 
 print("running random1 init", u5c.u5c_block_init(ni, random1))
 print("running hexdump1 init", u5c.u5c_block_init(ni, hexdump1))
@@ -181,6 +188,7 @@ ni_stat()
 -- l1=u5c.u5c_alloc_data(ni, "unsigned long", 1)
 -- if l1~=nil then print_data(l1) end
 
+io.read()
 
 os.exit(1)
 

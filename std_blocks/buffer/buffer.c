@@ -40,7 +40,7 @@ static int buffer_init(u5c_block_t *i)
 	int ret = -1;
 	struct buffer_block_info* bbi;
 
-	if((i->private_data = malloc(sizeof(struct buffer_block_info)))==NULL) {
+	if((i->private_data = calloc(1, sizeof(struct buffer_block_info)))==NULL) {
 		ERR("failed to alloc buffer_block_info");
 		goto out;
 	}

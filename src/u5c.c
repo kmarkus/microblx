@@ -852,7 +852,7 @@ int u5c_block_init(u5c_node_info_t* ni, u5c_block_t* b)
 	int ret = -1;
 
 	if(b==NULL) {
-		ERR("invalid block");
+		ERR("block is NULL");
 		goto out;
 	}
 
