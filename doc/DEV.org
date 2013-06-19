@@ -1,31 +1,18 @@
 # u5c: fiveC compliant function block composition
-#+STARTUP: showall
+#+STARTUP: content
 #+STARTUP: hidestars
 
 * Next steps
   
-** DONE Implement u5c_type_register/unregister
-   CLOSED: [2013-06-11 Tue 13:09]
-** DONE resolve types
-   CLOSED: [2013-06-12 Wed 11:02]
-   -> in u5c_resolve_types: need to check whether port has namein or outport is 
-** DONE test hexdump interaction with variable types
-   CLOSED: [2013-06-12 Wed 12:55]
-** DONE add namespace to struct type's string spec and load into ffi
-   CLOSED: [2013-06-13 Thu 15:56]
 ** TODO load a configuration 
 ** TODO implement a buffered interaction
    - and test by writing data from the lua shell
 
-** DONE Fix leak upon failure: e.g. in alloc
-   CLOSED: [2013-06-17 Mon 11:02]
-   if realloc fails the original block is untouched and NULL is
-   returned. Then we need to "unroll".
-
 ** TODO test communicating struct types
-** TODO Test a minimal example with basic types
-** TODO Test a minimal example with arrays of basic types
 ** TODO implement a nice high level lua library.
+
+
+** TODO Test a minimal example with arrays of basic types
 ** TODO test compilation with g++ and clang++ (*sigh*)
    #ifdef __cplusplus
    # define REALLOC(ptr, size, type) ((type *)realloc(ptr, size))
@@ -39,9 +26,29 @@
    # define MALLOC(type, count) (calloc(count, sizeof(type)))
    #endif
 
+** TODO develop a generic luajit based block
+** TODO extend the webserver with luajit support.
+** DONE Test a minimal example with basic types
+   CLOSED: [2013-06-19 Wed 10:42]
+** DONE Fix leak upon failure: e.g. in alloc
+   CLOSED: [2013-06-17 Mon 11:02]
+   if realloc fails the original block is untouched and NULL is
+   returned. Then we need to "unroll".
+
+
 ** DONE add functions to change life-cycle state and check that the FSM is respected.
    CLOSED: [2013-06-12 Wed 12:54]
 
+
+** DONE Implement u5c_type_register/unregister
+   CLOSED: [2013-06-11 Tue 13:09]
+** DONE resolve types
+   CLOSED: [2013-06-12 Wed 11:02]
+   -> in u5c_resolve_types: need to check whether port has namein or outport is 
+** DONE test hexdump interaction with variable types
+   CLOSED: [2013-06-12 Wed 12:55]
+** DONE add namespace to struct type's string spec and load into ffi
+   CLOSED: [2013-06-13 Thu 15:56]
 
 * Usefull stuff:
 **  =valgrind --leak-check=full --track-origins=yes luajit rnd_to_hexdump.lua 2>&1 | less=
