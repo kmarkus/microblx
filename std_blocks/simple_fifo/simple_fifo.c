@@ -112,7 +112,7 @@ static void fifo_cleanup(u5c_block_t *i)
 static void fifo_write(u5c_block_t *i, u5c_data_t* msg)
 {
 	int ret;
-	unsigned long len, empty, len2=0;
+	long len, empty, len2=0;
 	struct fifo_block_info *bbi;
 
 	bbi = (struct fifo_block_info*) i->private_data;
@@ -166,15 +166,18 @@ static void fifo_write(u5c_block_t *i, u5c_data_t* msg)
 	 */
 
 	/* compute length of chunk 2 write */
-	if(bbi->wrptr>bbi->rdptr) {
+	if(bbi->wrptr > bbi->rdptr) {
 		len2 = len - (bbi->buff + bbi->size - bbi->wrptr);
 		len2 = (len2>0) ? len2 : 0;
 		len = (len2>0) ? len-len2 : len;
 	}
 
+	DBG("empty=%ld, len=%ld, len2=%ld\n",empty,len,len2);
+
 	/* chunk 1 */
 	memcpy(bbi->wrptr, msg->data, len);
-	bbi->wrptr=&bbi->buff[len];
+	bbi->wrptr = (bbi->wrptr+len >= bbi->buff+bbi->size) ? bbi->buff : &bbi->wrptr[len];
+	
 
 	/* chunk 2 ?*/
 	if(len2 > 0) {
