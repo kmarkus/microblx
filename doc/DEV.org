@@ -55,6 +55,7 @@
 ** [[http://p99.gforge.inria.fr/][P99]] - Preprocessor macros and functions for C99
 ** uthash
 ** libmowgli-2
+** [[http://www.liblfds.org/][liblfds]] the lock-free data structure library
 ** [[https://bitbucket.org/zserge/jsmn][jsmn ANSI C json parser with permissive mode]]
 ** Lua jit Application Programming Helper Libraries ([[https://github.com/Wiladams/LAPHLibs][github]])
 
