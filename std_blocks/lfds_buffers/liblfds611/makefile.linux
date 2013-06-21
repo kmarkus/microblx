@@ -46,7 +46,7 @@ DG      = gcc
 DGFLAGS = -MM -std=c99 -I"$(SRCDIR)" -I"$(INCDIR)"
 
 CC      = gcc
-CBASE   = -Wall -Wno-unknown-pragmas -std=c99 $(GCCARCH) -pthread -c -I"$(SRCDIR)" -I"$(INCDIR)"
+CBASE   = -Wall -Wno-unknown-pragmas -std=c99 $(GCCARCH) -pthread -c -I"$(SRCDIR)" -I"$(INCDIR)" -fPIC
 CFREL   = -O2 -finline-functions -Wno-strict-aliasing
 CFDBG   = -O0 -g
 
