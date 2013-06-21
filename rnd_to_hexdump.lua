@@ -17,6 +17,7 @@ local err2str = {
    [-8] ='EOUTOFMEM'
 }
 
+
 --- print an u5c_data_t
 function data2str(d)
    if d.type.type_class~=u5c.TYPE_CLASS_BASIC then
@@ -51,6 +52,13 @@ function u5c_type_pp(t)
    end
 end
 
+local block_type  = { [1]='computation', [2]='interaction', [3]='TRIGGER' }
+local block_state = { [0]='unknown', [1]='preinit', [2]='inactive', [3]='active' }
+
+function u5c_block_pp(b)
+   print("    ", ffi.string(b.name).." ("..block_type[b.type]..")".." state: "..block_state[b.block_state])
+end
+
 function types_foreach(ni, fun)
    if ni.types==nil then return end
    u5c_type_t_ptr = ffi.typeof("u5c_type_t*")
@@ -58,6 +66,16 @@ function types_foreach(ni, fun)
    while typ ~= nil do
       fun(typ)
       typ=ffi.cast(u5c_type_t_ptr, typ.hh.next)
+   end
+end
+
+function blocks_foreach(blklist, fun)
+   if blklist==nil then return end
+   u5c_block_t_ptr = ffi.typeof("u5c_block_t*")
+   typ=u5c_block_t_ptr(blklist)
+   while typ ~= nil do
+      fun(typ)
+      typ=ffi.cast(u5c_block_t_ptr, typ.hh.next)
    end
 end
 
@@ -77,6 +95,10 @@ end
 function print_types(ni)
    types_foreach(ni, u5c_type_pp)
 end
+
+function print_cblocks(ni) blocks_foreach(ni.cblocks, u5c_block_pp) end
+function print_iblocks(ni) blocks_foreach(ni.iblocks, u5c_block_pp) end
+function print_tblocks(ni) blocks_foreach(ni.tblocks, u5c_block_pp) end
 
 function init_node()
    -- load u5c_types and library
@@ -106,10 +128,15 @@ function unload_modules()
 end
 
 function ni_stat()
+   print(string.rep('-',78))
+   print("cblocks:"); print_cblocks(ni)
+   print("iblocks:"); print_iblocks(ni)
+   print("tblocks:"); print_tblocks(ni)
    print(tostring(u5c.u5c_num_cblocks(ni)).." cblocks, ",
 	 tostring(u5c.u5c_num_iblocks(ni)).." iblocks, ",
 	 tostring(u5c.u5c_num_tblocks(ni)).." tblocks",
 	 tostring(u5c.u5c_num_types(ni)).." tblocks")
+   print(string.rep('-',78))
 end
 
 -- prog starts here.
@@ -174,12 +201,16 @@ for i=1,8 do
    -- os.execute("sleep 0.1")
 end
 
+io.read()
 
-print("cleaning up")
-print("running fifo1 cleanup", u5c.u5c_block_cleanup(ni, fifo1))
-print("freeing random1", u5c.u5c_block_rm(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "random1"))
-print("freeing hexdump1", u5c.u5c_block_rm(ni, ffi.C.BLOCK_TYPE_INTERACTION, "hexdump1"))
-print("freeing fifo1", u5c.u5c_block_rm(ni, ffi.C.BLOCK_TYPE_INTERACTION, "fifo1"))
+print("cleaning up blocks --------------------------------------------------------")
+print("webif1 cleanup", u5c.u5c_block_rm(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "webif1"))
+
+print("fifo1 cleanup", u5c.u5c_block_cleanup(ni, fifo1))
+print("random1 cleanup", u5c.u5c_block_rm(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "random1"))
+print("hexdump1 cleanup", u5c.u5c_block_rm(ni, ffi.C.BLOCK_TYPE_INTERACTION, "hexdump1"))
+print("fifo1 cleanup", u5c.u5c_block_rm(ni, ffi.C.BLOCK_TYPE_INTERACTION, "fifo1"))
+
 
 print(tostring(u5c.u5c_num_cblocks(ni)).." blocks loaded")
 
@@ -188,8 +219,7 @@ ni_stat()
 -- l1=u5c.u5c_alloc_data(ni, "unsigned long", 1)
 -- if l1~=nil then print_data(l1) end
 
-io.read()
-
+unload_modules()
+ni_stat()
 os.exit(1)
 
-unload_modules()
