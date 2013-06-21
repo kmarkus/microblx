@@ -125,7 +125,7 @@ block_type_to_name={
 load_module(ni, "std_types/stdtypes/stdtypes.so")
 load_module(ni, "std_blocks/random/random.so")
 load_module(ni, "std_blocks/hexdump/hexdump.so")
-load_module(ni, "std_blocks/simple_fifo/simple_fifo.so")
+load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
 load_module(ni, "std_blocks/webif/webif.so")
 
 ni_stat()
@@ -137,12 +137,14 @@ print("creating instance of 'random'")
 random1=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "random", "random1")
 
 u5c_type_pp(u5c.u5c_type_get(ni, "random/struct random_config"))
-print_types(ni)
+-- print_types(ni)
 ffi_load_types(ni)
 
 print("creating instance of 'hexdump'")
 hexdump1=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_INTERACTION, "hexdump", "hexdump1")
-fifo1=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_INTERACTION, "simple_fifo", "fifo1")
+
+print("creating instance of 'fifo'")
+fifo1=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_INTERACTION, "lfds_cyclic", "fifo1")
 
 ni_stat()
 

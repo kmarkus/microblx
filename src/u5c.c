@@ -782,6 +782,7 @@ u5c_config_t* u5c_config_get(u5c_block_t* b, const char* name)
 	for(conf=b->configs; conf->name!=NULL; conf++)
 		if(strcmp(conf->name, name)==0)
 			goto out;
+	ERR("block %s has no config %s", b->name, name);
 	conf=NULL;
  out:
 	return conf;

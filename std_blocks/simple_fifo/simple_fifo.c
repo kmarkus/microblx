@@ -181,7 +181,7 @@ static void fifo_write(u5c_block_t *i, u5c_data_t* msg)
 
 	/* chunk 2 ?*/
 	if(len2 > 0) {
-		memcpy(bbi->buff, &msg->data[len], len2);
+		memcpy(bbi->buff, &(((uint8_t*) msg->data)[len]), len2);
 		bbi->wrptr=&bbi->buff[len2];
 	}
 
