@@ -2,8 +2,10 @@ ROOT_DIR=$(CURDIR)/../..
 include $(ROOT_DIR)/make.conf
 INCLUDE_DIR=$(ROOT_DIR)/src/
 
-# liblfds611:
-# 	make -C liblfds611 sodbg
+.PHONY : liblfds611
+
+liblfds611:
+	make -C liblfds611
 
 lfds_cyclic.so: lfds_cyclic.o $(INCLUDE_DIR)/libu5c.so liblfds611
 	${CC} $(CFLAGS_SHARED) -l:$(INCLUDE_DIR)/libu5c.so -o lfds_cyclic.so lfds_cyclic.o liblfds611/bin/liblfds611.a
