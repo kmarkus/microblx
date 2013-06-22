@@ -35,7 +35,7 @@ response=[[
 <html>
 <head><title>u5C webinterface</title></head>
 <body>
-<h1>u5C webinterface from Lua!</h1>
+<h1>u5C webinterface</h1>
 %s
 </body>
 </html>
@@ -85,8 +85,10 @@ end
 function request_handler(node_info, request_info_lud)
    local reqinf=ffi.cast("struct mg_request_info*", request_info_lud)
    local ni=ffi.cast("struct u5c_node_info*", node_info)
+   
+   if safe_tostring(reqinf.uri)=='/reload' then return "__reload__" end
    local res = response:format(u5c_overview_tohtml(ni)..reqinf_tostr(reqinf))
-   return #res+1, res
+   return res
 end
 
 print("loaded request_handler()")
