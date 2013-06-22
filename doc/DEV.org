@@ -50,6 +50,7 @@
 ** DONE add namespace to struct type's string spec and load into ffi
    CLOSED: [2013-06-13 Thu 15:56]
 
+
 * Usefull stuff:
 **  =valgrind --leak-check=full --track-origins=yes luajit rnd_to_hexdump.lua 2>&1 | less=
 ** [[http://p99.gforge.inria.fr/][P99]] - Preprocessor macros and functions for C99
@@ -60,6 +61,14 @@
 *** http://concurrencykit.org/
 ** [[https://bitbucket.org/zserge/jsmn][jsmn ANSI C json parser with permissive mode]]
 ** Lua jit Application Programming Helper Libraries ([[https://github.com/Wiladams/LAPHLibs][github]])
+
+
+** javascript graph drawing
+   - https://github.com/cpettitt/dagre
+   - http://d3js.org/
+   - http://sigmajs.org/
+   - http://www.graphdracula.net/
+   - https://github.com/anvaka/VivaGraphJS
 
 
 * Focus

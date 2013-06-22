@@ -58,7 +58,7 @@ static int begin_request_handler(struct mg_connection *conn)
 
 #ifdef WEBIF_RELOAD
 	if(strcmp(res, "__reload__")==0) {
-		fprintf(stderr, "reloading webif.lua");
+		fprintf(stderr, "reloading webif.lua\n");
 		lua_close(inf->L);
 		init_lua(inf);
 		res="reloaded, <a href=\"./\">continue</a>";
