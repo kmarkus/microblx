@@ -1,8 +1,12 @@
 /*
- * A system monitoring web-interfaace function block.
+ * A system monitoring web-interface function block.
  */
 
 #define DEBUG 1
+
+#include <luajit-2.0/lauxlib.h>
+#include <luajit-2.0/lualib.h>
+#include <luajit-2.0/lua.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,30 +24,35 @@ char wi_meta[] =
 	"}";
 
 struct webif_info {
-	struct node_info* ni;
+	struct u5c_node_info* ni;
 	struct mg_context *ctx;
 	struct mg_callbacks callbacks;
+	struct lua_State* L;
 };
 
 
 /* This function will be called by mongoose on every new request. */
-static int begin_request_handler(struct mg_connection *conn) {
+static int begin_request_handler(struct mg_connection *conn)
+{
+	DBG("in");
+	const char* res;
+	int len;
 	const struct mg_request_info *request_info = mg_get_request_info(conn);
-	char content[500];
+	struct webif_info *inf = (struct webif_info*) request_info->user_data;
+	
+	lua_getfield(inf->L, LUA_GLOBALSINDEX, "request_handler");
+	
+	lua_pushlightuserdata(inf->L, (void*) inf->ni);
+	lua_pushlightuserdata(inf->L, (void*) request_info);
 
-	/* Prepare the message we're going to send */
-	int content_length = snprintf(content, sizeof(content),
-				      "<!DOCTYPE html>\n"
-				      "<html lang=\"en\">\n"
-				      "<html>\n"
-				      "<head><title>u5C webinterface</title></head>\n"
-				      "<body>\n"
-				      "<h1>u5C webinterface!</h1>\n"
-				      "remote:%d\n"
-				      "</body>\n"
-				      "</html>\n"
-				      ,
-				      request_info->remote_port);
+	if(lua_pcall(inf->L, 2, 2, 0)!=0) {
+		ERR("Lua: %s", lua_tostring(inf->L, -1));
+		goto out;
+	}
+
+	len=luaL_checkint(inf->L, 1);
+	res=luaL_checkstring(inf->L, 2);
+	lua_pop(inf->L, 2);
 
 	/* Send HTTP reply to the client */
 	mg_printf(conn,
@@ -52,11 +61,12 @@ static int begin_request_handler(struct mg_connection *conn) {
 		  "Content-Length: %d\r\n"        /* Always set Content-Length */
 		  "\r\n"
 		  "%s",
-		  content_length, content);
+		  len, res);
 
 	 /* Returning non-zero tells mongoose that our function has
 	  * replied to the client, and mongoose should not send client
 	  * any more data. */
+ out:
 	return 1;
 }
 
@@ -65,17 +75,36 @@ static int wi_init(u5c_block_t *c)
 	int ret = -EOUTOFMEM;
 	struct webif_info* inf;
 
-	DBG(" ");
-
 	if((inf = calloc(1, sizeof(struct webif_info)))==NULL)
 		goto out;
 
-	inf->callbacks.begin_request = begin_request_handler;
-
 	c->private_data = inf;
+
+	/* make configurable ?*/
+	inf->ni=global_ni;
+	
+	if((inf->L=luaL_newstate())==NULL) {
+		ERR("failed to alloc lua_State");
+		goto out_free;
+	}
+	
+	luaL_openlibs(inf->L);
+
+	ret = luaL_dofile(inf->L, "/home/mk/prog/c/u5c/std_blocks/webif/webif.lua");
+
+	if (ret) {
+		ERR("Failed to load u5c_webif.lua: %s\n", lua_tostring(inf->L, -1));
+		goto out_free;
+	}
+
+	inf->callbacks.begin_request = begin_request_handler;
 
 	/* Ok! */
 	ret = 0;
+	goto out;
+
+ out_free:
+	free(inf);
  out:
 	return ret;
 }
@@ -83,6 +112,8 @@ static int wi_init(u5c_block_t *c)
 static void wi_cleanup(u5c_block_t *c)
 {
 	DBG(" "); 
+	struct webif_info* inf = (struct webif_info*) c->private_data;
+	lua_close(inf->L);
 	free(c->private_data);
 }
 
@@ -98,7 +129,7 @@ static int wi_start(u5c_block_t *c)
 
 	inf=(struct webif_info*) c->private_data;
 
-	inf->ctx = mg_start(&inf->callbacks, NULL, options);
+	inf->ctx = mg_start(&inf->callbacks, inf, options);
 
 	return 0; /* Ok */
 }

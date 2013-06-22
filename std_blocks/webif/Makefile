@@ -9,7 +9,7 @@ HEXARRS:=$(TYPES:%=%.hexarr)
 	../../tools/file2carr.lua $<
 
 webif.so: webif.o mongoose.o $(INCLUDE_DIR)/libu5c.so 
-	${CC} $(CFLAGS_SHARED)  -lpthread -l:$(INCLUDE_DIR)/libu5c.so -o webif.so webif.o mongoose.o
+	${CC} $(CFLAGS_SHARED) -lluajit-5.1  -lpthread -l:$(INCLUDE_DIR)/libu5c.so -o webif.so webif.o mongoose.o
 
 mongoose.o: mongoose.h mongoose.c
 	${CC} -fPIC -c $(CFLAGS) mongoose.c
