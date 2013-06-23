@@ -30,7 +30,7 @@ end
 
 --- Standard response template
 response=[[
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <html>
 <head><title>u5C webinterface</title></head>
@@ -82,13 +82,27 @@ function u5c_overview_tohtml(ni)
    return table.concat(output, "\n")
 end
 
+dispatch_table = {
+   ["/"] = function(ri, ni)
+	      return response:format(u5c_overview_tohtml(ni)..reqinf_tostr(ri))
+	   end,
+
+   ["/reload"]=function() return "__reload__" end,
+
+
+}
+
+
 function request_handler(node_info, request_info_lud)
-   local reqinf=ffi.cast("struct mg_request_info*", request_info_lud)
-   local ni=ffi.cast("struct u5c_node_info*", node_info)
-   
-   if safe_tostring(reqinf.uri)=='/reload' then return "__reload__" end
-   local res = response:format(u5c_overview_tohtml(ni)..reqinf_tostr(reqinf))
-   return res
+   local reqinf = ffi.cast("struct mg_request_info*", request_info_lud)
+   local ni = ffi.cast("struct u5c_node_info*", node_info)
+
+   local uri = safe_tostring(reqinf.uri)
+   local handler = dispatch_table[uri]
+
+   if handler then return handler(reqinf, ni) end
+
+   return "<h1>no handler found</h1>"..reqinf_tostr(reqinf)
 end
 
 print("loaded request_handler()")
