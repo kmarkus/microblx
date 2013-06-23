@@ -39,40 +39,44 @@ static int init_lua(struct webif_info* inf);
 static int begin_request_handler(struct mg_connection *conn)
 {
 	int len;
-	const char* res;
+	const char *res, *mime_type;
 	const struct mg_request_info *request_info = mg_get_request_info(conn);
 	struct webif_info *inf = (struct webif_info*) request_info->user_data;
 
-	lua_getfield(inf->L, LUA_GLOBALSINDEX, "request_handler");
-	lua_pushlightuserdata(inf->L, (void*) inf->ni);
-	lua_pushlightuserdata(inf->L, (void*) request_info);
-
-	if(lua_pcall(inf->L, 2, 1, 0)!=0) {
-		ERR("Lua: %s", lua_tostring(inf->L, -1));
-		goto out;
-	}
-
-	res=luaL_checkstring(inf->L, 1);
-	len=strlen(res);
-	lua_pop(inf->L, 1);
-
 #ifdef WEBIF_RELOAD
-	if(strcmp(res, "__reload__")==0) {
+	if(strcmp(request_info->uri, "/reload")==0) {
 		fprintf(stderr, "reloading webif.lua\n");
 		lua_close(inf->L);
 		init_lua(inf);
 		res="reloaded, <a href=\"./\">continue</a>";
 		len=strlen(res);
+		mime_type="text/html";
+		goto respond;
 	}
 #endif
+	/* call lua */
+	lua_getfield(inf->L, LUA_GLOBALSINDEX, "request_handler");
+	lua_pushlightuserdata(inf->L, (void*) inf->ni);
+	lua_pushlightuserdata(inf->L, (void*) request_info);
+
+	if(lua_pcall(inf->L, 2, 2, 0)!=0) {
+		ERR("Lua: %s", lua_tostring(inf->L, -1));
+		goto out;
+	}
+
+	res=luaL_checkstring(inf->L, 1);
+	mime_type=luaL_optstring(inf->L, 2, "text/html");
+	len=strlen(res);
+	lua_pop(inf->L, 2);
+
+ respond:
 	/* Send HTTP reply to the client */
 	mg_printf(conn,
 		  "HTTP/1.1 200 OK\r\n"
-		  "Content-Type: text/html\r\n"
+		  "Content-Type: %s\r\n"
 		  "Content-Length: %d\r\n"        /* Always set Content-Length */
 		  "\r\n"
-		  "%s",
-		  len, res);
+		  "%s", mime_type, len, res);
 
 	 /* Returning non-zero tells mongoose that our function has
 	  * replied to the client, and mongoose should not send client

@@ -30,10 +30,13 @@ end
 
 --- Standard response template
 response=[[
-<!DOCTYPE html>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <html lang="en">
-<html>
-<head><title>u5C webinterface</title></head>
+<head>
+ <title>u5C webinterface</title>
+ <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
 <body>
 <h1>u5C webinterface</h1>
 %s
@@ -65,7 +68,7 @@ function u5c_overview_tohtml(ni)
    output[#output+1]=
       [[
 <h2>Registered types</h2>
-<table border="1">
+<table border="0" cellspacing="0" cellpadding="0">
   <tr>
    <th>name</th>
    <th>size</th>
@@ -75,21 +78,66 @@ function u5c_overview_tohtml(ni)
    u5c.types_foreach(ni,
 		     function(t)
 			output[#output+1]=
-			   "<tr><td><tt>"..ffi.string(t.name).."<tt></td><td>"..tostring(t.size).."</td></tr>"
+			   "<tr><td><tt>"..ffi.string(t.name).."</tt></td><td>"..tostring(t.size).."</td></tr>"
 		     end)
 
-   output[#output+1]="</table>"
+   output[#output+1]="</table><br><br>"
+
+   
+   
    return table.concat(output, "\n")
 end
 
+--h1 { color:red; font-size:48px; }
+stylesheet_str=[[
+body{
+	background: #ffffff;
+	color: #000000;
+	font-size: 14px;
+	margin: 0;
+	padding: 0;
+	text-align: left;
+	font-family: arial, verdana, sans-serif;
+	font-weight:normal;
+}
+
+h1{
+	font-size: 32px;
+	color: #000000;
+	font-weight: normal;
+	text-decoration: none;
+}
+
+h2{
+	font-size:24px;
+	color:#000000;
+	font-weight:normal;
+}
+
+a{
+}
+
+a:hover{
+}
+
+table,td,th {
+   /* border: 0px solid #000000; */
+}
+
+td{
+   padding-right:10px;
+}
+
+]]
+
+-- master dispatch table
 dispatch_table = {
    ["/"] = function(ri, ni)
 	      return response:format(u5c_overview_tohtml(ni)..reqinf_tostr(ri))
 	   end,
 
-   ["/reload"]=function() return "__reload__" end,
-
-
+   -- ["/reload"]=function() return "__reload__" end,
+   ["/style.css"]=function() return stylesheet_str, "text/css" end,
 }
 
 
@@ -100,8 +148,10 @@ function request_handler(node_info, request_info_lud)
    local uri = safe_tostring(reqinf.uri)
    local handler = dispatch_table[uri]
 
+   print("requesting uri", uri)
    if handler then return handler(reqinf, ni) end
 
+   print("no handler found for uri", uri)
    return "<h1>no handler found</h1>"..reqinf_tostr(reqinf)
 end
 
