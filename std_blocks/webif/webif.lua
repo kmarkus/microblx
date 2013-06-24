@@ -184,7 +184,7 @@ function typelist_tohtml(ni)
 end
 
 --- Registered blocks
-local block_headers = { 'name', 'state', 'prototype', 'stat_num_steps' }
+local block_headers = { 'name', 'state', 'prototype', 'stat_num_steps', 'actions' }
 function blocklist_tohtml(blklst, header)
    local table_header, table_footer, elem_per_tab
    local output={}
@@ -199,13 +199,24 @@ function blocklist_tohtml(blklst, header)
 
    -- generate colors and state change links
    local function process_state(t)
-      if t.state=='preinit' then
-	 t.state=color("blue", t.state) .. " ("..a("", color("red", 'initalize'), {[t.name]='init'})..')'
-      elseif t.state=='inactive' then
-	 t.state=color("red", t.state) .. " ("..a("", color("green", 'start'), {[t.name]='start'})..')'
-      elseif t.state=='active' then
-	 t.state=color("green", t.state) .. " ("..a("", color("red", 'stop'), {[t.name]='stop'})..')'
+      local function colorize_state(t)
+	 if t.state=='preinit' then t.state=color("blue", t.state)
+	 elseif t.state=='inactive' then t.state=color("red", t.state)
+	 elseif t.state=='active' then t.state=color("green", t.state) end
+	 return t
       end
+      local function add_actions(t)
+	 if t.state=='preinit' then
+	    t.actions=a("", color("red", 'initalize'), {[t.name]='init'})
+	 elseif t.state=='inactive' then
+	    t.actions=a("", color("green", 'start'), {[t.name]='start'}).." "..a("", color("blue", 'cleanup'), {[t.name]='cleanup'})
+	 elseif t.state=='active' then
+	    t.actions=a("", color("red", 'stop'), {[t.name]='stop'})
+	 end
+	 return t
+      end
+      add_actions(t)
+      colorize_state(t)
       return t
    end
    -- generate a single table entry and append it to entries

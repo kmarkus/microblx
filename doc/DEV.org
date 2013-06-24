@@ -5,11 +5,13 @@
 * Next steps
   
 ** TODO load a configuration 
-** TODO implement a buffered interaction
+** DONE implement a buffered interaction
+   CLOSED: [2013-06-24 Mon 21:42]
    - and test by writing data from the lua shell
 
 ** TODO test communicating struct types
-** TODO implement a nice high level lua library.
+** DONE implement a nice high level lua library.
+   CLOSED: [2013-06-24 Mon 21:42]
 
 
 ** TODO Test a minimal example with arrays of basic types
@@ -27,7 +29,14 @@
    #endif
 
 ** TODO develop a generic luajit based block
-** TODO extend the webserver with luajit support.
+
+** TODO locking
+   - suggestion: rw-locks (or uRCU?)
+     - trigger and inspecting interface must use reader-lock
+     - changing state or interface must use writer lock
+
+** DONE extend the webserver with luajit support.
+   CLOSED: [2013-06-24 Mon 21:42]
 ** DONE Test a minimal example with basic types
    CLOSED: [2013-06-19 Wed 10:42]
 ** DONE Fix leak upon failure: e.g. in alloc
@@ -51,6 +60,7 @@
    CLOSED: [2013-06-13 Thu 15:56]
 
 
+
 * Usefull stuff:
 **  =valgrind --leak-check=full --track-origins=yes luajit rnd_to_hexdump.lua 2>&1 | less=
 ** [[http://p99.gforge.inria.fr/][P99]] - Preprocessor macros and functions for C99
@@ -72,6 +82,7 @@
 
 
 ** https://github.com/andresy/lua---md5
+** http://lttng.org/urcu
 * Focus
   - only in-out ports (maybe instead of multi-valued ports it's better
     to solve this at the type level, e.g. define a composite type
