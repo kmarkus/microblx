@@ -6,6 +6,7 @@ lfds_cyclic.so: lfds_cyclic.o $(INCLUDE_DIR)/libu5c.so liblfds611/bin/liblfds611
 	${CC} $(CFLAGS_SHARED) -l:$(INCLUDE_DIR)/libu5c.so -o lfds_cyclic.so lfds_cyclic.o liblfds611/bin/liblfds611.a
 
 liblfds611/bin/liblfds611.a:
+	$(shell mkdir -p liblfds611/obj liblfds611/bin)
 	make -C liblfds611
 
 lfds_cyclic.o: lfds_cyclic.c $(INCLUDE_DIR)/u5c.h $(INCLUDE_DIR)/u5c_types.h $(INCLUDE_DIR)/u5c.c
