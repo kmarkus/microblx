@@ -4,7 +4,7 @@ local u5c=require"u5c"
 local safe_ts = u5c.safe_tostr
 
 -- Configuration
-num_type_cols=3
+num_type_cols=2
 
 --- define mongoose request info
 ffi.cdef[[
@@ -32,18 +32,17 @@ response=[[
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <html lang="en">
 <head>
- <title>u5C webinterface</title>
+ <title>%s</title>
  <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 
 <body>
-<h1>u5C webinterface</h1>
 %s
 </body>
 </html>
 ]]
 
-function html(...) return response:format(table.concat({...}, "\n")) end
+function html(title, ...) return response:format(title, table.concat({...}, "\n")) end
 
 function reqinf_tostr(ri)
    return ([[
@@ -72,13 +71,15 @@ function typelist_tohtml(ni)
    local entries={}
    local output={}
 
+   if u5c.num_types(ni) <= 0 then return "" end
+
    output[#output+1]="<h2>Registered types</h2>"
 
    table_header = [[
 <table border="0" style="float:left; position:relative;" cellspacing="0" cellpadding="0">
   <tr>
    <th>name</th>
-   <th>size</th>
+   <th>size (bytes)</th>
   </tr> ]]
    
    table_footer = '</table>'
@@ -86,7 +87,7 @@ function typelist_tohtml(ni)
    -- generate a single table entry and append it to entries
    local function gen_type_entry(t)
       entries[#entries+1]=
-	 "<tr><td><tt>"..ffi.string(t.name).."</tt></td><td>"..tostring(t.size).."</td></tr>"
+	 "<tr><td><tt>"..ffi.string(t.name).."</tt></td><td>"..tonumber(t.size).."</td></tr>"
    end
 
    -- generate list of entries
@@ -114,10 +115,78 @@ function typelist_tohtml(ni)
    return table.concat(output, "\n")
 end
 
+-- some html generation helpers
+function h(text, num) return ('<h%d>%s</h%d>'):format(num, text, num) end
+
+function color(color, text)
+   return('<span style="color:%s;">%s</span>'):format(color, text)
+end
+
+function table_row(bdy) 
+   return ([[
+<tr>
+%s
+</tr>
+	   ]]):format(bdy)
+end
+
+
+function table_data(data) return ('<td>%s</td>'):format(data) end
+function table_head(data) return ('<th>%s</th>'):format(data) end
+
+function table_fill_row(data_tab, selected_rows)
+   local out={}
+   for _,rowname in ipairs(selected_rows) do
+      out[#out+1]=table_data(data_tab[rowname])
+   end
+   return table_row(table.concat(out, "\n    "))
+end
+
+function table_fill_headline(selected_rows)
+   local out={}
+   for _,rowname in ipairs(selected_rows) do
+      out[#out+1]=table_head(rowname)
+   end
+   return table_row(table.concat(out, "\n    "))
+end
+
 
 --- Registered blocks
-function blocklist_tohtml(ni)
+local block_headers = { 'name', 'state', 'prototype', 'stat_num_steps' }
+function blocklist_tohtml(blklst, header)
+   local table_header, table_footer, elem_per_tab
+   local output={}
+
+   if u5c.num_elements(blklst) <= 0 then return "" end
+
+   table_header = [[
+<table border="0" style="float:left; position:relative;" cellspacing="0" cellpadding="0">
+      ]]
+
+   table_footer = '</table>'
+
+   local function colorize_state(t)
+      if t.state=='preinit' then t.state=color("blue", t.state)
+      elseif t.state=='inactive' then t.state=color("red", t.state)
+      elseif t.state=='active' then t.state=color("green", t.state) end
+      return t
+   end
+   -- generate a single table entry and append it to entries
+   local function gen_block_tab_entry(t) 
+      output[#output+1]=table_fill_row(colorize_state(u5c.block_totab(t)), block_headers)
+   end
+
+
+   output[#output+1]=h(header, 2)
+   output[#output+1]=table_header
+   output[#output+1]=table_fill_headline(block_headers)
    
+   -- generate list of entries
+   u5c.blocks_foreach(blklst, gen_block_tab_entry)
+
+   output[#output+1]=table_footer
+   output[#output+1]='<div style="clear:left"></div>'
+   return table.concat(output, "\n")
 end
 
 
@@ -134,16 +203,18 @@ body{
    font-weight:normal;
 }
 
-h1{ font-size: 32px; color: #000000; font-weight: normal; text-decoration: none; }
-h2{ font-size:24px; color:#000000; font-weight:normal; }
+h1{ font-size: 24px; color: #000000; font-weight: normal; text-decoration: none; }
+h2{ font-size:18px; color:#000000; font-weight:normal; }
 a{ }
 a:hover{ }
 
 table {
    margin: 20px;
+   /* margin: auto; */
 }
 
-td,th { /* border: 0px solid #000000; */ }
+th { padding-right: 20px; }
+td { /* border: 0px solid #000000; */ }
 td{ padding-right:10px; }
 
 ]]
@@ -152,7 +223,15 @@ td{ padding-right:10px; }
 -- This 
 dispatch_table = {
    ["/"] = function(ri, ni)
-	      return html(typelist_tohtml(ni), reqinf_tostr(ri))
+	      local title = ("u5c node: %s"):format(safe_ts(ni.name))
+	      return html(
+		 title,
+		 h(title, 1),
+		 blocklist_tohtml(ni.cblocks, "Computational blocks"),
+		 blocklist_tohtml(ni.iblocks, "Interaction blocks"),
+		 blocklist_tohtml(ni.tblocks, "Trigger blocks"),
+		 typelist_tohtml(ni),
+		 reqinf_tostr(ri))
 	   end,
 
    ["/style.css"]=function() return stylesheet_str, "text/css" end,

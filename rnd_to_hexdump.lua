@@ -6,7 +6,7 @@ local u5c_utils = require("lua/u5c_utils")
 local ts = tostring
 
 -- prog starts here.
-ni=u5c.init_node()
+ni=u5c.node_create("testnode")
 
 u5c.load_module(ni, "std_types/stdtypes/stdtypes.so")
 u5c.load_module(ni, "std_blocks/random/random.so")

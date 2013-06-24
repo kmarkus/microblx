@@ -123,7 +123,7 @@ enum {
 };
 
 enum {
-	BLOCK_STATE_PREINIT=1,
+	BLOCK_STATE_PREINIT,
 	BLOCK_STATE_INACTIVE,
 	BLOCK_STATE_ACTIVE,
 };
@@ -202,7 +202,7 @@ const char* get_typename(u5c_data_t* data);
 int __initialize_module(u5c_node_info_t* ni);
 void __cleanup_module(u5c_node_info_t* ni);
 
-int u5c_node_init(u5c_node_info_t* ni);
+int u5c_node_init(u5c_node_info_t* ni, const char *name);
 void u5c_node_cleanup(u5c_node_info_t* ni);
 
 /*
@@ -212,6 +212,7 @@ int u5c_num_cblocks(u5c_node_info_t* ni);
 int u5c_num_iblocks(u5c_node_info_t* ni);
 int u5c_num_tblocks(u5c_node_info_t* ni);
 int u5c_num_types(u5c_node_info_t* ni);
+int u5c_num_elements(u5c_block_t* blklst);
 
 /*
  * Registration of types

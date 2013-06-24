@@ -59,12 +59,14 @@ const char* get_typename(u5c_data_t *data)
  *
  * @return
  */
-int u5c_node_init(u5c_node_info_t* ni)
+int u5c_node_init(u5c_node_info_t* ni, const char *name)
 {
 	/* if(mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { */
 	/* 	ERR2(errno, " "); */
 	/* 	goto out_err; */
 	/* }; */
+
+	if(name!=NULL) ni->name=strdup(name);
 
 	ni->cblocks=NULL;
 	ni->iblocks=NULL;
@@ -336,7 +338,7 @@ int u5c_num_cblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->cblocks); }
 int u5c_num_iblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->iblocks); }
 int u5c_num_tblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->tblocks); }
 int u5c_num_types(u5c_node_info_t* ni) { return HASH_COUNT(ni->types); }
-
+int u5c_num_elements(u5c_block_t* blklst) { return HASH_COUNT(blklst); }
 
 /**
  * u5c_port_free_data - free additional memory used by port.

@@ -55,9 +55,9 @@ function M.safe_tostr(charptr)
 end
 
 --- Create and initalize a new node_info struct
-function M.init_node()
+function M.node_create(name)
    local ni=ffi.new("u5c_node_info_t")
-   print("u5c_node_init:", u5c.u5c_node_init(ni))
+   print("u5c_node_init:", u5c.u5c_node_init(ni, name))
    return ni
 end
 
@@ -223,6 +223,12 @@ function M.print_types(ni) types_foreach(ni, u5c_type_pp) end
 function M.print_cblocks(ni) M.blocks_foreach(ni.cblocks, function(b) print(M.block_tostr(b)) end) end
 function M.print_iblocks(ni) M.blocks_foreach(ni.iblocks, function(b) print(M.block_tostr(b)) end) end
 function M.print_tblocks(ni) M.blocks_foreach(ni.tblocks, function(b) print(M.block_tostr(b)) end) end
+
+function M.num_cblocks(ni) return u5c.u5c_num_cblocks(ni) end
+function M.num_iblocks(ni) return u5c.u5c_num_iblocks(ni) end
+function M.num_tblocks(ni) return u5c.u5c_num_tblocks(ni) end
+function M.num_types(ni) return u5c.u5c_num_types(ni) end
+function M.num_elements(lst) return u5c.u5c_num_elements(lst) end
 
 --- Print an overview of current node state.
 function M.ni_stat(ni)
