@@ -127,6 +127,30 @@ int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block)
 }
 
 /**
+ * Retrieve a block by name
+ *
+ * @param ni
+ * @param name
+ *
+ * @return
+ */
+u5c_block_t* u5c_block_get(u5c_node_info_t *ni, uint32_t type, const char *name)
+{
+	u5c_block_t **blocklist, *tmpc=NULL;
+
+	blocklist = get_block_list(ni, type);
+
+	if(blocklist==NULL) {
+		ERR("invalid block type %d", type);
+		goto out;
+	}
+
+	HASH_FIND_STR(*blocklist, name, tmpc);
+ out:
+	return tmpc;
+}
+
+/**
  * u5c_block_unregister - unregister a block.
  *
  * @param ni

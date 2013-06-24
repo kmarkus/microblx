@@ -227,7 +227,7 @@ u5c_type_t* u5c_type_unregister(u5c_node_info_t* ni, const char* name);
  */
 u5c_block_t* u5c_block_create(u5c_node_info_t *ni, uint32_t block_type, const char *name, const char *type);
 int u5c_block_rm(u5c_node_info_t *ni, uint32_t block_type, const char* name);
-/* u5c_block_t* u5c_cblock_create(u5c_node_info_t* ni, const char *type, const char* name); */
+u5c_block_t* u5c_block_get(u5c_node_info_t *ni, uint32_t type, const char *name);
 
 
 /* block life cycle */

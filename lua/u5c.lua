@@ -91,8 +91,12 @@ function M.block_cleanup(ni, b) return u5c.u5c_block_cleanup(ni, b) end
 function M.block_port_get(b, pname) return u5c.u5c_port_get(b, pname) end
 function M.connect_one(port, interaction) return u5c.u5c_connect_one(port, interaction) end
 function M.type_get(ni, tname) return u5c.u5c_type_get(ni, tname) end
-function M.block_rm(ni, block_type, name) u5c.u5c_block_rm(ni, block_type, name) end
+function M.block_rm(ni, block_type, name) return u5c.u5c_block_rm(ni, block_type, name) end
+function M.block_get(ni, block_type, name) return u5c.u5c_block_get(ni, block_type, name) end
 
+function M.cblock_get(ni, name) return M.block_get(ni, ffi.C.BLOCK_TYPE_COMPUTATION, name) end
+function M.iblock_get(ni, name) return M.block_get(ni, ffi.C.BLOCK_TYPE_INTERACTION, name) end
+function M.tblock_get(ni, name) return M.block_get(ni, ffi.C.BLOCK_TYPE_TRIGGER, name) end
 
 --- print an u5c_data_t
 function M.data2str(d)
