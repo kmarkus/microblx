@@ -64,10 +64,21 @@ function html(title, ...)
 	   ]]):format(title, table.concat({...}, "\n"))
 end
 
+-- Header
 function h(text, num) return ('<h%d>%s</h%d>'):format(num, text, num) end
 
+-- Colors
 function color(color, text)
    return('<span style="color:%s;">%s</span>'):format(color, text)
+end
+
+-- hyperlink
+function a(link, text, query_str_tab)
+   query_str_tab=query_str_tab or {}
+   local qst={}
+   for k,v in pairs(query_str_tab) do qst[#qst+1]=("%s=%s"):format(k,v) end
+   print("query_str:", table.concat(qst, '&'))
+   return ('<a href="%s?%s">%s</a>'):format(link, table.concat(qst, '&'), text)
 end
 
 function table_row(bdy)
@@ -186,15 +197,20 @@ function blocklist_tohtml(blklst, header)
 
    table_footer = '</table>'
 
-   local function colorize_state(t)
-      if t.state=='preinit' then t.state=color("blue", t.state)
-      elseif t.state=='inactive' then t.state=color("red", t.state)
-      elseif t.state=='active' then t.state=color("green", t.state) end
+   -- generate colors and state change links
+   local function process_state(t)
+      if t.state=='preinit' then
+	 t.state=color("blue", t.state) .. " ("..a("", color("red", 'initalize'), {[t.name]='init'})..')'
+      elseif t.state=='inactive' then
+	 t.state=color("red", t.state) .. " ("..a("", color("green", 'start'), {[t.name]='start'})..')'
+      elseif t.state=='active' then
+	 t.state=color("green", t.state) .. " ("..a("", color("red", 'stop'), {[t.name]='stop'})..')'
+      end
       return t
    end
    -- generate a single table entry and append it to entries
    local function gen_block_tab_entry(t)
-      output[#output+1]=table_fill_row(colorize_state(u5c.block_totab(t)), block_headers)
+      output[#output+1]=table_fill_row(process_state(u5c.block_totab(t)), block_headers)
    end
 
 
