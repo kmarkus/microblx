@@ -14,16 +14,12 @@ u5c.load_module(ni, "std_blocks/hexdump/hexdump.so")
 u5c.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
 u5c.load_module(ni, "std_blocks/webif/webif.so")
 
-u5c.ni_stat(ni)
-
 print("creating instance of 'webif'")
 webif1=u5c.cblock_create(ni, "webif", "webif1")
 
 print("creating instance of 'random'")
 random1=u5c.cblock_create(ni, "random", "random1")
 
-u5c.u5c_type_pp(u5c.u5c.u5c_type_get(ni, "random/struct random_config"))
--- print_types(ni)
 u5c.ffi_load_types(ni)
 
 print("creating instance of 'hexdump'")

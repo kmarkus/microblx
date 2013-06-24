@@ -1,6 +1,7 @@
 local ffi=require"ffi"
 local u5c=require"u5c"
-local utils=require"utils"
+
+local safe_ts = u5c.safe_tostr
 
 -- Configuration
 num_type_cols=3
@@ -25,12 +26,6 @@ struct mg_request_info {
   } http_headers[64];         // Maximum 64 headers
 };
 ]]
-
-
-function safe_ts(charptr)
-   if charptr == nil then return "" end
-   return ffi.string(charptr)
-end
 
 --- Standard response template
 response=[[

@@ -18,7 +18,7 @@ function m.md5sum_hex(str) return str_to_hexstr(md5.sum(str)) end
 -- TODO should operate on the body of a struct only.
 --
 function m.struct_md5(str)
-   return m.md5sum_hex(string.gsub(str, "[%s%c]+", " "))
+   return m.md5
 end
 
 --- Read the entire contents of a file.
