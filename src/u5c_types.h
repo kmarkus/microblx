@@ -236,6 +236,8 @@ int u5c_block_start(u5c_node_info_t* ni, u5c_block_t* b);
 int u5c_block_stop(u5c_node_info_t* ni, u5c_block_t* b);
 int u5c_block_cleanup(u5c_node_info_t* ni, u5c_block_t* b);
 
+void u5c_cblock_step(u5c_block_t* b);
+
 int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b);
 u5c_type_t* u5c_type_get(u5c_node_info_t* ni, const char* name);
 

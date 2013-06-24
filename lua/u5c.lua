@@ -93,6 +93,7 @@ function M.connect_one(port, interaction) return u5c.u5c_connect_one(port, inter
 function M.type_get(ni, tname) return u5c.u5c_type_get(ni, tname) end
 function M.block_rm(ni, block_type, name) return u5c.u5c_block_rm(ni, block_type, name) end
 function M.block_get(ni, block_type, name) return u5c.u5c_block_get(ni, block_type, name) end
+function M.cblock_step(block) u5c.u5c_cblock_step(block) end
 
 function M.cblock_get(ni, name) return M.block_get(ni, ffi.C.BLOCK_TYPE_COMPUTATION, name) end
 function M.iblock_get(ni, name) return M.block_get(ni, ffi.C.BLOCK_TYPE_INTERACTION, name) end

@@ -13,14 +13,13 @@ u5c.load_module(ni, "std_blocks/random/random.so")
 u5c.load_module(ni, "std_blocks/hexdump/hexdump.so")
 u5c.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
 u5c.load_module(ni, "std_blocks/webif/webif.so")
+u5c.ffi_load_types(ni)
 
 print("creating instance of 'webif'")
 webif1=u5c.cblock_create(ni, "webif", "webif1")
 
 print("creating instance of 'random'")
 random1=u5c.cblock_create(ni, "random", "random1")
-
-u5c.ffi_load_types(ni)
 
 print("creating instance of 'hexdump'")
 hexdump1=u5c.iblock_create(ni, "hexdump", "hexdump1")
@@ -43,19 +42,20 @@ u5c.connect_one(rand_port, hexdump1)
 u5c.connect_one(rand_port, fifo1)
 
 local res, dat
+while true do
 for i=1,8 do
-   random1.step(random1)
+   u5c.cblock_step(random1)
    --res, dat = interaction_read(fifo1)
    --print("fifo1 read", res, data2str(dat))
-   -- os.execute("sleep 0.1")
+   -- os.execute("sleep 0.3")
 end
 
 for i=1,8 do
    res, dat = u5c.interaction_read(ni, fifo1)
    print("fifo1 read", res, u5c.data2str(dat))
-   -- os.execute("sleep 0.1")
+   -- os.execute("sleep 0.3")
 end
-
+end
 io.read()
 
 print("cleaning up blocks --------------------------------------------------------")
@@ -66,9 +66,6 @@ print("fifo1 cleanup", u5c.block_cleanup(ni, fifo1))
 print("random1 cleanup", u5c.block_rm(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "random1"))
 print("hexdump1 cleanup", u5c.block_rm(ni, ffi.C.BLOCK_TYPE_INTERACTION, "hexdump1"))
 print("fifo1 cleanup", u5c.block_rm(ni, ffi.C.BLOCK_TYPE_INTERACTION, "fifo1"))
-
-
-print(tostring(u5c.u5c.u5c_num_cblocks(ni)).." blocks loaded")
 
 u5c.ni_stat(ni)
 

@@ -174,6 +174,7 @@ static int cyclic_read(u5c_block_t *i, u5c_data_t* msg)
 	DBG("copying %ld bytes", readsz);
 
 	memcpy(msg->data, hd->data, readsz);
+	lfds611_ringbuffer_put_read_element(bbi->rbs, elem);
 	ret=readsz/msg->type->size;		/* compute number of elements read */
  out:
 	return ret;

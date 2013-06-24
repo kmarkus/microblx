@@ -994,6 +994,35 @@ int u5c_block_cleanup(u5c_node_info_t* ni, u5c_block_t* b)
 }
 
 
+/**
+ * Step a cblock
+ *
+ * @param b
+ *
+ * @return
+ */
+void u5c_cblock_step(u5c_block_t* b)
+{
+	if(b==NULL) {
+		ERR("block is NULL");
+		goto out;
+	}
+	
+	if(b->type!=BLOCK_TYPE_COMPUTATION) {
+		ERR("block %s: can't step block of type %u", b->name, b->type);
+		goto out;
+	}
+
+	if(b->block_state!=BLOCK_STATE_ACTIVE) {
+		ERR("block %s not active", b->name);
+		goto out;
+	}
+
+	b->step(b);
+	b->stat_num_steps++;
+ out:
+	return;
+}
 
 /**
  * @brief
@@ -1005,7 +1034,7 @@ int u5c_block_cleanup(u5c_node_info_t* ni, u5c_block_t* b)
  */
 uint32_t __port_read(u5c_port_t* port, u5c_data_t* data)
 {
-	uint32_t ret;
+	uint32_t ret=PORT_READ_NODATA;
 	const char *tp;
 	u5c_block_t **iaptr;
 
@@ -1031,11 +1060,14 @@ uint32_t __port_read(u5c_port_t* port, u5c_data_t* data)
 	if(port->in_interaction==NULL)
 		goto out;
 
-	for(iaptr=port->in_interaction; *iaptr!=NULL; iaptr++)
-		if((ret=(*iaptr)->read(*iaptr, data)) == PORT_READ_NEWDATA) {
-			port->stat_reades++;
-			goto out;
+	for(iaptr=port->in_interaction; *iaptr!=NULL; iaptr++) {
+		if((*iaptr)->block_state==BLOCK_STATE_ACTIVE) {
+			if((ret=(*iaptr)->read(*iaptr, data)) == PORT_READ_NEWDATA) {
+				port->stat_reades++;
+				goto out;
+			}
 		}
+	}
  out:
 	return ret;
 }
@@ -1075,8 +1107,10 @@ void __port_write(u5c_port_t* port, u5c_data_t* data)
 
 	/* pump it out */
 	for(iaptr=port->out_interaction; *iaptr!=NULL; iaptr++) {
-		DBG("writing to interaction '%s'", (*iaptr)->name);
-		(*iaptr)->write(*iaptr, data);
+		if((*iaptr)->block_state==BLOCK_STATE_ACTIVE) {
+			DBG("writing to interaction '%s'", (*iaptr)->name);
+			(*iaptr)->write(*iaptr, data);
+		}
 	}
 
 	/* above looks nicer */
