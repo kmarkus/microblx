@@ -1052,7 +1052,7 @@ uint32_t __port_read(u5c_port_t* port, u5c_data_t* data)
 
 	if(port->in_type != data->type) {
 		tp=get_typename(data);
-		ERR("mismatching types data: %s, port: %s", tp, port->in_type->name);
+		ERR("mismatching types, data: %s, port: %s", tp, port->in_type->name);
 		goto out;
 	}
 

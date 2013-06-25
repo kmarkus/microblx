@@ -43,6 +43,7 @@ void function_name(u5c_port_t* port, typename *outval) \
 uint32_t function_name(u5c_port_t* port, typename *inval) \
 { \
  u5c_data_t val; 		\
+ val.type=port->in_type;	\
  val.data = inval;	  	\
  return __port_read(port, &val);	\
 } \
