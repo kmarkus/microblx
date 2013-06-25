@@ -298,16 +298,13 @@ local block_ops = {
 }
 
 function handle_post(ni, pd)
-   local redirect=false
    local name, op = string.match(pd, "(%w+)=(%w+)")
-   print(pd, name, op)
    local cb = u5c.cblock_get(ni, name)
    local ib = u5c.iblock_get(ni, name)
    local tb = u5c.tblock_get(ni, name)
    if cb~=nil and block_ops[op] then redirect=true; block_ops[op](ni, cb) end
    if ib~=nil and block_ops[op] then redirect=true; block_ops[op](ni, ib) end
    if tb~=nil and block_ops[op] then redirect=true; block_ops[op](ni, tb) end
-   return redirect
 end
 
 --- master dispatch table.
