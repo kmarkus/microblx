@@ -42,7 +42,7 @@ u5c.connect_one(rand_port, hexdump1)
 u5c.connect_one(rand_port, fifo1)
 
 local res, dat
-while true do
+--while true do
 for i=1,8 do
    u5c.cblock_step(random1)
    --res, dat = interaction_read(fifo1)
@@ -55,7 +55,7 @@ for i=1,8 do
    print("fifo1 read", res, u5c.data2str(dat))
    -- os.execute("sleep 0.3")
 end
-end
+--end
 io.read()
 
 print("cleaning up blocks --------------------------------------------------------")

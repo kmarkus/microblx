@@ -72,12 +72,12 @@ function color(color, text)
    return('<span style="color:%s;">%s</span>'):format(color, text)
 end
 
+
 -- hyperlink
 function a(link, text, query_str_tab)
    query_str_tab=query_str_tab or {}
    local qst={}
    for k,v in pairs(query_str_tab) do qst[#qst+1]=("%s=%s"):format(k,v) end
-   print("query_str:", table.concat(qst, '&'))
    return ('<a href="%s?%s">%s</a>'):format(link, table.concat(qst, '&'), text)
 end
 
@@ -183,6 +183,8 @@ function typelist_tohtml(ni)
    return table.concat(output, "\n")
 end
 
+
+
 --- Registered blocks
 local block_headers = { 'name', 'state', 'prototype', 'stat_num_steps', 'actions' }
 function blocklist_tohtml(blklst, header)
@@ -192,10 +194,13 @@ function blocklist_tohtml(blklst, header)
    if u5c.num_elements(blklst) <= 0 then return "" end
 
    table_header = [[
-<table border="0" style="float:left; position:relative;" cellspacing="0" cellpadding="0">
+<form method="POST" action="/">
+  <table border="0" style="float:left; position:relative;" cellspacing="0" cellpadding="0">
       ]]
 
-   table_footer = '</table>'
+   table_footer = [[
+</table>
+</form>]]
 
    -- generate colors and state change links
    local function process_state(t)
@@ -205,13 +210,16 @@ function blocklist_tohtml(blklst, header)
 	 elseif t.state=='active' then t.state=color("green", t.state) end
 	 return t
       end
+      local function button(blockname, action)
+	 return ('<input type="submit" name="%s" value="%s" class="%s">'):format(blockname, action, action..'button')
+      end
       local function add_actions(t)
 	 if t.state=='preinit' then
-	    t.actions=a("", color("red", 'initalize'), {[t.name]='init'})
+	    t.actions=button(t.name, 'init')
 	 elseif t.state=='inactive' then
-	    t.actions=a("", color("green", 'start'), {[t.name]='start'}).." "..a("", color("blue", 'cleanup'), {[t.name]='cleanup'})
+	    t.actions=button(t.name, 'start')..button(t.name, 'cleanup')
 	 elseif t.state=='active' then
-	    t.actions=a("", color("red", 'stop'), {[t.name]='stop'})
+	    t.actions=button(t.name, 'stop')
 	 end
 	 return t
       end
@@ -265,6 +273,11 @@ th { padding-right: 20px; }
 td { /* border: 0px solid #000000; */ }
 td{ padding-right:10px; }
 
+.startbutton { background-color:green; color:#fff; }
+.stopbutton { background-color:yellow; color:#ffffffff; }
+.cleanupbutton { background-color:red; color:white; }
+.initbutton { background-color:blue; color:#fff; }
+
 ]]
 
 function query_string_to_tab(qs)
@@ -284,23 +297,23 @@ local block_ops = {
    cleanup=u5c.block_cleanup
 }
 
-function process_GET(ri, ni)
-   local qs_tab = query_string_to_tab(safe_ts(ri.query_string))
-   for name,op in pairs(qs_tab) do
-      local cb = u5c.cblock_get(ni, name)
-      local ib = u5c.iblock_get(ni, name)
-      local tb = u5c.tblock_get(ni, name)
-      print(name, op, cb, ib, tb)
-      if cb~=nil and block_ops[op] then print(op, name); block_ops[op](ni, cb) end
-      if ib~=nil and block_ops[op] then print(op, name); block_ops[op](ni, ib) end
-      if tb~=nil and block_ops[op] then print(op, name); block_ops[op](ni, tb) end
-   end
+function handle_post(ni, pd)
+   local redirect=false
+   local name, op = string.match(pd, "(%w+)=(%w+)")
+   print(pd, name, op)
+   local cb = u5c.cblock_get(ni, name)
+   local ib = u5c.iblock_get(ni, name)
+   local tb = u5c.tblock_get(ni, name)
+   if cb~=nil and block_ops[op] then redirect=true; block_ops[op](ni, cb) end
+   if ib~=nil and block_ops[op] then redirect=true; block_ops[op](ni, ib) end
+   if tb~=nil and block_ops[op] then redirect=true; block_ops[op](ni, tb) end
+   return redirect
 end
 
 --- master dispatch table.
 dispatch_table = {
-   ["/"] = function(ri, ni)
-	      process_GET(ri, ni)
+   ["/"] = function(ri, ni, postdata)
+	      if postdata then handle_post(ni, postdata) end
 	      local title = ("u5c node: %s"):format(safe_ts(ni.name))
 	      return html(
 		 title,
@@ -317,7 +330,7 @@ dispatch_table = {
 }
 
 
-function request_handler(node_info, request_info_lud)
+function request_handler(node_info, request_info_lud, postdata)
    local reqinf = ffi.cast("struct mg_request_info*", request_info_lud)
    local ni = ffi.cast("struct u5c_node_info*", node_info)
 
@@ -326,7 +339,7 @@ function request_handler(node_info, request_info_lud)
 
    print("requesting uri", uri)
 
-   if handler then return handler(reqinf, ni) end
+   if handler then return handler(reqinf, ni, postdata) end
 
    print("no handler found for uri", uri)
    return "<h1>no handler found</h1>"..reqinf_tostr(reqinf)
