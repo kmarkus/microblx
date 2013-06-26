@@ -84,16 +84,16 @@ function M.iblock_create(ni, type, name)
 end
 
 -- trampoline, just forward directly to FFI
-function M.block_init(ni, b) return u5c.u5c_block_init(ni, b) end
-function M.block_start(ni, b) return u5c.u5c_block_start(ni, b) end
-function M.block_stop(ni, b) return u5c.u5c_block_stop(ni, b) end
-function M.block_cleanup(ni, b) return u5c.u5c_block_cleanup(ni, b) end
-function M.block_port_get(b, pname) return u5c.u5c_port_get(b, pname) end
-function M.connect_one(port, interaction) return u5c.u5c_connect_one(port, interaction) end
-function M.type_get(ni, tname) return u5c.u5c_type_get(ni, tname) end
-function M.block_rm(ni, block_type, name) return u5c.u5c_block_rm(ni, block_type, name) end
-function M.block_get(ni, block_type, name) return u5c.u5c_block_get(ni, block_type, name) end
-function M.cblock_step(block) u5c.u5c_cblock_step(block) end
+M.block_init = u5c.u5c_block_init
+M.block_start = u5c.u5c_block_start
+M.block_stop = u5c.u5c_block_stop
+M.block_cleanup = u5c.u5c_block_cleanup
+M.block_port_get = u5c.u5c_port_get
+M.connect_one = u5c.u5c_connect_one
+M.type_get = u5c.u5c_type_get
+M.block_rm = u5c.u5c_block_rm
+M.block_get = u5c.u5c_block_get
+M.cblock_step = u5c.u5c_cblock_step
 
 function M.cblock_get(ni, name) return M.block_get(ni, ffi.C.BLOCK_TYPE_COMPUTATION, name) end
 function M.iblock_get(ni, name) return M.block_get(ni, ffi.C.BLOCK_TYPE_INTERACTION, name) end

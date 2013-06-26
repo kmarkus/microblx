@@ -1129,7 +1129,6 @@ void __port_write(u5c_port_t* port, u5c_data_t* data)
 	/* for(i=0; port->out_interaction[i]!=NULL; i++) */
 	/* 	port->out_interaction[i]->write(port->out_interaction[i], data); */
 
-
 	port->stat_writes++;
  out:
 	return;
