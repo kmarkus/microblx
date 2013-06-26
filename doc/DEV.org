@@ -5,15 +5,7 @@
 * Next steps
   
 ** TODO load a configuration 
-** DONE implement a buffered interaction
-   CLOSED: [2013-06-24 Mon 21:42]
-   - and test by writing data from the lua shell
-
 ** TODO test communicating struct types
-** DONE implement a nice high level lua library.
-   CLOSED: [2013-06-24 Mon 21:42]
-
-
 ** TODO Test a minimal example with arrays of basic types
 ** TODO test compilation with g++ and clang++ (*sigh*)
    #ifdef __cplusplus
@@ -28,6 +20,7 @@
    # define MALLOC(type, count) (calloc(count, sizeof(type)))
    #endif
 
+** TODO make an example of how to use C++
 ** TODO develop a generic luajit based block
 
 ** TODO locking
@@ -40,6 +33,15 @@
 ** TODO three lists for block prototypes and one for instances
    - rationale: users shall choose sane names for their application
      blocks.
+** DONE implement a buffered interaction
+   CLOSED: [2013-06-24 Mon 21:42]
+   - and test by writing data from the lua shell
+
+
+** DONE implement a nice high level lua library.
+   CLOSED: [2013-06-24 Mon 21:42]
+
+
 
 ** DONE extend the webserver with luajit support.
    CLOSED: [2013-06-24 Mon 21:42]

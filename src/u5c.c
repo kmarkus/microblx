@@ -357,6 +357,11 @@ u5c_data_t* u5c_alloc_data(u5c_node_info_t *ni, const char* typename, unsigned l
 	return d;
 }
 
+void u5c_free_data(u5c_node_info_t *ni, u5c_data_t* d)
+{
+	free(d->data);
+	free(d);
+}
 
 int u5c_num_cblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->cblocks); }
 int u5c_num_iblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->iblocks); }
@@ -582,10 +587,13 @@ static u5c_block_t* u5c_block_clone(u5c_node_info_t* ni, u5c_block_t* prot, cons
 	switch(prot->type) {
 	case BLOCK_TYPE_COMPUTATION:
 		newc->step=prot->step;
+		newc->stat_num_steps = 0;
 		break;
 	case BLOCK_TYPE_INTERACTION:
 		newc->read=prot->read;
 		newc->write=prot->write;
+		newc->stat_num_reads = 0;
+		newc->stat_num_writes = 0;
 		break;
 	case BLOCK_TYPE_TRIGGER:
 		newc->add=prot->add;
@@ -834,6 +842,8 @@ u5c_data_t* u5c_config_get_data(u5c_block_t* b, const char *name)
 	return data;
 }
 
+
+
 /*
  * Ports
  */
@@ -1064,6 +1074,7 @@ uint32_t __port_read(u5c_port_t* port, u5c_data_t* data)
 		if((*iaptr)->block_state==BLOCK_STATE_ACTIVE) {
 			if((ret=(*iaptr)->read(*iaptr, data)) == PORT_READ_NEWDATA) {
 				port->stat_reades++;
+				(*iaptr)->stat_num_reads++;				
 				goto out;
 			}
 		}
@@ -1110,6 +1121,7 @@ void __port_write(u5c_port_t* port, u5c_data_t* data)
 		if((*iaptr)->block_state==BLOCK_STATE_ACTIVE) {
 			DBG("writing to interaction '%s'", (*iaptr)->name);
 			(*iaptr)->write(*iaptr, data);
+			(*iaptr)->stat_num_writes++;
 		}
 	}
 

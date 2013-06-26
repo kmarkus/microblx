@@ -65,7 +65,7 @@ function html(title, ...)
 end
 
 -- Header
-function h(text, num) return ('<h%d>%s</h%d>'):format(num, text, num) end
+function h(num, text) return ('<h%d>%s</h%d>'):format(num, text, num) end
 
 -- Colors
 function color(color, text)
@@ -75,10 +75,11 @@ end
 
 -- hyperlink
 function a(link, text, query_str_tab)
-   query_str_tab=query_str_tab or {}
+   local del = ""
    local qst={}
+   if query_str_tab then del='?' else query_str_tab={} end
    for k,v in pairs(query_str_tab) do qst[#qst+1]=("%s=%s"):format(k,v) end
-   return ('<a href="%s?%s">%s</a>'):format(link, table.concat(qst, '&'), text)
+   return ('<a href="%s%s%s">%s</a>'):format(link, del, table.concat(qst, '&'), text)
 end
 
 function table_row(bdy)
@@ -186,8 +187,7 @@ end
 
 
 --- Registered blocks
-local block_headers = { 'name', 'state', 'prototype', 'stat_num_steps', 'actions' }
-function blocklist_tohtml(blklst, header)
+function blocklist_tohtml(blklst, header, table_fields)
    local table_header, table_footer, elem_per_tab
    local output={}
 
@@ -210,17 +210,15 @@ function blocklist_tohtml(blklst, header)
 	 elseif t.state=='active' then t.state=color("green", t.state) end
 	 return t
       end
+
       local function button(blockname, action)
 	 return ('<input type="submit" name="%s" value="%s" class="%s">'):format(blockname, action, action..'button')
       end
+
       local function add_actions(t)
-	 if t.state=='preinit' then
-	    t.actions=button(t.name, 'init')
-	 elseif t.state=='inactive' then
-	    t.actions=button(t.name, 'start')..button(t.name, 'cleanup')
-	 elseif t.state=='active' then
-	    t.actions=button(t.name, 'stop')
-	 end
+	 if t.state=='preinit' then t.actions=button(t.name, 'init')
+	 elseif t.state=='inactive' then t.actions=button(t.name, 'start')..button(t.name, 'cleanup')
+	 elseif t.state=='active' then t.actions=button(t.name, 'stop') end
 	 return t
       end
       add_actions(t)
@@ -229,13 +227,13 @@ function blocklist_tohtml(blklst, header)
    end
    -- generate a single table entry and append it to entries
    local function gen_block_tab_entry(t)
-      output[#output+1]=table_fill_row(process_state(u5c.block_totab(t)), block_headers)
+      output[#output+1]=table_fill_row(process_state(u5c.block_totab(t)), table_fields)
    end
 
 
-   output[#output+1]=h(header, 2)
+   output[#output+1]=h(2, header)
    output[#output+1]=table_header
-   output[#output+1]=table_fill_headline(block_headers)
+   output[#output+1]=table_fill_headline(table_fields)
 
    -- generate list of entries
    u5c.blocks_foreach(blklst, gen_block_tab_entry)
@@ -307,17 +305,21 @@ function handle_post(ni, pd)
    if tb~=nil and block_ops[op] then redirect=true; block_ops[op](ni, tb) end
 end
 
+local cblock_table_fields = { 'name', 'state', 'prototype', 'stat_num_steps', 'actions' }
+local iblock_table_fields = { 'name', 'state', 'prototype', 'stat_num_reads', 'stat_num_writes', 'actions' }
+local tblock_table_fields = { 'name', 'state', 'prototype', 'stat_num_steps', 'actions' }
+
 --- master dispatch table.
 dispatch_table = {
    ["/"] = function(ri, ni, postdata)
 	      if postdata then handle_post(ni, postdata) end
-	      local title = ("u5c node: %s"):format(safe_ts(ni.name))
+	      local nodename = safe_ts(ni.name)
 	      return html(
-		 title,
-		 h(title, 1),
-		 blocklist_tohtml(ni.cblocks, "Computational blocks"),
-		 blocklist_tohtml(ni.iblocks, "Interaction blocks"),
-		 blocklist_tohtml(ni.tblocks, "Trigger blocks"),
+		 "u5c node: "..nodename,
+		 h(1, "u5c_node: "..a("/", nodename)),
+		 blocklist_tohtml(ni.cblocks, "Computational blocks", cblock_table_fields),
+		 blocklist_tohtml(ni.iblocks, "Interaction blocks", iblock_table_fields),
+		 blocklist_tohtml(ni.tblocks, "Trigger blocks", tblock_table_fields),
 		 typelist_tohtml(ni),
 		 "<br><br>",
 		 reqinf_tostr(ri))

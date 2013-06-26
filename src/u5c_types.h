@@ -149,7 +149,12 @@ typedef struct u5c_block {
 	/* type dependent block methods */
 	union {
 		/* COMP_TYPE_COMPUTATION */
-		void(*step) (struct u5c_block*);
+		struct {
+			void(*step) (struct u5c_block*);
+
+			/* statistics, todo step duration */
+			unsigned long stat_num_steps;
+		};
 
 		/* COMP_TYPE_INTERACTION */
 		struct {
@@ -157,6 +162,8 @@ typedef struct u5c_block {
 			 * called by the ports read/write */
 			int(*read)(struct u5c_block* interaction, u5c_data_t* value);
 			void(*write)(struct u5c_block* interaction, u5c_data_t* value);
+			unsigned long stat_num_reads;
+			unsigned long stat_num_writes;
 		};
 
 		/* COMP_TYPE_TRIGGER - no special ops */
@@ -167,8 +174,6 @@ typedef struct u5c_block {
 	};
 
 
-	/* statistics, todo step duration */
-	unsigned long stat_num_steps;
 
 	void* private_data;
 
@@ -262,4 +267,6 @@ uint32_t __port_read(u5c_port_t* port, u5c_data_t* res);
 void __port_write(u5c_port_t* port, u5c_data_t* res);
 
 u5c_data_t* u5c_alloc_data(u5c_node_info_t *ni, const char* typename, unsigned long array_len);
+void u5c_free_data(u5c_node_info_t *ni, u5c_data_t* d);
+int u5c_data_copy(u5c_data_t *src, u5c_data_t *tgt);
 

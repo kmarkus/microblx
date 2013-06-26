@@ -153,7 +153,13 @@ function M.block_totab(b)
    res.type=M.block_type_tostr[b.type]
    res.state=M.block_state_tostr[b.block_state]
    if b.prototype~=nil then res.prototype=M.safe_tostr(b.prototype) else res.prototype="<prototype>" end
-   res.stat_num_steps=tonumber(b.stat_num_steps)
+   
+   if b.type==ffi.C.BLOCK_TYPE_COMPUTATION then
+      res.stat_num_steps=tonumber(b.stat_num_steps)
+   elseif b.type==ffi.C.BLOCK_TYPE_INTERACTION then
+      res.stat_num_reads=tonumber(b.stat_num_reads)
+      res.stat_num_writes=tonumber(b.stat_num_writes)
+   end
    -- TODO ports, configs
    return res
 end
@@ -161,7 +167,7 @@ end
 --- Convert a block to a Lua string.
 function M.block_tostr(b)
    local bt=M.block_totab(b)
-   local fmt="u5c_block_t: name=%s, type=%s, state=%s, prototype=%s, stat_num_steps=%d"
+   local fmt="u5c_block_t: name=%s, type=%s, state=%s, prototype=%s"
    local res=fmt:format(bt.name, bt.type, bt.state, bt.prototype, bt.stat_num_steps)
    -- TODO ports, conf if verbose
    return res
