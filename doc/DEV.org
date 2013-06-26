@@ -35,6 +35,12 @@
      - trigger and inspecting interface must use reader-lock
      - changing state or interface must use writer lock
 
+** TODO type comparison: remote use SHA1 (parts) and local type-ptr
+
+** TODO three lists for block prototypes and one for instances
+   - rationale: users shall choose sane names for their application
+     blocks.
+
 ** DONE extend the webserver with luajit support.
    CLOSED: [2013-06-24 Mon 21:42]
 ** DONE Test a minimal example with basic types
