@@ -313,8 +313,6 @@ int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b)
 				ret=-1;
 				goto out;
 			}
-			DBG("Successfully resolved type '%s' of config '%s' of block '%s'.",
-			    config_ptr->type_name, config_ptr->name, b->name);
 			config_ptr->value.type=typ;
 		}
 	}

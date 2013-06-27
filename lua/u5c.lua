@@ -36,7 +36,8 @@ local function setup_enums()
       [ffi.C.EINVALID_BLOCK_TYPE] ='EINVALID_BLOCK_TYPE',
       [ffi.C.ENOSUCHBLOCK] 	  ='ENOSUCHBLOCK',
       [ffi.C.EALREADY_REGISTERED] ='EALREADY_REGISTERED',
-      [ffi.C.EOUTOFMEM] 	  ='EOUTOFMEM'
+      [ffi.C.EOUTOFMEM] 	  ='EOUTOFMEM',
+      [ffi.C.EINVALID_CONFIG] 	  ='EINVALID_CONFIG'
    }
 
    M.block_type_tostr={
@@ -102,9 +103,10 @@ end
 -- @param type of block to create
 -- @param name name of block
 -- @return new computational block
-function M.cblock_create(ni, type, name)
+function M.cblock_create(ni, type, name, conf)
    local b=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_COMPUTATION, type, name)
    if b==nil then error("failed to create cblock "..ts(name).." of type "..ts(type)) end
+   if conf then M.set_config_tab(b, conf) end
    return b
 end
 
@@ -113,9 +115,10 @@ end
 -- @param type of block to create
 -- @param name name of block
 -- @return new computational block
-function M.iblock_create(ni, type, name)
+function M.iblock_create(ni, type, name, conf)
    local i=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_INTERACTION, type, name)
    if i==nil then error("failed to create iblock "..ts(name).." of type "..ts(type)) end
+   if conf then M.set_config_tab(i, conf) end
    return i
 end
 
@@ -280,7 +283,6 @@ end
 -- memoize?
 local function type_to_ctype(t, ptr)
    local ctstr=type_to_ctype_str(t, ptr)
-   print("type: ", ffi.string(t.name), "ctstr", ctstr)
    return ffi.typeof(ctstr)
 end
 
@@ -293,30 +295,48 @@ function data_to_cdata(d)
 end
 
 
-function M.set_config(block, conf_name, confval)
-   local d = u5c.u5c_config_get_data(block, conf_name)
-   if d == nil then error("set_config: unknown config '"..conf_name.."'") end
-
-   d_ffi = data_to_cdata(d)
+--- Assign a value to a u5c_data
+-- @param d u5c_data
+-- @param value to assign (must follow the luajit FFI initialization rules)
+-- @return cdata ptr of the contained type
+function M.data_set(d, val)
+   d_cdata = data_to_cdata(d)
 
    -- find cdata of the target u5c_data
-   local confval_type=type(confval)
-   if confval_type=='table' then for k,v in pairs(confval) do d_ffi[k]=v end
-   elseif confval_type=='string' then ffi.copy(d_ffi, confval, #confval)
-   elseif confval_type=='number' then d_ffi[0]=confval
+   local val_type=type(val)
+   if val_type=='table' then for k,v in pairs(val) do d_cdata[k]=v end
+   elseif val_type=='string' then ffi.copy(d_cdata, val, #val)
+   elseif val_type=='number' then d_cdata[0]=val
    else
-      error("set_config: don't know how to assign "..tostring(confval).." to ffi type "..tostring(d_ffi))
+      error("set_config: don't know how to assign "..
+	    tostring(val).." to ffi type "..tostring(d_cdata))
    end
-
+   return d_cdata
 end
 
+--- Set a configuration value
+-- @param block
+-- @param conf_name name of configuration value
+-- @param confval value to assign (must follow luajit FFI initialization rules)
+function M.set_config(b, name, val)
+   local d = u5c.u5c_config_get_data(b, name)
+   if d == nil then error("set_config: unknown config '"..name.."'") end
+   return M.data_set(d, val)
+end
 
+function M.set_config_tab(b, ctab)
+   for n,v in pairs(ctab) do M.set_config(b, n, v) end
+end
 
 ------------------------------------------------------------------------------
 --                              Interactions
 ------------------------------------------------------------------------------
 
+--- TODO!
 function M.interaction_read(ni, i)
+   if i.block_state ~= ffi.C.BLOCK_STATE_ACTIVE then
+      error("interaction_read: interaction not readable in state "..M.block_state_tostr[i.block_state])
+   end
    -- figure this out automatically.
    local rddat=u5c.u5c_data_alloc(ni, "unsigned int", 1)
    local res
@@ -325,6 +345,7 @@ function M.interaction_read(ni, i)
    return res, rddat
 end
 
+--- TODO!
 function M.interaction_write(i, val)
 end
 

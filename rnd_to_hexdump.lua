@@ -16,24 +16,22 @@ u5c.load_module(ni, "std_blocks/webif/webif.so")
 u5c.ffi_load_types(ni)
 
 print("creating instance of 'webif'")
-webif1=u5c.cblock_create(ni, "webif", "webif1")
+webif1=u5c.cblock_create(ni, "webif", "webif1", { port="8888" })
 
 print("creating instance of 'random'")
-random1=u5c.cblock_create(ni, "random", "random1")
+random1=u5c.cblock_create(ni, "random", "random1", {min_max_config={min=32, max=127}})
 
 print("creating instance of 'hexdump'")
 hexdump1=u5c.iblock_create(ni, "hexdump", "hexdump1")
 
 print("creating instance of 'fifo'")
-fifo1=u5c.iblock_create(ni, "lfds_cyclic", "fifo1")
+fifo1=u5c.iblock_create(ni, "lfds_cyclic", "fifo1", {element_num=4, element_size=4})
 
 u5c.ni_stat(ni)
 
 --- Setup configuration
-u5c.set_config(webif1, "port", "8081")
-u5c.set_config(random1, "min_max_config", {min=77, max=88})
-
----
+-- u5c.set_config(webif1, "port", "8081")
+-- u5c.set_config(random1, "min_max_config", {min=77, max=88})
 
 print("running webif init", u5c.block_init(ni, webif1))
 print("running webif start", u5c.block_start(ni, webif1))
@@ -47,8 +45,10 @@ rand_port=u5c.block_port_get(random1, "rnd")
 u5c.connect_one(rand_port, hexdump1)
 u5c.connect_one(rand_port, fifo1)
 
+u5c.block_start(ni, fifo1)
 u5c.block_start(ni, random1)
 u5c.block_start(ni, hexdump1)
+
 
 local res, dat
 --while true do

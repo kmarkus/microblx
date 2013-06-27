@@ -23,8 +23,8 @@ char cyclic_meta[] =
 
 /* configuration */
 u5c_config_t cyclic_config[] = {
-	{ .name="cyclic_num", .type_name = "uint32_t" },
-	{ .name="cyclic_size", .type_name = "uint32_t" },
+	{ .name="element_num", .type_name = "uint32_t" },
+	{ .name="element_size", .type_name = "uint32_t" },
 	{ NULL },
 };
 
@@ -46,7 +46,6 @@ struct cyclic_elem_header {
 
 int cyclic_data_elem_init(void **user_data, void *user_state)
 {
-	DBG("allocating stuff");
 	struct cyclic_block_info* bbi = (struct cyclic_block_info*) user_state;
 	*user_data=calloc(1, bbi->size+sizeof(struct cyclic_elem_header));
 	return (*user_data==NULL) ? 0 : 1;
@@ -66,31 +65,33 @@ static int cyclic_init(u5c_block_t *i)
 
 	if((i->private_data = calloc(1, sizeof(struct cyclic_block_info)))==NULL) {
 		ERR("failed to alloc cyclic_block_info");
+		ret = EOUTOFMEM;
 		goto out;
 	}
 
 	bbi = (struct cyclic_block_info*) i->private_data;
 
 	/* read/check configuration */
-	bbi->num = *((uint32_t*) u5c_config_get_data_ptr(i, "cyclic_num", &len));
+	bbi->num = *((uint32_t*) u5c_config_get_data_ptr(i, "element_num", &len));
 	if(bbi->num==0) {
-		bbi->num=4; /* goto out; */
-		ERR("invalid number of elements 0, setting to %ld TODO: FIXME!", bbi->num);
+		ERR("invalid configuration element_num=0");
+		ret = EINVALID_CONFIG;
+		goto out_free_priv_data;
 	}
 
-	bbi->size = *((uint32_t*) u5c_config_get_data_ptr(i, "cyclic_size", &len));
+	bbi->size = *((uint32_t*) u5c_config_get_data_ptr(i, "element_size", &len));
 	if(bbi->size==0) {
-		bbi->size=4; /* goto out; */
-		ERR("invalid config cyclic_size 0, setting to %ld TODO: FIXME!", bbi->size);
+		ERR("invalid configuration cyclic_size 0");
+		ret = EINVALID_CONFIG;
+		goto out_free_priv_data;
 	}
 
 	DBG("allocating ringbuffer with %lu elements of size %lu bytes.", bbi->num, bbi->size);
 	if(lfds611_ringbuffer_new(&bbi->rbs, bbi->num, cyclic_data_elem_init, bbi)==0) {
-		ERR("%s: creating ringbuffer 0x%ld x 0x%ld bytes failed",
-		    i->name, bbi->num, bbi->size);
+		ERR("%s: creating ringbuffer 0x%ld x 0x%ld bytes failed", i->name, bbi->num, bbi->size);
+		ret = EOUTOFMEM;
 		goto out_free_priv_data;
 	}
-	DBG("allocated ringbuffer");
 	ret=0;
 	goto out;
 

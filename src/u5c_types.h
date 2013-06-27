@@ -70,6 +70,7 @@ enum {
 	ENOSUCHBLOCK	    	= -6,
 	EALREADY_REGISTERED	= -7,
 	EOUTOFMEM 		= -8,
+	EINVALID_CONFIG		= -9,
 };
 
 /* Port

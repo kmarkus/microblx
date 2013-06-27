@@ -161,11 +161,13 @@ static void wi_cleanup(u5c_block_t *c)
 
 static int wi_start(u5c_block_t *c)
 {
-	struct webif_info *inf;
 	char *port_num;
 	unsigned int port_num_len;
+	struct webif_info *inf;
 
 	DBG("in");
+
+	inf=(struct webif_info*) c->private_data;
 
 	/* read port config and set default if undefined */
 	port_num = (char *) u5c_config_get_data_ptr(c, "port", &port_num_len);
@@ -173,15 +175,17 @@ static int wi_start(u5c_block_t *c)
 
 	DBG("starting mongoose on port %s", port_num);
 
-	/* List of options. Last element must be NULL.
-	   TODO: read from config.
-	 */
+	/* List of options. Last element must be NULL. */
 	const char *options[] = {"listening_ports", port_num, NULL};
 
-	inf=(struct webif_info*) c->private_data;
-	inf->ctx = mg_start(&inf->callbacks, inf, options);
+	if((inf->ctx = mg_start(&inf->callbacks, inf, options))==NULL) {
+		ERR("failed to start mongoose on port %s", port_num);
+		goto out_err;
+	}
 
 	return 0; /* Ok */
+ out_err:
+	return -1; 
 }
 
 static void wi_stop(u5c_block_t *c)
