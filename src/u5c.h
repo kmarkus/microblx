@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <errno.h>
 
@@ -47,9 +48,6 @@ uint32_t function_name(u5c_port_t* port, typename *inval) \
  val.data = inval;	  	\
  return __port_read(port, &val);	\
 } \
-
-
-#define data_len(d) (d->len * d->type->size)
 
 /*
  * Debug stuff

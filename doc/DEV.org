@@ -93,7 +93,10 @@
    - http://labs.unwieldy.net/moowheel/
 
 
-** https://github.com/andresy/lua---md5
+** MD5 and SHA hashes
+*** https://github.com/andresy/lua---md5
+*** http://stackoverflow.com/questions/11167713/pure-lua-hashing-ripemd160-or-sha2/15417980#15417980
+
 ** http://lttng.org/urcu
 * Focus
   - only in-out ports (maybe instead of multi-valued ports it's better

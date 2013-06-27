@@ -326,6 +326,8 @@ dispatch_table = {
 	   end,
 
    ["/style.css"]=function() return stylesheet_str, "text/css" end,
+
+   ["/jsonfile.json"]=function() return '{ "foo":1, "bar":"haugasd" }' end
 }
 
 

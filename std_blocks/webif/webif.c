@@ -20,6 +20,11 @@
 /* make this configuration */
 static struct u5c_node_info *global_ni;
 
+u5c_config_t webif_conf[] = {
+	{ .name="port", .type_name="char", .value = { .len=10 } }, /* char[10] */
+	{ NULL }
+};
+
 char wi_meta[] =
 	"{ doc='The u5C webinterface',"
 	"  license='MIT',"
@@ -157,12 +162,21 @@ static void wi_cleanup(u5c_block_t *c)
 static int wi_start(u5c_block_t *c)
 {
 	struct webif_info *inf;
+	char *port_num;
+	unsigned int port_num_len;
+
 	DBG("in");
+
+	/* read port config and set default if undefined */
+	port_num = (char *) u5c_config_get_data_ptr(c, "port", &port_num_len);
+	port_num = (port_num_len==0) ?  "8080" : port_num;
+
+	DBG("starting mongoose on port %s", port_num);
 
 	/* List of options. Last element must be NULL.
 	   TODO: read from config.
 	 */
-	const char *options[] = {"listening_ports", "8080", NULL};
+	const char *options[] = {"listening_ports", port_num, NULL};
 
 	inf=(struct webif_info*) c->private_data;
 	inf->ctx = mg_start(&inf->callbacks, inf, options);
@@ -183,6 +197,7 @@ u5c_block_t webif_comp = {
 	.name = "webif",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = wi_meta,
+	.configs = webif_conf,
 
 	/* ops */
 	.init = wi_init,

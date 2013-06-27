@@ -1,26 +1,43 @@
 --- u5C Lua interface
 local ffi=require "ffi"
+local reflect = require "lua/reflect"
 local utils = require("utils")
 local u5c_utils = require "lua/u5c_utils"
+
 local ts=tostring
 local safe_ts=u5c_utils.safe_tostr
 
 local M={}
 local setup_enums
 
+------------------------------------------------------------------------------
+--                           helpers
+------------------------------------------------------------------------------
+
+--- Read the entire contents of a file.
+-- @param file name of file
+-- @return string contents
+local function read_file(file)
+   local f = io.open(file, "rb")
+   local data = f:read("*all")
+   f:close()
+   return data
+end
+
 -- call only after loading libu5c!
 local function setup_enums()
+   if M.u5c==nil then error("setup_enums called before loading libu5c") end
    M.retval_tostr = {
       [0] ='OK',
-      [-1] ='PORT_READ_NODATA',
-      [-2] ='PORT_READ_NEWDATA',
-      [-3] ='EPORT_INVALID',
-      [-4] ='EPORT_INVALID_TYPE',
-      [-5] ='EINVALID_BLOCK_TYPE',
-      [-6] ='ENOSUCHBLOCK',
-      [-7] ='EALREADY_REGISTERED',
-      [-8] ='EOUTOFMEM'
-}
+      [ffi.C.PORT_READ_NODATA] 	  ='PORT_READ_NODATA',
+      [ffi.C.PORT_READ_NEWDATA]   ='PORT_READ_NEWDATA',
+      [ffi.C.EPORT_INVALID] 	  ='EPORT_INVALID',
+      [ffi.C.EPORT_INVALID_TYPE]  ='EPORT_INVALID_TYPE',
+      [ffi.C.EINVALID_BLOCK_TYPE] ='EINVALID_BLOCK_TYPE',
+      [ffi.C.ENOSUCHBLOCK] 	  ='ENOSUCHBLOCK',
+      [ffi.C.EALREADY_REGISTERED] ='EALREADY_REGISTERED',
+      [ffi.C.EOUTOFMEM] 	  ='EOUTOFMEM'
+   }
 
    M.block_type_tostr={
       [ffi.C.BLOCK_TYPE_COMPUTATION]="cblock",
@@ -42,8 +59,8 @@ local function setup_enums()
 end
 
 -- load u5c_types and library
-ffi.cdef(u5c_utils.read_file("src/uthash_ffi.h"))
-ffi.cdef(u5c_utils.read_file("src/u5c_types.h"))
+ffi.cdef(read_file("src/uthash_ffi.h"))
+ffi.cdef(read_file("src/u5c_types.h"))
 local u5c=ffi.load("src/libu5c.so")
 M.u5c=u5c
 setup_enums()
@@ -53,6 +70,25 @@ function M.safe_tostr(charptr)
    if charptr == nil then return "" end
    return ffi.string(charptr)
 end
+
+------------------------------------------------------------------------------
+--                           Node and block API
+------------------------------------------------------------------------------
+
+--- Dealing with modules. This should be moved to C eventually.
+u5c_modules = {}
+function M.load_module(ni, libfile)
+   local mod=ffi.load(libfile)
+   if mod.__initialize_module(ni) ~= 0 then
+      error("failed to init module "..libfile)
+   end
+   u5c_modules[#u5c_modules+1]=mod
+end
+
+function M.unload_modules()
+   for _,mod in ipairs(u5c_modules) do mod.__cleanup_module(ni) end
+end
+
 
 --- Create and initalize a new node_info struct
 function M.node_create(name)
@@ -83,23 +119,115 @@ function M.iblock_create(ni, type, name)
    return i
 end
 
--- trampoline, just forward directly to FFI
+M.block_rm = u5c.u5c_block_rm
+M.block_get = u5c.u5c_block_get
+
+
+--- Life cycle handling
 M.block_init = u5c.u5c_block_init
 M.block_start = u5c.u5c_block_start
 M.block_stop = u5c.u5c_block_stop
 M.block_cleanup = u5c.u5c_block_cleanup
+
+M.cblock_step = u5c.u5c_cblock_step
+
+--- Port and Connections handling
 M.block_port_get = u5c.u5c_port_get
 M.connect_one = u5c.u5c_connect_one
-M.type_get = u5c.u5c_type_get
-M.block_rm = u5c.u5c_block_rm
-M.block_get = u5c.u5c_block_get
-M.cblock_step = u5c.u5c_cblock_step
 
 function M.cblock_get(ni, name) return M.block_get(ni, ffi.C.BLOCK_TYPE_COMPUTATION, name) end
 function M.iblock_get(ni, name) return M.block_get(ni, ffi.C.BLOCK_TYPE_INTERACTION, name) end
 function M.tblock_get(ni, name) return M.block_get(ni, ffi.C.BLOCK_TYPE_TRIGGER, name) end
 
+
+------------------------------------------------------------------------------
+--                           Data type handling
+------------------------------------------------------------------------------
+
+M.type_get = u5c.u5c_type_get
+
+local typedef_struct_patt = "^%s*typedef%s+struct%s+([%w_]*)%s*(%b{})%s*([%w_]+)%s*;"
+local struct_def_patt = "^%s*struct%s+([%w_]+)%s*(%b{});"
+local def_sep = '___'
+
+local function make_ns_name(ns, name) return ns..def_sep..name end
+
+--- Extend a struct definition with a namespace
+-- namespace is prepended to identifiers separated by three '_'
+-- @param ns string namespace to add
+-- @param struct struct as string
+-- @return rewritten struct
+-- TODO: split this function into parsing and adding
+-- namespace. Consolidate with structname_to_ns below.
+local function struct_add_ns(ns, struct_str)
+   local name, body, alias
+   local res = ""
+
+   -- try matching a typedef struct [name] { ... } name_t;
+   -- name could be empty
+   name, body, alias = string.match(struct_str, typedef_struct_patt)
+
+   if body and alias then
+      if name ~= "" then name = make_ns_name(ns, name) end
+      return "typedef struct "..name.." "..body.." "..pname(alias)..";"
+   end
+
+   -- try matching a simple struct def
+   name, body = string.match(struct_str, struct_def_patt)
+   if name and body then
+      return "struct "..make_ns_name(ns, name).." "..body..";"
+   end
+
+   return false
+end
+
+--- Split a package/struct foo string int package, [struct], name
+-- @param name string
+-- @return package name
+-- @return struct (empty string if typedef'ed)
+-- @return name of type
+local function split_structname(n)
+   local pack, name, struct
+   struct=""
+   -- package/struct foo
+   pack, struct, name = string.match(n, "%s*(%w+)%s*/%s*(struct)%s(+%w+)")
+   if pack==nil then
+      -- package/foo_t
+      pack, name = string.match(n, "%s*(%w+)%s*/%s*(%w+)")
+   end
+   if pack==nil then error("failed to parse struct name '"..n.."'") end
+   return pack, struct, name
+end
+
+--- Convert an u5c 'package/struct foo' to the namespaced version.
+local function structname_to_ns(n)
+   local pack, struct, name = split_structname(n)
+   return make_ns_name(pack, struct..name)
+end
+
+--- Load the registered C types into the luajit ffi.
+-- @param ni node_info_t*
+function M.ffi_load_types(ni)
+   function ffi_load_type(t)
+      local ns_struct
+      if t.type_class==u5c.TYPE_CLASS_STRUCT and t.private_data~=nil then
+	 print("loading ffi type ", ffi.string(t.name))
+	 ns_struct = struct_add_ns("huha", ffi.string(t.private_data))
+	 ffi.cdef(ns_struct)
+      end
+      return ns_struct or false
+   end
+   M.types_foreach(ni, ffi_load_type)
+end
+
+
+
+
+
 --- print an u5c_data_t
+-- @deprecated
+-- requires reflect
+-- TODO: using reflect make a struct2tab function.
 function M.data2str(d)
    if d.type.type_class~=u5c.TYPE_CLASS_BASIC then
       return "can currently only print TYPE_CLASS_BASIC types"
@@ -109,12 +237,58 @@ function M.data2str(d)
    return string.format("0x%x", dptr[0]), "("..ts(dptr)..", "..ffi.string(d.type.name)..")"
 end
 
--- function set_config
--- end
+--- Convert an u5c_type_t to a FFI ctype object.
+-- Only works for TYPE_CLASS_BASIC and TYPE_CLASS_STRUCT
+-- @param u5c_type_t
+-- @return luajit FFI ctype
+local function type_to_ctype_str(t, ptr)
+   if ptr then ptr='*' else ptr="" end
+   if t.type_class==ffi.C.TYPE_CLASS_BASIC then
+      return ffi.string(t.name)..ptr
+   elseif data.type.type_class==ffi.C.TYPE_CLASS_STRUCT then
+      return structname_to_ns(t.name)..ptr
+   end
+end
+
+local function type_to_ctype(t, ptr)
+   return ffi.typeof(type_to_ctype_str(t, ptr))
+end
+
+--- Transform the value of a u5c_data_t* to a lua FFI cdata.
+-- @param u5c_data_t
+-- @return
+function data_to_cdata(d)
+   local ctp = type_to_ctype(d.type, true)
+   return ffi.cast(ctp, d.data)
+end
+
+
+function M.set_config(block, conf_name, confval)
+   local d = u5c.u5c_config_get_data(block, conf_name)
+   if d == nil then error("set_config: unknown config '"..conf_name.."'") end
+
+   d_ffi = data_to_cdata(d)
+
+   -- find cdata of the target u5c_data
+   local confval_type=type(confval)
+   if confval_type=='table' then for k,v in pairs(confval) do d_ffi[k]=v end
+   elseif confval_type=='string' then ffi.copy(d_ffi, confval, #confval)
+   elseif confval_type=='number' then d_ffi[0]=confval
+   else
+      error("set_config: don't know how to assign "..tostring(confval).." to ffi type "..tostring(d_ffi))
+   end
+
+end
+
+
+
+------------------------------------------------------------------------------
+--                              Interactions
+------------------------------------------------------------------------------
 
 function M.interaction_read(ni, i)
    -- figure this out automatically.
-   local rddat=u5c.u5c_alloc_data(ni, "unsigned int", 1)
+   local rddat=u5c.u5c_data_alloc(ni, "unsigned int", 1)
    local res
    local res=i.read(i, rddat)
    if res <= 0 then res=M.retval_tostr[res] end
@@ -124,6 +298,9 @@ end
 function M.interaction_write(i, val)
 end
 
+------------------------------------------------------------------------------
+--                            Pretty printing
+------------------------------------------------------------------------------
 
 --- Convert a u5c_type to a Lua table
 function M.u5c_type_totab(t)
@@ -153,7 +330,7 @@ function M.block_totab(b)
    res.type=M.block_type_tostr[b.type]
    res.state=M.block_state_tostr[b.block_state]
    if b.prototype~=nil then res.prototype=M.safe_tostr(b.prototype) else res.prototype="<prototype>" end
-   
+
    if b.type==ffi.C.BLOCK_TYPE_COMPUTATION then
       res.stat_num_steps=tonumber(b.stat_num_steps)
    elseif b.type==ffi.C.BLOCK_TYPE_INTERACTION then
@@ -200,33 +377,6 @@ function M.blocks_foreach(blklist, fun)
    end
 end
 
---- Load the registered C types into the luajit ffi.
-function M.ffi_load_types(ni)
-   function ffi_load_type(t)
-      local ns_struct
-      if t.type_class==u5c.TYPE_CLASS_STRUCT and t.private_data~=nil then
-	 print("loading ffi type ", ffi.string(t.name))
-	 ns_struct = u5c_utils.struct_add_ns("huha", ffi.string(t.private_data))
-	 ffi.cdef(ns_struct)
-      end
-      return ns_struct or false
-   end
-   M.types_foreach(ni, ffi_load_type)
-end
-
---- Dealing with modules. This should be moved to C eventually.
-u5c_modules = {}
-function M.load_module(ni, libfile)
-   local mod=ffi.load(libfile)
-   if mod.__initialize_module(ni) ~= 0 then
-      error("failed to init module "..libfile)
-   end
-   u5c_modules[#u5c_modules+1]=mod
-end
-
-function M.unload_modules()
-   for _,mod in ipairs(u5c_modules) do mod.__cleanup_module(ni) end
-end
 
 
 --- Pretty print helpers

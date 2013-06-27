@@ -313,6 +313,8 @@ int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b)
 				ret=-1;
 				goto out;
 			}
+			DBG("Successfully resolved type '%s' of config '%s' of block '%s'.",
+			    config_ptr->type_name, config_ptr->name, b->name);
 			config_ptr->value.type=typ;
 		}
 	}
@@ -323,7 +325,8 @@ int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b)
 	return ret;
 }
 
-u5c_data_t* u5c_alloc_data(u5c_node_info_t *ni, const char* typename, unsigned long array_len)
+
+u5c_data_t* u5c_data_alloc(u5c_node_info_t *ni, const char* typename, unsigned long array_len)
 {
 	u5c_type_t* t = NULL;
 	u5c_data_t* d = NULL;
@@ -357,10 +360,54 @@ u5c_data_t* u5c_alloc_data(u5c_node_info_t *ni, const char* typename, unsigned l
 	return d;
 }
 
-void u5c_free_data(u5c_node_info_t *ni, u5c_data_t* d)
+void u5c_data_free(u5c_node_info_t *ni, u5c_data_t* d)
 {
 	free(d->data);
 	free(d);
+}
+
+int u5c_data_assign(u5c_data_t *tgt, u5c_data_t *src)
+{
+	int ret=-1;
+
+	if(src->type != tgt->type) {
+		ERR("type mismatch: %s <-> %s", get_typename(tgt), get_typename(src));
+		goto out;
+	}
+
+	if(src->type->type_class != TYPE_CLASS_BASIC &&
+	   src->type->type_class != TYPE_CLASS_STRUCT) {
+		ERR("can only assign TYPE_CLASS_[BASIC|STRUCT]");
+		goto out;
+	}
+
+	if(tgt->len != tgt->len) {
+		ERR("length mismatch: %lu <-> %lu", tgt->len, src->len);
+		goto out;
+	}
+
+	memcpy(tgt->data, src->data, data_len(tgt));
+	ret=0;
+ out:
+	return ret;
+}
+
+unsigned int data_len(u5c_data_t* d)
+{
+	if(d==NULL) {
+		ERR("data is NULL");
+		goto out_err;
+	}
+
+	if(d->type==NULL) {
+		ERR("data->type is NULL");
+		goto out_err;
+	}
+
+	return d->len * d->type->size;
+
+ out_err:
+	return 0;
 }
 
 int u5c_num_cblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->cblocks); }
@@ -470,11 +517,13 @@ static int u5c_clone_config_data(const u5c_config_t *csrc, u5c_config_t *ccopy)
 		goto out_err;
 
 	ccopy->value.type = csrc->value.type;
+	ERR("ccopy->value.type after copy: %p", ccopy->value.type);
 
 	/* TODO: fix this during registration */
 	ccopy->value.len=(csrc->value.len==0) ? 1 : csrc->value.len;
 
 	/* alloc actual buffer */
+	ERR("config %s: allocating %lux%lu bytes for config", csrc->name, ccopy->value.len, ccopy->value.type->size);
 	ccopy->value.data = calloc(ccopy->value.len, ccopy->value.type->size);
 
 	return 0; /* all ok */
@@ -832,16 +881,40 @@ u5c_config_t* u5c_config_get(u5c_block_t* b, const char* name)
  */
 u5c_data_t* u5c_config_get_data(u5c_block_t* b, const char *name)
 {
-	u5c_config_t *conf = NULL;
-	u5c_data_t *data;
+	u5c_config_t *conf;
+	u5c_data_t *data=NULL;
 
 	if((conf=u5c_config_get(b, name))==NULL)
 		goto out;
-	data=conf->value.data;
+	data=&conf->value;
  out:
 	return data;
 }
 
+
+/**
+ * Return the pointer to a configurations u5c_data_t->data pointer.
+ *
+ * @param b u5c_block
+ * @param name name of the requested configuration value
+ * @param *len outvalue, the length of the region pointed to (in bytes)
+ *
+ * @return the lenght in bytes of the pointer
+ */
+void* u5c_config_get_data_ptr(u5c_block_t *b, const char *name, unsigned int *len)
+{
+	u5c_data_t *d;
+	void *ret = NULL;
+	*len=0;
+
+	if((d = u5c_config_get_data(b, name))==NULL)
+		goto out;
+
+	ret = d->data;
+	*len = data_len(d);
+ out:
+	return ret;
+}
 
 
 /*
@@ -1017,7 +1090,7 @@ void u5c_cblock_step(u5c_block_t* b)
 		ERR("block is NULL");
 		goto out;
 	}
-	
+
 	if(b->type!=BLOCK_TYPE_COMPUTATION) {
 		ERR("block %s: can't step block of type %u", b->name, b->type);
 		goto out;
@@ -1074,7 +1147,7 @@ uint32_t __port_read(u5c_port_t* port, u5c_data_t* data)
 		if((*iaptr)->block_state==BLOCK_STATE_ACTIVE) {
 			if((ret=(*iaptr)->read(*iaptr, data)) == PORT_READ_NEWDATA) {
 				port->stat_reades++;
-				(*iaptr)->stat_num_reads++;				
+				(*iaptr)->stat_num_reads++;
 				goto out;
 			}
 		}

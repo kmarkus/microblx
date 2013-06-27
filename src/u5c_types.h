@@ -62,12 +62,12 @@ enum {
 	PORT_READ_NEWDATA  	= -2,
 
 	/* ERROR conditions */
-	EPORT_INVALID       	= -3,
+	EPORT_INVALID	    	= -3,
 	EPORT_INVALID_TYPE  	= -4,
 
 	/* Registration, etc */
 	EINVALID_BLOCK_TYPE 	= -5,
-	ENOSUCHBLOCK        	= -6,
+	ENOSUCHBLOCK	    	= -6,
 	EALREADY_REGISTERED	= -7,
 	EOUTOFMEM 		= -8,
 };
@@ -259,14 +259,15 @@ u5c_port_t* u5c_port_rm(u5c_block_t* comp);
 /* FOR_EACH_INPORT, FOR_EACH_OUTPORT */
 
 u5c_config_t* u5c_config_get(u5c_block_t* b, const char *name);
-int u5c_config_set(u5c_block_t* b, const char *name, u5c_data_t* value);
 u5c_data_t* u5c_config_get_data(u5c_block_t* b, const char *name);
+void* u5c_config_get_data_ptr(u5c_block_t *b, const char *name, unsigned int *len);
 
+int u5c_config_set(u5c_block_t* b, const char *name, u5c_data_t* value);
 
 uint32_t __port_read(u5c_port_t* port, u5c_data_t* res);
 void __port_write(u5c_port_t* port, u5c_data_t* res);
 
-u5c_data_t* u5c_alloc_data(u5c_node_info_t *ni, const char* typename, unsigned long array_len);
+u5c_data_t* u5c_data_alloc(u5c_node_info_t *ni, const char* typename, unsigned long array_len);
 void u5c_free_data(u5c_node_info_t *ni, u5c_data_t* d);
-int u5c_data_copy(u5c_data_t *src, u5c_data_t *tgt);
-
+int u5c_data_assign(u5c_data_t *tgt, u5c_data_t *src);
+unsigned int data_len(u5c_data_t *d);

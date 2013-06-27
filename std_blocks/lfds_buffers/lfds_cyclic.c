@@ -61,6 +61,7 @@ void cyclic_data_elem_del(void *user_data, void *user_state)
 static int cyclic_init(u5c_block_t *i)
 {
 	int ret = -1;
+	unsigned int len;
 	struct cyclic_block_info* bbi;
 
 	if((i->private_data = calloc(1, sizeof(struct cyclic_block_info)))==NULL) {
@@ -71,19 +72,19 @@ static int cyclic_init(u5c_block_t *i)
 	bbi = (struct cyclic_block_info*) i->private_data;
 
 	/* read/check configuration */
-	bbi->num = *((uint32_t*) u5c_config_get_data(i, "cyclic_num"));
+	bbi->num = *((uint32_t*) u5c_config_get_data_ptr(i, "cyclic_num", &len));
 	if(bbi->num==0) {
 		bbi->num=4; /* goto out; */
 		ERR("invalid number of elements 0, setting to %ld TODO: FIXME!", bbi->num);
 	}
 
-	bbi->size = *((uint32_t*) u5c_config_get_data(i, "cyclic_size"));
+	bbi->size = *((uint32_t*) u5c_config_get_data_ptr(i, "cyclic_size", &len));
 	if(bbi->size==0) {
 		bbi->size=4; /* goto out; */
 		ERR("invalid config cyclic_size 0, setting to %ld TODO: FIXME!", bbi->size);
 	}
 
-	DBG("allocating ringbuffer");
+	DBG("allocating ringbuffer with %lu elements of size %lu bytes.", bbi->num, bbi->size);
 	if(lfds611_ringbuffer_new(&bbi->rbs, bbi->num, cyclic_data_elem_init, bbi)==0) {
 		ERR("%s: creating ringbuffer 0x%ld x 0x%ld bytes failed",
 		    i->name, bbi->num, bbi->size);
