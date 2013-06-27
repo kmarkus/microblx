@@ -4,6 +4,7 @@
 
 * Next steps
   
+
 ** TODO load a configuration 
 ** TODO test communicating struct types
 ** TODO Test a minimal example with arrays of basic types
@@ -34,6 +35,21 @@
 ** TODO three lists for block prototypes and one for instances
    - rationale: users shall choose sane names for their application
      blocks.
+** DONE latest problem
+   CLOSED: [2013-06-27 Thu 21:29]
+------------------------------------------------------------------------------
+type: charctstrchar*
+type: random/struct random_configctstrstruct random___random*
+/usr/bin/luajit: ./lua/u5c.lua:267: undeclared or implicit tag 'random___random'
+stack traceback:
+[C]: in function 'type_to_ctype'
+./lua/u5c.lua:267: in function 'data_to_cdata'
+./lua/u5c.lua:276: in function 'set_config'
+./rnd_to_hexdump.lua:34: in main chunk
+[C]: at 0x00404ca0
+
+Problem is that struct name parsing stops at '_' !! Add Unit tests!
+
 ** DONE implement a buffered interaction
    CLOSED: [2013-06-24 Mon 21:42]
    - and test by writing data from the lua shell

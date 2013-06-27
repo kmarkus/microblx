@@ -31,6 +31,7 @@ u5c.ni_stat(ni)
 
 --- Setup configuration
 u5c.set_config(webif1, "port", "8081")
+u5c.set_config(random1, "min_max_config", {min=77, max=88})
 
 ---
 

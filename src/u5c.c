@@ -517,13 +517,11 @@ static int u5c_clone_config_data(const u5c_config_t *csrc, u5c_config_t *ccopy)
 		goto out_err;
 
 	ccopy->value.type = csrc->value.type;
-	ERR("ccopy->value.type after copy: %p", ccopy->value.type);
 
 	/* TODO: fix this during registration */
 	ccopy->value.len=(csrc->value.len==0) ? 1 : csrc->value.len;
 
 	/* alloc actual buffer */
-	ERR("config %s: allocating %lux%lu bytes for config", csrc->name, ccopy->value.len, ccopy->value.type->size);
 	ccopy->value.data = calloc(ccopy->value.len, ccopy->value.type->size);
 
 	return 0; /* all ok */

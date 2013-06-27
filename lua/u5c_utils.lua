@@ -21,7 +21,4 @@ function m.struct_md5(str)
    return m.md5
 end
 
-
-
-
 return m

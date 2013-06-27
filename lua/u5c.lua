@@ -146,22 +146,53 @@ function M.tblock_get(ni, name) return M.block_get(ni, ffi.C.BLOCK_TYPE_TRIGGER,
 
 M.type_get = u5c.u5c_type_get
 
-local typedef_struct_patt = "^%s*typedef%s+struct%s+([%w_]*)%s*(%b{})%s*([%w_]+)%s*;"
-local struct_def_patt = "^%s*struct%s+([%w_]+)%s*(%b{});"
 local def_sep = '___'
 
-local function make_ns_name(ns, name) return ns..def_sep..name end
+--- Make a namespace'd version of the given struct
+-- @param ns namespace to add
+-- @param name stuct name or typedef'ed name
+-- @param optional boolean flag. if true the prefix with 'struct'
+-- @return namespaced version [struct] pack..del..name
+local function make_ns_name(ns, name, struct)
+   if struct then struct='struct' else struct="" end
+   return ("struct %s%s%s"):format(ns,def_sep,name)
+end
+
+-- package/struct foo -> package, struct, foo
+local pack_struct_patt = "%s*([%w_]+)%s*/%s*(struct)%s([%w_]+)"
+
+-- package/foo_t -> package, foo_t
+local pack_typedef_patt = "%s*([%w_]+)%s*/%s*([%w_]+)"
+
+--- Split a package/struct foo string int package, [struct], name
+-- @param name string
+-- @return package name
+-- @return struct (empty string if typedef'ed)
+-- @return name of type
+local function parse_structname(n)
+   local pack, name, struct
+
+   pack, struct, name = string.match(n, pack_struct_patt)
+   if pack==nil then
+      -- package/foo_t
+      pack, name = string.match(n, pack_typedef_patt)
+   end
+   if pack==nil then error("failed to parse struct name '"..n.."'") end
+   return pack, struct or "", name
+end
+
+local typedef_struct_patt = "%s*typedef%s+struct%s+([%w_]*)%s*(%b{})%s*([%w_]+)%s*;"
+local struct_def_patt = "%s*struct%s+([%w_]+)%s*(%b{});"
 
 --- Extend a struct definition with a namespace
 -- namespace is prepended to identifiers separated by three '_'
 -- @param ns string namespace to add
 -- @param struct struct as string
 -- @return rewritten struct
--- TODO: split this function into parsing and adding
--- namespace. Consolidate with structname_to_ns below.
+-- @return name1 u5c namespaced' version of struct name
+-- @return name2 u5c namespaced' version of typedef'ed alias
 local function struct_add_ns(ns, struct_str)
-   local name, body, alias
-   local res = ""
+   local name, body, alias, newstruct
 
    -- try matching a typedef struct [name] { ... } name_t;
    -- name could be empty
@@ -169,59 +200,55 @@ local function struct_add_ns(ns, struct_str)
 
    if body and alias then
       if name ~= "" then name = make_ns_name(ns, name) end
-      return "typedef struct "..name.." "..body.." "..pname(alias)..";"
+      alias = make_ns_name(ns, alias)
+      newstruct = ("typedef struct %s %s %s;"):format(name, body, alias);
+      return newstruct, name, alias
    end
 
    -- try matching a simple struct def
    name, body = string.match(struct_str, struct_def_patt)
    if name and body then
-      return "struct "..make_ns_name(ns, name).." "..body..";"
+      name = make_ns_name(ns, name, true)
+      newstruct = name .." "..body..";"
+      return newstruct, name
    end
 
    return false
 end
 
---- Split a package/struct foo string int package, [struct], name
--- @param name string
--- @return package name
--- @return struct (empty string if typedef'ed)
--- @return name of type
-local function split_structname(n)
-   local pack, name, struct
-   struct=""
-   -- package/struct foo
-   pack, struct, name = string.match(n, "%s*(%w+)%s*/%s*(struct)%s(+%w+)")
-   if pack==nil then
-      -- package/foo_t
-      pack, name = string.match(n, "%s*(%w+)%s*/%s*(%w+)")
-   end
-   if pack==nil then error("failed to parse struct name '"..n.."'") end
-   return pack, struct, name
-end
-
 --- Convert an u5c 'package/struct foo' to the namespaced version.
+-- @param n u5c type name
+-- @return 'struct package___foo'
+-- @return package
 local function structname_to_ns(n)
-   local pack, struct, name = split_structname(n)
-   return make_ns_name(pack, struct..name)
+   local pack, struct, name = parse_structname(n)
+   return make_ns_name(pack, name, struct), pack
 end
 
 --- Load the registered C types into the luajit ffi.
 -- @param ni node_info_t*
 function M.ffi_load_types(ni)
    function ffi_load_type(t)
-      local ns_struct
+      local ns_struct, n1, n2, n3
       if t.type_class==u5c.TYPE_CLASS_STRUCT and t.private_data~=nil then
-	 print("loading ffi type ", ffi.string(t.name))
-	 ns_struct = struct_add_ns("huha", ffi.string(t.private_data))
+	 local n1, pack = structname_to_ns(ffi.string(t.name))
+
+	 -- extract pack, struct, name from t.name
+	 -- TODO: warn in struct name extraced via parse_structname is
+	 -- not the same as in body definition (enforce, allow, load both?)
+	 -- call struct_add_ns with CORRECT ns
+	 -- print("loading ffi type ", ffi.string(t.name))
+	 ns_struct, n2, n3 = struct_add_ns(pack, ffi.string(t.private_data))
+
+	 if n1~=n2 and n1~=n3 then
+	    error(("ffi_load_types: name mismatch between C struct name (%s, %s) and type name %s"):format(n2, n3, n1))
+	 end
 	 ffi.cdef(ns_struct)
       end
       return ns_struct or false
    end
    M.types_foreach(ni, ffi_load_type)
 end
-
-
-
 
 
 --- print an u5c_data_t
@@ -245,13 +272,16 @@ local function type_to_ctype_str(t, ptr)
    if ptr then ptr='*' else ptr="" end
    if t.type_class==ffi.C.TYPE_CLASS_BASIC then
       return ffi.string(t.name)..ptr
-   elseif data.type.type_class==ffi.C.TYPE_CLASS_STRUCT then
-      return structname_to_ns(t.name)..ptr
+   elseif t.type_class==ffi.C.TYPE_CLASS_STRUCT then
+      return structname_to_ns(ffi.string(t.name))..ptr
    end
 end
 
+-- memoize?
 local function type_to_ctype(t, ptr)
-   return ffi.typeof(type_to_ctype_str(t, ptr))
+   local ctstr=type_to_ctype_str(t, ptr)
+   print("type: ", ffi.string(t.name), "ctstr", ctstr)
+   return ffi.typeof(ctstr)
 end
 
 --- Transform the value of a u5c_data_t* to a lua FFI cdata.
