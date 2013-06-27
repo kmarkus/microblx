@@ -5,7 +5,8 @@
 * Next steps
   
 
-** TODO load a configuration 
+** DONE load a configuration 
+   CLOSED: [2013-06-27 Thu 22:41]
 ** TODO test communicating struct types
 ** TODO Test a minimal example with arrays of basic types
 ** TODO test compilation with g++ and clang++ (*sigh*)
@@ -86,6 +87,7 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
 
 
 
+
 * Usefull stuff:
 **  =valgrind --leak-check=full --track-origins=yes luajit rnd_to_hexdump.lua 2>&1 | less=
 ** [[http://p99.gforge.inria.fr/][P99]] - Preprocessor macros and functions for C99
@@ -114,6 +116,7 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
 *** http://stackoverflow.com/questions/11167713/pure-lua-hashing-ripemd160-or-sha2/15417980#15417980
 
 ** http://lttng.org/urcu
+
 * Focus
   - only in-out ports (maybe instead of multi-valued ports it's better
     to solve this at the type level, e.g. define a composite type

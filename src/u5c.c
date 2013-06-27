@@ -730,6 +730,11 @@ int u5c_block_rm(u5c_node_info_t *ni, uint32_t block_type, const char* name)
 		goto out;
 	}
 
+	if(b->block_state!=BLOCK_STATE_PREINIT) {
+		ERR("block'%s' not in preinit state", name);
+		goto out;
+	}
+
 	u5c_block_free(ni, b);
 	ret=0;
  out:
