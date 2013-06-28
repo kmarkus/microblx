@@ -36,16 +36,11 @@ function split(str, pat)
    local last_end = 1
    local s, e, cap = str:find(fpat, 1)
    while s do
-      if s ~= 1 or cap ~= "" then
-	 table.insert(t,cap)
-      end
+      if s ~= 1 or cap ~= "" then table.insert(t,cap) end
       last_end = e+1
       s, e, cap = str:find(fpat, last_end)
    end
-   if last_end <= #str then
-      cap = str:sub(last_end)
-      table.insert(t, cap)
-   end
+   if last_end <= #str then cap = str:sub(last_end); table.insert(t, cap) end
    return t
 end
 
@@ -113,14 +108,9 @@ function table_fill_headline(selected_rows)
 end
 
 
-
-
 function reqinf_tostr(ri)
    return ([[
-request method: %s, uri: %s, http_version: %s, query_string: %s, remote_user: %s
-<br>
-generated on %s
-   ]]):format(
+request method: %s, uri: %s, http_version: %s, query_string: %s, remote_user: %s, generated on %s]]):format(
       safe_ts(ri.request_method),
       safe_ts(ri.uri),
       safe_ts(ri.http_version),
@@ -237,6 +227,7 @@ function blocklist_tohtml(blklst, header, table_fields)
 
    output[#output+1]=table_footer
    output[#output+1]='<div style="clear:left"></div>'
+   output[#output+1]='<br>'
    return table.concat(output, "\n")
 end
 
@@ -330,13 +321,18 @@ dispatch_table = {
 	      local iinst = u5c.blocks_map(ni, u5c.block_totab, u5c.is_iblock_instance)
 	      local tinst = u5c.blocks_map(ni, u5c.block_totab, u5c.is_tblock_instance)
 
+	      table.sort(protoblocks, function (one,two) return one.block_type<two.block_type end)
+	      table.sort(cinst, function (one,two) return one.name<two.name end)
+	      table.sort(iinst, function (one,two) return one.name<two.name end)
+	      table.sort(tinst, function (one,two) return one.name<two.name end)
+
 	      return html(
 		 "u5c node: "..nodename,
 		 h(1, "u5c_node: "..a("/", nodename)),
-		 blocklist_tohtml(protoblocks, "Prototype Blocks", protoblocks_table_fields), "<br>",
-		 blocklist_tohtml(cinst, "Computational Blocks", cblock_table_fields), "<br>",
-		 blocklist_tohtml(iinst, "Interaction Blocks", iblock_table_fields),  "<br>",
-		 blocklist_tohtml(tinst, "Trigger Blocks", tblock_table_fields), "<br>",
+		 blocklist_tohtml(protoblocks, "Prototype Blocks", protoblocks_table_fields),
+		 blocklist_tohtml(cinst, "Computational Blocks", cblock_table_fields),
+		 blocklist_tohtml(iinst, "Interaction Blocks", iblock_table_fields),
+		 blocklist_tohtml(tinst, "Trigger Blocks", tblock_table_fields),
 		 typelist_tohtml(ni), "<br>",
 		 sysinfo(), "<br><br>",
 		 reqinf_tostr(ri))
