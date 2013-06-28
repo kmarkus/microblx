@@ -250,15 +250,16 @@ end
 -- @param ni node_info_t*
 function M.ffi_load_types(ni)
    function ffi_load_no_ns(t)
-      print("trying to load", ffi.string(t.name), tonumber(t.seqid))
       if t.type_class==u5c.TYPE_CLASS_STRUCT and t.private_data~=nil then
-	 local ret, err = pcall(ffi.cdef, ffi.string(t.private_data))
-	 if ret==false then error("ffi_load_types: failed to load the following struct:\n"..ns_struct.."\n"..err) end
+	 local struct_str = ffi.string(t.private_data)
+	 local ret, err = pcall(ffi.cdef, struct_str)
+	 if ret==false then
+	    error("ffi_load_types: failed to load the following struct:\n"..struct_str.."\n"..err)
+	 end
       end
    end
 
    function ffi_load_type(t)
-      print("trying to load", ffi.string(t.name), tonumber(t.seqid))
       local ns_struct, n1, n2, n3
       if t.type_class==u5c.TYPE_CLASS_STRUCT and t.private_data~=nil then
 	 local n1, pack = structname_to_ns(ffi.string(t.name))
