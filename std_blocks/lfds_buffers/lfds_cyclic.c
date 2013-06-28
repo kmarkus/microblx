@@ -184,7 +184,7 @@ static int cyclic_read(u5c_block_t *i, u5c_data_t* msg)
 
 /* put everything together */
 u5c_block_t cyclic_comp = {
-	.name = "lfds_cyclic",
+	.name = "lfds_buffers/cyclic",
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = cyclic_meta,
 	.configs = cyclic_config,
@@ -206,7 +206,7 @@ static int cyclic_mod_init(u5c_node_info_t* ni)
 static void cyclic_mod_cleanup(u5c_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_block_unregister(ni, BLOCK_TYPE_INTERACTION, "lfds_cyclic");
+	u5c_block_unregister(ni, "lfds_buffers/cyclic");
 }
 
 module_init(cyclic_mod_init)

@@ -1,7 +1,6 @@
 --- u5C Lua interface
 local ffi=require "ffi"
 local reflect = require "lua/reflect"
-local utils = require("utils")
 local u5c_utils = require "lua/u5c_utils"
 
 local ts=tostring
@@ -62,6 +61,7 @@ end
 -- load u5c_types and library
 ffi.cdef(read_file("src/uthash_ffi.h"))
 ffi.cdef(read_file("src/u5c_types.h"))
+ffi.cdef(read_file("src/u5c_proto.h"))
 local u5c=ffi.load("src/libu5c.so")
 M.u5c=u5c
 setup_enums()
@@ -71,6 +71,19 @@ function M.safe_tostr(charptr)
    if charptr == nil then return "" end
    return ffi.string(charptr)
 end
+
+--- Useful predicates
+function M.is_proto(b) return b.prototype==nil end
+function M.is_instance(b) return b.prototype~=nil end
+function M.is_cblock(b) return b.type==ffi.C.BLOCK_TYPE_COMPUTATION end
+function M.is_iblock(b) return b.type==ffi.C.BLOCK_TYPE_INTERACTION end
+function M.is_tblock(b) return b.type==ffi.C.BLOCK_TYPE_TRIGGER end
+function M.is_cblock_instance(b) return M.is_cblock(b) and not M.is_proto(b) end
+function M.is_iblock_instance(b) return M.is_iblock(b) and not M.is_proto(b) end
+function M.is_tblock_instance(b) return M.is_tblock(b) and not M.is_proto(b) end
+function M.is_cblock_proto(b) return M.is_cblock(b) and M.is_proto(b) end
+function M.is_iblock_proto(b) return M.is_iblock(b) and M.is_proto(b) end
+function M.is_tblock_proto(b) return M.is_tblock(b) and M.is_proto(b) end
 
 ------------------------------------------------------------------------------
 --                           Node and block API
@@ -103,28 +116,15 @@ end
 -- @param type of block to create
 -- @param name name of block
 -- @return new computational block
-function M.cblock_create(ni, type, name, conf)
-   local b=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_COMPUTATION, type, name)
-   if b==nil then error("failed to create cblock "..ts(name).." of type "..ts(type)) end
+function M.block_create(ni, type, name, conf)
+   local b=u5c.u5c_block_create(ni, type, name)
+   if b==nil then error("failed to create block "..ts(name).." of type "..ts(type)) end
    if conf then M.set_config_tab(b, conf) end
    return b
 end
 
---- Create a new interaction block.
--- @param ni node_info ptr
--- @param type of block to create
--- @param name name of block
--- @return new computational block
-function M.iblock_create(ni, type, name, conf)
-   local i=u5c.u5c_block_create(ni, ffi.C.BLOCK_TYPE_INTERACTION, type, name)
-   if i==nil then error("failed to create iblock "..ts(name).." of type "..ts(type)) end
-   if conf then M.set_config_tab(i, conf) end
-   return i
-end
-
 M.block_rm = u5c.u5c_block_rm
 M.block_get = u5c.u5c_block_get
-
 
 --- Life cycle handling
 M.block_init = u5c.u5c_block_init
@@ -138,10 +138,12 @@ M.cblock_step = u5c.u5c_cblock_step
 M.block_port_get = u5c.u5c_port_get
 M.connect_one = u5c.u5c_connect_one
 
-function M.cblock_get(ni, name) return M.block_get(ni, ffi.C.BLOCK_TYPE_COMPUTATION, name) end
-function M.iblock_get(ni, name) return M.block_get(ni, ffi.C.BLOCK_TYPE_INTERACTION, name) end
-function M.tblock_get(ni, name) return M.block_get(ni, ffi.C.BLOCK_TYPE_TRIGGER, name) end
+M.block_get = u5c.u5c_block_get
 
+--- Unload a block:
+function M.block_unload(ni, type, name)
+
+end
 
 ------------------------------------------------------------------------------
 --                           Data type handling
@@ -350,7 +352,7 @@ function M.interaction_write(i, val)
 end
 
 ------------------------------------------------------------------------------
---                            Pretty printing
+--                   Usefull stuff: foreach, pretty printing
 ------------------------------------------------------------------------------
 
 --- Convert a u5c_type to a Lua table
@@ -378,7 +380,7 @@ function M.block_totab(b)
    if b==nil then error("NULL block") end
    local res = {}
    res.name=M.safe_tostr(b.name)
-   res.type=M.block_type_tostr[b.type]
+   res.block_type=M.block_type_tostr[b.type]
    res.state=M.block_state_tostr[b.block_state]
    if b.prototype~=nil then res.prototype=M.safe_tostr(b.prototype) else res.prototype="<prototype>" end
 
@@ -407,8 +409,8 @@ end
 function M.types_foreach(ni, fun)
    if not fun then error("types_foreach: missing/invalid fun argument") end
    if ni.types==nil then return end
-   u5c_type_t_ptr = ffi.typeof("u5c_type_t*")
-   typ=u5c_type_t_ptr(ni.types)
+   local u5c_type_t_ptr = ffi.typeof("u5c_type_t*")
+   local typ=ni.types
    while typ ~= nil do
       fun(typ)
       typ=ffi.cast(u5c_type_t_ptr, typ.hh.next)
@@ -418,41 +420,87 @@ end
 --- Call a function on every block of the given list.
 -- @param a block_list
 -- @param function
-function M.blocks_foreach(blklist, fun)
-   if blklist==nil then return end
+function M.blocks_foreach(ni, fun, pred)
+   if ni==nil then return end
+   pred = pred or function() return true end
    u5c_block_t_ptr = ffi.typeof("u5c_block_t*")
-   typ=u5c_block_t_ptr(blklist)
-   while typ ~= nil do
-      fun(typ)
-      typ=ffi.cast(u5c_block_t_ptr, typ.hh.next)
+   b=ni.blocks
+   while b ~= nil do
+      if pred(b) then fun(b) end
+      b=ffi.cast(u5c_block_t_ptr, b.hh.next)
    end
 end
 
+function M.blocks_map(ni, fun, pred)
+   local res = {}
+   if ni==nil then return end
+   pred = pred or function() return true end
+   local u5c_block_t_ptr = ffi.typeof("u5c_block_t*")
+   local b=ni.blocks
+   while b ~= nil do
+      if pred(b) then res[#res+1]=fun(b) end
+      b=ffi.cast(u5c_block_t_ptr, b.hh.next)
+   end
+   return res
+end
 
+function M.cblocks_foreach(ni, fun, pred)
+   pred = pred or function() return true end
+   M.blocks_foreach(ni, fun, function(b)
+				if not M.is_cblock(b) then return end
+				return pred(b)
+			     end)
+end
+
+function M.iblocks_foreach(ni, fun, pred)
+   pred = pred or function() return true end
+   M.blocks_foreach(ni, fun, function(b)
+				if not M.is_iblock(b) then return end
+				return pred(b)
+			     end)
+end
+
+function M.tblocks_foreach(ni, fun, pred)
+   pred = pred or function() return true end
+   M.blocks_foreach(ni, fun, function(b)
+				if not M.is_tblock(b) then return end
+				return pred(b)
+			     end)
+end
 
 --- Pretty print helpers
 function M.print_types(ni) types_foreach(ni, u5c_type_pp) end
-function M.print_cblocks(ni) M.blocks_foreach(ni.cblocks, function(b) print(M.block_tostr(b)) end) end
-function M.print_iblocks(ni) M.blocks_foreach(ni.iblocks, function(b) print(M.block_tostr(b)) end) end
-function M.print_tblocks(ni) M.blocks_foreach(ni.tblocks, function(b) print(M.block_tostr(b)) end) end
+function M.print_cblocks(ni) M.cblocks_foreach(ni, function(b) print(M.block_tostr(b)) end) end
+function M.print_iblocks(ni) M.iblocks_foreach(ni, function(b) print(M.block_tostr(b)) end) end
+function M.print_tblocks(ni) M.tblocks_foreach(ni, function(b) print(M.block_tostr(b)) end) end
 
-function M.num_cblocks(ni) return u5c.u5c_num_cblocks(ni) end
-function M.num_iblocks(ni) return u5c.u5c_num_iblocks(ni) end
-function M.num_tblocks(ni) return u5c.u5c_num_tblocks(ni) end
+function M.num_blocks(ni)
+   local num_cb, num_ib, num_tb, inv = 0,0,0,0
+   M.block_foreach(ni, function (b)
+			  if b.block_type==ffi.C.BLOCK_TYPE_COMPUTATION then num_cb=num_cb+1
+			  elseif b.block_type==ffi.C.BLOCK_TYPE_INTERACTION then num_ib=num_ib+1
+			  elseif b.block_type==ffi.C.BLOCK_TYPE_TRIGGER then num_tb=num_tb+1
+			  else inv=inv+1 end
+		       end)
+   return num_cb, num_ib, num_tb, inv
+end
+
 function M.num_types(ni) return u5c.u5c_num_types(ni) end
-function M.num_elements(lst) return u5c.u5c_num_elements(lst) end
 
 --- Print an overview of current node state.
 function M.ni_stat(ni)
    print(string.rep('-',78))
+   local num_cb, num_ib, num_tb, num_inv
    print("cblocks:"); M.print_cblocks(ni);
    print("iblocks:"); M.print_iblocks(ni);
    print("tblocks:"); M.print_tblocks(ni);
-   print(tostring(u5c.u5c_num_cblocks(ni)).." cblocks, ",
-	 tostring(u5c.u5c_num_iblocks(ni)).." iblocks, ",
-	 tostring(u5c.u5c_num_tblocks(ni)).." tblocks",
-	 tostring(u5c.u5c_num_types(ni)).." tblocks")
+   print(tostring(num_cb).." cblocks, ",
+	 tostring(num_ib).." iblocks, ",
+	 tostring(num_tb).." tblocks",
+	 tostring(u5c.u5c_num_types(ni)).." types")
    print(string.rep('-',78))
 end
+
+
 
 return M

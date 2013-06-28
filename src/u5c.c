@@ -7,25 +7,6 @@
  * Internal helper functions
  */
 
-/**
- * get_block_list - retrieve the right block hashtable for the given type.
- *
- * @param ni
- * @param type
- *
- * @return pointer to node_info hashtable pointer
- */
-static u5c_block_t** get_block_list(u5c_node_info_t* ni, uint32_t type)
-{
-	switch(type) {
-	case BLOCK_TYPE_COMPUTATION: return &ni->cblocks;
-	case BLOCK_TYPE_INTERACTION: return &ni->iblocks;
-	case BLOCK_TYPE_TRIGGER: return &ni->tblocks;
-	default: ERR("invalid block type");
-	}
-	return NULL;
-}
-
 /* for pretty printing */
 const char *block_states[] = {	"preinit", "inactive", "active" };
 
@@ -51,7 +32,6 @@ const char* get_typename(u5c_data_t *data)
 	return NULL;
 }
 
-
 /**
  * initalize node_info
  *
@@ -68,9 +48,7 @@ int u5c_node_init(u5c_node_info_t* ni, const char *name)
 
 	if(name!=NULL) ni->name=strdup(name);
 
-	ni->cblocks=NULL;
-	ni->iblocks=NULL;
-	ni->tblocks=NULL;
+	ni->blocks=NULL;
 	ni->types=NULL;
 
 	return 0;
@@ -96,22 +74,22 @@ void u5c_node_cleanup(u5c_node_info_t* ni)
 int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block)
 {
 	int ret = 0;
-	u5c_block_t *tmpc, **blocklist;
+	u5c_block_t *tmpc;
 
-	blocklist = get_block_list(ni, block->type);
-
-	if(blocklist==NULL) {
+	if(block->type!=BLOCK_TYPE_COMPUTATION &&
+	   block->type!=BLOCK_TYPE_INTERACTION &&
+	   block->type!=BLOCK_TYPE_TRIGGER) {
 		ERR("invalid block type %d", block->type);
 		ret=-1;
 		goto out;
 	}
 
-	/* TODO consistency check */
+	/* TODO: consistency check */
 
-	HASH_FIND_STR(*blocklist, block->name, tmpc);
+	HASH_FIND_STR(ni->blocks, block->name, tmpc);
 
 	if(tmpc!=NULL) {
-		ERR("component '%s' already registered.", block->name);
+		ERR("block with name '%s' already registered.", block->name);
 		ret=-1;
 		goto out;
 	};
@@ -120,7 +98,7 @@ int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block)
 	if((ret=u5c_resolve_types(ni, block)) !=0)
 		goto out;
 
-	HASH_ADD_KEYPTR(hh, *blocklist, block->name, strlen(block->name), block);
+	HASH_ADD_KEYPTR(hh, ni->blocks, block->name, strlen(block->name), block);
 
  out:
 	return ret;
@@ -132,21 +110,12 @@ int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block)
  * @param ni
  * @param name
  *
- * @return
+ * @return u5c_block_t*
  */
-u5c_block_t* u5c_block_get(u5c_node_info_t *ni, uint32_t type, const char *name)
+u5c_block_t* u5c_block_get(u5c_node_info_t *ni, const char *name)
 {
-	u5c_block_t **blocklist, *tmpc=NULL;
-
-	blocklist = get_block_list(ni, type);
-
-	if(blocklist==NULL) {
-		ERR("invalid block type %d", type);
-		goto out;
-	}
-
-	HASH_FIND_STR(*blocklist, name, tmpc);
- out:
+	u5c_block_t *tmpc=NULL;
+	HASH_FIND_STR(ni->blocks, name, tmpc);
 	return tmpc;
 }
 
@@ -159,25 +128,18 @@ u5c_block_t* u5c_block_get(u5c_node_info_t *ni, uint32_t type, const char *name)
  *
  * @return the unregistered block or NULL in case of failure.
  */
-u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char* name)
+u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, const char* name)
 {
-	u5c_block_t **blocklist, *tmpc=NULL;
+	u5c_block_t *tmpc=NULL;
 
-	blocklist = get_block_list(ni, type);
+	HASH_FIND_STR(ni->blocks, name, tmpc);
 
-	if(blocklist==NULL) {
-		ERR("invalid block type %d", type);
+	if(tmpc==NULL) {
+		ERR("component '%s' not registered.", name);
 		goto out;
 	}
 
-	HASH_FIND_STR(*blocklist, name, tmpc);
-
-	if(tmpc==NULL) {
-		ERR("no component '%s' registered.", name);
-		goto out;
-	};
-
-	HASH_DEL(*blocklist, tmpc);
+	HASH_DEL(ni->blocks, tmpc);
  out:
 	return tmpc;
 }
@@ -260,6 +222,9 @@ u5c_type_t* u5c_type_get(u5c_node_info_t* ni, const char* name)
 /**
  * u5c_resolve_types - resolve string type references to real type object.
  *
+ * For each port and config, let the type pointers point to the
+ * correct type identified by the char* name. Error if failure.
+ *
  * @param ni
  * @param b
  *
@@ -324,6 +289,17 @@ int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b)
 }
 
 
+/**
+ * Allocate a u5c_data_t of the given type and array length.
+ *
+ * This type should be free'd using the u5c_data_free function.
+ *
+ * @param ni
+ * @param typename
+ * @param array_len
+ *
+ * @return u5c_data_t* or NULL in case of error.
+ */
 u5c_data_t* u5c_data_alloc(u5c_node_info_t *ni, const char* typename, unsigned long array_len)
 {
 	u5c_type_t* t = NULL;
@@ -358,12 +334,26 @@ u5c_data_t* u5c_data_alloc(u5c_node_info_t *ni, const char* typename, unsigned l
 	return d;
 }
 
+/**
+ * Free a previously allocated u5c_data_t type.
+ *
+ * @param ni
+ * @param d
+ */
 void u5c_data_free(u5c_node_info_t *ni, u5c_data_t* d)
 {
 	free(d->data);
 	free(d);
 }
 
+/**
+ * Assign a u5c_data_t value to an second.
+ *
+ * @param tgt
+ * @param src
+ *
+ * @return 0 if OK, else -1
+ */
 int u5c_data_assign(u5c_data_t *tgt, u5c_data_t *src)
 {
 	int ret=-1;
@@ -390,6 +380,13 @@ int u5c_data_assign(u5c_data_t *tgt, u5c_data_t *src)
 	return ret;
 }
 
+/**
+ * Calculate the length in bytes of a u5c_data_t buffer.
+ *
+ * @param d
+ *
+ * @return length in bytes
+ */
 unsigned int data_len(u5c_data_t* d)
 {
 	if(d==NULL) {
@@ -408,11 +405,8 @@ unsigned int data_len(u5c_data_t* d)
 	return 0;
 }
 
-int u5c_num_cblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->cblocks); }
-int u5c_num_iblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->iblocks); }
-int u5c_num_tblocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->tblocks); }
+int u5c_num_blocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->blocks); }
 int u5c_num_types(u5c_node_info_t* ni) { return HASH_COUNT(ni->types); }
-int u5c_num_elements(u5c_block_t* blklst) { return HASH_COUNT(blklst); }
 
 /**
  * u5c_port_free_data - free additional memory used by port.
@@ -532,6 +526,8 @@ static int u5c_clone_config_data(const u5c_config_t *csrc, u5c_config_t *ccopy)
 
 /**
  * u5c_block_free - free all memory related to a block
+ *
+ * The block should have been previously unregistered.
  *
  * @param ni
  * @param block_type
@@ -665,49 +661,45 @@ static u5c_block_t* u5c_block_clone(u5c_node_info_t* ni, u5c_block_t* prot, cons
  *
  * @return
  */
-u5c_block_t* u5c_block_create(u5c_node_info_t *ni, uint32_t block_type, const char *type, const char* name)
+u5c_block_t* u5c_block_create(u5c_node_info_t *ni, const char *type, const char* name)
 {
-	u5c_block_t *prot, *newc, **blocklist;
-	newc=NULL;
-
-	/* retrieve the list corresponding to the block_type */
-	if((blocklist = get_block_list(ni, block_type))==NULL) {
-		ERR("invalid block type %d", block_type);
-		goto out;
-	}
+	u5c_block_t *prot, *newb;
+	newb=NULL;
 
 	/* find prototype */
-	HASH_FIND_STR(*blocklist, type, prot);
+	HASH_FIND_STR(ni->blocks, type, prot);
 
 	if(prot==NULL) {
-		ERR("no component definition named '%s'.", type);
+		ERR("no block with name '%s' found", type);
 		goto out;
 	}
 
 	/* check if name is already used */
-	HASH_FIND_STR(*blocklist, name, newc);
+	HASH_FIND_STR(ni->blocks, name, newb);
 
-	if(newc!=NULL) {
+	if(newb!=NULL) {
 		ERR("existing component named '%s'", name);
 		goto out;
 	}
 
-	if((newc=u5c_block_clone(ni, prot, name))==NULL)
+	if((newb=u5c_block_clone(ni, prot, name))==NULL)
 		goto out;
 
 	/* register block */
-	if(u5c_block_register(ni, newc) !=0){
+	if(u5c_block_register(ni, newb) !=0){
 		ERR("failed to register block %s", name);
-		u5c_block_free(ni, newc);
+		u5c_block_free(ni, newb);
 		goto out;
 	}
  out:
-	return newc;
+	return newb;
 }
 
 /**
- * u5c_block_rm - remove a block from a node.
- * This will unregister a block and free it's data.
+ * u5c_block_rm - unregister and free a block.
+ *
+ * This will unregister a block and free it's data. The block must be
+ * in BLOCK_STATE_PREINIT state.
  *
  * TODO: fail if not in state PREINIT.
  *
@@ -717,22 +709,26 @@ u5c_block_t* u5c_block_create(u5c_node_info_t *ni, uint32_t block_type, const ch
  *
  * @return 0 if ok, error code otherwise.
  */
-int u5c_block_rm(u5c_node_info_t *ni, uint32_t block_type, const char* name)
+int u5c_block_rm(u5c_node_info_t *ni, const char* name)
 {
 	int ret;
 	u5c_block_t *b;
 
-	b = u5c_block_unregister(ni, block_type, name);
+	b = u5c_block_get(ni, name);
 
 	if(b==NULL) {
-		ERR("no component named '%s'", name);
+		ERR("no block named '%s'", name);
 		ret = ENOSUCHBLOCK;
 		goto out;
 	}
 
 	if(b->block_state!=BLOCK_STATE_PREINIT) {
-		ERR("block'%s' not in preinit state", name);
+		ERR("block '%s' not in preinit state", name);
 		goto out;
+	}
+
+	if(u5c_block_unregister(ni, name)==NULL){
+		ERR("block '%s' failed to unregister", name);
 	}
 
 	u5c_block_free(ni, b);

@@ -13,6 +13,7 @@
 #include <uthash.h>
 
 #include "u5c_types.h"
+#include "u5c_proto.h"
 
 
 /* module init, cleanup */

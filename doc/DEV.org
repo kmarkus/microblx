@@ -7,6 +7,8 @@
 
 ** DONE load a configuration 
    CLOSED: [2013-06-27 Thu 22:41]
+
+** TODO rename _rm to unload, let rm do state changes?
 ** TODO test communicating struct types
 ** TODO Test a minimal example with arrays of basic types
 ** TODO test compilation with g++ and clang++ (*sigh*)

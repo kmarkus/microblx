@@ -133,7 +133,7 @@ static void rnd_step(u5c_block_t *c) {
 
 /* put everything together */
 u5c_block_t random_comp = {
-	.name = "random",
+	.name = "random/random",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = rnd_meta,
 	.configs = rnd_config,
@@ -156,7 +156,7 @@ static int random_init(u5c_node_info_t* ni)
 static void random_cleanup(u5c_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_block_unregister(ni, BLOCK_TYPE_COMPUTATION, "random");
+	u5c_block_unregister(ni, "random/random");
 }
 
 module_init(random_init)

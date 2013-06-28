@@ -7,6 +7,13 @@
 struct u5c_type;
 struct u5c_data;
 struct u5c_block;
+struct u5c_node_info;
+
+/*
+ * module and node
+ */
+int __initialize_module(struct u5c_node_info *ni);
+void __cleanup_module(struct u5c_node_info *ni);
 
 /* serialization */
 typedef struct u5c_serialization {
@@ -188,87 +195,6 @@ typedef struct u5c_block {
  */
 typedef struct u5c_node_info {
 	const char *name;
-
-	u5c_block_t *cblocks;	/* known computation blocks */
-	u5c_block_t *iblocks;	/* known interaction blocks */
-	u5c_block_t *tblocks;	/* known trigger blocks */
-	u5c_type_t *types;	/* known types */
+	u5c_block_t *blocks; /* instances, only one list */
+	u5c_type_t *types; /* known types */
 } u5c_node_info_t;
-
-
-/*
- * runtime API
- */
-
-const char* get_typename(u5c_data_t* data);
-
-/*
- * module and node
- */
-int __initialize_module(u5c_node_info_t* ni);
-void __cleanup_module(u5c_node_info_t* ni);
-
-int u5c_node_init(u5c_node_info_t* ni, const char *name);
-void u5c_node_cleanup(u5c_node_info_t* ni);
-
-/*
- * Information/stats
- */
-int u5c_num_cblocks(u5c_node_info_t* ni);
-int u5c_num_iblocks(u5c_node_info_t* ni);
-int u5c_num_tblocks(u5c_node_info_t* ni);
-int u5c_num_types(u5c_node_info_t* ni);
-int u5c_num_elements(u5c_block_t* blklst);
-
-/*
- * Registration of types
- */
-int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block);
-u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, uint32_t type, const char* name);
-int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type);
-u5c_type_t* u5c_type_unregister(u5c_node_info_t* ni, const char* name);
-
-/*
- * create and destroy
- */
-u5c_block_t* u5c_block_create(u5c_node_info_t *ni, uint32_t block_type, const char *name, const char *type);
-int u5c_block_rm(u5c_node_info_t *ni, uint32_t block_type, const char* name);
-u5c_block_t* u5c_block_get(u5c_node_info_t *ni, uint32_t type, const char *name);
-
-
-/* block life cycle */
-int u5c_block_init(u5c_node_info_t* ni, u5c_block_t* b);
-int u5c_block_start(u5c_node_info_t* ni, u5c_block_t* b);
-int u5c_block_stop(u5c_node_info_t* ni, u5c_block_t* b);
-int u5c_block_cleanup(u5c_node_info_t* ni, u5c_block_t* b);
-
-void u5c_cblock_step(u5c_block_t* b);
-
-int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b);
-u5c_type_t* u5c_type_get(u5c_node_info_t* ni, const char* name);
-
-/*
- * connecting blocks
- */
-int u5c_connect(u5c_port_t* p1, u5c_port_t* p2, u5c_block_t* iblock);
-int u5c_connect_one(u5c_port_t* p, u5c_block_t* iblock);
-
-/* intra-block API */
-u5c_port_t* u5c_port_get(u5c_block_t* comp, const char *name);
-u5c_port_t* u5c_port_add(u5c_block_t* comp, const char *name, const char *type);
-u5c_port_t* u5c_port_rm(u5c_block_t* comp);
-/* FOR_EACH_INPORT, FOR_EACH_OUTPORT */
-
-u5c_config_t* u5c_config_get(u5c_block_t* b, const char *name);
-u5c_data_t* u5c_config_get_data(u5c_block_t* b, const char *name);
-void* u5c_config_get_data_ptr(u5c_block_t *b, const char *name, unsigned int *len);
-
-int u5c_config_set(u5c_block_t* b, const char *name, u5c_data_t* value);
-
-uint32_t __port_read(u5c_port_t* port, u5c_data_t* res);
-void __port_write(u5c_port_t* port, u5c_data_t* res);
-
-u5c_data_t* u5c_data_alloc(u5c_node_info_t *ni, const char* typename, unsigned long array_len);
-void u5c_free_data(u5c_node_info_t *ni, u5c_data_t* d);
-int u5c_data_assign(u5c_data_t *tgt, u5c_data_t *src);
-unsigned int data_len(u5c_data_t *d);

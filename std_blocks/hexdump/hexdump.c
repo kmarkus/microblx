@@ -41,7 +41,7 @@ static void hexdump_write(u5c_block_t *i, u5c_data_t* data) {
 
 /* put everything together */
 u5c_block_t hexdump_comp = {
-	.name = "hexdump",
+	.name = "hexdump/hexdump",
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = hexdumpmeta,
 	
@@ -58,7 +58,7 @@ static int hexdump_mod_init(u5c_node_info_t* ni)
 static void hexdump_mod_cleanup(u5c_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_block_unregister(ni, BLOCK_TYPE_INTERACTION, "hexdump");
+	u5c_block_unregister(ni, "hexdump/hexdump");
 }
 
 module_init(hexdump_mod_init)

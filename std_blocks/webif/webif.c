@@ -198,7 +198,7 @@ static void wi_stop(u5c_block_t *c)
 
 /* put everything together */
 u5c_block_t webif_comp = {
-	.name = "webif",
+	.name = "webif/webif",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = wi_meta,
 	.configs = webif_conf,
@@ -220,7 +220,7 @@ static int webif_init(u5c_node_info_t* ni)
 static void webif_cleanup(u5c_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_block_unregister(ni, BLOCK_TYPE_COMPUTATION, "webif");
+	u5c_block_unregister(ni, "webif/webif");
 }
 
 module_init(webif_init)

@@ -244,7 +244,7 @@ static int fifo_read(u5c_block_t *i, u5c_data_t* msg)
 
 /* put everything together */
 u5c_block_t fifo_comp = {
-	.name = "simple_fifo",
+	.name = "examples/simple_fifo",
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = fifometa,
 	.configs = fifo_config,
@@ -266,7 +266,7 @@ static int fifo_mod_init(u5c_node_info_t* ni)
 static void fifo_mod_cleanup(u5c_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_block_unregister(ni, BLOCK_TYPE_INTERACTION, "simple_fifo");
+	u5c_block_unregister(ni, "examples/simple_fifo");
 }
 
 module_init(fifo_mod_init)

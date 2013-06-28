@@ -1,6 +1,8 @@
 local ffi=require"ffi"
 local u5c=require"u5c"
+local utils=require "utils"
 
+require "strict"
 local safe_ts = u5c.safe_tostr
 
 -- Configuration
@@ -191,7 +193,7 @@ function blocklist_tohtml(blklst, header, table_fields)
    local table_header, table_footer, elem_per_tab
    local output={}
 
-   if u5c.num_elements(blklst) <= 0 then return "" end
+   if #blklst <= 0 then return "" end
 
    table_header = [[
 <form method="POST" action="/">
@@ -227,7 +229,7 @@ function blocklist_tohtml(blklst, header, table_fields)
    end
    -- generate a single table entry and append it to entries
    local function gen_block_tab_entry(t)
-      output[#output+1]=table_fill_row(process_state(u5c.block_totab(t)), table_fields)
+      output[#output+1]=table_fill_row(process_state(t), table_fields)
    end
 
 
@@ -236,7 +238,7 @@ function blocklist_tohtml(blklst, header, table_fields)
    output[#output+1]=table_fill_headline(table_fields)
 
    -- generate list of entries
-   u5c.blocks_foreach(blklst, gen_block_tab_entry)
+   utils.foreach(gen_block_tab_entry, blklst)
 
    output[#output+1]=table_footer
    output[#output+1]='<div style="clear:left"></div>'
@@ -297,14 +299,11 @@ local block_ops = {
 
 function handle_post(ni, pd)
    local name, op = string.match(pd, "(%w+)=(%w+)")
-   local cb = u5c.cblock_get(ni, name)
-   local ib = u5c.iblock_get(ni, name)
-   local tb = u5c.tblock_get(ni, name)
-   if cb~=nil and block_ops[op] then redirect=true; block_ops[op](ni, cb) end
-   if ib~=nil and block_ops[op] then redirect=true; block_ops[op](ni, ib) end
-   if tb~=nil and block_ops[op] then redirect=true; block_ops[op](ni, tb) end
+   local b = u5c.block_get(ni, name)
+   block_ops[op](ni, b)
 end
 
+local protoblocks_table_fields = { 'name', 'block_type' }
 local cblock_table_fields = { 'name', 'state', 'prototype', 'stat_num_steps', 'actions' }
 local iblock_table_fields = { 'name', 'state', 'prototype', 'stat_num_reads', 'stat_num_writes', 'actions' }
 local tblock_table_fields = { 'name', 'state', 'prototype', 'stat_num_steps', 'actions' }
@@ -314,12 +313,18 @@ dispatch_table = {
    ["/"] = function(ri, ni, postdata)
 	      if postdata then handle_post(ni, postdata) end
 	      local nodename = safe_ts(ni.name)
+	      local protoblocks = u5c.blocks_map(ni, u5c.block_totab, u5c.is_proto)
+	      local cinst = u5c.blocks_map(ni, u5c.block_totab, u5c.is_cblock_instance)
+	      local iinst = u5c.blocks_map(ni, u5c.block_totab, u5c.is_iblock_instance)
+	      local tinst = u5c.blocks_map(ni, u5c.block_totab, u5c.is_tblock_instance)
+
 	      return html(
 		 "u5c node: "..nodename,
 		 h(1, "u5c_node: "..a("/", nodename)),
-		 blocklist_tohtml(ni.cblocks, "Computational blocks", cblock_table_fields),
-		 blocklist_tohtml(ni.iblocks, "Interaction blocks", iblock_table_fields),
-		 blocklist_tohtml(ni.tblocks, "Trigger blocks", tblock_table_fields),
+		 blocklist_tohtml(protoblocks, "Block Prototypes", protoblocks_table_fields),
+		 blocklist_tohtml(cinst, "Computational blocks", cblock_table_fields),
+		 blocklist_tohtml(iinst, "Interaction blocks", iblock_table_fields),
+		 blocklist_tohtml(tinst, "Trigger blocks", tblock_table_fields),
 		 typelist_tohtml(ni),
 		 "<br><br>",
 		 reqinf_tostr(ri))

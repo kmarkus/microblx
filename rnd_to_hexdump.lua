@@ -15,17 +15,17 @@ u5c.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
 u5c.load_module(ni, "std_blocks/webif/webif.so")
 u5c.ffi_load_types(ni)
 
-print("creating instance of 'webif'")
-webif1=u5c.cblock_create(ni, "webif", "webif1", { port="8888" })
+print("creating instance of 'webif/webif'")
+webif1=u5c.block_create(ni, "webif/webif", "webif1", { port="8888" })
 
-print("creating instance of 'random'")
-random1=u5c.cblock_create(ni, "random", "random1", {min_max_config={min=32, max=127}})
+print("creating instance of 'random/random'")
+random1=u5c.block_create(ni, "random/random", "random1", {min_max_config={min=32, max=127}})
 
-print("creating instance of 'hexdump'")
-hexdump1=u5c.iblock_create(ni, "hexdump", "hexdump1")
+print("creating instance of 'hexdump/hexdump'")
+hexdump1=u5c.block_create(ni, "hexdump/hexdump", "hexdump1")
 
-print("creating instance of 'fifo'")
-fifo1=u5c.iblock_create(ni, "lfds_cyclic", "fifo1", {element_num=4, element_size=4})
+print("creating instance of 'lfds_buffers/cyclic'")
+fifo1=u5c.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, element_size=4})
 
 u5c.ni_stat(ni)
 
@@ -78,10 +78,10 @@ print("random1 cleanup", u5c.block_cleanup(ni, random1))
 print("fifo1 cleanup", u5c.block_cleanup(ni, fifo1))
 print("hexdump1 cleanup", u5c.block_cleanup(ni, hexdump1))
 
-print("random1 rm", u5c.block_rm(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "random1"))
-print("webif1 rm", u5c.block_rm(ni, ffi.C.BLOCK_TYPE_COMPUTATION, "webif1"))
-print("hexdump1 rm", u5c.block_rm(ni, ffi.C.BLOCK_TYPE_INTERACTION, "hexdump1"))
-print("fifo1 rm", u5c.block_rm(ni, ffi.C.BLOCK_TYPE_INTERACTION, "fifo1"))
+print("random1 rm", u5c.block_rm(ni, "random1"))
+print("webif1 rm", u5c.block_rm(ni, "webif1"))
+print("hexdump1 rm", u5c.block_rm(ni, "hexdump1"))
+print("fifo1 rm", u5c.block_rm(ni, "fifo1"))
 
 
 u5c.ni_stat(ni)
