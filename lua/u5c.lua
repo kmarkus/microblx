@@ -2,7 +2,7 @@
 local ffi=require "ffi"
 local reflect = require "lua/reflect"
 local u5c_utils = require "lua/u5c_utils"
-
+local utils= require "utils"
 local ts=tostring
 local safe_ts=u5c_utils.safe_tostr
 
@@ -101,6 +101,7 @@ end
 
 function M.unload_modules(ni)
    for _,mod in ipairs(u5c_modules) do mod.__cleanup_module(ni) end
+   u5c_modules={}
 end
 
 
@@ -248,7 +249,16 @@ end
 --- Load the registered C types into the luajit ffi.
 -- @param ni node_info_t*
 function M.ffi_load_types(ni)
+   function ffi_load_no_ns(t)
+      print("trying to load", ffi.string(t.name), tonumber(t.seqid))
+      if t.type_class==u5c.TYPE_CLASS_STRUCT and t.private_data~=nil then
+	 local ret, err = pcall(ffi.cdef, ffi.string(t.private_data))
+	 if ret==false then error("ffi_load_types: failed to load the following struct:\n"..ns_struct.."\n"..err) end
+      end
+   end
+
    function ffi_load_type(t)
+      print("trying to load", ffi.string(t.name), tonumber(t.seqid))
       local ns_struct, n1, n2, n3
       if t.type_class==u5c.TYPE_CLASS_STRUCT and t.private_data~=nil then
 	 local n1, pack = structname_to_ns(ffi.string(t.name))
@@ -263,11 +273,15 @@ function M.ffi_load_types(ni)
 	 if n1~=n2 and n1~=n3 then
 	    error(("ffi_load_types: name mismatch between C struct name (%s, %s) and type name %s"):format(n2, n3, n1))
 	 end
-	 ffi.cdef(ns_struct)
+	 local ret, err = pcall(ffi.cdef, ns_struct)
+	 if ret==false then error("ffi_load_types: failed to load the following struct:\n"..ns_struct.."\n"..err) end
       end
       return ns_struct or false
    end
-   M.types_foreach(ni, ffi_load_type)
+   local type_list = {}
+   M.types_foreach(ni, function (t) type_list[#type_list+1] = t end)
+   table.sort(type_list, function (t1,t2) return t1.seqid<t2.seqid end)
+   utils.foreach(ffi_load_no_ns, type_list)
 end
 
 
@@ -288,12 +302,26 @@ end
 -- Only works for TYPE_CLASS_BASIC and TYPE_CLASS_STRUCT
 -- @param u5c_type_t
 -- @return luajit FFI ctype
-local function type_to_ctype_str(t, ptr)
+local function __type_to_ctype_str(t, ptr)
    if ptr then ptr='*' else ptr="" end
    if t.type_class==ffi.C.TYPE_CLASS_BASIC then
       return ffi.string(t.name)..ptr
    elseif t.type_class==ffi.C.TYPE_CLASS_STRUCT then
       return structname_to_ns(ffi.string(t.name))..ptr
+   end
+end
+
+--- No NS variant:
+-- Only works for TYPE_CLASS_BASIC and TYPE_CLASS_STRUCT
+-- @param u5c_type_t
+-- @return luajit FFI ctype
+local function type_to_ctype_str(t, ptr)
+   if ptr then ptr='*' else ptr="" end
+   if t.type_class==ffi.C.TYPE_CLASS_BASIC then
+      return ffi.string(t.name)..ptr
+   elseif t.type_class==ffi.C.TYPE_CLASS_STRUCT then
+      local pack, struct, name = parse_structname(ffi.string(t.name))
+      return struct.." "..name..ptr
    end
 end
 

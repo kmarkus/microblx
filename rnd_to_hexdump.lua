@@ -9,6 +9,7 @@ local ts = tostring
 ni=u5c.node_create("testnode")
 
 u5c.load_module(ni, "std_types/stdtypes/stdtypes.so")
+u5c.load_module(ni, "std_types/testtypes/testtypes.so")
 u5c.load_module(ni, "std_blocks/random/random.so")
 u5c.load_module(ni, "std_blocks/hexdump/hexdump.so")
 u5c.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
@@ -79,6 +80,6 @@ u5c.ni_stat(ni)
 -- l1=u5c.u5c_alloc_data(ni, "unsigned long", 1)
 -- if l1~=nil then print_data(l1) end
 
-u5c.unload_modules()
+u5c.unload_modules(ni)
 u5c.ni_stat(ni)
 os.exit(1)

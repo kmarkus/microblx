@@ -36,6 +36,7 @@ enum {
 
 typedef struct u5c_type {
 	const char* name;		/* name: dir/header.h/struct foo*/
+	unsigned long seqid;		/* remember registration order for ffi parsing */
 	uint32_t type_class;		/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
 	unsigned long size;		/* size in bytes */
 	void* private_data;		/* private data. */
@@ -197,4 +198,5 @@ typedef struct u5c_node_info {
 	const char *name;
 	u5c_block_t *blocks; /* instances, only one list */
 	u5c_type_t *types; /* known types */
+	unsigned long cur_seqid;
 } u5c_node_info_t;
