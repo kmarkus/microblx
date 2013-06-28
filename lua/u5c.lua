@@ -397,8 +397,8 @@ end
 --- Convert a block to a Lua string.
 function M.block_tostr(b)
    local bt=M.block_totab(b)
-   local fmt="u5c_block_t: name=%s, type=%s, state=%s, prototype=%s"
-   local res=fmt:format(bt.name, bt.type, bt.state, bt.prototype, bt.stat_num_steps)
+   local fmt="u5c_block_t: name=%s, block_type=%s, state=%s, prototype=%s"
+   local res=fmt:format(bt.name, bt.block_type, bt.state, bt.prototype, bt.stat_num_steps)
    -- TODO ports, conf if verbose
    return res
 end
