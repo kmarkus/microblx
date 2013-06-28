@@ -575,30 +575,30 @@ void u5c_block_free(u5c_node_info_t *ni, u5c_block_t *b)
 static u5c_block_t* u5c_block_clone(u5c_node_info_t* ni, u5c_block_t* prot, const char* name)
 {
 	int i;
-	u5c_block_t *newc;
+	u5c_block_t *newb;
 	u5c_port_t *srcport, *tgtport;
 	u5c_config_t *srcconf, *tgtconf;
 
-	if((newc = calloc(1, sizeof(u5c_block_t)))==NULL)
+	if((newb = calloc(1, sizeof(u5c_block_t)))==NULL)
 		goto out_free;
 
-	newc->block_state = BLOCK_STATE_PREINIT;
+	newb->block_state = BLOCK_STATE_PREINIT;
 
 	/* copy attributes of prototype */
-	newc->type = prot->type;
+	newb->type = prot->type;
 
-	if((newc->name=strdup(name))==NULL) goto out_free;
-	if((newc->meta_data=strdup(prot->meta_data))==NULL) goto out_free;
-	if((newc->prototype=strdup(prot->name))==NULL) goto out_free;
+	if((newb->name=strdup(name))==NULL) goto out_free;
+	if((newb->meta_data=strdup(prot->meta_data))==NULL) goto out_free;
+	if((newb->prototype=strdup(prot->name))==NULL) goto out_free;
 
 	/* copy configuration */
 	if(prot->configs) {
 		for(i=0; prot->configs[i].name!=NULL; i++); /* compute length */
 
-		if((newc->configs = calloc(i+1, sizeof(u5c_config_t)))==NULL)
+		if((newb->configs = calloc(i+1, sizeof(u5c_config_t)))==NULL)
 			goto out_free;
 
-		for(srcconf=prot->configs, tgtconf=newc->configs; srcconf->name!=NULL; srcconf++,tgtconf++) {
+		for(srcconf=prot->configs, tgtconf=newb->configs; srcconf->name!=NULL; srcconf++,tgtconf++) {
 			if(u5c_clone_config_data(srcconf, tgtconf) != 0)
 				goto out_free;
 		}
@@ -609,44 +609,44 @@ static u5c_block_t* u5c_block_clone(u5c_node_info_t* ni, u5c_block_t* prot, cons
 	if(prot->ports) {
 		for(i=0; prot->ports[i].name!=NULL; i++); /* find number of ports */
 
-		if((newc->ports = calloc(i+1, sizeof(u5c_port_t)))==NULL)
+		if((newb->ports = calloc(i+1, sizeof(u5c_port_t)))==NULL)
 			goto out_free;
 
-		for(srcport=prot->ports, tgtport=newc->ports; srcport->name!=NULL; srcport++,tgtport++) {
+		for(srcport=prot->ports, tgtport=newb->ports; srcport->name!=NULL; srcport++,tgtport++) {
 			if(u5c_clone_port_data(srcport, tgtport) != 0)
 				goto out_free;
 		}
 	}
 
 	/* ops */
-	newc->init=prot->init;
-	newc->start=prot->start;
-	newc->stop=prot->stop;
-	newc->cleanup=prot->cleanup;
+	newb->init=prot->init;
+	newb->start=prot->start;
+	newb->stop=prot->stop;
+	newb->cleanup=prot->cleanup;
 
 	/* copy special ops */
 	switch(prot->type) {
 	case BLOCK_TYPE_COMPUTATION:
-		newc->step=prot->step;
-		newc->stat_num_steps = 0;
+		newb->step=prot->step;
+		newb->stat_num_steps = 0;
 		break;
 	case BLOCK_TYPE_INTERACTION:
-		newc->read=prot->read;
-		newc->write=prot->write;
-		newc->stat_num_reads = 0;
-		newc->stat_num_writes = 0;
+		newb->read=prot->read;
+		newb->write=prot->write;
+		newb->stat_num_reads = 0;
+		newb->stat_num_writes = 0;
 		break;
 	case BLOCK_TYPE_TRIGGER:
-		newc->add=prot->add;
-		newc->rm=prot->rm;
+		newb->add=prot->add;
+		newb->rm=prot->rm;
 		break;
 	}
 
 	/* all ok */
-	return newc;
+	return newb;
 
  out_free:
-	u5c_block_free(ni, newc);
+	u5c_block_free(ni, newb);
  	ERR("insufficient memory");
 	return NULL;
 }
