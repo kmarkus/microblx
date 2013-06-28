@@ -21,6 +21,8 @@ u5c_type_t basic_types[] = {
 
 	/* floating point */
 	def_basic_ctype(float),      def_basic_ctype(double),
+	
+	def_basic_ctype(size_t),
 
 	/* stdint types */
 	def_basic_ctype(int8_t),  def_basic_ctype(int16_t),  def_basic_ctype(int32_t),  def_basic_ctype(int64_t),
