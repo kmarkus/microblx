@@ -68,21 +68,11 @@ end
 io.read()
 
 print("stopping and cleaning up blocks --------------------------------------------------------")
-print("running webif1 stop", u5c.block_stop(ni, webif1))
-print("running random1 stop", u5c.block_stop(ni, random1))
-print("running fifo1 stop", u5c.block_stop(ni, fifo1))
-print("running hexdump stop", u5c.block_stop(ni, hexdump1))
 
-print("webif1 cleanup", u5c.block_cleanup(ni, webif1))
-print("random1 cleanup", u5c.block_cleanup(ni, random1))
-print("fifo1 cleanup", u5c.block_cleanup(ni, fifo1))
-print("hexdump1 cleanup", u5c.block_cleanup(ni, hexdump1))
-
-print("random1 rm", u5c.block_rm(ni, "random1"))
-print("webif1 rm", u5c.block_rm(ni, "webif1"))
-print("hexdump1 rm", u5c.block_rm(ni, "hexdump1"))
-print("fifo1 rm", u5c.block_rm(ni, "fifo1"))
-
+print("running webif1 unload", u5c.block_unload(ni, "webif1"))
+print("running random1 unload", u5c.block_unload(ni, "random1"))
+print("running fifo1 unload", u5c.block_unload(ni, "fifo1"))
+print("running hexdump unload", u5c.block_unload(ni, "hexdump1"))
 
 u5c.ni_stat(ni)
 

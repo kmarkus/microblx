@@ -140,9 +140,12 @@ M.connect_one = u5c.u5c_connect_one
 
 M.block_get = u5c.u5c_block_get
 
---- Unload a block:
-function M.block_unload(ni, type, name)
-
+--- Unload a block: bring it to state preinit and call u5c_block_rm
+function M.block_unload(ni, name)
+   local b=M.block_get(ni, name)
+   if b.block_state==ffi.C.BLOCK_STATE_ACTIVE then M.block_stop(ni, b) end
+   if b.block_state==ffi.C.BLOCK_STATE_INACTIVE then M.block_cleanup(ni, b) end
+   if M.block_rm(ni, name) ~= 0 then error("block_unload: u5c_block_rm failed for '"..name.."'") end
 end
 
 ------------------------------------------------------------------------------
