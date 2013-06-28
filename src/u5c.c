@@ -722,6 +722,11 @@ int u5c_block_rm(u5c_node_info_t *ni, const char* name)
 		goto out;
 	}
 
+	if(b->prototype==NULL) {
+		ERR("block '%s' is a prototype", name);
+		goto out;
+	}
+
 	if(b->block_state!=BLOCK_STATE_PREINIT) {
 		ERR("block '%s' not in preinit state", name);
 		goto out;

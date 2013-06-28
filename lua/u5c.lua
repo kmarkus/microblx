@@ -99,7 +99,7 @@ function M.load_module(ni, libfile)
    u5c_modules[#u5c_modules+1]=mod
 end
 
-function M.unload_modules()
+function M.unload_modules(ni)
    for _,mod in ipairs(u5c_modules) do mod.__cleanup_module(ni) end
 end
 
@@ -109,6 +109,11 @@ function M.node_create(name)
    local ni=ffi.new("u5c_node_info_t")
    print("u5c_node_init:", u5c.u5c_node_init(ni, name))
    return ni
+end
+
+function M.node_cleanup(ni)
+   M.blocks_foreach(ni, function (b) M.block_unload(ni, b) end)
+   M.unload_modules(ni)
 end
 
 --- Create a new computational block.
@@ -151,6 +156,13 @@ end
 ------------------------------------------------------------------------------
 --                           Data type handling
 ------------------------------------------------------------------------------
+
+function M.data_alloc(ni, name, num)
+   num=num or 1
+   local d = u5c.u5c_data_alloc(ni, name, num)
+   if d==nil then error("data_alloc: unkown type '"..name.."'") end
+   return d
+end
 
 M.type_get = u5c.u5c_type_get
 
@@ -343,7 +355,7 @@ function M.interaction_read(ni, i)
       error("interaction_read: interaction not readable in state "..M.block_state_tostr[i.block_state])
    end
    -- figure this out automatically.
-   local rddat=u5c.u5c_data_alloc(ni, "unsigned int", 1)
+   local rddat=M.data_alloc(ni, "unsigned int", 1)
    local res
    local res=i.read(i, rddat)
    if res <= 0 then res=M.retval_tostr[res] end
