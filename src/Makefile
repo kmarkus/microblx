@@ -11,4 +11,4 @@ u5c.o: u5c.c u5c_proto.h u5c.h u5c_types.h uthash.h uthash_ffi.h
 	${CC} -fPIC -c ${CFLAGS} u5c.c
 
 clean:
-	rm -f *.o *.so *~ core
+	rm -f *.o *.so *~ core u5c_proto.h
