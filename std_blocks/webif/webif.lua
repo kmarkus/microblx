@@ -117,12 +117,7 @@ end
 
 function reqinf_tostr(ri)
    return ([[
-request method: %s <br>
-uri:            %s <br>
-http_version:   %s <br>
-query_string:   %s <br>
-remote_user:    %s <br>
-<br>
+request method: %s, uri: %s, http_version: %s, query_string: %s, remote_user: %s
 <br>
 generated on %s
    ]]):format(
@@ -144,7 +139,7 @@ function typelist_tohtml(ni)
 
    if u5c.num_types(ni) <= 0 then return "" end
 
-   output[#output+1]="<h2>Registered types</h2>"
+   output[#output+1]="<h2>Registered Types</h2>"
 
    table_header = [[
 <table border="0" style="float:left; position:relative;" cellspacing="0" cellpadding="0">
@@ -245,6 +240,23 @@ function blocklist_tohtml(blklst, header, table_fields)
    return table.concat(output, "\n")
 end
 
+local function sysinfo()
+   local res={}
+   local width, endian, fpu, abi
+   abi=""
+   if ffi.abi('32bit') then width='32bit' else width='64bit' end
+   if ffi.abi('le') then endian='little endian' else endian='big endian' end
+   if ffi.abi('fpu') then
+      if ffi.abi('softfp') then fpu='softfp'
+      elseif ffi.abi('hardfp') then fpu='hardfp' end
+   else fpu='no fpu' end
+   if ffi.abi('eabi') then abi='eabi'
+   elseif ffi.abi('win') then abi='win' end
+
+   res[#res+1] = h(2, "System Information")
+   res[#res+1] = ("%s %s %s %s %s %s"):format(ffi.os, ffi.arch, width, endian, fpu, abi)
+   return table.concat(res, "\n")
+end
 
 --- Stylesheet for the u5c webinterface
 stylesheet_str=[[
@@ -321,12 +333,12 @@ dispatch_table = {
 	      return html(
 		 "u5c node: "..nodename,
 		 h(1, "u5c_node: "..a("/", nodename)),
-		 blocklist_tohtml(protoblocks, "Block Prototypes", protoblocks_table_fields),
-		 blocklist_tohtml(cinst, "Computational blocks", cblock_table_fields),
-		 blocklist_tohtml(iinst, "Interaction blocks", iblock_table_fields),
-		 blocklist_tohtml(tinst, "Trigger blocks", tblock_table_fields),
-		 typelist_tohtml(ni),
-		 "<br><br>",
+		 blocklist_tohtml(protoblocks, "Prototype Blocks", protoblocks_table_fields), "<br>",
+		 blocklist_tohtml(cinst, "Computational Blocks", cblock_table_fields), "<br>",
+		 blocklist_tohtml(iinst, "Interaction Blocks", iblock_table_fields),  "<br>",
+		 blocklist_tohtml(tinst, "Trigger Blocks", tblock_table_fields), "<br>",
+		 typelist_tohtml(ni), "<br>",
+		 sysinfo(), "<br><br>",
 		 reqinf_tostr(ri))
 	   end,
 
