@@ -5,10 +5,7 @@
 * Next steps
   
 
-** DONE load a configuration 
-   CLOSED: [2013-06-27 Thu 22:41]
-
-** TODO rename _rm to unload, let rm do state changes?
+** TODO unit tests
 ** TODO test communicating struct types
 ** TODO Test a minimal example with arrays of basic types
 ** TODO test compilation with g++ and clang++ (*sigh*)
@@ -35,7 +32,14 @@
 ** TODO introduce typeid's: (like git commitish)
    - full name: package/struct foo or package/foo_t or
    - partial hash of name: 0a407a4f51ff2bb1f92a6ae611cb63fb
-** TODO three lists for block prototypes and one for instances
+** DONE load a configuration 
+   CLOSED: [2013-06-27 Thu 22:41]
+
+** DONE introduce u5c.unload
+   CLOSED: [2013-06-28 Fri 12:41]
+
+** DONE one +three+ lists for block prototypes and one for instances
+   CLOSED: [2013-06-28 Fri 12:42]
    - rationale: users shall choose sane names for their application
      blocks.
 ** DONE latest problem
