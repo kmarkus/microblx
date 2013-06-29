@@ -5,7 +5,11 @@
 * Next steps
   
 
-** TODO How to deal with variable sized configuration and port input  e.g zero to many block names to be triggered by ptrig.
+** TODO How to deal with variable sized configuration and port input
+   - e.g zero to many block names to be triggered by ptrig.
+   - e.g. trig_conf: resize in resize in data_set?
+   - maybe have two version: one that resizes and one that doesn't.
+   
 ** TODO unit tests
 ** TODO test communicating struct types
 ** TODO Test a minimal example with arrays of basic types
@@ -29,7 +33,7 @@
    - suggestion: rw-locks (or uRCU?)
      - trigger and inspecting interface must use reader-lock
      - changing state or interface must use writer lock
-** TODO type comparison: remote use SHA1 (parts) and local type-ptr
+** TODO type id comparison: remote use SHA1 (parts) and local type-ptr
 ** TODO introduce typeid's: (like git commitish)
    - full name: package/struct foo or package/foo_t or
    - partial hash of name: 0a407a4f51ff2bb1f92a6ae611cb63fb

@@ -351,7 +351,7 @@ function request_handler(node_info, request_info_lud, postdata)
    local uri = safe_ts(reqinf.uri)
    local handler = dispatch_table[uri]
 
-   print("requesting uri", uri)
+   -- print("requesting uri", uri)
 
    if handler then return handler(reqinf, ni, postdata) end
 

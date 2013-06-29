@@ -2,7 +2,7 @@
  * A system monitoring web-interface function block.
  */
 
-#define DEBUG 1
+#undef DEBUG
 #define WEBIF_RELOAD 1
 
 #include <luajit-2.0/lauxlib.h>

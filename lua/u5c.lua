@@ -167,7 +167,7 @@ end
 ------------------------------------------------------------------------------
 
 function M.data_len(d) return tonumber(u5c.u5c_data_len(d)) end
-   
+
 function M.data_alloc(ni, name, num)
    num=num or 1
    local d = u5c.u5c_data_alloc(ni, name, num)

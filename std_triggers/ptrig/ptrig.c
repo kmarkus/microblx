@@ -31,6 +31,7 @@ struct ptrig_inf {
 	uint32_t state;
 	pthread_mutex_t mutex;
 	pthread_cond_t active_cond;
+	u5c_block_t** trig_blocks;
 };
 
 /* thread entry */

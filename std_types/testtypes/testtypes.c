@@ -14,6 +14,8 @@
 #include "types/rotation.h.hexarr"
 #include "types/frame.h"
 #include "types/frame.h.hexarr"
+#include "types/test_trig_conf.h"
+#include "types/test_trig_conf.h.hexarr"
 
 
 /* declare types */
@@ -22,6 +24,7 @@ u5c_type_t types[] = {
 	def_struct_type("testtypes", struct Vector, &vector_h),
 	def_struct_type("testtypes", struct Rotation, &rotation_h),
 	def_struct_type("testtypes", struct Frame, &frame_h),
+	def_struct_type("testtypes", struct test_trig_conf, &test_trig_conf_h),
 	{ NULL },
 };
 

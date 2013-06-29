@@ -64,3 +64,25 @@ function test_composite_struct_assignment()
    assert_equal(222, vptr.M.Z.y)
    assert_equal(333, vptr.M.Z.z)
 end
+
+function test_simple_struct_assignment2()
+   local d=u5c.data_alloc(ni, "testtypes/struct test_trig_conf", 3)
+   local conf = {
+      { name="block_name1", benchmark=0 },
+      { name="block_name2", benchmark=1 },
+      { name="block_name3", benchmark=0 },
+   }
+
+   u5c.data_set(d, conf)
+
+   local ptr = ffi.cast("struct test_trig_conf*", d.data)
+   assert_equal("block_name1", ffi.string(ptr[0].name))
+   assert_equal("block_name2", ffi.string(ptr[1].name))
+   assert_equal("block_name3", ffi.string(ptr[2].name))
+
+   assert_equal(0, tonumber(ptr[0].benchmark))
+   assert_equal(1, tonumber(ptr[1].benchmark))
+   assert_equal(0, tonumber(ptr[2].benchmark))
+
+   u5c.data_free(ni, d)
+end
