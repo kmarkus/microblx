@@ -63,6 +63,14 @@ ffi.cdef(read_file("src/uthash_ffi.h"))
 ffi.cdef(read_file("src/u5c_types.h"))
 ffi.cdef(read_file("src/u5c_proto.h"))
 local u5c=ffi.load("src/libu5c.so")
+
+ffi.cdef[[
+void *malloc(size_t size);
+void free(void *ptr);
+void *calloc(size_t nmemb, size_t size);
+void *realloc(void *ptr, size_t size);
+]]
+
 M.u5c=u5c
 setup_enums()
 
@@ -158,6 +166,8 @@ end
 --                           Data type handling
 ------------------------------------------------------------------------------
 
+function M.data_len(d) return tonumber(u5c.u5c_data_len(d)) end
+   
 function M.data_alloc(ni, name, num)
    num=num or 1
    local d = u5c.u5c_data_alloc(ni, name, num)
@@ -165,6 +175,7 @@ function M.data_alloc(ni, name, num)
    return d
 end
 
+M.data_free=u5c.u5c_data_free
 M.type_get = u5c.u5c_type_get
 
 local def_sep = '___'

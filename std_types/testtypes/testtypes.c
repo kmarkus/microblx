@@ -15,16 +15,10 @@
 #include "types/frame.h"
 #include "types/frame.h.hexarr"
 
-#define def_struct_type(module, typename, hexdata) \
-{ 					\
-	.name=module "/" #typename, 	\
-	.type_class=TYPE_CLASS_STRUCT,	\
-	.size=sizeof(typename),		\
-	.private_data=hexdata, 		\
-}
 
 /* declare types */
 u5c_type_t types[] = {
+	def_basic_ctype(char[50]),
 	def_struct_type("testtypes", struct Vector, &vector_h),
 	def_struct_type("testtypes", struct Rotation, &rotation_h),
 	def_struct_type("testtypes", struct Frame, &frame_h),

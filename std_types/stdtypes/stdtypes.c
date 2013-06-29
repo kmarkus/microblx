@@ -8,8 +8,6 @@
 
 #include "u5c.h"
 
-#define def_basic_ctype(typename) { .name=#typename, .type_class=TYPE_CLASS_BASIC, .size=sizeof(typename) }
-
 /* declare types */
 u5c_type_t basic_types[] = {
 	/* basic types */

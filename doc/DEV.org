@@ -5,6 +5,7 @@
 * Next steps
   
 
+** TODO How to deal with variable sized configuration and port input  e.g zero to many block names to be triggered by ptrig.
 ** TODO unit tests
 ** TODO test communicating struct types
 ** TODO Test a minimal example with arrays of basic types

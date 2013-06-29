@@ -14,6 +14,7 @@ function test_scalar_assignment()
    u5c.data_set(d, 33)
    local numptr = ffi.cast("unsigned int*", d.data)
    assert_equal(33, numptr[0])
+   u5c.data_free(ni, d)
 end
 
 function test_string_assignment()
@@ -22,6 +23,7 @@ function test_string_assignment()
    u5c.data_set(d, teststr)
    local chrptr = ffi.cast("char*", d.data)
    assert_equal(teststr, ffi.string(chrptr))
+   u5c.data_free(ni, d)
 end
 
 function test_simple_struct_assignment()
@@ -31,6 +33,7 @@ function test_simple_struct_assignment()
    assert_equal(444, vptr.x)
    assert_equal(55.3, vptr.y)
    assert_equal(-34, vptr.z)
+   u5c.data_free(ni, d)
 end
 
 function test_composite_struct_assignment()

@@ -23,6 +23,17 @@ int __initialize_module(u5c_node_info_t* ni) { return initfn(ni); }
 #define module_cleanup(exitfn) \
 void __cleanup_module(u5c_node_info_t* ni) { exitfn(ni); }
 
+/* type definition helpers */
+#define def_basic_ctype(typename) { .name=#typename, .type_class=TYPE_CLASS_BASIC, .size=sizeof(typename) }
+
+#define def_struct_type(module, typename, hexdata) \
+{ 					\
+	.name=module "/" #typename, 	\
+	.type_class=TYPE_CLASS_STRUCT,	\
+	.size=sizeof(typename),		\
+	.private_data=hexdata, 		\
+}
+
 
 /* normally the user would have to box/unbox his value himself. This
  * would generate a typed, automatic boxing version for

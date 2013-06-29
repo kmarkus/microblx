@@ -10,6 +10,13 @@
 /* for pretty printing */
 const char *block_states[] = {	"preinit", "inactive", "active" };
 
+/**
+ * Convert block state to string.
+ *
+ * @param state
+ *
+ * @return const char pointer to string name.
+ */
 const char* block_state_tostr(int state)
 {
 	if(state>=sizeof(block_states))
