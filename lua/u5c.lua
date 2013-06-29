@@ -361,7 +361,13 @@ function M.data_set(d, val)
 
    -- find cdata of the target u5c_data
    local val_type=type(val)
-   if val_type=='table' then for k,v in pairs(val) do d_cdata[k]=v end
+   if val_type=='table' then
+      for k,v in pairs(val) do
+	 if type(k)~='number' then d_cdata[k]=v
+	 else
+	    if val[0] == nil then d_cdata[k-1]=v else d_cdata[k]=v end
+	 end
+      end
    elseif val_type=='string' then ffi.copy(d_cdata, val, #val)
    elseif val_type=='number' then d_cdata[0]=val
    else
