@@ -4,6 +4,10 @@
  * This file is luajit-ffi parsable, the rest goes into u5c.h
  */
 
+enum {
+	CONFIG_BLOCK_NAME_MAXLEN = 100,
+};
+
 struct u5c_type;
 struct u5c_data;
 struct u5c_block;

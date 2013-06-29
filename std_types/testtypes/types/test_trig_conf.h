@@ -1,4 +1,4 @@
 struct test_trig_conf {
-	char name[100];
+	char name[CONFIG_BLOCK_NAME_MAXLEN];
 	int benchmark;
 };
