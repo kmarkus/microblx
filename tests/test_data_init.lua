@@ -86,3 +86,27 @@ function test_simple_struct_assignment2()
 
    u5c.data_free(ni, d)
 end
+
+function test_data_resize()
+   local d=u5c.data_alloc(ni, "testtypes/struct test_trig_conf", 1)
+   local conf = {
+      { name="block_name1", benchmark=0 },
+      { name="block_name2", benchmark=1 },
+      { name="block_name3", benchmark=0 },
+   }
+
+   u5c.data_set(d, conf)
+
+   local ptr = ffi.cast("struct test_trig_conf*", d.data)
+   assert_equal("block_name1", ffi.string(ptr[0].name))
+   assert_equal("block_name2", ffi.string(ptr[1].name))
+   assert_equal("block_name3", ffi.string(ptr[2].name))
+
+   assert_equal(0, tonumber(ptr[0].benchmark))
+   assert_equal(1, tonumber(ptr[1].benchmark))
+   assert_equal(0, tonumber(ptr[2].benchmark))
+
+   assert_equal(d.len, 3)
+
+   u5c.data_free(ni, d)
+end

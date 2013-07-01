@@ -351,6 +351,14 @@ function data_to_cdata(d)
    return ffi.cast(ctp, d.data)
 end
 
+function data_resize_len(d, newlen)
+   local newsz = newlen * tonumber(d.type.size)
+   local newptr = ffi.C.realloc(d.data, newsz)
+   if newptr==nil then return false end
+   d.data=newptr
+   d.len=newlen
+   return true
+end
 
 --- Assign a value to a u5c_data
 -- @param d u5c_data
@@ -362,6 +370,8 @@ function M.data_set(d, val)
    -- find cdata of the target u5c_data
    local val_type=type(val)
    if val_type=='table' then
+      -- check if need to resize
+      if #val > d.len then data_resize_len(d, #val) end
       for k,v in pairs(val) do
 	 if type(k)~='number' then d_cdata[k]=v
 	 else

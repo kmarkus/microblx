@@ -1,7 +1,6 @@
 include make.conf
 
 INCLUDE_DIR=$(CURDIR)/src/
-#DIRS=src std_blocks/random std_blocks/hexdump std_blocks/lifo_buffer std_blocks/webif std_types/stdtypes
 DIRS=src $(wildcard std_blocks/* std_types/* std_triggers/*)
 
 SHELL = /bin/sh
