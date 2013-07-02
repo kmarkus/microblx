@@ -204,7 +204,11 @@ function blocklist_tohtml(blklst, header, table_fields)
 
       local function add_actions(t)
 	 if t.state=='preinit' then t.actions=button(t.name, 'init')
-	 elseif t.state=='inactive' then t.actions=button(t.name, 'start')..button(t.name, 'cleanup')
+	 elseif t.state=='inactive' then
+	    if t.block_type=='cblock' then
+	       t.actions=button(t.name, 'step')
+	    end
+	    t.actions=(t.actions or "")..button(t.name, 'start')..button(t.name, 'cleanup')
 	 elseif t.state=='active' then t.actions=button(t.name, 'stop') end
 	 return t
       end
@@ -280,6 +284,7 @@ td{ padding-right:10px; }
 .stopbutton { background-color:yellow; color:#ffffffff; }
 .cleanupbutton { background-color:red; color:white; }
 .initbutton { background-color:blue; color:#fff; }
+.stepbutton { background-color:magenta; color:#fff; }
 
 ]]
 
@@ -297,7 +302,13 @@ local block_ops = {
    init=u5c.block_init,
    start=u5c.block_start,
    stop=u5c.block_stop,
-   cleanup=u5c.block_cleanup
+   cleanup=u5c.block_cleanup,
+   step=function(ni, b)
+	   if not u5c.is_cblock_instance(b) then return end
+	   u5c.block_start(ni, b)
+	   u5c.cblock_step(b)
+	   u5c.block_stop(ni, b)
+	end
 }
 
 function handle_post(ni, pd)
