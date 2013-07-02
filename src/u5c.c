@@ -343,6 +343,22 @@ u5c_data_t* u5c_data_alloc(u5c_node_info_t *ni, const char* typename, unsigned l
 	return d;
 }
 
+int u5c_data_resize(u5c_data_t *d, unsigned int newlen)
+{
+	int ret=-1;
+	void *ptr;
+	unsigned int newsz = newlen * d->type->size;
+
+	if((ptr=realloc(d->data, newsz))==NULL)
+		goto out;
+	d->data=ptr;
+	d->len=newlen;
+	ret=0;
+ out:
+	return ret;
+}
+
+
 /**
  * Free a previously allocated u5c_data_t type.
  *

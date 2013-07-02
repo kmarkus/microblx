@@ -5,6 +5,7 @@ local u5c_utils = require "lua/u5c_utils"
 local utils= require "utils"
 local ts=tostring
 local safe_ts=u5c_utils.safe_tostr
+local strict=require "strict"
 
 local M={}
 local setup_enums
@@ -260,7 +261,7 @@ end
 --- Load the registered C types into the luajit ffi.
 -- @param ni node_info_t*
 function M.ffi_load_types(ni)
-   function ffi_load_no_ns(t)
+   local function ffi_load_no_ns(t)
       if t.type_class==u5c.TYPE_CLASS_STRUCT and t.private_data~=nil then
 	 local struct_str = ffi.string(t.private_data)
 	 local ret, err = pcall(ffi.cdef, struct_str)
@@ -270,7 +271,7 @@ function M.ffi_load_types(ni)
       end
    end
 
-   function ffi_load_type(t)
+   local function ffi_load_type(t)
       local ns_struct, n1, n2, n3
       if t.type_class==u5c.TYPE_CLASS_STRUCT and t.private_data~=nil then
 	 local n1, pack = structname_to_ns(ffi.string(t.name))
@@ -283,7 +284,7 @@ function M.ffi_load_types(ni)
 	 ns_struct, n2, n3 = struct_add_ns(pack, ffi.string(t.private_data))
 
 	 if n1~=n2 and n1~=n3 then
-	    error(("ffi_load_types: name mismatch between C struct name (%s, %s) and type name %s"):format(n2, n3, n1))
+	    error(("ffi_load_types: mismatch between C struct name (%s, %s) and type name %s"):format(n2, n3, n1))
 	 end
 	 local ret, err = pcall(ffi.cdef, ns_struct)
 	 if ret==false then error("ffi_load_types: failed to load the following struct:\n"..ns_struct.."\n"..err) end
@@ -305,8 +306,8 @@ function M.data2str(d)
    if d.type.type_class~=u5c.TYPE_CLASS_BASIC then
       return "can currently only print TYPE_CLASS_BASIC types"
    end
-   ptrname = ffi.string(d.type.name).."*"
-   dptr = ffi.new(ptrname, d.data)
+   local ptrname = ffi.string(d.type.name).."*"
+   local dptr = ffi.new(ptrname, d.data)
    return string.format("0x%x", dptr[0]), "("..ts(dptr)..", "..ffi.string(d.type.name)..")"
 end
 
@@ -351,27 +352,28 @@ function data_to_cdata(d)
    return ffi.cast(ctp, d.data)
 end
 
-function data_resize_len(d, newlen)
-   local newsz = newlen * tonumber(d.type.size)
-   local newptr = ffi.C.realloc(d.data, newsz)
-   if newptr==nil then return false end
-   d.data=newptr
-   d.len=newlen
-   return true
+function M.data_resize(d, newlen)
+   print("changing len from", tonumber(d.len), " to ", newlen)
+   if u5c.u5c_data_resize(d, newlen) == 0 then
+      return true 
+   else
+      return false 
+   end
 end
 
 --- Assign a value to a u5c_data
 -- @param d u5c_data
 -- @param value to assign (must follow the luajit FFI initialization rules)
+-- @param resize if true, resize buffer and update data.len to fit val
 -- @return cdata ptr of the contained type
-function M.data_set(d, val)
-   d_cdata = data_to_cdata(d)
+function M.data_set(d, val, resize)
+   local d_cdata = data_to_cdata(d)
 
    -- find cdata of the target u5c_data
    local val_type=type(val)
    if val_type=='table' then
       -- check if need to resize
-      if #val > d.len then data_resize_len(d, #val) end
+      if resize and #val>d.len then M.data_resize(d, #val) end
       for k,v in pairs(val) do
 	 if type(k)~='number' then d_cdata[k]=v
 	 else
@@ -394,7 +396,8 @@ end
 function M.set_config(b, name, val)
    local d = u5c.u5c_config_get_data(b, name)
    if d == nil then error("set_config: unknown config '"..name.."'") end
-   return M.data_set(d, val)
+   print("configuring ", ffi.string(b.name), name)
+   return M.data_set(d, val, true)
 end
 
 function M.set_config_tab(b, ctab)
@@ -494,8 +497,8 @@ end
 function M.blocks_foreach(ni, fun, pred)
    if ni==nil then return end
    pred = pred or function() return true end
-   u5c_block_t_ptr = ffi.typeof("u5c_block_t*")
-   b=ni.blocks
+   local u5c_block_t_ptr = ffi.typeof("u5c_block_t*")
+   local b=ni.blocks
    while b ~= nil do
       if pred(b) then fun(b) end
       b=ffi.cast(u5c_block_t_ptr, b.hh.next)

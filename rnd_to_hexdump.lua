@@ -16,14 +16,14 @@ u5c.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
 u5c.load_module(ni, "std_blocks/webif/webif.so")
 u5c.ffi_load_types(ni)
 
+print("creating instance of 'hexdump/hexdump'")
+hexdump1=u5c.block_create(ni, "hexdump/hexdump", "hexdump1")
+
 print("creating instance of 'webif/webif'")
 webif1=u5c.block_create(ni, "webif/webif", "webif1", { port="8888" })
 
 print("creating instance of 'random/random'")
 random1=u5c.block_create(ni, "random/random", "random1", {min_max_config={min=32, max=127}})
-
-print("creating instance of 'hexdump/hexdump'")
-hexdump1=u5c.block_create(ni, "hexdump/hexdump", "hexdump1")
 
 print("creating instance of 'lfds_buffers/cyclic'")
 fifo1=u5c.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, element_size=4})
