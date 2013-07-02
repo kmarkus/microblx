@@ -183,7 +183,6 @@ int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type)
 	HASH_ADD_KEYPTR(hh, ni->types, type->name, strlen(type->name), type);
 	type->seqid=ni->cur_seqid++;
 	ret = 0;
-	DBG("registered type %s", type->name);
  out:
 	return ret;
 }
@@ -1094,10 +1093,11 @@ int u5c_block_cleanup(u5c_node_info_t* ni, u5c_block_t* b)
  *
  * @param b
  *
- * @return
+ * @return 0 if OK, else -1
  */
-void u5c_cblock_step(u5c_block_t* b)
+int u5c_cblock_step(u5c_block_t* b)
 {
+	int ret = -1;
 	if(b==NULL) {
 		ERR("block is NULL");
 		goto out;
@@ -1115,8 +1115,9 @@ void u5c_cblock_step(u5c_block_t* b)
 
 	b->step(b);
 	b->stat_num_steps++;
+	ret=0;
  out:
-	return;
+	return ret;
 }
 
 /**

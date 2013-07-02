@@ -39,8 +39,23 @@ struct ptrig_inf {
 	uint32_t state;
 	pthread_mutex_t mutex;
 	pthread_cond_t active_cond;
-	u5c_block_t** trig_blocks;
+	struct ptrig_config *trig_list;
+	unsigned int trig_list_len;
 };
+
+int trigger_steps(struct ptrig_inf *inf)
+{
+	int i, steps, res=-1;
+
+	for(i=0; i<inf->trig_list_len; i++)
+		for(steps=0; steps<inf->trig_list[i].num_steps; i++)
+			if(u5c_cblock_step(inf->trig_list[i].b)!=0)
+				goto out;
+
+	res=0;
+ out:
+	return res;
+}
 
 /* thread entry */
 static void* thread_startup(void *arg)
@@ -60,8 +75,7 @@ static void* thread_startup(void *arg)
 		pthread_mutex_unlock(&inf->mutex);
 
 		DBG("triggering steps");
-
-		/* trigger step's */
+		trigger_steps(inf);
 	}
 
 	/* block on cond var that signals block is running */
@@ -88,8 +102,6 @@ static int ptrig_init(u5c_block_t *b)
 	pthread_attr_init(&inf->attr);
 	pthread_attr_setdetachstate(&inf->attr, PTHREAD_CREATE_JOINABLE);
 	
-	/* TODO: read config attrs */
-
 	if((ret=pthread_create(&inf->tid, &inf->attr, thread_startup, b))!=0) {
 		ERR2(ret, "pthread_create failed");
 		goto out_err;
@@ -107,9 +119,19 @@ static int ptrig_init(u5c_block_t *b)
 
 static int ptrig_start(u5c_block_t *b)
 {
+	DBG(" ");
+
 	struct ptrig_inf *inf;
+	u5c_data_t* trig_list_data;
+
 	inf = (struct ptrig_inf*) b->private_data;
-	
+
+	trig_list_data = u5c_config_get_data(b, "trig_blocks");
+
+	/* make a copy? */
+	inf->trig_list = trig_list_data->data;
+	inf->trig_list_len = trig_list_data->len;
+
 	pthread_mutex_lock(&inf->mutex);
 	inf->state=BLOCK_STATE_ACTIVE;
 	pthread_cond_signal(&inf->active_cond);
@@ -119,6 +141,7 @@ static int ptrig_start(u5c_block_t *b)
 
 static void ptrig_stop(u5c_block_t *b)
 {
+	DBG(" ");
 	struct ptrig_inf *inf;
 	inf = (struct ptrig_inf*) b->private_data;
 	
