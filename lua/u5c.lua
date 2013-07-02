@@ -355,9 +355,9 @@ end
 function M.data_resize(d, newlen)
    print("changing len from", tonumber(d.len), " to ", newlen)
    if u5c.u5c_data_resize(d, newlen) == 0 then
-      return true 
+      return true
    else
-      return false 
+      return false
    end
 end
 
@@ -372,12 +372,18 @@ function M.data_set(d, val, resize)
    -- find cdata of the target u5c_data
    local val_type=type(val)
    if val_type=='table' then
-      -- check if need to resize
-      if resize and #val>d.len then M.data_resize(d, #val) end
       for k,v in pairs(val) do
-	 if type(k)~='number' then d_cdata[k]=v
+	 if type(k)~='number' then
+	    d_cdata[k]=v
 	 else
-	    if val[0] == nil then d_cdata[k-1]=v else d_cdata[k]=v end
+	    local idx -- starting from zero
+	    if val[0] == nil then idx=k-1 else idx=k end
+	    if idx >= d.len and not resize then
+	       error("data_set: attempt to index beyond bounds, index=", idx, "len=", d.len)
+	    elseif idx >= d.len and resize then
+	       M.data_resize(d, idx+1)
+	    end
+	    d_cdata[idx]=v
 	 end
       end
    elseif val_type=='string' then ffi.copy(d_cdata, val, #val)
