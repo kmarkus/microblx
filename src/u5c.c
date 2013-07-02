@@ -85,8 +85,7 @@ int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block)
 	u5c_block_t *tmpc;
 
 	if(block->type!=BLOCK_TYPE_COMPUTATION &&
-	   block->type!=BLOCK_TYPE_INTERACTION &&
-	   block->type!=BLOCK_TYPE_TRIGGER) {
+	   block->type!=BLOCK_TYPE_INTERACTION) {
 		ERR("invalid block type %d", block->type);
 		ret=-1;
 		goto out;
@@ -661,10 +660,6 @@ static u5c_block_t* u5c_block_clone(u5c_node_info_t* ni, u5c_block_t* prot, cons
 		newb->stat_num_reads = 0;
 		newb->stat_num_writes = 0;
 		break;
-	case BLOCK_TYPE_TRIGGER:
-		newb->add=prot->add;
-		newb->rm=prot->rm;
-		break;
 	}
 
 	/* all ok */
@@ -972,9 +967,6 @@ u5c_port_t* u5c_port_get(u5c_block_t* comp, const char *name)
 	return port_ptr;
 }
 
-/* u5c_port_t* u5c_port_add(u5c_block_t* comp, const char *name, const char *type); */
-/* u5c_port_t* u5c_port_rm(u5c_block_t* comp); */
-
 
 /**
  * u5c_block_init - initalize a function block.
@@ -1128,6 +1120,8 @@ int u5c_cblock_step(u5c_block_t* b)
 		ERR("block %s not active", b->name);
 		goto out;
 	}
+
+	if(b->step==NULL) goto out;
 
 	b->step(b);
 	b->stat_num_steps++;

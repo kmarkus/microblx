@@ -6,21 +6,19 @@
   
 
 
-** TODO component identification
+** TODO implement real cdata reflection on top of reflect.lua
+   - cdata_to_tab / cdata_from_tab
+   - implement logging component (first generic luajit block)
+   -
+** TODO remove BLOCK_TYPE_TRIGGER (same as COMPUTATION)
+** TODO component identification (from string to uid?)
    - replace string as primary key by numeric u5c_block_id_t ?
      Advantage: would be easier to use for configuring trigger blocks,
      etc. -> easier for communicating block_id's via ports.
 
-
-** TODO webif: add step_once button (will do start()->step()->stop() cycle)
-** TODO How to deal with variable sized configuration and port input
-   - e.g zero to many block names to be triggered by ptrig.
-   - e.g. trig_conf: resize in resize in data_set?
-   - maybe have two version: one that resizes and one that doesn't.
-   
-** TODO unit tests
 ** TODO test communicating struct types
-** TODO Test a minimal example with arrays of basic types
+** DONE Test a minimal example with arrays of basic types
+   CLOSED: [2013-07-02 Tue 21:38]
 ** TODO test compilation with g++ and clang++ (*sigh*)
    #ifdef __cplusplus
    # define REALLOC(ptr, size, type) ((type *)realloc(ptr, size))
@@ -36,15 +34,27 @@
 
 ** TODO make an example of how to use C++
 ** TODO develop a generic luajit based block
-
 ** TODO locking
    - suggestion: rw-locks (or uRCU?)
      - trigger and inspecting interface must use reader-lock
      - changing state or interface must use writer lock
+   - locking step?
+     -> separate spinlock or mutex?
 ** TODO type id comparison: remote use SHA1 (parts) and local type-ptr
 ** TODO introduce typeid's: (like git commitish)
    - full name: package/struct foo or package/foo_t or
    - partial hash of name: 0a407a4f51ff2bb1f92a6ae611cb63fb
+** DONE webif: add step_once button (will do start()->step()->stop() cycle)
+   CLOSED: [2013-07-02 Tue 21:35]
+** DONE How to deal with variable sized configuration and port input
+   CLOSED: [2013-07-02 Tue 21:35]
+   - e.g zero to many block names to be triggered by ptrig.
+   - e.g. trig_conf: resize in resize in data_set?
+   - maybe have two version: one that resizes and one that doesn't.
+   
+** DONE unit tests
+   CLOSED: [2013-07-02 Tue 21:35]
+
 ** DONE load a configuration 
    CLOSED: [2013-06-27 Thu 22:41]
 

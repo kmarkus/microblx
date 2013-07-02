@@ -13,16 +13,18 @@
 #include "types/ptrig_config.h"
 #include "types/ptrig_config.h.hexarr"
 
-u5c_type_t ptrig_types[] = {
-	def_struct_type("std_triggers", struct ptrig_config, &ptrig_config_h),
-	{ NULL },
-};
-
+/* ptrig metadata */
 char ptrig_meta[] =
 	"{ doc='pthread based trigger',"
 	"  license='MIT',"
 	"  real-time=false,"
 	"}";
+
+/* types defined by ptrig block */
+u5c_type_t ptrig_types[] = {
+	def_struct_type("std_triggers", struct ptrig_config, &ptrig_config_h),
+	{ NULL },
+};
 
 /* configuration */
 u5c_config_t ptrig_config[] = {
@@ -33,6 +35,7 @@ u5c_config_t ptrig_config[] = {
 	{ NULL },
 };
 
+/* instance state */
 struct ptrig_inf {
 	pthread_t tid;
 	pthread_attr_t attr;
@@ -43,6 +46,7 @@ struct ptrig_inf {
 	unsigned int trig_list_len;
 };
 
+/* trigger the configured blocks */
 int trigger_steps(struct ptrig_inf *inf)
 {
 	int i, steps, res=-1;
@@ -171,9 +175,10 @@ static void ptrig_cleanup(u5c_block_t *b)
 /* put everything together */
 u5c_block_t ptrig_comp = {
 	.name = "std_triggers/ptrig",
-	.type = BLOCK_TYPE_TRIGGER,
+	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = ptrig_meta,
 	.configs = ptrig_config,
+
 	.init = ptrig_init,
 	.start = ptrig_start,
 	.stop = ptrig_stop,

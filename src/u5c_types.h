@@ -132,7 +132,6 @@ typedef struct u5c_config {
 enum {
 	BLOCK_TYPE_COMPUTATION=1,
 	BLOCK_TYPE_INTERACTION,
-	BLOCK_TYPE_TRIGGER,
 };
 
 enum {
@@ -145,7 +144,7 @@ enum {
 typedef struct u5c_block {
 	char* name;		/* type name */
 	char* meta_data;	/* doc, etc. */
-	uint32_t type;		/* type, (computation, interaction, trigger) */
+	uint32_t type;		/* type, (computation, interaction) */
 
 	u5c_port_t* ports;
 	u5c_config_t* configs;
@@ -177,12 +176,6 @@ typedef struct u5c_block {
 			void(*write)(struct u5c_block* interaction, u5c_data_t* value);
 			unsigned long stat_num_reads;
 			unsigned long stat_num_writes;
-		};
-
-		/* COMP_TYPE_TRIGGER - no special ops */
-		struct {
-			int(*add)(struct u5c_block* cblock);
-			int(*rm)(const char *name);
 		};
 	};
 

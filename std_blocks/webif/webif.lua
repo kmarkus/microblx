@@ -205,11 +205,12 @@ function blocklist_tohtml(blklst, header, table_fields)
       local function add_actions(t)
 	 if t.state=='preinit' then t.actions=button(t.name, 'init')
 	 elseif t.state=='inactive' then
-	    if t.block_type=='cblock' then
-	       t.actions=button(t.name, 'step')
-	    end
+	    if t.block_type=='cblock' then t.actions=button(t.name, 'steponce') end
 	    t.actions=(t.actions or "")..button(t.name, 'start')..button(t.name, 'cleanup')
-	 elseif t.state=='active' then t.actions=button(t.name, 'stop') end
+	 elseif t.state=='active' then
+	    if t.block_type=='cblock' then t.actions=button(t.name, 'step') end
+	    t.actions=(t.actions or "")..button(t.name, 'stop') 
+	 end
 	 return t
       end
       add_actions(t)
@@ -284,7 +285,8 @@ td{ padding-right:10px; }
 .stopbutton { background-color:yellow; color:#ffffffff; }
 .cleanupbutton { background-color:red; color:white; }
 .initbutton { background-color:blue; color:#fff; }
-.stepbutton { background-color:magenta; color:#fff; }
+.steponcebutton { background-color:purple; color:#fff; }
+.stepbutton { background-color:lawngreen; color:#ffffffff; }
 
 ]]
 
@@ -305,10 +307,15 @@ local block_ops = {
    cleanup=u5c.block_cleanup,
    step=function(ni, b)
 	   if not u5c.is_cblock_instance(b) then return end
-	   u5c.block_start(ni, b)
 	   u5c.cblock_step(b)
-	   u5c.block_stop(ni, b)
-	end
+	end,
+   steponce=function(ni, b)
+	       if not u5c.is_cblock_instance(b) then return end
+	       u5c.block_start(ni, b)
+	       u5c.cblock_step(b)
+	       u5c.block_stop(ni, b)
+	    end
+
 }
 
 function handle_post(ni, pd)
@@ -320,7 +327,6 @@ end
 local protoblocks_table_fields = { 'name', 'block_type' }
 local cblock_table_fields = { 'name', 'state', 'prototype', 'stat_num_steps', 'actions' }
 local iblock_table_fields = { 'name', 'state', 'prototype', 'stat_num_reads', 'stat_num_writes', 'actions' }
-local tblock_table_fields = { 'name', 'state', 'prototype', 'stat_num_steps', 'actions' }
 
 --- master dispatch table.
 dispatch_table = {
@@ -330,12 +336,10 @@ dispatch_table = {
 	      local protoblocks = u5c.blocks_map(ni, u5c.block_totab, u5c.is_proto)
 	      local cinst = u5c.blocks_map(ni, u5c.block_totab, u5c.is_cblock_instance)
 	      local iinst = u5c.blocks_map(ni, u5c.block_totab, u5c.is_iblock_instance)
-	      local tinst = u5c.blocks_map(ni, u5c.block_totab, u5c.is_tblock_instance)
 
 	      table.sort(protoblocks, function (one,two) return one.block_type<two.block_type end)
 	      table.sort(cinst, function (one,two) return one.name<two.name end)
 	      table.sort(iinst, function (one,two) return one.name<two.name end)
-	      table.sort(tinst, function (one,two) return one.name<two.name end)
 
 	      return html(
 		 "u5c node: "..nodename,
@@ -343,7 +347,6 @@ dispatch_table = {
 		 blocklist_tohtml(protoblocks, "Prototype Blocks", protoblocks_table_fields),
 		 blocklist_tohtml(cinst, "Computational Blocks", cblock_table_fields),
 		 blocklist_tohtml(iinst, "Interaction Blocks", iblock_table_fields),
-		 blocklist_tohtml(tinst, "Trigger Blocks", tblock_table_fields),
 		 typelist_tohtml(ni), "<br>",
 		 sysinfo(), "<br><br>",
 		 reqinf_tostr(ri))

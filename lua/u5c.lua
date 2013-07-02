@@ -43,7 +43,6 @@ local function setup_enums()
    M.block_type_tostr={
       [ffi.C.BLOCK_TYPE_COMPUTATION]="cblock",
       [ffi.C.BLOCK_TYPE_INTERACTION]="iblock",
-      [ffi.C.BLOCK_TYPE_TRIGGER]="tblock"
    }
 
    M.type_class_tostr={
@@ -86,13 +85,10 @@ function M.is_proto(b) return b.prototype==nil end
 function M.is_instance(b) return b.prototype~=nil end
 function M.is_cblock(b) return b.type==ffi.C.BLOCK_TYPE_COMPUTATION end
 function M.is_iblock(b) return b.type==ffi.C.BLOCK_TYPE_INTERACTION end
-function M.is_tblock(b) return b.type==ffi.C.BLOCK_TYPE_TRIGGER end
 function M.is_cblock_instance(b) return M.is_cblock(b) and not M.is_proto(b) end
 function M.is_iblock_instance(b) return M.is_iblock(b) and not M.is_proto(b) end
-function M.is_tblock_instance(b) return M.is_tblock(b) and not M.is_proto(b) end
 function M.is_cblock_proto(b) return M.is_cblock(b) and M.is_proto(b) end
 function M.is_iblock_proto(b) return M.is_iblock(b) and M.is_proto(b) end
-function M.is_tblock_proto(b) return M.is_tblock(b) and M.is_proto(b) end
 
 ------------------------------------------------------------------------------
 --                           Node and block API
@@ -540,19 +536,10 @@ function M.iblocks_foreach(ni, fun, pred)
 			     end)
 end
 
-function M.tblocks_foreach(ni, fun, pred)
-   pred = pred or function() return true end
-   M.blocks_foreach(ni, fun, function(b)
-				if not M.is_tblock(b) then return end
-				return pred(b)
-			     end)
-end
-
 --- Pretty print helpers
 function M.print_types(ni) types_foreach(ni, u5c_type_pp) end
 function M.print_cblocks(ni) M.cblocks_foreach(ni, function(b) print(M.block_tostr(b)) end) end
 function M.print_iblocks(ni) M.iblocks_foreach(ni, function(b) print(M.block_tostr(b)) end) end
-function M.print_tblocks(ni) M.tblocks_foreach(ni, function(b) print(M.block_tostr(b)) end) end
 
 function M.num_blocks(ni)
    local num_cb, num_ib, num_tb, inv = 0,0,0,0
@@ -573,10 +560,8 @@ function M.ni_stat(ni)
    local num_cb, num_ib, num_tb, num_inv
    print("cblocks:"); M.print_cblocks(ni);
    print("iblocks:"); M.print_iblocks(ni);
-   print("tblocks:"); M.print_tblocks(ni);
    print(tostring(num_cb).." cblocks, ",
 	 tostring(num_ib).." iblocks, ",
-	 tostring(num_tb).." tblocks",
 	 tostring(u5c.u5c_num_types(ni)).." types")
    print(string.rep('-',78))
 end
