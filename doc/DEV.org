@@ -5,6 +5,14 @@
 * Next steps
   
 
+
+** TODO component identification
+   - replace string as primary key by numeric u5c_block_id_t ?
+     Advantage: would be easier to use for configuring trigger blocks,
+     etc. -> easier for communicating block_id's via ports.
+
+
+** TODO webif: add step_once button (will do start()->step()->stop() cycle)
 ** TODO How to deal with variable sized configuration and port input
    - e.g zero to many block names to be triggered by ptrig.
    - e.g. trig_conf: resize in resize in data_set?

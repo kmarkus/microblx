@@ -183,6 +183,7 @@ int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type)
 	HASH_ADD_KEYPTR(hh, ni->types, type->name, strlen(type->name), type);
 	type->seqid=ni->cur_seqid++;
 	ret = 0;
+	DBG("registered type %s", type->name);
  out:
 	return ret;
 }

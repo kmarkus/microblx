@@ -10,6 +10,14 @@
 
 #include "u5c.h"
 
+#include "types/ptrig_config.h"
+#include "types/ptrig_config.h.hexarr"
+
+u5c_type_t ptrig_types[] = {
+	def_struct_type("std_triggers", struct ptrig_config, &ptrig_config_h),
+	{ NULL },
+};
+
 char ptrig_meta[] =
 	"{ doc='pthread based trigger',"
 	"  license='MIT',"
@@ -21,7 +29,7 @@ u5c_config_t ptrig_config[] = {
 	{ .name="stacksize", .type_name = "size_t" },
 	{ .name="sched_priority", .type_name = "int" },
 	{ .name="sched_policy", .type_name = "char", .value = { .len=12 } },
-	{ .name="trig_blocks", .type_name = "struct ptrig_config" },
+	{ .name="trig_blocks", .type_name = "std_triggers/struct ptrig_config" },
 	{ NULL },
 };
 
@@ -149,17 +157,31 @@ u5c_block_t ptrig_comp = {
 	.cleanup = ptrig_cleanup
 };
 
-static int pthread_mod_init(u5c_node_info_t* ni)
+static int ptrig_mod_init(u5c_node_info_t* ni)
 {
-	DBG(" ");	
-	return u5c_block_register(ni, &ptrig_comp);
+	int ret;
+	u5c_type_t *tptr;
+
+	for(tptr=ptrig_types; tptr->name!=NULL; tptr++) {
+		if((ret=u5c_type_register(ni, tptr))!=0) {␎
+			ERR("failed to register type %s", tptr->name);
+			goto out;
+		}
+	}
+	ret=u5c_block_register(ni, &ptrig_comp);
+ out:
+	return ret;
 }
 
-static void pthread_mod_cleanup(u5c_node_info_t *ni)
+static void ptrig_mod_cleanup(u5c_node_info_t *ni)
 {
-	DBG(" ");
+	u5c_type_t *tptr;
+
+	for(tptr=ptrig_types; tptr->name!=NULL; tptr++)
+		u5c_type_unregister(ni, tptr->name);
+
 	u5c_block_unregister(ni, "std_triggers/ptrig");
 }
 
-module_init(pthread_mod_init)
-module_cleanup(pthread_mod_cleanup)
+module_init(ptrig_mod_init)
+module_cleanup(ptrig_mod_cleanup)
