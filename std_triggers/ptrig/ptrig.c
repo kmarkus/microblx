@@ -163,7 +163,7 @@ static int ptrig_mod_init(u5c_node_info_t* ni)
 	u5c_type_t *tptr;
 
 	for(tptr=ptrig_types; tptr->name!=NULL; tptr++) {
-		if((ret=u5c_type_register(ni, tptr))!=0) {␎
+		if((ret=u5c_type_register(ni, tptr))!=0) {
 			ERR("failed to register type %s", tptr->name);
 			goto out;
 		}
