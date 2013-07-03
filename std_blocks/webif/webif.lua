@@ -64,11 +64,19 @@ end
 -- Header
 function h(num, text) return ('<h%d>%s</h%d>'):format(num, text, num) end
 
--- Colors
-function color(color, text)
-   return('<span style="color:%s;">%s</span>'):format(color, text)
+-- Span
+function span(text, attrs)
+   local function concat_attrs(attrs)
+      local res={}
+      for k,v in pairs(attrs) do res[#res+1]=k..':'..v end
+      return table.concat(res, "; ")
+   end
+   return('<span style="%s">%s</span>'):format(concat_attrs(attrs),text)
 end
 
+-- Colors
+function color(color, text) return span(text, { color=color }) end
+function bold(text) return span(text, { ['font-weight']='bold' }) end
 
 -- hyperlink
 function a(link, text, query_str_tab)
@@ -192,6 +200,7 @@ function blocklist_tohtml(blklst, header, table_fields)
    -- generate colors and state change links
    local function process_state(t)
       local function colorize_state(t)
+	 t.name=color("blue", t.name)
 	 if t.state=='preinit' then t.state=color("blue", t.state)
 	 elseif t.state=='inactive' then t.state=color("red", t.state)
 	 elseif t.state=='active' then t.state=color("green", t.state) end
