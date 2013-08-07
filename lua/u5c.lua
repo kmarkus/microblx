@@ -1,6 +1,7 @@
 --- u5C Lua interface
 local ffi=require "ffi"
 local reflect = require "lua/reflect"
+local cdata_tolua = require "lua/cdata_tolua"
 local u5c_utils = require "lua/u5c_utils"
 local utils= require "utils"
 local ts=tostring
@@ -295,13 +296,14 @@ end
 
 
 --- print an u5c_data_t
--- @deprecated
 -- requires reflect
 -- TODO: using reflect make a struct2tab function.
-function M.data2str(d)
-   if d.type.type_class~=u5c.TYPE_CLASS_BASIC then
-      return "can currently only print TYPE_CLASS_BASIC types"
+function M.data_tostr(d)
+   if not(d.type.type_class==u5c.TYPE_CLASS_BASIC or
+	  d.type.type_class==u5c.TYPE_CLASS_STRUCT) then
+      return "can currently only print TYPE_CLASS_BASIC or TYPE_CLASS_STRUCT types"
    end
+   
    local ptrname = ffi.string(d.type.name).."*"
    local dptr = ffi.new(ptrname, d.data)
    return string.format("0x%x", dptr[0]), "("..ts(dptr)..", "..ffi.string(d.type.name)..")"
