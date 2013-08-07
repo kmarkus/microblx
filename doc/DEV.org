@@ -10,7 +10,8 @@
    - cdata_to_tab / cdata_from_tab
    - implement logging component (first generic luajit block)
    -
-** TODO remove BLOCK_TYPE_TRIGGER (same as COMPUTATION)
+** DONE remove BLOCK_TYPE_TRIGGER (same as COMPUTATION)
+   CLOSED: [2013-08-02 Fri 13:03]
 ** TODO component identification (from string to uid?)
    - replace string as primary key by numeric u5c_block_id_t ?
      Advantage: would be easier to use for configuring trigger blocks,
