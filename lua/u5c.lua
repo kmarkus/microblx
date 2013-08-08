@@ -1,12 +1,10 @@
 --- u5C Lua interface
 local ffi=require "ffi"
-local reflect = require "lua/reflect"
 local cdata_tolua = require "lua/cdata_tolua"
 local u5c_utils = require "lua/u5c_utils"
 local utils= require "utils"
 local ts=tostring
 local safe_ts=u5c_utils.safe_tostr
-local strict=require "strict"
 
 local M={}
 local setup_enums
@@ -306,7 +304,8 @@ function M.data_tostr(d)
    
    local ptrname = ffi.string(d.type.name).."*"
    local dptr = ffi.new(ptrname, d.data)
-   return string.format("0x%x", dptr[0]), "("..ts(dptr)..", "..ffi.string(d.type.name)..")"
+   --return string.format("0x%x", dptr[0]), "("..ts(dptr)..", "..ffi.string(d.type.name)..")"
+   return cdata_tolua.cdata_tolua(dptr)
 end
 
 --- Convert an u5c_type_t to a FFI ctype object.
@@ -351,7 +350,7 @@ function data_to_cdata(d)
 end
 
 function M.data_resize(d, newlen)
-   print("changing len from", tonumber(d.len), " to ", newlen)
+   -- print("changing len from", tonumber(d.len), " to ", newlen)
    if u5c.u5c_data_resize(d, newlen) == 0 then
       return true
    else
