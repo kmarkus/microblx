@@ -256,6 +256,12 @@ end
 --- Load the registered C types into the luajit ffi.
 -- @param ni node_info_t*
 function M.ffi_load_types(ni)
+   
+   local function ffi_struct_type_is_loaded(t)
+      local pack, struct, name = parse_structname(ffi.string(t.name))
+      return pcall(ffi.typeof, struct.." "..name)
+   end
+
    local function ffi_load_no_ns(t)
       if t.type_class==u5c.TYPE_CLASS_STRUCT and t.private_data~=nil then
 	 local struct_str = ffi.string(t.private_data)
@@ -287,7 +293,10 @@ function M.ffi_load_types(ni)
       return ns_struct or false
    end
    local type_list = {}
-   M.types_foreach(ni, function (t) type_list[#type_list+1] = t end)
+   M.types_foreach(ni, function (t) type_list[#type_list+1] = t end,
+		   function(t)
+		      return t.type_class==ffi.C.TYPE_CLASS_STRUCT and (not ffi_struct_type_is_loaded(t)) end
+		)
    table.sort(type_list, function (t1,t2) return t1.seqid<t2.seqid end)
    utils.foreach(ffi_load_no_ns, type_list)
 end
@@ -483,13 +492,14 @@ end
 --- Call a function on every known type.
 -- @param ni u5c_node_info_t*
 -- @param fun function to call on type.
-function M.types_foreach(ni, fun)
+function M.types_foreach(ni, fun, pred)
    if not fun then error("types_foreach: missing/invalid fun argument") end
    if ni.types==nil then return end
+   pred = pred or function() return true end
    local u5c_type_t_ptr = ffi.typeof("u5c_type_t*")
    local typ=ni.types
    while typ ~= nil do
-      fun(typ)
+      if pred(typ) then fun(typ) end
       typ=ffi.cast(u5c_type_t_ptr, typ.hh.next)
    end
 end
