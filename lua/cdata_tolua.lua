@@ -1,5 +1,5 @@
-local ffi = require "ffi"
-local reflect = require "reflect"
+local ffi=require "ffi"
+local reflect=require "reflect"
 
 local M={}
 
