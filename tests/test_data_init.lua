@@ -95,7 +95,7 @@ function test_data_resize()
       { name="block_name3", benchmark=0 },
    }
 
-   u5c.data_set(d, conf)
+   u5c.data_set(d, conf, true)
 
    local ptr = ffi.cast("struct test_trig_conf*", d.data)
    assert_equal("block_name1", ffi.string(ptr[0].name))

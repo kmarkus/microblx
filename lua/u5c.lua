@@ -377,7 +377,7 @@ function M.data_set(d, val, resize)
 	    local idx -- starting from zero
 	    if val[0] == nil then idx=k-1 else idx=k end
 	    if idx >= d.len and not resize then
-	       error("data_set: attempt to index beyond bounds, index=", idx, "len=", d.len)
+	       error("data_set: attempt to index beyond bounds, index="..tostring(idx)..", len="..tostring(d.len))
 	    elseif idx >= d.len and resize then
 	       M.data_resize(d, idx+1)
 	    end
