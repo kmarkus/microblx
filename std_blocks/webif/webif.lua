@@ -333,16 +333,28 @@ function handle_post(ni, pd)
    block_ops[op](ni, b)
 end
 
---- Show block info
-
+--- Show information on a single block.
 function show_block(ri, ni)
    local nodename = safe_ts(ni.name)
    local qstab = query_string_to_tab(safe_ts(ri.query_string))
-   local blockname = qstab.name or "unknown"
+   local blockname = qstab.name or " "
+   local b = u5c.block_get(ni, blockname)
+
+   if b==nil then
+      local mes = "invalid blockname '"..blockname.."'"
+      return html(mes, h(1,mes))
+   end
+
+   local bt=u5c.block_totab(b)
    
    return html(
       "u5c node: "..nodename,
       h(1, "u5c_node: "..a("/", nodename)..":"..blockname),
+      h(2, "Ports"),
+      u5c.ports_tostr(bt.ports),
+
+      h(2, "Configuration"),
+      u5c.configs_tostr(bt.configs),
       reqinf_tostr(ri))
 end
 
@@ -366,9 +378,9 @@ dispatch_table = {
 	      return html(
 		 "u5c node: "..nodename,
 		 h(1, "u5c_node: "..a("/", nodename)),
-		 blocklist_tohtml(protoblocks, "Prototype Blocks", protoblocks_table_fields),
 		 blocklist_tohtml(cinst, "Computational Blocks", cblock_table_fields),
 		 blocklist_tohtml(iinst, "Interaction Blocks", iblock_table_fields),
+		 blocklist_tohtml(protoblocks, "Prototype Blocks", protoblocks_table_fields),
 		 typelist_tohtml(ni), "<br>",
 		 sysinfo(), "<br><br>",
 		 reqinf_tostr(ri))
@@ -387,6 +399,8 @@ function request_handler(node_info, request_info_lud, postdata)
 
    local uri = safe_ts(reqinf.uri)
    local handler = dispatch_table[uri]
+
+   u5c.ffi_load_types(ni)
 
    -- print("requesting uri", uri)
 

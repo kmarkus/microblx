@@ -5,6 +5,7 @@ local u5c_utils = require "lua/u5c_utils"
 local utils= require "utils"
 local ts=tostring
 local safe_ts=u5c_utils.safe_tostr
+local ac=require "ansicolors"
 
 local M={}
 local setup_enums
@@ -536,15 +537,31 @@ function M.block_totab(b)
    return res
 end
 
+
+--- Pretty print a port
+-- @param p port to convert to string
+-- @return string
+function M.ports_tostr(ports)
+   local res={}
+   for i,p in ipairs(ports) do res[#res+1]="    port: "..ac.blue(p.name)..":   "..utils.tab2str(p) end
+   return table.concat(res, '\n')
+end
+
+function M.configs_tostr(configs)
+   local res={}
+   for i,c in ipairs(configs) do res[#res+1]="    config: "..ac.blue(c.name)..": "..utils.tab2str(c) end
+   return table.concat(res, '\n')
+end
+
 --- Pretty print a block.
 -- @param b block to convert to string.
 -- @return string
 function M.block_tostr(b)
    local bt=M.block_totab(b)
    local fmt="u5c_block_t: name=%s, block_type=%s, state=%s, prototype=%s\n"
-   local res=fmt:format(bt.name, bt.block_type, bt.state, bt.prototype, bt.stat_num_steps)
-   for i,p in ipairs(bt.ports) do res=res.."    port:   "..utils.tab2str(p).."\n" end
-   for i,c in ipairs(bt.configs) do res=res.."    config: "..utils.tab2str(c).."\n" end
+   local res=fmt:format(ac.blue(bt.name), bt.block_type, bt.state, bt.prototype, bt.stat_num_steps)
+   res=res..M.ports_tostr(bt.ports)
+   res=res..M.configs_tostr(bt.configs)
    return res
 end
 
@@ -645,14 +662,13 @@ function M.print_cblocks(ni) M.cblocks_foreach(ni, function(b) print(M.block_tos
 function M.print_iblocks(ni) M.iblocks_foreach(ni, function(b) print(M.block_tostr(b)) end) end
 
 function M.num_blocks(ni)
-   local num_cb, num_ib, num_tb, inv = 0,0,0,0
+   local num_cb, num_ib, inv = 0,0,0
    M.block_foreach(ni, function (b)
 			  if b.block_type==ffi.C.BLOCK_TYPE_COMPUTATION then num_cb=num_cb+1
 			  elseif b.block_type==ffi.C.BLOCK_TYPE_INTERACTION then num_ib=num_ib+1
-			  elseif b.block_type==ffi.C.BLOCK_TYPE_TRIGGER then num_tb=num_tb+1
 			  else inv=inv+1 end
 		       end)
-   return num_cb, num_ib, num_tb, inv
+   return num_cb, num_ib, inv
 end
 
 function M.num_types(ni) return u5c.u5c_num_types(ni) end
@@ -660,7 +676,7 @@ function M.num_types(ni) return u5c.u5c_num_types(ni) end
 --- Print an overview of current node state.
 function M.ni_stat(ni)
    print(string.rep('-',78))
-   local num_cb, num_ib, num_tb, num_inv
+   local num_cb, num_ib, num_inv
    print("cblocks:"); M.print_cblocks(ni);
    print("iblocks:"); M.print_iblocks(ni);
    print(tostring(num_cb).." cblocks, ",
