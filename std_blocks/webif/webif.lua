@@ -44,6 +44,15 @@ function split(str, pat)
    return t
 end
 
+function query_string_to_tab(qs)
+   local res = {}
+   local keyvals=split(qs, "&")
+   for _,kv in ipairs(keyvals) do
+      local k,v = string.match(kv, "^(%w+)=(%w+)$"); res[k]=v;
+   end
+   return res
+end
+
 --- HTML generation helpers.
 function html(title, ...)
    return ([[
@@ -299,15 +308,6 @@ td{ padding-right:10px; }
 
 ]]
 
-function query_string_to_tab(qs)
-   local res = {}
-   local keyvals=split(qs, "&")
-   for _,kv in ipairs(keyvals) do
-      local k,v = string.match(kv, "^(%w+)=(%w+)$"); res[k]=v;
-   end
-   return res
-end
-
 
 local block_ops = {
    init=u5c.block_init,
@@ -331,6 +331,19 @@ function handle_post(ni, pd)
    local name, op = string.match(pd, "(%w+)=(%w+)")
    local b = u5c.block_get(ni, name)
    block_ops[op](ni, b)
+end
+
+--- Show block info
+
+function show_block(ri, ni)
+   local nodename = safe_ts(ni.name)
+   local qstab = query_string_to_tab(safe_ts(ri.query_string))
+   local blockname = qstab.name or "unknown"
+   
+   return html(
+      "u5c node: "..nodename,
+      h(1, "u5c_node: "..a("/", nodename)..":"..blockname),
+      reqinf_tostr(ri))
 end
 
 local protoblocks_table_fields = { 'name', 'block_type' }
@@ -360,6 +373,7 @@ dispatch_table = {
 		 sysinfo(), "<br><br>",
 		 reqinf_tostr(ri))
 	   end,
+   ["/block"]=show_block,
 
    ["/style.css"]=function() return stylesheet_str, "text/css" end,
 

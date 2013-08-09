@@ -1,6 +1,6 @@
 --- u5C Lua interface
 local ffi=require "ffi"
-local cdata_tolua = require "lua/cdata_tolua"
+local cdata = require "lua/cdata"
 local u5c_utils = require "lua/u5c_utils"
 local utils= require "utils"
 local ts=tostring
@@ -302,19 +302,35 @@ function M.ffi_load_types(ni)
 end
 
 
---- print an u5c_data_t
--- requires reflect
--- TODO: using reflect make a struct2tab function.
-function M.data_tostr(d)
+--- Convert a u5c_data_t to a plain Lua representation.
+-- requires cdata.tolua
+-- @param d u5c_data_t type
+-- @return Lua data
+function M.data_tolua(d)
+   if d.data==nil then return nil end
+
    if not(d.type.type_class==u5c.TYPE_CLASS_BASIC or
 	  d.type.type_class==u5c.TYPE_CLASS_STRUCT) then
-      return "can currently only print TYPE_CLASS_BASIC or TYPE_CLASS_STRUCT types"
+      error("can currently only print TYPE_CLASS_BASIC or TYPE_CLASS_STRUCT types")
    end
    
-   local ptrname = ffi.string(d.type.name).."*"
+   local ptrname
+   if d.type.type_class==u5c.TYPE_CLASS_STRUCT then
+      local pack, struct, name = parse_structname(ffi.string(d.type.name))
+      ptrname = "struct "..name.."*"
+   else -- BASIC:
+      ptrname = ffi.string(d.type.name).."*"
+   end
    local dptr = ffi.new(ptrname, d.data)
    --return string.format("0x%x", dptr[0]), "("..ts(dptr)..", "..ffi.string(d.type.name)..")"
-   return cdata_tolua.cdata_tolua(dptr)
+   return cdata.tolua(dptr)
+end
+
+--- Convert a u5c_data_t to a simple string representation.
+-- @param d u5c_data_t type
+-- @return Lua string
+function M.data_tostr(d)
+   return utils.tab2str(M.data_tolua(d))
 end
 
 --- Convert an u5c_type_t to a FFI ctype object.
@@ -463,7 +479,32 @@ end
 
 --- Convert a block to a Lua table.
 function M.block_totab(b)
+   function port_totab(p)
+      local ptab = {}
+      ptab.name = M.safe_tostr(p.name)
+      ptab.meta_data = M.safe_tostr(p.meta_data)
+      ptab.attrs = tonumber(p.attrs)
+      ptab.state = tonumber(p.state)
+      ptab.in_type_name = M.safe_tostr(p.in_type_name)
+      ptab.out_type_name = M.safe_tostr(p.out_type_name)
+      ptab.in_data_len = tonumber(p.in_data_len)
+      ptab.out_data_len = tonumber(p.out_data_len)
+      -- TODO (?) interactions
+      return ptab
+   end
+
+   function config_totab(c)
+      if c==nil then return "NULL config" end
+      local res = {}
+      res.name = M.safe_tostr(c.name)
+      res.type_name = M.safe_tostr(c.type_name)
+      print("config_totab:", utils.tab2str(res))
+      res.value = M.data_tolua(c.value)
+      return res
+   end
+      
    if b==nil then error("NULL block") end
+   print("converting block ", M.safe_tostr(b.name))
    local res = {}
    res.name=M.safe_tostr(b.name)
    res.block_type=M.block_type_tostr[b.type]
@@ -476,16 +517,22 @@ function M.block_totab(b)
       res.stat_num_reads=tonumber(b.stat_num_reads)
       res.stat_num_writes=tonumber(b.stat_num_writes)
    end
-   -- TODO ports, configs
+
+   res.ports=M.ports_map(b, port_totab)
+   res.configs=M.configs_map(b, config_totab)
+
    return res
 end
 
---- Convert a block to a Lua string.
+--- Pretty print a block.
+-- @param b block to convert to string.
+-- @return string
 function M.block_tostr(b)
    local bt=M.block_totab(b)
-   local fmt="u5c_block_t: name=%s, block_type=%s, state=%s, prototype=%s"
+   local fmt="u5c_block_t: name=%s, block_type=%s, state=%s, prototype=%s\n"
    local res=fmt:format(bt.name, bt.block_type, bt.state, bt.prototype, bt.stat_num_steps)
-   -- TODO ports, conf if verbose
+   for i,p in ipairs(bt.ports) do res=res.."    port:   "..utils.tab2str(p).."\n" end
+   for i,c in ipairs(bt.configs) do res=res.."    config: "..utils.tab2str(c).."\n" end
    return res
 end
 
@@ -502,6 +549,39 @@ function M.types_foreach(ni, fun, pred)
       if pred(typ) then fun(typ) end
       typ=ffi.cast(u5c_type_t_ptr, typ.hh.next)
    end
+end
+
+
+--- Call function on all ports of a block and return the result in a table.
+-- @param b block
+-- @param fun function to call on port
+-- @param pred optional predicate function. fun is only called if pred is true.
+-- @return result table.
+function M.ports_map(b, fun, pred)
+   local res={}
+   pred = pred or function() return true end
+   port_ptr=b.ports
+   while port_ptr~=nil and port_ptr.name~= nil do
+      if pred(port_ptr) then res[#res+1]=fun(port_ptr)  end
+      port_ptr=port_ptr+1
+   end
+   return res
+end
+
+--- Call function on all configs of a block and return the result in a table.
+-- @param b block
+-- @param fun function to call on config
+-- @param pred optional predicate function. fun is only called if pred is true.
+-- @return result table.
+function M.configs_map(b, fun, pred)
+   local res={}
+   pred = pred or function() return true end
+   conf_ptr=b.configs
+   while conf_ptr~=nil and conf_ptr.name~=nil do
+      if pred(conf_ptr) then res[#res+1]=fun(conf_ptr) end
+      conf_ptr=conf_ptr+1
+   end
+   return res
 end
 
 --- Call a function on every block of the given list.

@@ -86,7 +86,7 @@ enum {
 };
 
 /* Port
-h * no distinction between type and value
+ * no distinction between type and value
  */
 typedef struct u5c_port {
 	char* name;		/* name of port */

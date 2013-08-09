@@ -62,7 +62,7 @@ end
 
 for i=1,8 do
    res, dat = u5c.interaction_read(ni, fifo1)
-   print("fifo1 read", res, u5c.data2str(dat))
+   print("fifo1 read", res, u5c.data_tostr(dat))
    -- os.execute("sleep 0.3")
 end
 --end

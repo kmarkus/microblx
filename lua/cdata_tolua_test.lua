@@ -1,9 +1,9 @@
-local cdata_tolua = require "cdata_tolua"
+local cdata = require "cdata"
 local utils = require "utils"
 local ffi = require "ffi"
 require"strict"
 
-cd2lua=cdata_tolua.cdata_tolua
+cd2lua=cdata.tolua
 
 ffi.cdef[[
 struct point {
@@ -49,10 +49,19 @@ pers1 = ffi.new("struct person", { name='joe miller', age=22.3 })
 arr1=ffi.new("int[10]", {0,1,2,3,4,5,6,7,8,9})
 charr1=ffi.new("unsigned char[10]", "hullo")
 
+--- Pointer to prim
+i33=ffi.new("unsigned int[1]", { 9876 })
+i33ptr=ffi.cast("unsigned int*", i33)
 
--- for refct in reflect.typeof(p1):members() do print(refct.name) end
+print("i33:", tonumber(i33[0]))
+print("tonumber(i33ptr[0])", tonumber(i33ptr[0]))
+print("cd2lua(i33ptr):", cd2lua(i33ptr))
 
-print("number:", utils.tab2str(cd2lua(ffi.new("int", 33))))
+
+
+print("number:", utils.tab2str(cd2lua(ffi.new("int", -33))))
+print("number:", utils.tab2str(cd2lua(ffi.new("unsigned int", 22))))
+print("number:", utils.tab2str(cd2lua(ffi.new("double", math.pi))))
 
 print("p1:", utils.tab2str(cd2lua(p1)))
 

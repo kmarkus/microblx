@@ -4,7 +4,8 @@
 
 * Next steps
   
-
+** TODO u5c.data_tolua: deal with u5c_data_t multiplicity (len)!
+   and detect and pretty print strings
 ** TODO rename u5c -> microblx
 ** TODO implement real cdata reflection on top of reflect.lua
    - cdata_to_tab / cdata_from_tab
