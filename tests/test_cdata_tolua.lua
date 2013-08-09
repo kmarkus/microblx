@@ -17,7 +17,7 @@ function test_vector()
    local v1 = ffi.new("struct Vector", init)
 
    local val=cdata.tolua(v1)
-   assert_true(utils.table_cmp(val, init), "test_vector: table->vector rountrip comparison error")
+   assert_true(utils.table_cmp(val, init), "A: table->vector rountrip comparison error")
 end
 
 function test_vector_inv()
@@ -26,7 +26,7 @@ function test_vector_inv()
    v1.x=33
    v1.z=55
    local val=cdata.tolua(v1)
-   assert_false(utils.table_cmp(val, init), "test_vector_inv: table->vector rountrip comparison error")
+   assert_false(utils.table_cmp(val, init), "B: table->vector rountrip comparison error")
 end
 
 function test_frame()
@@ -39,7 +39,7 @@ function test_frame()
    
    local f1 = ffi.new("struct Frame", init)
    local val=cdata.tolua(f1)
-   assert_true(utils.table_cmp(val, init), "test_frame: table->frame rountrip comparison error")
+   assert_true(utils.table_cmp(val, init), "C: table->frame rountrip comparison error")
 end
 
 function test_frame_inv()
@@ -52,7 +52,7 @@ function test_frame_inv()
    local f1 = ffi.new("struct Frame", init)
    init.M.Y.z=33
    local val=cdata.tolua(f1)
-   assert_false(utils.table_cmp(val, init), "test_frame_inv: table->frame rountrip comparison error")
+   assert_false(utils.table_cmp(val, init), "D: table->frame rountrip comparison error")
 end
 
 function test_char()
@@ -63,7 +63,7 @@ function test_char()
    
    local c = ffi.new("struct test_trig_conf", init)
    local val=cdata.tolua(c)
-   assert_true(utils.table_cmp(val, init), "test_char: table->char rountrip comparison error")
+   assert_true(utils.table_cmp(val, init), "E: table->char rountrip comparison error")
 end
 
    
@@ -71,14 +71,14 @@ function test_int()
    local init=33
    local i = ffi.new("unsigned int", init)
    local val=cdata.tolua(i)
-   assert_equal(val, init, "test_int: table->int rountrip comparison error")
+   assert_equal(val, init, "F: table->int rountrip comparison error")
 end
 
 function test_int_inv()
    local init=33
    local i = ffi.new("unsigned int", init)
    local val=cdata.tolua(i)
-   assert_not_equal(init, val-1, "test_int: table->int rountrip comparison error")
+   assert_not_equal(init, val-1, "G: table->int rountrip comparison error")
 end
 
 function test_u5c_data()
@@ -86,7 +86,7 @@ function test_u5c_data()
    local init = { x=7, y=8, z=9 }
    u5c.data_set(u5c_data_vect, init, true)
    local val = u5c.data_tolua(u5c_data_vect)
-   assert_true(utils.table_cmp(val, init), "test_u5c_data: table->u5c_data(vector) rountrip comparison error")
+   assert_true(utils.table_cmp(val, init), "H: table->u5c_data(vector) rountrip comparison error")
 end
 
 function test_u5c_data_inv()
@@ -95,15 +95,16 @@ function test_u5c_data_inv()
    u5c.data_set(u5c_data_vect, init, true)
    init.x=344
    local val = u5c.data_tolua(u5c_data_vect)
-   assert_false(utils.table_cmp(val, init), "test_u5c_data: table->u5c_data(vector) rountrip comparison error")
+   assert_false(utils.table_cmp(val, init), "I: table->u5c_data(vector) rountrip comparison error")
 end
 
 function test_u5c_data_basic()
    local u5c_data_int = u5c.data_alloc(ni, "unsigned int", 1)
    local init = 4711
-   u5c.data_set(u5c_data_int, init, true)
+   u5c.data_set(u5c_data_int, init, false)
+
    local val = u5c.data_tolua(u5c_data_int)
-   assert_true(utils.table_cmp(val, init), "test_u5c_data: table->u5c_data(int) rountrip comparison error")
+   assert_equal(init, val, "J: table->u5c_data(int) rountrip comparison error")
 end
 
 function test_pointer_to_prim()
@@ -111,11 +112,11 @@ function test_pointer_to_prim()
    local i = ffi.new("unsigned int[1]", init )
    local ip = ffi.new("unsigned int*", i)
    
-   assert_equal(init, tonumber(i[0]), "pointer_to_prim: init failed")
-   assert_equal(tonumber(i[0]), tonumber(ip[0]), "pointer_to_prim: mismatch between int and int*")
+   assert_equal(init, tonumber(i[0]), "K: init failed")
+   assert_equal(tonumber(i[0]), tonumber(ip[0]), "L: mismatch between int and int*")
 
    local val = cdata.tolua(ip)
 
-   assert_equal(init, val, "pointer_to_prim: mismatch after converting from cdata")
+   assert_equal(init, val, "L: mismatch after converting from cdata")
 
 end

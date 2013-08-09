@@ -162,7 +162,7 @@ end
 --                           Data type handling
 ------------------------------------------------------------------------------
 
-function M.data_len(d) return tonumber(u5c.u5c_data_len(d)) end
+function M.data_len(d) return tonumber(u5c.data_len(d)) end
 
 function M.data_alloc(ni, name, num)
    num=num or 1
@@ -256,7 +256,7 @@ end
 --- Load the registered C types into the luajit ffi.
 -- @param ni node_info_t*
 function M.ffi_load_types(ni)
-   
+
    local function ffi_struct_type_is_loaded(t)
       local pack, struct, name = parse_structname(ffi.string(t.name))
       return pcall(ffi.typeof, struct.." "..name)
@@ -313,17 +313,29 @@ function M.data_tolua(d)
 	  d.type.type_class==u5c.TYPE_CLASS_STRUCT) then
       error("can currently only print TYPE_CLASS_BASIC or TYPE_CLASS_STRUCT types")
    end
-   
-   local ptrname
-   if d.type.type_class==u5c.TYPE_CLASS_STRUCT then
-      local pack, struct, name = parse_structname(ffi.string(d.type.name))
-      ptrname = "struct "..name.."*"
-   else -- BASIC:
-      ptrname = ffi.string(d.type.name).."*"
+
+   local res
+   local len=tonumber(d.len)
+
+   -- detect char arrays
+   if d.type.type_class==u5c.TYPE_CLASS_BASIC and len>1 and M.safe_tostr(d.type.name)=='char' then
+      res=M.safe_tostr(d.data)
+   else
+      local ptrname
+      if d.type.type_class==u5c.TYPE_CLASS_STRUCT then
+	 local pack, struct, name = parse_structname(ffi.string(d.type.name))
+	 ptrname = "struct "..name.."*"
+      else -- BASIC:
+	 ptrname = ffi.string(d.type.name).."*"
+      end
+      local dptr = ffi.new(ptrname, d.data)
+
+      if len>1 then
+	 res = {}
+	 for i=0,len-1 do res[i]=cdata.tolua(dptr[i]) end
+      else res=cdata.tolua(dptr) end
    end
-   local dptr = ffi.new(ptrname, d.data)
-   --return string.format("0x%x", dptr[0]), "("..ts(dptr)..", "..ffi.string(d.type.name)..")"
-   return cdata.tolua(dptr)
+   return res
 end
 
 --- Convert a u5c_data_t to a simple string representation.
@@ -479,7 +491,7 @@ end
 
 --- Convert a block to a Lua table.
 function M.block_totab(b)
-   function port_totab(p)
+   local function port_totab(p)
       local ptab = {}
       ptab.name = M.safe_tostr(p.name)
       ptab.meta_data = M.safe_tostr(p.meta_data)
@@ -493,7 +505,7 @@ function M.block_totab(b)
       return ptab
    end
 
-   function config_totab(c)
+   local function config_totab(c)
       if c==nil then return "NULL config" end
       local res = {}
       res.name = M.safe_tostr(c.name)
@@ -502,7 +514,7 @@ function M.block_totab(b)
       res.value = M.data_tolua(c.value)
       return res
    end
-      
+
    if b==nil then error("NULL block") end
    print("converting block ", M.safe_tostr(b.name))
    local res = {}
@@ -560,7 +572,7 @@ end
 function M.ports_map(b, fun, pred)
    local res={}
    pred = pred or function() return true end
-   port_ptr=b.ports
+   local port_ptr=b.ports
    while port_ptr~=nil and port_ptr.name~= nil do
       if pred(port_ptr) then res[#res+1]=fun(port_ptr)  end
       port_ptr=port_ptr+1
@@ -576,7 +588,7 @@ end
 function M.configs_map(b, fun, pred)
    local res={}
    pred = pred or function() return true end
-   conf_ptr=b.configs
+   local conf_ptr=b.configs
    while conf_ptr~=nil and conf_ptr.name~=nil do
       if pred(conf_ptr) then res[#res+1]=fun(conf_ptr) end
       conf_ptr=conf_ptr+1
