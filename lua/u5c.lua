@@ -511,7 +511,6 @@ function M.block_totab(b)
       local res = {}
       res.name = M.safe_tostr(c.name)
       res.type_name = M.safe_tostr(c.type_name)
-      print("config_totab:", utils.tab2str(res))
       res.value = M.data_tolua(c.value)
       return res
    end

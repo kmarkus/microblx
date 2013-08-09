@@ -6,7 +6,7 @@ require "strict"
 local safe_ts = u5c.safe_tostr
 
 -- Configuration
-num_type_cols=2
+num_type_cols=3
 
 --- define mongoose request info
 ffi.cdef[[
@@ -47,8 +47,11 @@ end
 function query_string_to_tab(qs)
    local res = {}
    local keyvals=split(qs, "&")
+   print("keyvals", utils.tab2str(keyvals))
    for _,kv in ipairs(keyvals) do
-      local k,v = string.match(kv, "^(%w+)=(%w+)$"); res[k]=v;
+      local k,v = string.match(kv, "^(%w+)=([%w/_]+)$")
+      print("k,v:",k,v)
+      res[k]=v
    end
    return res
 end
@@ -209,7 +212,7 @@ function blocklist_tohtml(blklst, header, table_fields)
    -- generate colors and state change links
    local function process_state(t)
       local function colorize_state(t)
-	 t.name=color("blue", t.name)
+	 -- t.name=color("blue", t.name)
 	 if t.state=='preinit' then t.state=color("blue", t.state)
 	 elseif t.state=='inactive' then t.state=color("red", t.state)
 	 elseif t.state=='active' then t.state=color("green", t.state) end
@@ -227,12 +230,19 @@ function blocklist_tohtml(blklst, header, table_fields)
 	    t.actions=(t.actions or "")..button(t.name, 'start')..button(t.name, 'cleanup')
 	 elseif t.state=='active' then
 	    if t.block_type=='cblock' then t.actions=button(t.name, 'step') end
-	    t.actions=(t.actions or "")..button(t.name, 'stop') 
+	    t.actions=(t.actions or "")..button(t.name, 'stop')
 	 end
 	 return t
       end
+
+      local function add_block_info_href(t)
+	 t.name=a("/block?name="..t.name, t.name)
+      end
+
+
       add_actions(t)
       colorize_state(t)
+      add_block_info_href(t)
       return t
    end
    -- generate a single table entry and append it to entries
@@ -335,6 +345,18 @@ end
 
 --- Show information on a single block.
 function show_block(ri, ni)
+   local function gen_row_data(data, fields)
+      local res=""
+      for _,x in ipairs(data) do
+	 res=res..table_fill_row(x, fields).."\n"
+      end
+      return res
+   end
+
+   local function conf_data_value_tostr(c)
+      c.value=utils.tab2str(c.value)
+   end
+
    local nodename = safe_ts(ni.name)
    local qstab = query_string_to_tab(safe_ts(ri.query_string))
    local blockname = qstab.name or " "
@@ -346,15 +368,29 @@ function show_block(ri, ni)
    end
 
    local bt=u5c.block_totab(b)
-   
+
+   utils.foreach(conf_data_value_tostr, bt.configs)
+
+   local port_fields={ 'name', 'attrs', 'in_type_name', 'in_data_len', 'out_type_name', 'out_data_len' }
+   local conf_fields={ 'name', 'type_name', 'value' }
+
    return html(
       "u5c node: "..nodename,
       h(1, "u5c_node: "..a("/", nodename)..":"..blockname),
       h(2, "Ports"),
-      u5c.ports_tostr(bt.ports),
+      "<table>",
+      table_fill_headline(port_fields),
+      gen_row_data(bt.ports, port_fields),
+      "</table>",
+      -- u5c.ports_tostr(bt.ports),
 
+      "<br>",
       h(2, "Configuration"),
-      u5c.configs_tostr(bt.configs),
+      "<table>",
+      table_fill_headline(conf_fields),
+      gen_row_data(bt.configs, conf_fields),
+      "</table>", "<br>",
+      -- u5c.configs_tostr(bt.configs),
       reqinf_tostr(ri))
 end
 
