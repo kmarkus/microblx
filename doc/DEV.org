@@ -4,23 +4,22 @@
 
 * Next steps
   
-** TODO u5c.data_tolua: deal with u5c_data_t multiplicity (len)!
-   and detect and pretty print strings
+** TODO [#A] make an example of how to use C++
+** TODO [#A] develop a generic luajit based block
+** TODO [#A] locking
+   - suggestion: rw-locks (or uRCU?)
+     - trigger and inspecting interface must use reader-lock
+     - changing state or interface must use writer lock
+   - locking step?
+     -> separate spinlock or mutex?
+
+** TODO [#A] test communicating struct types
 ** TODO rename u5c -> microblx
-** TODO implement real cdata reflection on top of reflect.lua
-   - cdata_to_tab / cdata_from_tab
-   - implement logging component (first generic luajit block)
-   -
-** DONE remove BLOCK_TYPE_TRIGGER (same as COMPUTATION)
-   CLOSED: [2013-08-02 Fri 13:03]
 ** TODO component identification (from string to uid?)
    - replace string as primary key by numeric u5c_block_id_t ?
      Advantage: would be easier to use for configuring trigger blocks,
      etc. -> easier for communicating block_id's via ports.
 
-** TODO test communicating struct types
-** DONE Test a minimal example with arrays of basic types
-   CLOSED: [2013-07-02 Tue 21:38]
 ** TODO test compilation with g++ and clang++ (*sigh*)
    #ifdef __cplusplus
    # define REALLOC(ptr, size, type) ((type *)realloc(ptr, size))
@@ -34,18 +33,24 @@
    # define MALLOC(type, count) (calloc(count, sizeof(type)))
    #endif
 
-** TODO make an example of how to use C++
-** TODO develop a generic luajit based block
-** TODO locking
-   - suggestion: rw-locks (or uRCU?)
-     - trigger and inspecting interface must use reader-lock
-     - changing state or interface must use writer lock
-   - locking step?
-     -> separate spinlock or mutex?
 ** TODO type id comparison: remote use SHA1 (parts) and local type-ptr
 ** TODO introduce typeid's: (like git commitish)
    - full name: package/struct foo or package/foo_t or
    - partial hash of name: 0a407a4f51ff2bb1f92a6ae611cb63fb
+** DONE Test a minimal example with arrays of basic types
+   CLOSED: [2013-07-02 Tue 21:38]
+
+** DONE u5c.data_tolua: deal with u5c_data_t multiplicity (len)!
+   CLOSED: [2013-08-10 Sat 13:30]
+   and detect and pretty print strings
+** DONE implement real cdata reflection on top of reflect.lua
+   CLOSED: [2013-08-10 Sat 13:30]
+   - cdata_to_tab / cdata_from_tab
+   - implement logging component (first generic luajit block)
+   -
+** DONE remove BLOCK_TYPE_TRIGGER (same as COMPUTATION)
+   CLOSED: [2013-08-02 Fri 13:03]
+
 ** DONE webif: add step_once button (will do start()->step()->stop() cycle)
    CLOSED: [2013-07-02 Tue 21:35]
 ** DONE How to deal with variable sized configuration and port input
