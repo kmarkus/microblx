@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#include "u5c.h"
+#include "ubx.h"
 
 #include "types/ptrig_config.h"
 #include "types/ptrig_config.h.hexarr"
@@ -21,13 +21,13 @@ char ptrig_meta[] =
 	"}";
 
 /* types defined by ptrig block */
-u5c_type_t ptrig_types[] = {
+ubx_type_t ptrig_types[] = {
 	def_struct_type("std_triggers", struct ptrig_config, &ptrig_config_h),
 	{ NULL },
 };
 
 /* configuration */
-u5c_config_t ptrig_config[] = {
+ubx_config_t ptrig_config[] = {
 	{ .name="stacksize", .type_name = "size_t" },
 	{ .name="sched_priority", .type_name = "int" },
 	{ .name="sched_policy", .type_name = "char", .value = { .len=12 } },
@@ -53,7 +53,7 @@ int trigger_steps(struct ptrig_inf *inf)
 
 	for(i=0; i<inf->trig_list_len; i++)
 		for(steps=0; steps<inf->trig_list[i].num_steps; i++)
-			if(u5c_cblock_step(inf->trig_list[i].b)!=0)
+			if(ubx_cblock_step(inf->trig_list[i].b)!=0)
 				goto out;
 
 	res=0;
@@ -64,10 +64,10 @@ int trigger_steps(struct ptrig_inf *inf)
 /* thread entry */
 static void* thread_startup(void *arg)
 {
-	u5c_block_t *b;
+	ubx_block_t *b;
 	struct ptrig_inf *inf;
 
-	b = (u5c_block_t*) arg;
+	b = (ubx_block_t*) arg;
 	inf = (struct ptrig_inf*) b->private_data;
 
 	while(1) {
@@ -87,7 +87,7 @@ static void* thread_startup(void *arg)
 }
 
 /* init */
-static int ptrig_init(u5c_block_t *b)
+static int ptrig_init(ubx_block_t *b)
 {
 	int ret = EOUTOFMEM;
 	struct ptrig_inf* inf;
@@ -121,16 +121,16 @@ static int ptrig_init(u5c_block_t *b)
 	return ret;
 }
 
-static int ptrig_start(u5c_block_t *b)
+static int ptrig_start(ubx_block_t *b)
 {
 	DBG(" ");
 
 	struct ptrig_inf *inf;
-	u5c_data_t* trig_list_data;
+	ubx_data_t* trig_list_data;
 
 	inf = (struct ptrig_inf*) b->private_data;
 
-	trig_list_data = u5c_config_get_data(b, "trig_blocks");
+	trig_list_data = ubx_config_get_data(b, "trig_blocks");
 
 	/* make a copy? */
 	inf->trig_list = trig_list_data->data;
@@ -143,7 +143,7 @@ static int ptrig_start(u5c_block_t *b)
 	return 0;
 }
 
-static void ptrig_stop(u5c_block_t *b)
+static void ptrig_stop(ubx_block_t *b)
 {
 	DBG(" ");
 	struct ptrig_inf *inf;
@@ -154,7 +154,7 @@ static void ptrig_stop(u5c_block_t *b)
 	pthread_mutex_unlock(&inf->mutex);
 }
 
-static void ptrig_cleanup(u5c_block_t *b)
+static void ptrig_cleanup(ubx_block_t *b)
 {
 	int ret;
 	struct ptrig_inf* inf;
@@ -173,7 +173,7 @@ static void ptrig_cleanup(u5c_block_t *b)
 }
 
 /* put everything together */
-u5c_block_t ptrig_comp = {
+ubx_block_t ptrig_comp = {
 	.name = "std_triggers/ptrig",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = ptrig_meta,
@@ -185,30 +185,30 @@ u5c_block_t ptrig_comp = {
 	.cleanup = ptrig_cleanup
 };
 
-static int ptrig_mod_init(u5c_node_info_t* ni)
+static int ptrig_mod_init(ubx_node_info_t* ni)
 {
 	int ret;
-	u5c_type_t *tptr;
+	ubx_type_t *tptr;
 
 	for(tptr=ptrig_types; tptr->name!=NULL; tptr++) {
-		if((ret=u5c_type_register(ni, tptr))!=0) {
+		if((ret=ubx_type_register(ni, tptr))!=0) {
 			ERR("failed to register type %s", tptr->name);
 			goto out;
 		}
 	}
-	ret=u5c_block_register(ni, &ptrig_comp);
+	ret=ubx_block_register(ni, &ptrig_comp);
  out:
 	return ret;
 }
 
-static void ptrig_mod_cleanup(u5c_node_info_t *ni)
+static void ptrig_mod_cleanup(ubx_node_info_t *ni)
 {
-	u5c_type_t *tptr;
+	ubx_type_t *tptr;
 
 	for(tptr=ptrig_types; tptr->name!=NULL; tptr++)
-		u5c_type_unregister(ni, tptr->name);
+		ubx_type_unregister(ni, tptr->name);
 
-	u5c_block_unregister(ni, "std_triggers/ptrig");
+	ubx_block_unregister(ni, "std_triggers/ptrig");
 }
 
 module_init(ptrig_mod_init)

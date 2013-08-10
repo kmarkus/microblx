@@ -6,10 +6,10 @@
 
 #include <stdint.h>
 
-#include "u5c.h"
+#include "ubx.h"
 
 /* declare types */
-u5c_type_t basic_types[] = {
+ubx_type_t basic_types[] = {
 	/* basic types */
 	def_basic_ctype(char),	     def_basic_ctype(unsigned char),	   def_basic_ctype(signed char),
 	def_basic_ctype(short),      def_basic_ctype(unsigned short),	   def_basic_ctype(signed short),
@@ -29,25 +29,25 @@ u5c_type_t basic_types[] = {
 	{ NULL },
 };
 
-static int stdtypes_init(u5c_node_info_t* ni)
+static int stdtypes_init(ubx_node_info_t* ni)
 {
 	DBG(" ");	
-	u5c_type_t *tptr;
+	ubx_type_t *tptr;
 	for(tptr=basic_types; tptr->name!=NULL; tptr++) {
 		/* TODO check for errors */
-		u5c_type_register(ni, tptr);
+		ubx_type_register(ni, tptr);
 	}
 
 	return 0;
 }
 
-static void stdtypes_cleanup(u5c_node_info_t *ni)
+static void stdtypes_cleanup(ubx_node_info_t *ni)
 {
 	DBG(" ");
-	const u5c_type_t *tptr;
+	const ubx_type_t *tptr;
 
 	for(tptr=basic_types; tptr->name!=NULL; tptr++)
-		u5c_type_unregister(ni, tptr->name);
+		ubx_type_unregister(ni, tptr->name);
 }
 
 module_init(stdtypes_init)

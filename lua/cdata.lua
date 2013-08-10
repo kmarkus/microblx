@@ -5,7 +5,7 @@ local M={}
 
 M.struct2tab={}
 
-M.struct2tab['struct u5c_block']=function(b) return ffi.string(b.name) end
+M.struct2tab['struct ubx_block']=function(b) return ffi.string(b.name) end
 
 function M.tolua(cd, refct)
    local res

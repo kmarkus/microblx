@@ -1,7 +1,7 @@
 
 #define DEBUG 1
 
-#include "u5c.h"
+#include "ubx.h"
 
 /*
  * Internal helper functions
@@ -32,7 +32,7 @@ const char* block_state_tostr(int state)
  *
  * @return type name
  */
-const char* get_typename(u5c_data_t *data)
+const char* get_typename(ubx_data_t *data)
 {
 	if(data && data->type)
 		return data->type->name;
@@ -46,7 +46,7 @@ const char* get_typename(u5c_data_t *data)
  *
  * @return
  */
-int u5c_node_init(u5c_node_info_t* ni, const char *name)
+int ubx_node_init(ubx_node_info_t* ni, const char *name)
 {
 	/* if(mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { */
 	/* 	ERR2(errno, " "); */
@@ -65,24 +65,24 @@ int u5c_node_init(u5c_node_info_t* ni, const char *name)
 	/* return -1; */
 }
 
-void u5c_node_cleanup(u5c_node_info_t* ni)
+void ubx_node_cleanup(ubx_node_info_t* ni)
 {
 	/* clean up all entities */
 }
 
 
 /**
- * u5c_block_register - register a block with the given node_info.
+ * ubx_block_register - register a block with the given node_info.
  *
  * @param ni
  * @param block
  *
  * @return 0 if Ok, < 0 otherwise.
  */
-int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block)
+int ubx_block_register(ubx_node_info_t *ni, ubx_block_t* block)
 {
 	int ret = 0;
-	u5c_block_t *tmpc;
+	ubx_block_t *tmpc;
 
 	if(block->type!=BLOCK_TYPE_COMPUTATION &&
 	   block->type!=BLOCK_TYPE_INTERACTION) {
@@ -102,7 +102,7 @@ int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block)
 	};
 
 	/* resolve types */
-	if((ret=u5c_resolve_types(ni, block)) !=0)
+	if((ret=ubx_resolve_types(ni, block)) !=0)
 		goto out;
 
 	HASH_ADD_KEYPTR(hh, ni->blocks, block->name, strlen(block->name), block);
@@ -117,17 +117,17 @@ int u5c_block_register(u5c_node_info_t *ni, u5c_block_t* block)
  * @param ni
  * @param name
  *
- * @return u5c_block_t*
+ * @return ubx_block_t*
  */
-u5c_block_t* u5c_block_get(u5c_node_info_t *ni, const char *name)
+ubx_block_t* ubx_block_get(ubx_node_info_t *ni, const char *name)
 {
-	u5c_block_t *tmpc=NULL;
+	ubx_block_t *tmpc=NULL;
 	HASH_FIND_STR(ni->blocks, name, tmpc);
 	return tmpc;
 }
 
 /**
- * u5c_block_unregister - unregister a block.
+ * ubx_block_unregister - unregister a block.
  *
  * @param ni
  * @param type
@@ -135,9 +135,9 @@ u5c_block_t* u5c_block_get(u5c_node_info_t *ni, const char *name)
  *
  * @return the unregistered block or NULL in case of failure.
  */
-u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, const char* name)
+ubx_block_t* ubx_block_unregister(ubx_node_info_t* ni, const char* name)
 {
-	u5c_block_t *tmpc=NULL;
+	ubx_block_t *tmpc=NULL;
 
 	HASH_FIND_STR(ni->blocks, name, tmpc);
 
@@ -153,17 +153,17 @@ u5c_block_t* u5c_block_unregister(u5c_node_info_t* ni, const char* name)
 
 
 /**
- * u5c_type_register - register a type with a node.
+ * ubx_type_register - register a type with a node.
  *
  * @param ni
  * @param type
  *
  * @return
  */
-int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type)
+int ubx_type_register(ubx_node_info_t* ni, ubx_type_t* type)
 {
 	int ret = -1;
-	u5c_type_t* typ;
+	ubx_type_t* typ;
 
 	if(type==NULL) {
 		ERR("given type is NULL");
@@ -187,7 +187,7 @@ int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type)
 }
 
 /**
- * u5c_type_unregister - unregister type with node
+ * ubx_type_unregister - unregister type with node
  *
  * TODO: use count handling, only succeed unloading when not used!
  *
@@ -196,9 +196,9 @@ int u5c_type_register(u5c_node_info_t* ni, u5c_type_t* type)
  *
  * @return
  */
-u5c_type_t* u5c_type_unregister(u5c_node_info_t* ni, const char* name)
+ubx_type_t* ubx_type_unregister(ubx_node_info_t* ni, const char* name)
 {
-	u5c_type_t* ret = NULL;
+	ubx_type_t* ret = NULL;
 
 	HASH_FIND_STR(ni->types, name, ret);
 
@@ -213,22 +213,22 @@ u5c_type_t* u5c_type_unregister(u5c_node_info_t* ni, const char* name)
 }
 
 /**
- * u5c_type_get - find a u5c_type by name.
+ * ubx_type_get - find a ubx_type by name.
  *
  * @param ni
  * @param name
  *
- * @return pointer to u5c_type or NULL if not found.
+ * @return pointer to ubx_type or NULL if not found.
  */
-u5c_type_t* u5c_type_get(u5c_node_info_t* ni, const char* name)
+ubx_type_t* ubx_type_get(ubx_node_info_t* ni, const char* name)
 {
-	u5c_type_t* ret=NULL;
+	ubx_type_t* ret=NULL;
 	HASH_FIND_STR(ni->types, name, ret);
 	return ret;
 }
 
 /**
- * u5c_resolve_types - resolve string type references to real type object.
+ * ubx_resolve_types - resolve string type references to real type object.
  *
  * For each port and config, let the type pointers point to the
  * correct type identified by the char* name. Error if failure.
@@ -238,12 +238,12 @@ u5c_type_t* u5c_type_get(u5c_node_info_t* ni, const char* name)
  *
  * @return 0 if all types are resolved, -1 if not.
  */
-int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b)
+int ubx_resolve_types(ubx_node_info_t* ni, ubx_block_t* b)
 {
 	int ret = 0;
-	u5c_type_t* typ;
-	u5c_port_t* port_ptr;
-	u5c_config_t *config_ptr;
+	ubx_type_t* typ;
+	ubx_port_t* port_ptr;
+	ubx_config_t *config_ptr;
 
 	/* for each port locate type and resolve */
 	if(b->ports) {
@@ -298,32 +298,32 @@ int u5c_resolve_types(u5c_node_info_t* ni, u5c_block_t* b)
 
 
 /**
- * Allocate a u5c_data_t of the given type and array length.
+ * Allocate a ubx_data_t of the given type and array length.
  *
- * This type should be free'd using the u5c_data_free function.
+ * This type should be free'd using the ubx_data_free function.
  *
  * @param ni
  * @param typename
  * @param array_len
  *
- * @return u5c_data_t* or NULL in case of error.
+ * @return ubx_data_t* or NULL in case of error.
  */
-u5c_data_t* u5c_data_alloc(u5c_node_info_t *ni, const char* typename, unsigned long array_len)
+ubx_data_t* ubx_data_alloc(ubx_node_info_t *ni, const char* typename, unsigned long array_len)
 {
-	u5c_type_t* t = NULL;
-	u5c_data_t* d = NULL;
+	ubx_type_t* t = NULL;
+	ubx_data_t* d = NULL;
 
 	if(array_len == 0) {
 		ERR("invalid array_len 0");
 		goto out;
 	}
 
-	if((t=u5c_type_get(ni, typename))==NULL) {
+	if((t=ubx_type_get(ni, typename))==NULL) {
 		ERR("unknown type '%s'", typename);
 		goto out;
 	}
 
-	if((d=calloc(1, sizeof(u5c_data_t)))==NULL)
+	if((d=calloc(1, sizeof(ubx_data_t)))==NULL)
 		goto out_nomem;
 
 	d->type = t;
@@ -342,7 +342,7 @@ u5c_data_t* u5c_data_alloc(u5c_node_info_t *ni, const char* typename, unsigned l
 	return d;
 }
 
-int u5c_data_resize(u5c_data_t *d, unsigned int newlen)
+int ubx_data_resize(ubx_data_t *d, unsigned int newlen)
 {
 	int ret=-1;
 	void *ptr;
@@ -359,26 +359,26 @@ int u5c_data_resize(u5c_data_t *d, unsigned int newlen)
 
 
 /**
- * Free a previously allocated u5c_data_t type.
+ * Free a previously allocated ubx_data_t type.
  *
  * @param ni
  * @param d
  */
-void u5c_data_free(u5c_node_info_t *ni, u5c_data_t* d)
+void ubx_data_free(ubx_node_info_t *ni, ubx_data_t* d)
 {
 	free(d->data);
 	free(d);
 }
 
 /**
- * Assign a u5c_data_t value to an second.
+ * Assign a ubx_data_t value to an second.
  *
  * @param tgt
  * @param src
  *
  * @return 0 if OK, else -1
  */
-int u5c_data_assign(u5c_data_t *tgt, u5c_data_t *src)
+int ubx_data_assign(ubx_data_t *tgt, ubx_data_t *src)
 {
 	int ret=-1;
 
@@ -405,13 +405,13 @@ int u5c_data_assign(u5c_data_t *tgt, u5c_data_t *src)
 }
 
 /**
- * Calculate the length in bytes of a u5c_data_t buffer.
+ * Calculate the length in bytes of a ubx_data_t buffer.
  *
  * @param d
  *
  * @return length in bytes
  */
-unsigned int data_len(u5c_data_t* d)
+unsigned int data_len(ubx_data_t* d)
 {
 	if(d==NULL) {
 		ERR("data is NULL");
@@ -429,15 +429,15 @@ unsigned int data_len(u5c_data_t* d)
 	return 0;
 }
 
-int u5c_num_blocks(u5c_node_info_t* ni) { return HASH_COUNT(ni->blocks); }
-int u5c_num_types(u5c_node_info_t* ni) { return HASH_COUNT(ni->types); }
+int ubx_num_blocks(ubx_node_info_t* ni) { return HASH_COUNT(ni->blocks); }
+int ubx_num_types(ubx_node_info_t* ni) { return HASH_COUNT(ni->types); }
 
 /**
- * u5c_port_free_data - free additional memory used by port.
+ * ubx_port_free_data - free additional memory used by port.
  *
  * @param p port pointer
  */
-static void u5c_port_free_data(u5c_port_t* p)
+static void ubx_port_free_data(ubx_port_t* p)
 {
 	if(p->out_type_name) free(p->out_type_name);
 	if(p->in_type_name) free(p->in_type_name);
@@ -450,7 +450,7 @@ static void u5c_port_free_data(u5c_port_t* p)
 }
 
 /**
- * u5c_clone_port_data - clone the additional port data
+ * ubx_clone_port_data - clone the additional port data
  *
  * @param psrc pointer to the source port
  * @param pcopy pointer to the existing target port
@@ -459,11 +459,11 @@ static void u5c_port_free_data(u5c_port_t* p)
  *
  * This function allocates memory.
  */
-static int u5c_clone_port_data(const u5c_port_t *psrc, u5c_port_t *pcopy)
+static int ubx_clone_port_data(const ubx_port_t *psrc, ubx_port_t *pcopy)
 {
 	/* DBG("cloning port 0x%lx, '%s'\n", (uint64_t) psrc, psrc->name); */
 
-	memset(pcopy, 0x0, sizeof(u5c_port_t));
+	memset(pcopy, 0x0, sizeof(ubx_port_t));
 
 	if((pcopy->name=strdup(psrc->name))==NULL)
 		goto out_err;
@@ -490,17 +490,17 @@ static int u5c_clone_port_data(const u5c_port_t *psrc, u5c_port_t *pcopy)
 	return 0;
 
  out_err_free:
-	u5c_port_free_data(pcopy);
+	ubx_port_free_data(pcopy);
  out_err:
  	return -1;
 }
 
 /**
- * u5c_clear_config_data - free a config's extra memory
+ * ubx_clear_config_data - free a config's extra memory
  *
  * @param c config whose data to free
  */
-static void u5c_free_config_data(u5c_config_t *c)
+static void ubx_free_config_data(ubx_config_t *c)
 {
 	if(c->name) free(c->name);
 	if(c->type_name) free(c->type_name);
@@ -508,7 +508,7 @@ static void u5c_free_config_data(u5c_config_t *c)
 }
 
 /**
- * u5c_clone_conf_data - clone the additional config data
+ * ubx_clone_conf_data - clone the additional config data
  *
  * @param psrc pointer to the source config
  * @param pcopy pointer to the existing target config
@@ -517,14 +517,14 @@ static void u5c_free_config_data(u5c_config_t *c)
  *
  * This function allocates memory.
  */
-static int u5c_clone_config_data(const u5c_config_t *csrc, u5c_config_t *ccopy)
+static int ubx_clone_config_data(const ubx_config_t *csrc, ubx_config_t *ccopy)
 {
 	if(csrc->value.type==NULL) {
 		ERR("unresolved source config");
 		goto out_err;
 	}
 
-	memset(ccopy, 0x0, sizeof(u5c_config_t));
+	memset(ccopy, 0x0, sizeof(ubx_config_t));
 
 	if((ccopy->name=strdup(csrc->name))==NULL)
 		goto out_err;
@@ -543,13 +543,13 @@ static int u5c_clone_config_data(const u5c_config_t *csrc, u5c_config_t *ccopy)
 	return 0; /* all ok */
 
  out_err:
-	u5c_free_config_data(ccopy);
+	ubx_free_config_data(ccopy);
  	return -1;
 }
 
 
 /**
- * u5c_block_free - free all memory related to a block
+ * ubx_block_free - free all memory related to a block
  *
  * The block should have been previously unregistered.
  *
@@ -559,15 +559,15 @@ static int u5c_clone_config_data(const u5c_config_t *csrc, u5c_config_t *ccopy)
  *
  * @return
  */
-void u5c_block_free(u5c_node_info_t *ni, u5c_block_t *b)
+void ubx_block_free(ubx_node_info_t *ni, ubx_block_t *b)
 {
-	u5c_port_t *port_ptr;
-	u5c_config_t *config_ptr;
+	ubx_port_t *port_ptr;
+	ubx_config_t *config_ptr;
 
 	/* configs */
 	if(b->configs!=NULL) {
 		for(config_ptr=b->configs; config_ptr->name!=NULL; config_ptr++)
-			u5c_free_config_data(config_ptr);
+			ubx_free_config_data(config_ptr);
 
 		free(b->configs);
 	}
@@ -575,7 +575,7 @@ void u5c_block_free(u5c_node_info_t *ni, u5c_block_t *b)
 	/* ports */
 	if(b->ports!=NULL) {
 		for(port_ptr=b->ports; port_ptr->name!=NULL; port_ptr++)
-			u5c_port_free_data(port_ptr);
+			ubx_port_free_data(port_ptr);
 
 		free(b->ports);
 	}
@@ -588,7 +588,7 @@ void u5c_block_free(u5c_node_info_t *ni, u5c_block_t *b)
 
 
 /**
- * u5c_block_clone - create a copy of an existing block from an existing one.
+ * ubx_block_clone - create a copy of an existing block from an existing one.
  *
  * @param ni node info ptr
  * @param prot prototype block which to clone
@@ -596,14 +596,14 @@ void u5c_block_free(u5c_node_info_t *ni, u5c_block_t *b)
  *
  * @return a pointer to the newly allocated block. Must be freed with
  */
-static u5c_block_t* u5c_block_clone(u5c_node_info_t* ni, u5c_block_t* prot, const char* name)
+static ubx_block_t* ubx_block_clone(ubx_node_info_t* ni, ubx_block_t* prot, const char* name)
 {
 	int i;
-	u5c_block_t *newb;
-	u5c_port_t *srcport, *tgtport;
-	u5c_config_t *srcconf, *tgtconf;
+	ubx_block_t *newb;
+	ubx_port_t *srcport, *tgtport;
+	ubx_config_t *srcconf, *tgtconf;
 
-	if((newb = calloc(1, sizeof(u5c_block_t)))==NULL)
+	if((newb = calloc(1, sizeof(ubx_block_t)))==NULL)
 		goto out_free;
 
 	newb->block_state = BLOCK_STATE_PREINIT;
@@ -619,11 +619,11 @@ static u5c_block_t* u5c_block_clone(u5c_node_info_t* ni, u5c_block_t* prot, cons
 	if(prot->configs) {
 		for(i=0; prot->configs[i].name!=NULL; i++); /* compute length */
 
-		if((newb->configs = calloc(i+1, sizeof(u5c_config_t)))==NULL)
+		if((newb->configs = calloc(i+1, sizeof(ubx_config_t)))==NULL)
 			goto out_free;
 
 		for(srcconf=prot->configs, tgtconf=newb->configs; srcconf->name!=NULL; srcconf++,tgtconf++) {
-			if(u5c_clone_config_data(srcconf, tgtconf) != 0)
+			if(ubx_clone_config_data(srcconf, tgtconf) != 0)
 				goto out_free;
 		}
 	}
@@ -633,11 +633,11 @@ static u5c_block_t* u5c_block_clone(u5c_node_info_t* ni, u5c_block_t* prot, cons
 	if(prot->ports) {
 		for(i=0; prot->ports[i].name!=NULL; i++); /* find number of ports */
 
-		if((newb->ports = calloc(i+1, sizeof(u5c_port_t)))==NULL)
+		if((newb->ports = calloc(i+1, sizeof(ubx_port_t)))==NULL)
 			goto out_free;
 
 		for(srcport=prot->ports, tgtport=newb->ports; srcport->name!=NULL; srcport++,tgtport++) {
-			if(u5c_clone_port_data(srcport, tgtport) != 0)
+			if(ubx_clone_port_data(srcport, tgtport) != 0)
 				goto out_free;
 		}
 	}
@@ -666,7 +666,7 @@ static u5c_block_t* u5c_block_clone(u5c_node_info_t* ni, u5c_block_t* prot, cons
 	return newb;
 
  out_free:
-	u5c_block_free(ni, newb);
+	ubx_block_free(ni, newb);
  	ERR("insufficient memory");
 	return NULL;
 }
@@ -681,9 +681,9 @@ static u5c_block_t* u5c_block_clone(u5c_node_info_t* ni, u5c_block_t* prot, cons
  *
  * @return
  */
-u5c_block_t* u5c_block_create(u5c_node_info_t *ni, const char *type, const char* name)
+ubx_block_t* ubx_block_create(ubx_node_info_t *ni, const char *type, const char* name)
 {
-	u5c_block_t *prot, *newb;
+	ubx_block_t *prot, *newb;
 	newb=NULL;
 
 	/* find prototype */
@@ -702,13 +702,13 @@ u5c_block_t* u5c_block_create(u5c_node_info_t *ni, const char *type, const char*
 		goto out;
 	}
 
-	if((newb=u5c_block_clone(ni, prot, name))==NULL)
+	if((newb=ubx_block_clone(ni, prot, name))==NULL)
 		goto out;
 
 	/* register block */
-	if(u5c_block_register(ni, newb) !=0){
+	if(ubx_block_register(ni, newb) !=0){
 		ERR("failed to register block %s", name);
-		u5c_block_free(ni, newb);
+		ubx_block_free(ni, newb);
 		goto out;
 	}
  out:
@@ -716,7 +716,7 @@ u5c_block_t* u5c_block_create(u5c_node_info_t *ni, const char *type, const char*
 }
 
 /**
- * u5c_block_rm - unregister and free a block.
+ * ubx_block_rm - unregister and free a block.
  *
  * This will unregister a block and free it's data. The block must be
  * in BLOCK_STATE_PREINIT state.
@@ -729,12 +729,12 @@ u5c_block_t* u5c_block_create(u5c_node_info_t *ni, const char *type, const char*
  *
  * @return 0 if ok, error code otherwise.
  */
-int u5c_block_rm(u5c_node_info_t *ni, const char* name)
+int ubx_block_rm(ubx_node_info_t *ni, const char* name)
 {
 	int ret;
-	u5c_block_t *b;
+	ubx_block_t *b;
 
-	b = u5c_block_get(ni, name);
+	b = ubx_block_get(ni, name);
 
 	if(b==NULL) {
 		ERR("no block named '%s'", name);
@@ -752,11 +752,11 @@ int u5c_block_rm(u5c_node_info_t *ni, const char* name)
 		goto out;
 	}
 
-	if(u5c_block_unregister(ni, name)==NULL){
+	if(ubx_block_unregister(ni, name)==NULL){
 		ERR("block '%s' failed to unregister", name);
 	}
 
-	u5c_block_free(ni, b);
+	ubx_block_free(ni, b);
 	ret=0;
  out:
 	return ret;
@@ -772,11 +772,11 @@ int u5c_block_rm(u5c_node_info_t *ni, const char* name)
  *
  * @return
  */
-static int array_block_add(u5c_block_t ***arr, u5c_block_t *newblock)
+static int array_block_add(ubx_block_t ***arr, ubx_block_t *newblock)
 {
 	int ret;
 	unsigned long newlen; /* new length of array including NULL element */
-	u5c_block_t **tmpb;
+	ubx_block_t **tmpb;
 
 	/* determine newlen
 	 * with one element, the array is size two to hold the terminating NULL element.
@@ -786,7 +786,7 @@ static int array_block_add(u5c_block_t ***arr, u5c_block_t *newblock)
 	else
 		for(tmpb=*arr, newlen=2; *tmpb!=NULL; tmpb++,newlen++);
 
-	if((*arr=realloc(*arr, sizeof(u5c_block_t*) * newlen))==NULL) {
+	if((*arr=realloc(*arr, sizeof(ubx_block_t*) * newlen))==NULL) {
 		ERR("insufficient memory");
 		ret=EOUTOFMEM;
 		goto out;
@@ -801,7 +801,7 @@ static int array_block_add(u5c_block_t ***arr, u5c_block_t *newblock)
 }
 
 /**
- * u5c_connect - connect a port with an interaction.
+ * ubx_connect - connect a port with an interaction.
  *
  * @param p1
  * @param iblock
@@ -809,9 +809,9 @@ static int array_block_add(u5c_block_t ***arr, u5c_block_t *newblock)
  * @return
  *
  * This should be made real-time safe by adding an operation
- * u5c_interaction_set_max_conn[in|out]
+ * ubx_interaction_set_max_conn[in|out]
  */
-int u5c_connect_one(u5c_port_t* p, u5c_block_t* iblock)
+int ubx_connect_one(ubx_port_t* p, ubx_block_t* iblock)
 {
 	int ret;
 
@@ -832,7 +832,7 @@ int u5c_connect_one(u5c_port_t* p, u5c_block_t* iblock)
 }
 
 /**
- * u5c_connect - connect to ports with a given interaction.
+ * ubx_connect - connect to ports with a given interaction.
  *
  * @param p1
  * @param p2
@@ -841,9 +841,9 @@ int u5c_connect_one(u5c_port_t* p, u5c_block_t* iblock)
  * @return
  *
  * This should be made real-time safe by adding an operation
- * u5c_interaction_set_max_conn[in|out]
+ * ubx_interaction_set_max_conn[in|out]
  */
-int u5c_connect(u5c_port_t* p1, u5c_port_t* p2, u5c_block_t* iblock)
+int ubx_connect(ubx_port_t* p1, ubx_port_t* p2, ubx_block_t* iblock)
 {
 	int ret;
 	if(iblock->type != BLOCK_TYPE_INTERACTION) {
@@ -853,8 +853,8 @@ int u5c_connect(u5c_port_t* p1, u5c_port_t* p2, u5c_block_t* iblock)
 	}
 
 
-	if((ret=u5c_connect_one(p1, iblock))!=0) goto out_err;
-	if((ret=u5c_connect_one(p2, iblock))!=0) goto out_err;
+	if((ret=ubx_connect_one(p1, iblock))!=0) goto out_err;
+	if((ret=ubx_connect_one(p2, iblock))!=0) goto out_err;
 
 	/* all ok */
 	goto out;
@@ -870,16 +870,16 @@ int u5c_connect(u5c_port_t* p1, u5c_port_t* p2, u5c_block_t* iblock)
  */
 
 /**
- * u5c_config_get - retrieve a configuration type by name.
+ * ubx_config_get - retrieve a configuration type by name.
  *
  * @param b
  * @param name
  *
- * @return u5c_config_t pointer or NULL if not found.
+ * @return ubx_config_t pointer or NULL if not found.
  */
-u5c_config_t* u5c_config_get(u5c_block_t* b, const char* name)
+ubx_config_t* ubx_config_get(ubx_block_t* b, const char* name)
 {
-	u5c_config_t* conf = NULL;
+	ubx_config_t* conf = NULL;
 
 	if(b->configs==NULL || name==NULL)
 		goto out;
@@ -894,19 +894,19 @@ u5c_config_t* u5c_config_get(u5c_block_t* b, const char* name)
 }
 
 /**
- * u5c_config_get_data - return the data associated with a configuration value.
+ * ubx_config_get_data - return the data associated with a configuration value.
  *
  * @param b
  * @param name
  *
- * @return u5c_data_t pointer or NULL
+ * @return ubx_data_t pointer or NULL
  */
-u5c_data_t* u5c_config_get_data(u5c_block_t* b, const char *name)
+ubx_data_t* ubx_config_get_data(ubx_block_t* b, const char *name)
 {
-	u5c_config_t *conf;
-	u5c_data_t *data=NULL;
+	ubx_config_t *conf;
+	ubx_data_t *data=NULL;
 
-	if((conf=u5c_config_get(b, name))==NULL)
+	if((conf=ubx_config_get(b, name))==NULL)
 		goto out;
 	data=&conf->value;
  out:
@@ -915,21 +915,21 @@ u5c_data_t* u5c_config_get_data(u5c_block_t* b, const char *name)
 
 
 /**
- * Return the pointer to a configurations u5c_data_t->data pointer.
+ * Return the pointer to a configurations ubx_data_t->data pointer.
  *
- * @param b u5c_block
+ * @param b ubx_block
  * @param name name of the requested configuration value
  * @param *len outvalue, the length of the region pointed to (in bytes)
  *
  * @return the lenght in bytes of the pointer
  */
-void* u5c_config_get_data_ptr(u5c_block_t *b, const char *name, unsigned int *len)
+void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *len)
 {
-	u5c_data_t *d;
+	ubx_data_t *d;
 	void *ret = NULL;
 	*len=0;
 
-	if((d = u5c_config_get_data(b, name))==NULL)
+	if((d = ubx_config_get_data(b, name))==NULL)
 		goto out;
 
 	ret = d->data;
@@ -944,16 +944,16 @@ void* u5c_config_get_data_ptr(u5c_block_t *b, const char *name, unsigned int *le
  */
 
 /**
- * u5c_port_get - retrieve a component port by name
+ * ubx_port_get - retrieve a component port by name
  *
  * @param comp
  * @param name
  *
  * @return port pointer or NULL
  */
-u5c_port_t* u5c_port_get(u5c_block_t* comp, const char *name)
+ubx_port_t* ubx_port_get(ubx_block_t* comp, const char *name)
 {
-	u5c_port_t *port_ptr;
+	ubx_port_t *port_ptr;
 
 	if(comp->ports==NULL)
 		goto out_notfound;
@@ -969,14 +969,14 @@ u5c_port_t* u5c_port_get(u5c_block_t* comp, const char *name)
 
 
 /**
- * u5c_block_init - initalize a function block.
+ * ubx_block_init - initalize a function block.
  *
  * @param ni
  * @param b
  *
  * @return 0 if state was changed, -1 otherwise.
  */
-int u5c_block_init(u5c_node_info_t* ni, u5c_block_t* b)
+int ubx_block_init(ubx_node_info_t* ni, ubx_block_t* b)
 {
 	int ret = -1;
 
@@ -1006,14 +1006,14 @@ int u5c_block_init(u5c_node_info_t* ni, u5c_block_t* b)
 }
 
 /**
- * u5c_block_start - start a function block.
+ * ubx_block_start - start a function block.
  *
  * @param ni
  * @param b
  *
  * @return 0 if state was changed, -1 otherwise.
  */
-int u5c_block_start(u5c_node_info_t* ni, u5c_block_t* b)
+int ubx_block_start(ubx_node_info_t* ni, ubx_block_t* b)
 {
 	int ret = -1;
 
@@ -1038,14 +1038,14 @@ int u5c_block_start(u5c_node_info_t* ni, u5c_block_t* b)
 }
 
 /**
- * u5c_block_stop - stop a function block
+ * ubx_block_stop - stop a function block
  *
  * @param ni
  * @param b
  *
  * @return
  */
-int u5c_block_stop(u5c_node_info_t* ni, u5c_block_t* b)
+int ubx_block_stop(ubx_node_info_t* ni, ubx_block_t* b)
 {
 	int ret = -1;
 
@@ -1067,14 +1067,14 @@ int u5c_block_stop(u5c_node_info_t* ni, u5c_block_t* b)
 }
 
 /**
- * u5c_block_cleanup - bring function block back to preinit state.
+ * ubx_block_cleanup - bring function block back to preinit state.
  *
  * @param ni
  * @param b
  *
  * @return 0 if state was changed, -1 otherwise.
  */
-int u5c_block_cleanup(u5c_node_info_t* ni, u5c_block_t* b)
+int ubx_block_cleanup(ubx_node_info_t* ni, ubx_block_t* b)
 {
 	int ret=-1;
 
@@ -1103,7 +1103,7 @@ int u5c_block_cleanup(u5c_node_info_t* ni, u5c_block_t* b)
  *
  * @return 0 if OK, else -1
  */
-int u5c_cblock_step(u5c_block_t* b)
+int ubx_cblock_step(ubx_block_t* b)
 {
 	int ret = -1;
 	if(b==NULL) {
@@ -1134,15 +1134,15 @@ int u5c_cblock_step(u5c_block_t* b)
  * @brief
  *
  * @param port port from which to read
- * @param data u5c_data_t to store result
+ * @param data ubx_data_t to store result
  *
  * @return status value
  */
-uint32_t __port_read(u5c_port_t* port, u5c_data_t* data)
+uint32_t __port_read(ubx_port_t* port, ubx_data_t* data)
 {
 	uint32_t ret=PORT_READ_NODATA;
 	const char *tp;
-	u5c_block_t **iaptr;
+	ubx_block_t **iaptr;
 
 	if (!port) {
 		ERR("port null");
@@ -1186,11 +1186,11 @@ uint32_t __port_read(u5c_port_t* port, u5c_data_t* data)
  *
  * This function will check if the type matches.
  */
-void __port_write(u5c_port_t* port, u5c_data_t* data)
+void __port_write(ubx_port_t* port, ubx_data_t* data)
 {
 	/* int i; */
 	const char *tp;
-	u5c_block_t **iaptr;
+	ubx_block_t **iaptr;
 
 	if (port==NULL) {
 		ERR("port null");

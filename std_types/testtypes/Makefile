@@ -8,10 +8,10 @@ HEXARRS:=$(TYPES:%=%.hexarr)
 %.h.hexarr: %.h
 	../../tools/file2carr.lua $<
 
-testtypes.so: testtypes.o $(INCLUDE_DIR)/libu5c.so
-	${CC} -shared -l:$(INCLUDE_DIR)/libu5c.so -o testtypes.so testtypes.o
+testtypes.so: testtypes.o $(INCLUDE_DIR)/libubx.so
+	${CC} -shared -l:$(INCLUDE_DIR)/libubx.so -o testtypes.so testtypes.o
 
-testtypes.o: testtypes.c $(INCLUDE_DIR)/u5c.h $(INCLUDE_DIR)/u5c_types.h $(INCLUDE_DIR)/u5c.c $(HEXARRS)
+testtypes.o: testtypes.c $(INCLUDE_DIR)/ubx.h $(INCLUDE_DIR)/ubx_types.h $(INCLUDE_DIR)/ubx.c $(HEXARRS)
 	${CC} -fPIC -I$(INCLUDE_DIR) -c $(CFLAGS) testtypes.c
 
 clean:

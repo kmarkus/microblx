@@ -12,16 +12,16 @@
 
 #include <uthash.h>
 
-#include "u5c_types.h"
-#include "u5c_proto.h"
+#include "ubx_types.h"
+#include "ubx_proto.h"
 
 
 /* module init, cleanup */
 #define module_init(initfn) \
-int __initialize_module(u5c_node_info_t* ni) { return initfn(ni); }
+int __initialize_module(ubx_node_info_t* ni) { return initfn(ni); }
 
 #define module_cleanup(exitfn) \
-void __cleanup_module(u5c_node_info_t* ni) { exitfn(ni); }
+void __cleanup_module(ubx_node_info_t* ni) { exitfn(ni); }
 
 /* type definition helpers */
 #define def_basic_ctype(typename) { .name=#typename, .type_class=TYPE_CLASS_BASIC, .size=sizeof(typename) }
@@ -39,9 +39,9 @@ void __cleanup_module(u5c_node_info_t* ni) { exitfn(ni); }
  * would generate a typed, automatic boxing version for
  * convenience. */
 #define def_write_fun(function_name, typename) \
-void function_name(u5c_port_t* port, typename *outval) \
+void function_name(ubx_port_t* port, typename *outval) \
 { \
- u5c_data_t val; \
+ ubx_data_t val; \
  if(port==NULL) { ERR("port is NULL"); return; } \
  val.data = outval; \
  val.type = port->out_type; \
@@ -53,9 +53,9 @@ void function_name(u5c_port_t* port, typename *outval) \
  * port and a pointer to the result value. 
  */
 #define def_read_fun(function_name, typename) \
-uint32_t function_name(u5c_port_t* port, typename *inval) \
+uint32_t function_name(ubx_port_t* port, typename *inval) \
 { \
- u5c_data_t val; 		\
+ ubx_data_t val; 		\
  val.type=port->in_type;	\
  val.data = inval;	  	\
  return __port_read(port, &val);	\

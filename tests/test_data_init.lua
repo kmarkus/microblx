@@ -1,43 +1,43 @@
 ffi=require"ffi"
 lunit=require"lunit"
-u5c=require"u5c"
+ubx=require"ubx"
 
 module("data_init_test", lunit.testcase, package.seeall)
 
-ni=u5c.node_create("unit_test_node")
-u5c.load_module(ni, "std_types/stdtypes/stdtypes.so")
-u5c.load_module(ni, "std_types/testtypes/testtypes.so")
-u5c.ffi_load_types(ni)
+ni=ubx.node_create("unit_test_node")
+ubx.load_module(ni, "std_types/stdtypes/stdtypes.so")
+ubx.load_module(ni, "std_types/testtypes/testtypes.so")
+ubx.ffi_load_types(ni)
 
 function test_scalar_assignment()
-   local d=u5c.data_alloc(ni, "unsigned int")
-   u5c.data_set(d, 33)
+   local d=ubx.data_alloc(ni, "unsigned int")
+   ubx.data_set(d, 33)
    local numptr = ffi.cast("unsigned int*", d.data)
    assert_equal(33, numptr[0])
-   u5c.data_free(ni, d)
+   ubx.data_free(ni, d)
 end
 
 function test_string_assignment()
    local teststr="my beautiful string"
-   local d=u5c.data_alloc(ni, "char", 30)
-   u5c.data_set(d, teststr)
+   local d=ubx.data_alloc(ni, "char", 30)
+   ubx.data_set(d, teststr)
    local chrptr = ffi.cast("char*", d.data)
    assert_equal(teststr, ffi.string(chrptr))
-   u5c.data_free(ni, d)
+   ubx.data_free(ni, d)
 end
 
 function test_simple_struct_assignment()
-   local d=u5c.data_alloc(ni, "testtypes/struct Vector")
-   u5c.data_set(d, {x=444,y=55.3, z=-34})
+   local d=ubx.data_alloc(ni, "testtypes/struct Vector")
+   ubx.data_set(d, {x=444,y=55.3, z=-34})
    local vptr = ffi.cast("struct Vector*", d.data)
    assert_equal(444, vptr.x)
    assert_equal(55.3, vptr.y)
    assert_equal(-34, vptr.z)
-   u5c.data_free(ni, d)
+   ubx.data_free(ni, d)
 end
 
 function test_composite_struct_assignment()
-   local d=u5c.data_alloc(ni, "testtypes/struct Frame")
+   local d=ubx.data_alloc(ni, "testtypes/struct Frame")
    local conf = {
       p={ x=444, y=55.3, z=-34 },
       M={ X={ x=1, y=2, z=3 },
@@ -46,7 +46,7 @@ function test_composite_struct_assignment()
        }
    }
 
-   u5c.data_set(d, conf)
+   ubx.data_set(d, conf)
    local vptr = ffi.cast("struct Frame*", d.data)
    assert_equal(444, vptr.p.x)
    assert_equal(55.3, vptr.p.y)
@@ -66,14 +66,14 @@ function test_composite_struct_assignment()
 end
 
 function test_simple_struct_assignment2()
-   local d=u5c.data_alloc(ni, "testtypes/struct test_trig_conf", 3)
+   local d=ubx.data_alloc(ni, "testtypes/struct test_trig_conf", 3)
    local conf = {
       { name="block_name1", benchmark=0 },
       { name="block_name2", benchmark=1 },
       { name="block_name3", benchmark=0 },
    }
 
-   u5c.data_set(d, conf)
+   ubx.data_set(d, conf)
 
    local ptr = ffi.cast("struct test_trig_conf*", d.data)
    assert_equal("block_name1", ffi.string(ptr[0].name))
@@ -84,18 +84,18 @@ function test_simple_struct_assignment2()
    assert_equal(1, tonumber(ptr[1].benchmark))
    assert_equal(0, tonumber(ptr[2].benchmark))
 
-   u5c.data_free(ni, d)
+   ubx.data_free(ni, d)
 end
 
 function test_data_resize()
-   local d=u5c.data_alloc(ni, "testtypes/struct test_trig_conf", 1)
+   local d=ubx.data_alloc(ni, "testtypes/struct test_trig_conf", 1)
    local conf = {
       { name="block_name1", benchmark=0 },
       { name="block_name2", benchmark=1 },
       { name="block_name3", benchmark=0 },
    }
 
-   u5c.data_set(d, conf, true)
+   ubx.data_set(d, conf, true)
 
    local ptr = ffi.cast("struct test_trig_conf*", d.data)
    assert_equal("block_name1", ffi.string(ptr[0].name))
@@ -108,5 +108,5 @@ function test_data_resize()
 
    assert_equal(d.len, 3)
 
-   u5c.data_free(ni, d)
+   ubx.data_free(ni, d)
 end

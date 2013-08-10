@@ -13,26 +13,26 @@
 #include <stdlib.h>
 
 #include "mongoose.h"
-#include "u5c.h"
+#include "ubx.h"
 
-#define WEBIF_FILE "/home/mk/prog/c/u5c/std_blocks/webif/webif.lua"
+#define WEBIF_FILE "/home/mk/prog/c/ubx/std_blocks/webif/webif.lua"
 
 /* make this configuration */
-static struct u5c_node_info *global_ni;
+static struct ubx_node_info *global_ni;
 
-u5c_config_t webif_conf[] = {
+ubx_config_t webif_conf[] = {
 	{ .name="port", .type_name="char", .value = { .len=10 } }, /* char[10] */
 	{ NULL }
 };
 
 char wi_meta[] =
-	"{ doc='The u5C webinterface',"
+	"{ doc='A microblx webinterface',"
 	"  license='MIT',"
 	"  real-time=false,"
 	"}";
 
 struct webif_info {
-	struct u5c_node_info* ni;
+	struct ubx_node_info* ni;
 	struct mg_context *ctx;
 	struct mg_callbacks callbacks;
 	struct lua_State* L;
@@ -114,7 +114,7 @@ static int init_lua(struct webif_info* inf)
 	ret = luaL_dofile(inf->L, WEBIF_FILE);
 
 	if (ret) {
-		ERR("Failed to load u5c_webif.lua: %s\n", lua_tostring(inf->L, -1));
+		ERR("Failed to load ubx_webif.lua: %s\n", lua_tostring(inf->L, -1));
 		goto out;
 	}
 	ret=0;
@@ -123,7 +123,7 @@ static int init_lua(struct webif_info* inf)
 }
 
 
-static int wi_init(u5c_block_t *c)
+static int wi_init(ubx_block_t *c)
 {
 	int ret = -EOUTOFMEM;
 	struct webif_info* inf;
@@ -151,7 +151,7 @@ static int wi_init(u5c_block_t *c)
 	return ret;
 }
 
-static void wi_cleanup(u5c_block_t *c)
+static void wi_cleanup(ubx_block_t *c)
 {
 	DBG(" ");
 	struct webif_info* inf = (struct webif_info*) c->private_data;
@@ -159,7 +159,7 @@ static void wi_cleanup(u5c_block_t *c)
 	free(c->private_data);
 }
 
-static int wi_start(u5c_block_t *c)
+static int wi_start(ubx_block_t *c)
 {
 	char *port_num;
 	unsigned int port_num_len;
@@ -170,7 +170,7 @@ static int wi_start(u5c_block_t *c)
 	inf=(struct webif_info*) c->private_data;
 
 	/* read port config and set default if undefined */
-	port_num = (char *) u5c_config_get_data_ptr(c, "port", &port_num_len);
+	port_num = (char *) ubx_config_get_data_ptr(c, "port", &port_num_len);
 	port_num = (port_num_len==0) ?  "8080" : port_num;
 
 	DBG("starting mongoose on port %s", port_num);
@@ -188,7 +188,7 @@ static int wi_start(u5c_block_t *c)
 	return -1; 
 }
 
-static void wi_stop(u5c_block_t *c)
+static void wi_stop(ubx_block_t *c)
 {
 	struct webif_info *inf;
 	DBG("in");
@@ -197,7 +197,7 @@ static void wi_stop(u5c_block_t *c)
 }
 
 /* put everything together */
-u5c_block_t webif_comp = {
+ubx_block_t webif_comp = {
 	.name = "webif/webif",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = wi_meta,
@@ -210,17 +210,17 @@ u5c_block_t webif_comp = {
 	.cleanup = wi_cleanup,
 };
 
-static int webif_init(u5c_node_info_t* ni)
+static int webif_init(ubx_node_info_t* ni)
 {
 	DBG(" ");
 	global_ni=ni;
-	return u5c_block_register(ni, &webif_comp);
+	return ubx_block_register(ni, &webif_comp);
 }
 
-static void webif_cleanup(u5c_node_info_t *ni)
+static void webif_cleanup(ubx_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_block_unregister(ni, "webif/webif");
+	ubx_block_unregister(ni, "webif/webif");
 }
 
 module_init(webif_init)

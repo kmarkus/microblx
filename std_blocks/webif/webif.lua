@@ -1,9 +1,9 @@
 local ffi=require"ffi"
-local u5c=require"u5c"
+local ubx=require"ubx"
 local utils=require "utils"
 
 require "strict"
-local safe_ts = u5c.safe_tostr
+local safe_ts = ubx.safe_tostr
 
 -- Configuration
 num_type_cols=3
@@ -139,7 +139,7 @@ request method: %s, uri: %s, http_version: %s, query_string: %s, remote_user: %s
       os.date("%A %B %d, %Y, %X"))
 end
 
---- Generate html tables of the known u5c types.
+--- Generate html tables of the known ubx types.
 -- @param ni node_info
 -- @return string containing html
 function typelist_tohtml(ni)
@@ -147,7 +147,7 @@ function typelist_tohtml(ni)
    local entries={}
    local output={}
 
-   if u5c.num_types(ni) <= 0 then return "" end
+   if ubx.num_types(ni) <= 0 then return "" end
 
    output[#output+1]="<h2>Registered Types</h2>"
 
@@ -167,7 +167,7 @@ function typelist_tohtml(ni)
    end
 
    -- generate list of entries
-   u5c.types_foreach(ni, gen_type_entry)
+   ubx.types_foreach(ni, gen_type_entry)
 
    -- write then out in num_type_cols tables
    elem_per_tab = math.ceil(#entries/num_type_cols)
@@ -282,7 +282,7 @@ local function sysinfo()
    return table.concat(res, "\n")
 end
 
---- Stylesheet for the u5c webinterface
+--- Stylesheet for the ubx webinterface
 stylesheet_str=[[
 body{
    background-color: #CCE5F0;
@@ -320,26 +320,26 @@ td{ padding-right:10px; }
 
 
 local block_ops = {
-   init=u5c.block_init,
-   start=u5c.block_start,
-   stop=u5c.block_stop,
-   cleanup=u5c.block_cleanup,
+   init=ubx.block_init,
+   start=ubx.block_start,
+   stop=ubx.block_stop,
+   cleanup=ubx.block_cleanup,
    step=function(ni, b)
-	   if not u5c.is_cblock_instance(b) then return end
-	   u5c.cblock_step(b)
+	   if not ubx.is_cblock_instance(b) then return end
+	   ubx.cblock_step(b)
 	end,
    steponce=function(ni, b)
-	       if not u5c.is_cblock_instance(b) then return end
-	       u5c.block_start(ni, b)
-	       u5c.cblock_step(b)
-	       u5c.block_stop(ni, b)
+	       if not ubx.is_cblock_instance(b) then return end
+	       ubx.block_start(ni, b)
+	       ubx.cblock_step(b)
+	       ubx.block_stop(ni, b)
 	    end
 
 }
 
 function handle_post(ni, pd)
    local name, op = string.match(pd, "(%w+)=(%w+)")
-   local b = u5c.block_get(ni, name)
+   local b = ubx.block_get(ni, name)
    block_ops[op](ni, b)
 end
 
@@ -360,14 +360,14 @@ function show_block(ri, ni)
    local nodename = safe_ts(ni.name)
    local qstab = query_string_to_tab(safe_ts(ri.query_string))
    local blockname = qstab.name or " "
-   local b = u5c.block_get(ni, blockname)
+   local b = ubx.block_get(ni, blockname)
 
    if b==nil then
       local mes = "invalid blockname '"..blockname.."'"
       return html(mes, h(1,mes))
    end
 
-   local bt=u5c.block_totab(b)
+   local bt=ubx.block_totab(b)
 
    utils.foreach(conf_data_value_tostr, bt.configs)
 
@@ -375,14 +375,14 @@ function show_block(ri, ni)
    local conf_fields={ 'name', 'type_name', 'value' }
 
    return html(
-      "u5c node: "..nodename,
-      h(1, "u5c_node: "..a("/", nodename)..":"..blockname),
+      "ubx node: "..nodename,
+      h(1, "ubx_node: "..a("/", nodename)..":"..blockname),
       h(2, "Ports"),
       "<table>",
       table_fill_headline(port_fields),
       gen_row_data(bt.ports, port_fields),
       "</table>",
-      -- u5c.ports_tostr(bt.ports),
+      -- ubx.ports_tostr(bt.ports),
 
       "<br>",
       h(2, "Configuration"),
@@ -390,7 +390,7 @@ function show_block(ri, ni)
       table_fill_headline(conf_fields),
       gen_row_data(bt.configs, conf_fields),
       "</table>", "<br>",
-      -- u5c.configs_tostr(bt.configs),
+      -- ubx.configs_tostr(bt.configs),
       reqinf_tostr(ri))
 end
 
@@ -403,17 +403,17 @@ dispatch_table = {
    ["/"] = function(ri, ni, postdata)
 	      if postdata then handle_post(ni, postdata) end
 	      local nodename = safe_ts(ni.name)
-	      local protoblocks = u5c.blocks_map(ni, u5c.block_totab, u5c.is_proto)
-	      local cinst = u5c.blocks_map(ni, u5c.block_totab, u5c.is_cblock_instance)
-	      local iinst = u5c.blocks_map(ni, u5c.block_totab, u5c.is_iblock_instance)
+	      local protoblocks = ubx.blocks_map(ni, ubx.block_totab, ubx.is_proto)
+	      local cinst = ubx.blocks_map(ni, ubx.block_totab, ubx.is_cblock_instance)
+	      local iinst = ubx.blocks_map(ni, ubx.block_totab, ubx.is_iblock_instance)
 
 	      table.sort(protoblocks, function (one,two) return one.block_type<two.block_type end)
 	      table.sort(cinst, function (one,two) return one.name<two.name end)
 	      table.sort(iinst, function (one,two) return one.name<two.name end)
 
 	      return html(
-		 "u5c node: "..nodename,
-		 h(1, "u5c_node: "..a("/", nodename)),
+		 "ubx node: "..nodename,
+		 h(1, "ubx_node: "..a("/", nodename)),
 		 blocklist_tohtml(cinst, "Computational Blocks", cblock_table_fields),
 		 blocklist_tohtml(iinst, "Interaction Blocks", iblock_table_fields),
 		 blocklist_tohtml(protoblocks, "Prototype Blocks", protoblocks_table_fields),
@@ -431,12 +431,12 @@ dispatch_table = {
 
 function request_handler(node_info, request_info_lud, postdata)
    local reqinf = ffi.cast("struct mg_request_info*", request_info_lud)
-   local ni = ffi.cast("struct u5c_node_info*", node_info)
+   local ni = ffi.cast("struct ubx_node_info*", node_info)
 
    local uri = safe_ts(reqinf.uri)
    local handler = dispatch_table[uri]
 
-   u5c.ffi_load_types(ni)
+   ubx.ffi_load_types(ni)
 
    -- print("requesting uri", uri)
 

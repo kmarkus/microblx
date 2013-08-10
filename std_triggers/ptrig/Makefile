@@ -9,10 +9,10 @@ HEXARRS:=$(TYPES:%=%.hexarr)
 %.h.hexarr: %.h
 	../../tools/file2carr.lua $<
 
-ptrig.so: ptrig.o $(INCLUDE_DIR)/libu5c.so
-	${CC} $(CFLAGS_SHARED) -pthread -l:$(INCLUDE_DIR)/libu5c.so -o ptrig.so ptrig.o
+ptrig.so: ptrig.o $(INCLUDE_DIR)/libubx.so
+	${CC} $(CFLAGS_SHARED) -pthread -l:$(INCLUDE_DIR)/libubx.so -o ptrig.so ptrig.o
 
-ptrig.o: ptrig.c $(INCLUDE_DIR)/u5c.h $(INCLUDE_DIR)/u5c_types.h $(INCLUDE_DIR)/u5c.c $(HEXARRS)
+ptrig.o: ptrig.c $(INCLUDE_DIR)/ubx.h $(INCLUDE_DIR)/ubx_types.h $(INCLUDE_DIR)/ubx.c $(HEXARRS)
 	${CC} -fPIC -pthread -I$(INCLUDE_DIR) -c $(CFLAGS) ptrig.c
 
 clean:

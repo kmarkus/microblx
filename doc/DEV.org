@@ -1,4 +1,4 @@
-# u5c: fiveC compliant function block composition
+# ubx: fiveC compliant function block composition
 #+STARTUP: content
 #+STARTUP: hidestars
 
@@ -14,9 +14,9 @@
      -> separate spinlock or mutex?
 
 ** TODO [#A] test communicating struct types
-** TODO rename u5c -> microblx
+** TODO rename ubx -> microblx
 ** TODO component identification (from string to uid?)
-   - replace string as primary key by numeric u5c_block_id_t ?
+   - replace string as primary key by numeric ubx_block_id_t ?
      Advantage: would be easier to use for configuring trigger blocks,
      etc. -> easier for communicating block_id's via ports.
 
@@ -37,10 +37,15 @@
 ** TODO introduce typeid's: (like git commitish)
    - full name: package/struct foo or package/foo_t or
    - partial hash of name: 0a407a4f51ff2bb1f92a6ae611cb63fb
+
+** TODO webif: ubx_load_types is called upon every request.
+   - Find a way to only call if a new type was added.
+   
+
 ** DONE Test a minimal example with arrays of basic types
    CLOSED: [2013-07-02 Tue 21:38]
 
-** DONE u5c.data_tolua: deal with u5c_data_t multiplicity (len)!
+** DONE ubx.data_tolua: deal with ubx_data_t multiplicity (len)!
    CLOSED: [2013-08-10 Sat 13:30]
    and detect and pretty print strings
 ** DONE implement real cdata reflection on top of reflect.lua
@@ -65,7 +70,7 @@
 ** DONE load a configuration 
    CLOSED: [2013-06-27 Thu 22:41]
 
-** DONE introduce u5c.unload
+** DONE introduce ubx.unload
    CLOSED: [2013-06-28 Fri 12:41]
 
 ** DONE one +three+ lists for block prototypes and one for instances
@@ -77,11 +82,11 @@
 ------------------------------------------------------------------------------
 type: charctstrchar*
 type: random/struct random_configctstrstruct random___random*
-/usr/bin/luajit: ./lua/u5c.lua:267: undeclared or implicit tag 'random___random'
+/usr/bin/luajit: ./lua/ubx.lua:267: undeclared or implicit tag 'random___random'
 stack traceback:
 [C]: in function 'type_to_ctype'
-./lua/u5c.lua:267: in function 'data_to_cdata'
-./lua/u5c.lua:276: in function 'set_config'
+./lua/ubx.lua:267: in function 'data_to_cdata'
+./lua/ubx.lua:276: in function 'set_config'
 ./rnd_to_hexdump.lua:34: in main chunk
 [C]: at 0x00404ca0
 
@@ -111,11 +116,11 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
    CLOSED: [2013-06-12 Wed 12:54]
 
 
-** DONE Implement u5c_type_register/unregister
+** DONE Implement ubx_type_register/unregister
    CLOSED: [2013-06-11 Tue 13:09]
 ** DONE resolve types
    CLOSED: [2013-06-12 Wed 11:02]
-   -> in u5c_resolve_types: need to check whether port has namein or outport is 
+   -> in ubx_resolve_types: need to check whether port has namein or outport is 
 ** DONE test hexdump interaction with variable types
    CLOSED: [2013-06-12 Wed 12:55]
 ** DONE add namespace to struct type's string spec and load into ffi

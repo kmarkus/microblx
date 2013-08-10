@@ -1,33 +1,33 @@
 /*
- * u5c type a function definitions.
+ * ubx type a function definitions.
  *
- * This file is luajit-ffi parsable, the rest goes into u5c.h
+ * This file is luajit-ffi parsable, the rest goes into ubx.h
  */
 
 enum {
 	CONFIG_BLOCK_NAME_MAXLEN = 100,
 };
 
-struct u5c_type;
-struct u5c_data;
-struct u5c_block;
-struct u5c_node_info;
+struct ubx_type;
+struct ubx_data;
+struct ubx_block;
+struct ubx_node_info;
 
 /*
  * module and node
  */
-int __initialize_module(struct u5c_node_info *ni);
-void __cleanup_module(struct u5c_node_info *ni);
+int __initialize_module(struct ubx_node_info *ni);
+void __cleanup_module(struct ubx_node_info *ni);
 
 /* serialization */
-typedef struct u5c_serialization {
+typedef struct ubx_serialization {
 	const char* name;		/* serialization name */
 	const char* type;		/* serialization type */\
 
-	int(*serialize)(struct u5c_data*, char* buffer, uint32_t max_size);
-	int(*deserialize)(void*, struct u5c_data*);
+	int(*serialize)(struct ubx_data*, char* buffer, uint32_t max_size);
+	int(*deserialize)(void*, struct ubx_data*);
 	UT_hash_handle hh;
-} u5c_serialization_t;
+} ubx_serialization_t;
 
 
 /* type and value (data) */
@@ -38,22 +38,22 @@ enum {
 	TYPE_CLASS_CUSTOM	/* requires custom serialization */
 };
 
-typedef struct u5c_type {
+typedef struct ubx_type {
 	const char* name;		/* name: dir/header.h/struct foo*/
 	unsigned long seqid;		/* remember registration order for ffi parsing */
 	uint32_t type_class;		/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
 	unsigned long size;		/* size in bytes */
 	void* private_data;		/* private data. */
-	u5c_serialization_t* serializations;
+	ubx_serialization_t* serializations;
 	UT_hash_handle hh;
-} u5c_type_t;
+} ubx_type_t;
 
 
-typedef struct u5c_data {
-	const u5c_type_t* type;	/* link to u5c_type */
+typedef struct ubx_data {
+	const ubx_type_t* type;	/* link to ubx_type */
 	unsigned long len;	/* if length> 1 then length of array, else ignored */
 	void* data;		/* buffer with size (type->size * length) */
-} u5c_data_t;
+} ubx_data_t;
 
 
 /* Port attributes */
@@ -88,7 +88,7 @@ enum {
 /* Port
  * no distinction between type and value
  */
-typedef struct u5c_port {
+typedef struct ubx_port {
 	char* name;		/* name of port */
 	char* meta_data;		/* doc, etc. */
 
@@ -98,34 +98,34 @@ typedef struct u5c_port {
 	char* in_type_name;	/* string data type name */
 	char* out_type_name;	/* string data type name */
 
-	u5c_type_t* in_type;		/* resolved in automatically */
-	u5c_type_t* out_type;	 	/* resolved in automatically */
+	ubx_type_t* in_type;		/* resolved in automatically */
+	ubx_type_t* out_type;	 	/* resolved in automatically */
 
 	unsigned long in_data_len;	/* max array size of in/out data */
 	unsigned long out_data_len;
 
-	struct u5c_block** in_interaction;
-	struct u5c_block** out_interaction;
+	struct ubx_block** in_interaction;
+	struct ubx_block** out_interaction;
 
 	/* statistics */
 	unsigned long stat_writes;
 	unsigned long stat_reades;
 
 	/* todo time stats */
-} u5c_port_t;
+} ubx_port_t;
 
 
 /*
- * u5c configuration
+ * ubx configuration
  */
-typedef struct u5c_config {
+typedef struct ubx_config {
 	char* name;
 	char* type_name;
-	u5c_data_t value;
-} u5c_config_t;
+	ubx_data_t value;
+} ubx_config_t;
 
 /*
- * u5c block
+ * ubx block
  */
 
 /* Block types */
@@ -141,28 +141,28 @@ enum {
 };
 
 /* block definition */
-typedef struct u5c_block {
+typedef struct ubx_block {
 	char* name;		/* type name */
 	char* meta_data;	/* doc, etc. */
 	uint32_t type;		/* type, (computation, interaction) */
 
-	u5c_port_t* ports;
-	u5c_config_t* configs;
+	ubx_port_t* ports;
+	ubx_config_t* configs;
 
 	int block_state;  /* state of lifecycle */
 	char *prototype; /* name of prototype, NULL if none */
 
 
-	int(*init) (struct u5c_block*);
-	int(*start) (struct u5c_block*);
-	void(*stop) (struct u5c_block*);
-	void(*cleanup) (struct u5c_block*);
+	int(*init) (struct ubx_block*);
+	int(*start) (struct ubx_block*);
+	void(*stop) (struct ubx_block*);
+	void(*cleanup) (struct ubx_block*);
 
 	/* type dependent block methods */
 	union {
 		/* COMP_TYPE_COMPUTATION */
 		struct {
-			void(*step) (struct u5c_block*);
+			void(*step) (struct ubx_block*);
 
 			/* statistics, todo step duration */
 			unsigned long stat_num_steps;
@@ -172,8 +172,8 @@ typedef struct u5c_block {
 		struct {
 			/* read and write: these are implemented by interactions and
 			 * called by the ports read/write */
-			int(*read)(struct u5c_block* interaction, u5c_data_t* value);
-			void(*write)(struct u5c_block* interaction, u5c_data_t* value);
+			int(*read)(struct ubx_block* interaction, ubx_data_t* value);
+			void(*write)(struct ubx_block* interaction, ubx_data_t* value);
 			unsigned long stat_num_reads;
 			unsigned long stat_num_writes;
 		};
@@ -185,15 +185,15 @@ typedef struct u5c_block {
 
 	UT_hash_handle hh;
 
-} u5c_block_t;
+} ubx_block_t;
 
 
 /* node information
  * holds references to all known blocks and types
  */
-typedef struct u5c_node_info {
+typedef struct ubx_node_info {
 	const char *name;
-	u5c_block_t *blocks; /* instances, only one list */
-	u5c_type_t *types; /* known types */
+	ubx_block_t *blocks; /* instances, only one list */
+	ubx_type_t *types; /* known types */
 	unsigned long cur_seqid;
-} u5c_node_info_t;
+} ubx_node_info_t;

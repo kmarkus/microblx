@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "u5c.h"
+#include "ubx.h"
 
 char hexdumpmeta[] =
 	"{ doc='hexdump interaction',"
@@ -33,14 +33,14 @@ static void hexdump(unsigned char *buf, unsigned long index, unsigned long width
 	printf("\n");
 }
 
-static void hexdump_write(u5c_block_t *i, u5c_data_t* data) {
+static void hexdump_write(ubx_block_t *i, ubx_data_t* data) {
 	const char* typename = get_typename(data);
 	printf("hexdump (%s): ", (typename!=NULL) ? typename : "unknown");
 	hexdump(data->data, data_len(data), 16);
 }
 
 /* put everything together */
-u5c_block_t hexdump_comp = {
+ubx_block_t hexdump_comp = {
 	.name = "hexdump/hexdump",
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = hexdumpmeta,
@@ -49,16 +49,16 @@ u5c_block_t hexdump_comp = {
 	.write=hexdump_write,
 };
 
-static int hexdump_mod_init(u5c_node_info_t* ni)
+static int hexdump_mod_init(ubx_node_info_t* ni)
 {
 	DBG(" ");	
-	return u5c_block_register(ni, &hexdump_comp);
+	return ubx_block_register(ni, &hexdump_comp);
 }
 
-static void hexdump_mod_cleanup(u5c_node_info_t *ni)
+static void hexdump_mod_cleanup(ubx_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_block_unregister(ni, "hexdump/hexdump");
+	ubx_block_unregister(ni, "hexdump/hexdump");
 }
 
 module_init(hexdump_mod_init)

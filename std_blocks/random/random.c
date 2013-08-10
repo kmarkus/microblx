@@ -8,12 +8,12 @@
 #include <stdlib.h>
 #include <limits.h>
 
-#include "u5c.h"
+#include "ubx.h"
 
 #include "types/random_config.h"
 #include "types/random_config.h.hexarr"
 
-u5c_type_t random_config_type = {
+ubx_type_t random_config_type = {
 	.name="random/struct random_config",
 	.type_class=TYPE_CLASS_STRUCT,
 	.size=sizeof(struct random_config),
@@ -45,13 +45,13 @@ char rnd_meta[] =
  *
  * if an array is required, then .value = { .len=<LENGTH> } can be used.
  */
-u5c_config_t rnd_config[] = {
+ubx_config_t rnd_config[] = {
 	{ .name="min_max_config", .type_name = "random/struct random_config" },
 	{ NULL },
 };
 
 
-u5c_port_t rnd_ports[] = {
+ubx_port_t rnd_ports[] = {
 	{ .name="seed", .attrs=PORT_DIR_IN, .in_type_name="unsigned int" },
 	{ .name="rnd", .attrs=PORT_DIR_OUT, .out_type_name="unsigned int" },
 	{ NULL },
@@ -66,7 +66,7 @@ struct random_info {
 def_read_fun(read_uint, unsigned int)
 def_write_fun(write_uint, unsigned int)
 
-static int rnd_init(u5c_block_t *c)
+static int rnd_init(ubx_block_t *c)
 {
 	int ret=0;
 
@@ -83,13 +83,13 @@ static int rnd_init(u5c_block_t *c)
 }
 
 
-static void rnd_cleanup(u5c_block_t *c)
+static void rnd_cleanup(ubx_block_t *c)
 {
 	DBG(" ");
 	free(c->private_data);
 }
 
-static int rnd_start(u5c_block_t *c)
+static int rnd_start(ubx_block_t *c)
 {
 	DBG("in");
 	uint32_t seed, ret;
@@ -100,12 +100,12 @@ static int rnd_start(u5c_block_t *c)
 	inf=(struct random_info*) c->private_data;
 
 	/* get and store min_max_config */
-	rndconf = (struct random_config*) u5c_config_get_data_ptr(c, "min_max_config", &clen);
+	rndconf = (struct random_config*) ubx_config_get_data_ptr(c, "min_max_config", &clen);
 	inf->min = rndconf->min;
 	inf->max = (rndconf->max == 0) ? INT_MAX : rndconf->max;
 
 	/* seed is allowed to change at runtime, check if new one available */
-	u5c_port_t* seed_port = u5c_port_get(c, "seed");
+	ubx_port_t* seed_port = ubx_port_get(c, "seed");
 	ret = read_uint(seed_port, &seed);
 	if(ret==PORT_READ_NEWDATA) {
 		DBG("starting component. Using seed: %d, min: %d, max: %d", seed, inf->min, inf->max);
@@ -116,13 +116,13 @@ static int rnd_start(u5c_block_t *c)
 	return 0; /* Ok */
 }
 
-static void rnd_step(u5c_block_t *c) {
+static void rnd_step(ubx_block_t *c) {
 	unsigned int rand_val;
 	struct random_info* inf;
 
 	inf=(struct random_info*) c->private_data;
 
-	u5c_port_t* rand_port = u5c_port_get(c, "rnd");
+	ubx_port_t* rand_port = ubx_port_get(c, "rnd");
 	rand_val = random();
 	rand_val = (rand_val > inf->max) ? (rand_val%inf->max) : rand_val;
 	rand_val = (rand_val < inf->min) ? ((inf->min + rand_val)%inf->max) : rand_val;
@@ -132,7 +132,7 @@ static void rnd_step(u5c_block_t *c) {
 
 
 /* put everything together */
-u5c_block_t random_comp = {
+ubx_block_t random_comp = {
 	.name = "random/random",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = rnd_meta,
@@ -146,17 +146,17 @@ u5c_block_t random_comp = {
 	.cleanup = rnd_cleanup,
 };
 
-static int random_init(u5c_node_info_t* ni)
+static int random_init(ubx_node_info_t* ni)
 {
 	DBG(" ");
-	u5c_type_register(ni, &random_config_type);
-	return u5c_block_register(ni, &random_comp);
+	ubx_type_register(ni, &random_config_type);
+	return ubx_block_register(ni, &random_comp);
 }
 
-static void random_cleanup(u5c_node_info_t *ni)
+static void random_cleanup(ubx_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_block_unregister(ni, "random/random");
+	ubx_block_unregister(ni, "random/random");
 }
 
 module_init(random_init)

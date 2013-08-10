@@ -9,12 +9,12 @@
 
 #include "liblfds611/inc/liblfds611.h"
 
-#include "u5c.h"
+#include "ubx.h"
 
 /* meta-data */
 char cyclic_meta[] =
 	"{ doc='High perforance scalable, lock-free cyclic, buffered in process communication"
-	"  description=[[This u5c interaction is based on based on liblfds"
+	"  description=[[This ubx interaction is based on based on liblfds"
 	"                ringbuffer (v0.6.1.1) (www.liblfds.org)]],"
 	"  version=0.01,"
 	"  license='MIT',"
@@ -22,7 +22,7 @@ char cyclic_meta[] =
 	"}";
 
 /* configuration */
-u5c_config_t cyclic_config[] = {
+ubx_config_t cyclic_config[] = {
 	{ .name="element_num", .type_name = "uint32_t" },
 	{ .name="element_size", .type_name = "uint32_t" },
 	{ NULL },
@@ -32,7 +32,7 @@ u5c_config_t cyclic_config[] = {
 struct cyclic_block_info {
 	unsigned long num;		/* number of elements */
 	unsigned long size;		/* buffer size of each element */
-	const u5c_type_t* type;		/* type of contained elements */
+	const ubx_type_t* type;		/* type of contained elements */
 	struct lfds611_ringbuffer_state *rbs;
 
 	unsigned long overruns;		/* stats */
@@ -57,7 +57,7 @@ void cyclic_data_elem_del(void *user_data, void *user_state)
 }
 
 /* init */
-static int cyclic_init(u5c_block_t *i)
+static int cyclic_init(ubx_block_t *i)
 {
 	int ret = -1;
 	unsigned int len;
@@ -72,14 +72,14 @@ static int cyclic_init(u5c_block_t *i)
 	bbi = (struct cyclic_block_info*) i->private_data;
 
 	/* read/check configuration */
-	bbi->num = *((uint32_t*) u5c_config_get_data_ptr(i, "element_num", &len));
+	bbi->num = *((uint32_t*) ubx_config_get_data_ptr(i, "element_num", &len));
 	if(bbi->num==0) {
 		ERR("invalid configuration element_num=0");
 		ret = EINVALID_CONFIG;
 		goto out_free_priv_data;
 	}
 
-	bbi->size = *((uint32_t*) u5c_config_get_data_ptr(i, "element_size", &len));
+	bbi->size = *((uint32_t*) ubx_config_get_data_ptr(i, "element_size", &len));
 	if(bbi->size==0) {
 		ERR("invalid configuration cyclic_size 0");
 		ret = EINVALID_CONFIG;
@@ -102,7 +102,7 @@ static int cyclic_init(u5c_block_t *i)
 };
 
 /* cleanup */
-static void cyclic_cleanup(u5c_block_t *i)
+static void cyclic_cleanup(ubx_block_t *i)
 {
 	struct cyclic_block_info *bbi;
 	bbi = (struct cyclic_block_info*) i->private_data;
@@ -111,7 +111,7 @@ static void cyclic_cleanup(u5c_block_t *i)
 }
 
 /* write */
-static void cyclic_write(u5c_block_t *i, u5c_data_t* msg)
+static void cyclic_write(ubx_block_t *i, ubx_data_t* msg)
 {
 	int ret;
 	long len;
@@ -154,7 +154,7 @@ static void cyclic_write(u5c_block_t *i, u5c_data_t* msg)
 }
 
 /* where to check whether the msg->data len is long enough? */
-static int cyclic_read(u5c_block_t *i, u5c_data_t* msg)
+static int cyclic_read(ubx_block_t *i, ubx_data_t* msg)
 {
 	int ret;
 	unsigned long readsz;
@@ -183,7 +183,7 @@ static int cyclic_read(u5c_block_t *i, u5c_data_t* msg)
 }
 
 /* put everything together */
-u5c_block_t cyclic_comp = {
+ubx_block_t cyclic_comp = {
 	.name = "lfds_buffers/cyclic",
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = cyclic_meta,
@@ -197,16 +197,16 @@ u5c_block_t cyclic_comp = {
 	.read=cyclic_read,
 };
 
-static int cyclic_mod_init(u5c_node_info_t* ni)
+static int cyclic_mod_init(ubx_node_info_t* ni)
 {
 	DBG(" ");
-	return u5c_block_register(ni, &cyclic_comp);
+	return ubx_block_register(ni, &cyclic_comp);
 }
 
-static void cyclic_mod_cleanup(u5c_node_info_t *ni)
+static void cyclic_mod_cleanup(ubx_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_block_unregister(ni, "lfds_buffers/cyclic");
+	ubx_block_unregister(ni, "lfds_buffers/cyclic");
 }
 
 module_init(cyclic_mod_init)

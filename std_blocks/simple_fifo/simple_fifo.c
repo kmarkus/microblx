@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#include "u5c.h"
+#include "ubx.h"
 
 /* meta-data */
 char fifometa[] =
@@ -23,7 +23,7 @@ char fifometa[] =
 	"}";
 
 /* configuration */
-u5c_config_t fifo_config[] = {
+ubx_config_t fifo_config[] = {
 	{ .name="fifo_size", .type_name = "uint32_t" },
 	{ .name="overrun_policy", .type_name = "uint32_t" },
 	{ NULL },
@@ -36,7 +36,7 @@ struct fifo_block_info {
 	uint8_t *buff;
 	uint8_t *rdptr;
 	uint8_t *wrptr;
-	const u5c_type_t* type;		/* the type handled, set on first write */
+	const ubx_type_t* type;		/* the type handled, set on first write */
 	uint32_t overrun_policy;
 	pthread_mutex_t mutex; 		/* naive mutex implementation */
 	unsigned long overruns;		/* stats */
@@ -48,7 +48,7 @@ enum {
 };
 
 /* init */
-static int fifo_init(u5c_block_t *i)
+static int fifo_init(ubx_block_t *i)
 {
 	int ret = -1;
 	struct fifo_block_info* bbi;
@@ -61,7 +61,7 @@ static int fifo_init(u5c_block_t *i)
 	bbi = (struct fifo_block_info*) i->private_data;
 	pthread_mutex_init(&bbi->mutex, NULL);
 
-	bbi->size = *((uint32_t*) u5c_config_get_data(i, "fifo_size"));
+	bbi->size = *((uint32_t*) ubx_config_get_data(i, "fifo_size"));
 
 	if(bbi->size==0) {
 		/* goto out; */
@@ -89,7 +89,7 @@ static int fifo_init(u5c_block_t *i)
 };
 
 /* cleanup */
-static void fifo_cleanup(u5c_block_t *i)
+static void fifo_cleanup(ubx_block_t *i)
 {
 	struct fifo_block_info *bbi;
 	bbi = (struct fifo_block_info*) i->private_data;
@@ -109,7 +109,7 @@ static void fifo_cleanup(u5c_block_t *i)
 	 : (bbi->wrptr - bbi->rdptr))
 
 /* write */
-static void fifo_write(u5c_block_t *i, u5c_data_t* msg)
+static void fifo_write(ubx_block_t *i, ubx_data_t* msg)
 {
 	int ret;
 	long len, empty, len2=0;
@@ -194,7 +194,7 @@ static void fifo_write(u5c_block_t *i, u5c_data_t* msg)
 }
 
 /* read */
-static int fifo_read(u5c_block_t *i, u5c_data_t* msg)
+static int fifo_read(ubx_block_t *i, ubx_data_t* msg)
 {
 	int ret;
 	unsigned long readsz=0, readsz1=0, readsz2=0, used;
@@ -243,7 +243,7 @@ static int fifo_read(u5c_block_t *i, u5c_data_t* msg)
 }
 
 /* put everything together */
-u5c_block_t fifo_comp = {
+ubx_block_t fifo_comp = {
 	.name = "examples/simple_fifo",
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = fifometa,
@@ -257,16 +257,16 @@ u5c_block_t fifo_comp = {
 	.read=fifo_read,
 };
 
-static int fifo_mod_init(u5c_node_info_t* ni)
+static int fifo_mod_init(ubx_node_info_t* ni)
 {
 	DBG(" ");
-	return u5c_block_register(ni, &fifo_comp);
+	return ubx_block_register(ni, &fifo_comp);
 }
 
-static void fifo_mod_cleanup(u5c_node_info_t *ni)
+static void fifo_mod_cleanup(ubx_node_info_t *ni)
 {
 	DBG(" ");
-	u5c_block_unregister(ni, "examples/simple_fifo");
+	ubx_block_unregister(ni, "examples/simple_fifo");
 }
 
 module_init(fifo_mod_init)
