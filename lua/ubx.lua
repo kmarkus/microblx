@@ -388,12 +388,9 @@ function data_to_cdata(d)
 end
 
 function M.data_resize(d, newlen)
-   -- print("changing len from", tonumber(d.len), " to ", newlen)
-   if ubx.ubx_data_resize(d, newlen) == 0 then
-      return true
-   else
-      return false
-   end
+   print("changing len from", tonumber(d.len), " to ", newlen)
+   if ubx.ubx_data_resize(d, newlen) == 0 then return true
+   else return false end
 end
 
 --- Assign a value to a ubx_data
@@ -421,7 +418,9 @@ function M.data_set(d, val, resize)
 	    d_cdata[idx]=v
 	 end
       end
-   elseif val_type=='string' then ffi.copy(d_cdata, val, #val)
+   elseif val_type=='string' then
+      if d.len<#val+1 then M.data_resize(d, #val+1) end
+      ffi.copy(d_cdata, val, #val)
    elseif val_type=='number' then d_cdata[0]=val
    else
       error("set_config: don't know how to assign "..
