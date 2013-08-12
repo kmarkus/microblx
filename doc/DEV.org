@@ -7,14 +7,38 @@
 ** TODO [#A] make an example of how to use C++
 ** TODO [#A] develop a generic luajit based block
 ** TODO [#A] locking
-   - suggestion: rw-locks (or uRCU?)
-     - trigger and inspecting interface must use reader-lock
-     - changing state or interface must use writer lock
-   - locking step?
-     -> separate spinlock or mutex?
+   + Options
+     - rw-locks (or uRCU?)
+
+   + Required locking
+     - access to node_info
+     - access to blocks
+       
+   + *node_info locking rules*
+
+     - writer lock
+       - ubx_node_cleanup
+       - ubx_block_[un]register
+       - ubx_type_[un]register
+
+     - reader lock
+       - ubx_num_blocks, ubx_num_types
+
+   + *block locking rules*
+
+     - writer lock
+       1. ubx_node_[init|cleanup|start|stop|
+       2. set ubx_config_data (TODO!)
+       3. =ubx_connect[_one]= (writer lock on (each) involved cblock)
+
+     - reader lock
+       1. stepping a block =ubx_node_step=
+       2. reading configuration =ubx_config_get[_data]=
+
+     - interactions must handle their own locking.
+
 
 ** TODO [#A] test communicating struct types
-** TODO rename ubx -> microblx
 ** TODO component identification (from string to uid?)
    - replace string as primary key by numeric ubx_block_id_t ?
      Advantage: would be easier to use for configuring trigger blocks,
@@ -41,6 +65,9 @@
 ** TODO webif: ubx_load_types is called upon every request.
    - Find a way to only call if a new type was added.
    
+
+** DONE rename ubx -> microblx
+   CLOSED: [2013-08-10 Sat 14:07]
 
 ** DONE Test a minimal example with arrays of basic types
    CLOSED: [2013-07-02 Tue 21:38]
