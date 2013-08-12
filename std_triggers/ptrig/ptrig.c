@@ -51,10 +51,12 @@ int trigger_steps(struct ptrig_inf *inf)
 {
 	int i, steps, res=-1;
 
-	for(i=0; i<inf->trig_list_len; i++)
-		for(steps=0; steps<inf->trig_list[i].num_steps; i++)
+	for(i=0; i<inf->trig_list_len; i++) {
+		for(steps=0; steps<inf->trig_list[i].num_steps; steps++) {
 			if(ubx_cblock_step(inf->trig_list[i].b)!=0)
 				goto out;
+		}
+	}
 
 	res=0;
  out:
