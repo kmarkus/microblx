@@ -5,7 +5,9 @@
 * Next steps
   
 ** TODO [#A] make an example of how to use C++
-** TODO [#A] develop a generic luajit based block
+** DONE [#A] develop a generic luajit based block
+   CLOSED: [2013-08-12 Mon 17:42]
+** TODO add methods [add|rm}_[port|config]
 ** TODO [#A] locking
    + Options
      - rw-locks (or uRCU?)
