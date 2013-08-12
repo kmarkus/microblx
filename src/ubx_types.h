@@ -89,14 +89,14 @@ enum {
  * no distinction between type and value
  */
 typedef struct ubx_port {
-	char* name;		/* name of port */
-	char* meta_data;		/* doc, etc. */
+	const char* name;		/* name of port */
+	const char* meta_data;		/* doc, etc. */
 
 	uint32_t attrs;			/* FP_DIR_IN or FP_DIR_OUT */
 	uint32_t state;			/* active/inactive */
 
-	char* in_type_name;	/* string data type name */
-	char* out_type_name;	/* string data type name */
+	const char* in_type_name;	/* string data type name */
+	const char* out_type_name;	/* string data type name */
 
 	ubx_type_t* in_type;		/* resolved in automatically */
 	ubx_type_t* out_type;	 	/* resolved in automatically */
@@ -119,8 +119,8 @@ typedef struct ubx_port {
  * ubx configuration
  */
 typedef struct ubx_config {
-	char* name;
-	char* type_name;
+	const char* name;
+	const char* type_name;
 	ubx_data_t value;
 } ubx_config_t;
 
@@ -142,8 +142,8 @@ enum {
 
 /* block definition */
 typedef struct ubx_block {
-	char* name;		/* type name */
-	char* meta_data;	/* doc, etc. */
+	const char* name;	/* type name */
+	const char* meta_data;	/* doc, etc. */
 	uint32_t type;		/* type, (computation, interaction) */
 
 	ubx_port_t* ports;

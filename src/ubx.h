@@ -3,6 +3,11 @@
  * pure C
  */
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -87,3 +92,6 @@ uint32_t function_name(ubx_port_t* port, typename *inval) \
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
+#ifdef __cplusplus
+}
+#endif

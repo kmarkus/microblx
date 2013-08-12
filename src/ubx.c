@@ -308,7 +308,7 @@ int ubx_resolve_types(ubx_node_info_t* ni, ubx_block_t* b)
  *
  * @return ubx_data_t* or NULL in case of error.
  */
-ubx_data_t* ubx_data_alloc(ubx_node_info_t *ni, const char* typename, unsigned long array_len)
+ubx_data_t* ubx_data_alloc(ubx_node_info_t *ni, const char* typname, unsigned long array_len)
 {
 	ubx_type_t* t = NULL;
 	ubx_data_t* d = NULL;
@@ -318,8 +318,8 @@ ubx_data_t* ubx_data_alloc(ubx_node_info_t *ni, const char* typename, unsigned l
 		goto out;
 	}
 
-	if((t=ubx_type_get(ni, typename))==NULL) {
-		ERR("unknown type '%s'", typename);
+	if((t=ubx_type_get(ni, typname))==NULL) {
+		ERR("unknown type '%s'", typname);
 		goto out;
 	}
 
@@ -439,14 +439,14 @@ int ubx_num_types(ubx_node_info_t* ni) { return HASH_COUNT(ni->types); }
  */
 static void ubx_port_free_data(ubx_port_t* p)
 {
-	if(p->out_type_name) free(p->out_type_name);
-	if(p->in_type_name) free(p->in_type_name);
+	if(p->out_type_name) free((char*) p->out_type_name);
+	if(p->in_type_name) free((char*) p->in_type_name);
 
-	if(p->in_interaction) free(p->in_interaction);
-	if(p->out_interaction) free(p->out_interaction);
+	if(p->in_interaction) free((char*) p->in_interaction);
+	if(p->out_interaction) free((char*) p->out_interaction);
 
-	if(p->meta_data) free(p->meta_data);
-	if(p->name) free(p->name);
+	if(p->meta_data) free((char*) p->meta_data);
+	if(p->name) free((char*) p->name);
 }
 
 /**
@@ -502,8 +502,8 @@ static int ubx_clone_port_data(const ubx_port_t *psrc, ubx_port_t *pcopy)
  */
 static void ubx_free_config_data(ubx_config_t *c)
 {
-	if(c->name) free(c->name);
-	if(c->type_name) free(c->type_name);
+	if(c->name) free((char*) c->name);
+	if(c->type_name) free((char*) c->type_name);
 	if(c->value.data) free(c->value.data);
 }
 
@@ -581,8 +581,8 @@ void ubx_block_free(ubx_node_info_t *ni, ubx_block_t *b)
 	}
 
 	if(b->prototype) free(b->prototype);
-	if(b->meta_data) free(b->meta_data);
-	if(b->name) free(b->name);
+	if(b->meta_data) free((char*) b->meta_data);
+	if(b->name) free((char*) b->name);
 	if(b) free(b);
 }
 
