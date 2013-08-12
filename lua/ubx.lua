@@ -1,4 +1,4 @@
---- u5C Lua interface
+--- microblx Lua interface
 local ffi=require "ffi"
 local cdata = require "lua/cdata"
 local ubx_utils = require "lua/ubx_utils"
@@ -516,7 +516,6 @@ function M.block_totab(b)
    end
 
    if b==nil then error("NULL block") end
-   print("converting block ", M.safe_tostr(b.name))
    local res = {}
    res.name=M.safe_tostr(b.name)
    res.block_type=M.block_type_tostr[b.type]

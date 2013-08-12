@@ -47,10 +47,8 @@ end
 function query_string_to_tab(qs)
    local res = {}
    local keyvals=split(qs, "&")
-   print("keyvals", utils.tab2str(keyvals))
    for _,kv in ipairs(keyvals) do
       local k,v = string.match(kv, "^(%w+)=([%w/_]+)$")
-      print("k,v:",k,v)
       res[k]=v
    end
    return res

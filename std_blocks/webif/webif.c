@@ -15,7 +15,7 @@
 #include "mongoose.h"
 #include "ubx.h"
 
-#define WEBIF_FILE "/home/mk/prog/c/ubx/std_blocks/webif/webif.lua"
+#define WEBIF_FILE "/home/mk/prog/c/microblx/std_blocks/webif/webif.lua"
 
 /* make this configuration */
 static struct ubx_node_info *global_ni;
