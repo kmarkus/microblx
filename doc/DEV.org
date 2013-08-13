@@ -4,10 +4,7 @@
 
 * Next steps
   
-** TODO [#A] make an example of how to use C++
-** DONE [#A] develop a generic luajit based block
-   CLOSED: [2013-08-12 Mon 17:42]
-** TODO add methods [add|rm}_[port|config]
+** TODO [#A] add methods [add|rm}_[port|config]
 ** TODO [#A] locking
    + Options
      - rw-locks (or uRCU?)
@@ -46,7 +43,22 @@
      Advantage: would be easier to use for configuring trigger blocks,
      etc. -> easier for communicating block_id's via ports.
 
-** TODO test compilation with g++ and clang++ (*sigh*)
+** TODO type id comparison: remote use SHA1 (parts) and local type-ptr
+** TODO introduce typeid's: (like git commitish)
+   - full name: package/struct foo or package/foo_t or
+   - partial hash of name: 0a407a4f51ff2bb1f92a6ae611cb63fb
+
+** TODO webif: ubx_load_types is called upon every request.
+   - Find a way to only call if a new type was added.
+   
+
+** DONE [#A] make an example of how to use C++
+   CLOSED: [2013-08-13 Tue 13:38]
+** DONE [#A] develop a generic luajit based block
+   CLOSED: [2013-08-12 Mon 17:42]
+
+** DONE test compilation with g++ and clang++ (*sigh*)
+   CLOSED: [2013-08-13 Tue 13:38]
    #ifdef __cplusplus
    # define REALLOC(ptr, size, type) ((type *)realloc(ptr, size))
    #else
@@ -59,14 +71,9 @@
    # define MALLOC(type, count) (calloc(count, sizeof(type)))
    #endif
 
-** TODO type id comparison: remote use SHA1 (parts) and local type-ptr
-** TODO introduce typeid's: (like git commitish)
-   - full name: package/struct foo or package/foo_t or
-   - partial hash of name: 0a407a4f51ff2bb1f92a6ae611cb63fb
+   - above wasn't necessary, but only clang++ works for now because
+     gcc doesn't support non-trivial designated initializers.
 
-** TODO webif: ubx_load_types is called upon every request.
-   - Find a way to only call if a new type was added.
-   
 
 ** DONE rename ubx -> microblx
    CLOSED: [2013-08-10 Sat 14:07]
@@ -529,8 +536,4 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
 
 
 
-* Debunking (robotic) software framework myths
-
-  - They are very complicated and hence must be developed my many
-    people or by few people for a long time.
 
