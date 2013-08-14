@@ -147,6 +147,7 @@ M.cblock_step = ubx.ubx_cblock_step
 
 --- Port and Connections handling
 M.block_port_get = ubx.ubx_port_get
+M.port_add = ubx.ubx_port_add
 M.connect_one = ubx.ubx_connect_one
 
 M.block_get = ubx.ubx_block_get

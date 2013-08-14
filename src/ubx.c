@@ -258,9 +258,7 @@ int ubx_resolve_types(ubx_node_info_t* ni, ubx_block_t* b)
 					goto out;
 				}
 				port_ptr->in_type=typ;
-
 			}
-
 
 			/* out-type */
 			if(port_ptr->out_type_name) {
@@ -436,7 +434,7 @@ int ubx_num_types(ubx_node_info_t* ni) { return HASH_COUNT(ni->types); }
  * ubx_port_free_data - free additional memory used by port.
  *
  * @param p port pointer
- */
+L */
 static void ubx_port_free_data(ubx_port_t* p)
 {
 	if(p->out_type_name) free((char*) p->out_type_name);
@@ -453,46 +451,60 @@ static void ubx_port_free_data(ubx_port_t* p)
  * ubx_clone_port_data - clone the additional port data
  *
  * @param psrc pointer to the source port
- * @param pcopy pointer to the existing target port
+ * @param TODO update.
  *
  * @return less than zero if an error occured, 0 otherwise.
  *
  * This function allocates memory.
  */
-static int ubx_clone_port_data(const ubx_port_t *psrc, ubx_port_t *pcopy)
+static int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta_data,
+			       const char* in_type_name, unsigned long in_data_len,
+			       const char* out_type_name, unsigned long out_data_len, uint32_t state)
 {
-	/* DBG("cloning port 0x%lx, '%s'\n", (uint64_t) psrc, psrc->name); */
 
-	memset(pcopy, 0x0, sizeof(ubx_port_t));
+	int ret=EOUTOFMEM;
 
-	if((pcopy->name=strdup(psrc->name))==NULL)
+	if(!name) {
+		ERR("port name is mandatory");
+		goto out;
+	}
+
+	memset(p, 0x0, sizeof(ubx_port_t));
+
+	if((p->name=strdup(name))==NULL)
 		goto out_err;
 
-	if(psrc->meta_data)
-		if((pcopy->meta_data=strdup(psrc->meta_data))==NULL)
+	if(meta_data)
+		if((p->meta_data=strdup(meta_data))==NULL)
 			goto out_err_free;
 
-	if(psrc->in_type_name)
-		if((pcopy->in_type_name=strdup(psrc->in_type_name))==NULL)
+	if(in_type_name) {
+		if((p->in_type_name=strdup(in_type_name))==NULL)
 			goto out_err_free;
+		p->attrs|=PORT_DIR_IN;
+	}
 
-	if(psrc->out_type_name)
-		if((pcopy->out_type_name=strdup(psrc->out_type_name))==NULL)
+	if(out_type_name) {
+		if((p->out_type_name=strdup(out_type_name))==NULL)
 			goto out_err_free;
+		p->attrs|=PORT_DIR_OUT;
+	}
 
-	pcopy->in_data_len = (psrc->in_data_len==0) ? 1 : psrc->in_data_len;
-	pcopy->out_data_len = (psrc->out_data_len==0) ? 1 : psrc->out_data_len;
+	p->in_data_len = (in_data_len==0) ? 1 : in_data_len;
+	p->out_data_len = (out_data_len==0) ? 1 : out_data_len;
 
-	pcopy->attrs=psrc->attrs;
-	pcopy->state=psrc->state;
+	p->state=state;
 
 	/* all ok */
-	return 0;
+	ret=0;
+	goto out;
 
  out_err_free:
-	ubx_port_free_data(pcopy);
+	ubx_port_free_data(p);
  out_err:
- 	return -1;
+	ERR("out of memory");
+ out:
+ 	return ret;
 }
 
 /**
@@ -637,7 +649,10 @@ static ubx_block_t* ubx_block_clone(ubx_node_info_t* ni, ubx_block_t* prot, cons
 			goto out_free;
 
 		for(srcport=prot->ports, tgtport=newb->ports; srcport->name!=NULL; srcport++,tgtport++) {
-			if(ubx_clone_port_data(srcport, tgtport) != 0)
+			if(ubx_clone_port_data(tgtport, srcport->name, srcport->meta_data,
+					       srcport->in_type_name, srcport->in_data_len,
+					       srcport->out_type_name, srcport->out_data_len,
+					       srcport->state) != 0)
 				goto out_free;
 		}
 	}
@@ -938,10 +953,62 @@ void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *le
 	return ret;
 }
 
-
 /*
  * Ports
  */
+
+
+/**
+ * @brief ubx_port_add - a port to a block instance and resolve types.
+ *
+ *
+ */
+int ubx_port_add(ubx_block_t* b, const char* name, const char* meta_data,
+		 const char* in_type_name, unsigned long in_data_len,
+		 const char* out_type_name, unsigned long out_data_len, uint32_t state)
+{
+	int i, ret=-1;
+	ubx_port_t* parr;
+
+	if(b==NULL) {
+		ERR("block is NULL");
+		goto out;
+	}
+
+	if(b->prototype==NULL) {
+		ERR("modifying prototype block not allowed");
+		goto out;
+	}
+
+	if(b->ports==NULL)
+		i=0;
+	else
+		for(i=0; b->ports[i].name!=NULL; i++); /* find number of ports */
+
+	parr=realloc(b->ports, (i+2) * sizeof(ubx_port_t));
+
+	if(parr==NULL) {
+		ERR("out of mem, port not added.");
+		goto out;
+	}
+
+	b->ports=parr;
+
+	ret=ubx_clone_port_data(&b->ports[i], name, meta_data,
+				in_type_name, in_data_len,
+				out_type_name, out_data_len, state);
+
+	if(ret) {
+		ERR("cloning port data failed");
+		/* nothing to cleanup, really */
+	}
+
+	/* set dummy stopper to NULL */
+	memset(&b->ports[i+1], 0x0, sizeof(ubx_port_t));
+ out:
+	return ret;
+}
+
 
 /**
  * ubx_port_get - retrieve a component port by name

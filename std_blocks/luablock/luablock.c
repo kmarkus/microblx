@@ -61,8 +61,8 @@ int call_hook(ubx_block_t* b, const char *fname, int require_fun, int require_re
 			goto out;
 	}
 
-	lua_pushlightuserdata(inf->L, (void*) inf->ni);
 	lua_pushlightuserdata(inf->L, (void*) b);
+	lua_pushlightuserdata(inf->L, (void*) inf->ni);
 
 	if (lua_pcall(inf->L, 2, num_res, 0) != 0) {
 		ERR("%s: error calling function %s: %s", b->name, fname, lua_tostring(inf->L, -1));

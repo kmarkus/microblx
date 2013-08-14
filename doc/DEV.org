@@ -5,6 +5,12 @@
 * Next steps
   
 ** TODO [#A] add methods [add|rm}_[port|config]
+   - add len field for configs and ports to simplify searching.
+   - unify cloning and dynamically adding ports
+     - ubx_port_add(b, name, meta, in_type_name, out_type_name, attrs)
+       - resize target buffer
+
+       
 ** TODO [#A] locking
    + Options
      - rw-locks (or uRCU?)
