@@ -459,9 +459,14 @@ static void ubx_port_free_data(ubx_port_t* p)
 /**
  * ubx_clone_port_data - clone the additional port data
  *
- * @param psrc pointer to the source port
- * @param TODO update.
- *
+ * @param p pointer to (allocated) target port.
+ * @param name name of port
+ * @param meta_data port meta_data
+ * @param in_type_name string name of in-port data
+ * @param in_type_len max array size of transported data
+ * @param out_type_name string name of out-port data
+ * @param out_type_len max array size of transported data
+ * @param state state of port.
  * @return less than zero if an error occured, 0 otherwise.
  *
  * This function allocates memory.
@@ -470,8 +475,7 @@ static int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta
 			       const char* in_type_name, unsigned long in_data_len,
 			       const char* out_type_name, unsigned long out_data_len, uint32_t state)
 {
-
-	int ret=EOUTOFMEM;
+	int ret = EOUTOFMEM;
 
 	if(!name) {
 		ERR("port name is mandatory");
@@ -1012,6 +1016,8 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* meta_data,
 
 	/* set dummy stopper to NULL */
 	memset(&b->ports[i+1], 0x0, sizeof(ubx_port_t));
+
+	ubx_resolve_types(b);
  out:
 	return ret;
 }
