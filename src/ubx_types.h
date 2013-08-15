@@ -152,6 +152,7 @@ typedef struct ubx_block {
 	int block_state;  /* state of lifecycle */
 	char *prototype; /* name of prototype, NULL if none */
 
+	struct ubx_node_info* ni;
 
 	int(*init) (struct ubx_block*);
 	int(*start) (struct ubx_block*);

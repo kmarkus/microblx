@@ -81,13 +81,17 @@ void ubx_node_cleanup(ubx_node_info_t* ni)
  */
 int ubx_block_register(ubx_node_info_t *ni, ubx_block_t* block)
 {
-	int ret = 0;
+	int ret = -1;
 	ubx_block_t *tmpc;
+
+	if(block->ni != NULL) {
+		ERR("block already registered with node %s", block->ni->name);
+		goto out;
+	}
 
 	if(block->type!=BLOCK_TYPE_COMPUTATION &&
 	   block->type!=BLOCK_TYPE_INTERACTION) {
 		ERR("invalid block type %d", block->type);
-		ret=-1;
 		goto out;
 	}
 
@@ -97,16 +101,18 @@ int ubx_block_register(ubx_node_info_t *ni, ubx_block_t* block)
 
 	if(tmpc!=NULL) {
 		ERR("block with name '%s' already registered.", block->name);
-		ret=-1;
 		goto out;
 	};
 
+	block->ni=ni;
+
 	/* resolve types */
-	if((ret=ubx_resolve_types(ni, block)) !=0)
+	if((ret=ubx_resolve_types(block)) !=0)
 		goto out;
 
 	HASH_ADD_KEYPTR(hh, ni->blocks, block->name, strlen(block->name), block);
 
+	ret=0;
  out:
 	return ret;
 }
@@ -147,6 +153,7 @@ ubx_block_t* ubx_block_unregister(ubx_node_info_t* ni, const char* name)
 	}
 
 	HASH_DEL(ni->blocks, tmpc);
+	tmpc->ni=NULL;
  out:
 	return tmpc;
 }
@@ -238,12 +245,14 @@ ubx_type_t* ubx_type_get(ubx_node_info_t* ni, const char* name)
  *
  * @return 0 if all types are resolved, -1 if not.
  */
-int ubx_resolve_types(ubx_node_info_t* ni, ubx_block_t* b)
+int ubx_resolve_types(ubx_block_t* b)
 {
 	int ret = 0;
 	ubx_type_t* typ;
 	ubx_port_t* port_ptr;
 	ubx_config_t *config_ptr;
+
+	ubx_node_info_t* ni = b->ni;
 
 	/* for each port locate type and resolve */
 	if(b->ports) {
@@ -565,13 +574,12 @@ static int ubx_clone_config_data(const ubx_config_t *csrc, ubx_config_t *ccopy)
  *
  * The block should have been previously unregistered.
  *
- * @param ni
  * @param block_type
  * @param name
  *
  * @return
  */
-void ubx_block_free(ubx_node_info_t *ni, ubx_block_t *b)
+void ubx_block_free(ubx_block_t *b)
 {
 	ubx_port_t *port_ptr;
 	ubx_config_t *config_ptr;
@@ -602,13 +610,12 @@ void ubx_block_free(ubx_node_info_t *ni, ubx_block_t *b)
 /**
  * ubx_block_clone - create a copy of an existing block from an existing one.
  *
- * @param ni node info ptr
  * @param prot prototype block which to clone
  * @param name name of new block
  *
  * @return a pointer to the newly allocated block. Must be freed with
  */
-static ubx_block_t* ubx_block_clone(ubx_node_info_t* ni, ubx_block_t* prot, const char* name)
+static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 {
 	int i;
 	ubx_block_t *newb;
@@ -681,20 +688,20 @@ static ubx_block_t* ubx_block_clone(ubx_node_info_t* ni, ubx_block_t* prot, cons
 	return newb;
 
  out_free:
-	ubx_block_free(ni, newb);
+	ubx_block_free(newb);
  	ERR("insufficient memory");
 	return NULL;
 }
 
 
 /**
- *
+ * @brief instantiate new block of type type with name
  *
  * @param ni
  * @param block_type
  * @param name
  *
- * @return
+ * @return the newly created block or NULL
  */
 ubx_block_t* ubx_block_create(ubx_node_info_t *ni, const char *type, const char* name)
 {
@@ -717,13 +724,13 @@ ubx_block_t* ubx_block_create(ubx_node_info_t *ni, const char *type, const char*
 		goto out;
 	}
 
-	if((newb=ubx_block_clone(ni, prot, name))==NULL)
+	if((newb=ubx_block_clone(prot, name))==NULL)
 		goto out;
 
 	/* register block */
 	if(ubx_block_register(ni, newb) !=0){
 		ERR("failed to register block %s", name);
-		ubx_block_free(ni, newb);
+		ubx_block_free(newb);
 		goto out;
 	}
  out:
@@ -771,7 +778,7 @@ int ubx_block_rm(ubx_node_info_t *ni, const char* name)
 		ERR("block '%s' failed to unregister", name);
 	}
 
-	ubx_block_free(ni, b);
+	ubx_block_free(b);
 	ret=0;
  out:
 	return ret;
@@ -1043,7 +1050,7 @@ ubx_port_t* ubx_port_get(ubx_block_t* comp, const char *name)
  *
  * @return 0 if state was changed, -1 otherwise.
  */
-int ubx_block_init(ubx_node_info_t* ni, ubx_block_t* b)
+int ubx_block_init(ubx_block_t* b)
 {
 	int ret = -1;
 
@@ -1080,7 +1087,7 @@ int ubx_block_init(ubx_node_info_t* ni, ubx_block_t* b)
  *
  * @return 0 if state was changed, -1 otherwise.
  */
-int ubx_block_start(ubx_node_info_t* ni, ubx_block_t* b)
+int ubx_block_start(ubx_block_t* b)
 {
 	int ret = -1;
 
@@ -1112,7 +1119,7 @@ int ubx_block_start(ubx_node_info_t* ni, ubx_block_t* b)
  *
  * @return
  */
-int ubx_block_stop(ubx_node_info_t* ni, ubx_block_t* b)
+int ubx_block_stop(ubx_block_t* b)
 {
 	int ret = -1;
 
@@ -1141,7 +1148,7 @@ int ubx_block_stop(ubx_node_info_t* ni, ubx_block_t* b)
  *
  * @return 0 if state was changed, -1 otherwise.
  */
-int ubx_block_cleanup(ubx_node_info_t* ni, ubx_block_t* b)
+int ubx_block_cleanup(ubx_block_t* b)
 {
 	int ret=-1;
 
