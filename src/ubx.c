@@ -148,7 +148,7 @@ ubx_block_t* ubx_block_unregister(ubx_node_info_t* ni, const char* name)
 	HASH_FIND_STR(ni->blocks, name, tmpc);
 
 	if(tmpc==NULL) {
-		ERR("component '%s' not registered.", name);
+		ERR("block '%s' not registered.", name);
 		goto out;
 	}
 
@@ -247,7 +247,7 @@ ubx_type_t* ubx_type_get(ubx_node_info_t* ni, const char* name)
  */
 int ubx_resolve_types(ubx_block_t* b)
 {
-	int ret = 0;
+	int ret = -1;
 	ubx_type_t* typ;
 	ubx_port_t* port_ptr;
 	ubx_config_t *config_ptr;
@@ -259,11 +259,9 @@ int ubx_resolve_types(ubx_block_t* b)
 		for(port_ptr=b->ports; port_ptr->name!=NULL; port_ptr++) {
 			/* in-type */
 			if(port_ptr->in_type_name) {
-				HASH_FIND_STR(ni->types, port_ptr->in_type_name, typ);
-				if(typ==NULL) {
+				if((typ = ubx_type_get(ni, port_ptr->in_type_name)) == NULL) {
 					ERR("failed to resolve type '%s' of in-port '%s' of block '%s'.",
 					    port_ptr->in_type_name, port_ptr->name, b->name);
-					ret=-1;
 					goto out;
 				}
 				port_ptr->in_type=typ;
@@ -271,11 +269,9 @@ int ubx_resolve_types(ubx_block_t* b)
 
 			/* out-type */
 			if(port_ptr->out_type_name) {
-				HASH_FIND_STR(ni->types, port_ptr->out_type_name, typ);
-				if(typ==NULL) {
+				if((typ = ubx_type_get(ni, port_ptr->out_type_name)) == NULL) {
 					ERR("failed to resolve type '%s' of out-port '%s' of block '%s'.",
 					    port_ptr->out_type_name, port_ptr->name, b->name);
-					ret=-1;
 					goto out;
 				}
 				port_ptr->out_type=typ;
@@ -286,11 +282,9 @@ int ubx_resolve_types(ubx_block_t* b)
 	/* configs */
 	if(b->configs!=NULL) {
 		for(config_ptr=b->configs; config_ptr->name!=NULL; config_ptr++) {
-			HASH_FIND_STR(ni->types, config_ptr->type_name, typ);
-			if(typ==NULL)  {
+			if((typ=ubx_type_get(ni, config_ptr->type_name)) == NULL)  {
 				ERR("failed to resolve type '%s' of config '%s' of block '%s'.",
 				    config_ptr->type_name, config_ptr->name, b->name);
-				ret=-1;
 				goto out;
 			}
 			config_ptr->value.type=typ;
@@ -462,18 +456,22 @@ static void ubx_port_free_data(ubx_port_t* p)
  * @param p pointer to (allocated) target port.
  * @param name name of port
  * @param meta_data port meta_data
+ *
  * @param in_type_name string name of in-port data
  * @param in_type_len max array size of transported data
+ *
  * @param out_type_name string name of out-port data
  * @param out_type_len max array size of transported data
+ *
  * @param state state of port.
+ *
  * @return less than zero if an error occured, 0 otherwise.
  *
  * This function allocates memory.
  */
 static int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta_data,
-			       const char* in_type_name, unsigned long in_data_len,
-			       const char* out_type_name, unsigned long out_data_len, uint32_t state)
+			       ubx_type_t* in_type, unsigned long in_data_len,
+			       ubx_type_t* out_type, unsigned long out_data_len, uint32_t state)
 {
 	int ret = EOUTOFMEM;
 
@@ -491,15 +489,17 @@ static int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta
 		if((p->meta_data=strdup(meta_data))==NULL)
 			goto out_err_free;
 
-	if(in_type_name) {
-		if((p->in_type_name=strdup(in_type_name))==NULL)
+	if(in_type!=NULL) {
+		if((p->in_type_name=strdup(in_type->name))==NULL)
 			goto out_err_free;
+		p->in_type=in_type;
 		p->attrs|=PORT_DIR_IN;
 	}
 
-	if(out_type_name) {
-		if((p->out_type_name=strdup(out_type_name))==NULL)
+	if(out_type!=NULL) {
+		if((p->out_type_name=strdup(out_type->name))==NULL)
 			goto out_err_free;
+		p->out_type=out_type;
 		p->attrs|=PORT_DIR_OUT;
 	}
 
@@ -535,40 +535,35 @@ static void ubx_free_config_data(ubx_config_t *c)
 /**
  * ubx_clone_conf_data - clone the additional config data
  *
- * @param psrc pointer to the source config
- * @param pcopy pointer to the existing target config
+ * @param cnew pointer to (allocated) ubx_config
+ * @param name name of configuration
+ * @param type_name name of contained type
+ * @param len array size of data
  *
  * @return less than zero if an error occured, 0 otherwise.
  *
  * This function allocates memory.
  */
-static int ubx_clone_config_data(const ubx_config_t *csrc, ubx_config_t *ccopy)
+static int ubx_clone_config_data(ubx_config_t *cnew, const char* name, const ubx_type_t* type, unsigned long len)
 {
-	if(csrc->value.type==NULL) {
-		ERR("unresolved source config");
-		goto out_err;
-	}
+	memset(cnew, 0x0, sizeof(ubx_config_t));
 
-	memset(ccopy, 0x0, sizeof(ubx_config_t));
-
-	if((ccopy->name=strdup(csrc->name))==NULL)
+	if((cnew->name=strdup(name))==NULL)
 		goto out_err;
 
-	if((ccopy->type_name=strdup(csrc->type_name))==NULL)
+	if((cnew->type_name=strdup(type->name))==NULL)
 		goto out_err;
 
-	ccopy->value.type = csrc->value.type;
-
-	/* TODO: fix this during registration */
-	ccopy->value.len=(csrc->value.len==0) ? 1 : csrc->value.len;
+	cnew->value.type = type;
+	cnew->value.len=(len==0) ? 1 : len;
 
 	/* alloc actual buffer */
-	ccopy->value.data = calloc(ccopy->value.len, ccopy->value.type->size);
+	cnew->value.data = calloc(len, cnew->value.type->size);
 
 	return 0; /* all ok */
 
  out_err:
-	ubx_free_config_data(ccopy);
+	ubx_free_config_data(cnew);
  	return -1;
 }
 
@@ -646,7 +641,8 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 			goto out_free;
 
 		for(srcconf=prot->configs, tgtconf=newb->configs; srcconf->name!=NULL; srcconf++,tgtconf++) {
-			if(ubx_clone_config_data(srcconf, tgtconf) != 0)
+			if(ubx_clone_config_data(tgtconf, srcconf->name,
+						 srcconf->value.type, srcconf->value.len) != 0)
 				goto out_free;
 		}
 	}
@@ -661,8 +657,8 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 
 		for(srcport=prot->ports, tgtport=newb->ports; srcport->name!=NULL; srcport++,tgtport++) {
 			if(ubx_clone_port_data(tgtport, srcport->name, srcport->meta_data,
-					       srcport->in_type_name, srcport->in_data_len,
-					       srcport->out_type_name, srcport->out_data_len,
+					       srcport->in_type, srcport->in_data_len,
+					       srcport->out_type, srcport->out_data_len,
 					       srcport->state) != 0)
 				goto out_free;
 		}
@@ -724,7 +720,7 @@ ubx_block_t* ubx_block_create(ubx_node_info_t *ni, const char *type, const char*
 	HASH_FIND_STR(ni->blocks, name, newb);
 
 	if(newb!=NULL) {
-		ERR("existing component named '%s'", name);
+		ERR("existing block named '%s'", name);
 		goto out;
 	}
 
@@ -964,6 +960,52 @@ void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *le
 	return ret;
 }
 
+/**
+ * @brief ubx_config_add - add a new configuration to a block
+ */
+int ubx_config_add(ubx_block_t* b, const char* name, const char *type_name, unsigned long len)
+{
+	ubx_type_t* typ;
+	ubx_config_t* carr;
+	int i, ret=-1;
+
+
+	if(b==NULL) {
+		ERR("block is NULL");
+		goto out;
+	}
+
+	if((typ=ubx_type_get(b->ni, type_name))==NULL) {
+		ERR("unkown type '%s'", type_name);
+		goto out;
+	}
+
+	if(b->configs==NULL)
+		i=0;
+	else
+		for(i=0; b->configs[i].name!=NULL; i++);
+
+	carr=realloc(b->configs, (i+2) * sizeof(ubx_config_t));
+
+	if(carr==NULL) {
+		ERR("out of mem, config not added.");
+		goto out;
+	}
+
+	b->configs=carr;
+
+	if((ret=ubx_clone_config_data(&b->configs[i], name, typ, len)) != 0) {
+		ERR("cloning config data failed");
+		goto out;
+	}
+
+	memset(&b->configs[i+1], 0x0, sizeof(ubx_config_t));
+
+	ret=0;
+ out:
+	return ret;
+}
+
 /*
  * Ports
  */
@@ -980,6 +1022,7 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* meta_data,
 {
 	int i, ret=-1;
 	ubx_port_t* parr;
+	ubx_type_t *in_type=NULL, *out_type=NULL;
 
 	if(b==NULL) {
 		ERR("block is NULL");
@@ -989,6 +1032,20 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* meta_data,
 	if(b->prototype==NULL) {
 		ERR("modifying prototype block not allowed");
 		goto out;
+	}
+
+	if(in_type_name) {
+		if((in_type = ubx_type_get(b->ni, in_type_name))==NULL) {
+			ERR("failed to resolve in_type '%s'", in_type_name);
+			goto out;
+		}
+	}
+
+	if(out_type_name) {
+		if((out_type = ubx_type_get(b->ni, out_type_name))==NULL) {
+			ERR("failed to resolve out_type '%s'", out_type_name);
+			goto out;
+		}
 	}
 
 	if(b->ports==NULL)
@@ -1006,25 +1063,24 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* meta_data,
 	b->ports=parr;
 
 	ret=ubx_clone_port_data(&b->ports[i], name, meta_data,
-				in_type_name, in_data_len,
-				out_type_name, out_data_len, state);
+				in_type, in_data_len,
+				out_type, out_data_len, state);
 
 	if(ret) {
 		ERR("cloning port data failed");
-		/* nothing to cleanup, really */
+		memset(&b->ports[i], 0x0, sizeof(ubx_port_t));
+		/* nothing else to cleanup, really */
 	}
 
 	/* set dummy stopper to NULL */
 	memset(&b->ports[i+1], 0x0, sizeof(ubx_port_t));
-
-	ubx_resolve_types(b);
  out:
 	return ret;
 }
 
 
 /**
- * ubx_port_get - retrieve a component port by name
+ * ubx_port_get - retrieve a block port by name
  *
  * @param comp
  * @param name

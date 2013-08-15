@@ -62,9 +62,8 @@ int call_hook(ubx_block_t* b, const char *fname, int require_fun, int require_re
 	}
 
 	lua_pushlightuserdata(inf->L, (void*) b);
-	lua_pushlightuserdata(inf->L, (void*) inf->ni);
 
-	if (lua_pcall(inf->L, 2, num_res, 0) != 0) {
+	if (lua_pcall(inf->L, 1, num_res, 0) != 0) {
 		ERR("%s: error calling function %s: %s", b->name, fname, lua_tostring(inf->L, -1));
 		ret = -1;
 		goto out;
@@ -166,7 +165,7 @@ static void luablock_cleanup(ubx_block_t *b)
 
 /* put everything together */
 ubx_block_t lua_comp = {
-	.name = "luablock",
+	.name = "lua/luablock",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = luablock_meta,
 	.configs = lua_conf,
@@ -190,7 +189,7 @@ static void lua_cleanup(ubx_node_info_t *ni)
 {
 	DBG(" ");
 	global_ni=ni;
-	ubx_block_unregister(ni, "lua/lua");
+	ubx_block_unregister(ni, "lua/luablock");
 }
 
 module_init(lua_init)

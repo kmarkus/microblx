@@ -20,14 +20,14 @@ webif1=ubx.block_create(ni, "webif/webif", "webif1", { port="8888" })
 print("creating instance of 'std_triggers/ptrig'")
 ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1")
 
-print("creating instance of 'luablock'")
-lb1=ubx.block_create(ni, "luablock", "luablock1", 
+print("creating instance of 'lua/luablock'")
+lb1=ubx.block_create(ni, "lua/luablock", "luablock1", 
 		     { lua_file="/home/mk/prog/c/microblx/std_blocks/luablock/luablock.lua"})
 
-print("running luablock init", ubx.block_init(ni, lb1))
+print("running luablock init", ubx.block_init(lb1))
 
-print("running webif init", ubx.block_init(ni, webif1))
-print("running webif start", ubx.block_start(ni, webif1))
+print("running webif init", ubx.block_init(webif1))
+print("running webif start", ubx.block_start(webif1))
 
 io.read()
 
@@ -35,6 +35,3 @@ print("running ptrig1 unload", ubx.block_unload(ni, "ptrig1"))
 print("running webif1 unload", ubx.block_unload(ni, "webif1"))
 
 ubx.unload_modules(ni)
-
-
-

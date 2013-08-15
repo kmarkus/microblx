@@ -19,8 +19,8 @@ webif1=ubx.block_create(ni, "webif/webif", "webif1", { port="8888" })
 print("creating instance of 'std_triggers/ptrig'")
 ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1")
 
-print("running webif init", ubx.block_init(ni, webif1))
-print("running webif start", ubx.block_start(ni, webif1))
+print("running webif init", ubx.block_init(webif1))
+print("running webif start", ubx.block_start(webif1))
 
 io.read()
 
