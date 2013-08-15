@@ -148,6 +148,7 @@ M.cblock_step = ubx.ubx_cblock_step
 --- Port and Connections handling
 M.block_port_get = ubx.ubx_port_get
 M.port_add = ubx.ubx_port_add
+M.port_rm = ubx.ubx_port_rm
 M.connect_one = ubx.ubx_connect_one
 
 --- Configuration
@@ -392,7 +393,7 @@ function data_to_cdata(d)
 end
 
 function M.data_resize(d, newlen)
-   print("changing len from", tonumber(d.len), " to ", newlen)
+   -- print("changing len from", tonumber(d.len), " to ", newlen)
    if ubx.ubx_data_resize(d, newlen) == 0 then return true
    else return false end
 end

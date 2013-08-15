@@ -437,7 +437,7 @@ int ubx_num_types(ubx_node_info_t* ni) { return HASH_COUNT(ni->types); }
  * ubx_port_free_data - free additional memory used by port.
  *
  * @param p port pointer
-L */
+ */
 static void ubx_port_free_data(ubx_port_t* p)
 {
 	if(p->out_type_name) free((char*) p->out_type_name);
@@ -1010,6 +1010,17 @@ int ubx_config_add(ubx_block_t* b, const char* name, const char *type_name, unsi
  * Ports
  */
 
+static unsigned int get_num_ports(ubx_block_t* b)
+{
+	unsigned int n;
+
+	if(b->ports==NULL)
+		n=0;
+	else
+		for(n=0; b->ports[n].name!=NULL; n++); /* find number of ports */
+
+	return n;
+}
 
 /**
  * @brief ubx_port_add - a port to a block instance and resolve types.
@@ -1048,10 +1059,7 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* meta_data,
 		}
 	}
 
-	if(b->ports==NULL)
-		i=0;
-	else
-		for(i=0; b->ports[i].name!=NULL; i++); /* find number of ports */
+	i=get_num_ports(b);
 
 	parr=realloc(b->ports, (i+2) * sizeof(ubx_port_t));
 
@@ -1074,6 +1082,54 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* meta_data,
 
 	/* set dummy stopper to NULL */
 	memset(&b->ports[i+1], 0x0, sizeof(ubx_port_t));
+ out:
+	return ret;
+}
+
+/**
+ * ubx_port_rm - remove a port from a block.
+ *
+ * @param b
+ * @param name
+ *
+ * @return
+ */
+int ubx_port_rm(ubx_block_t* b, const char* name)
+{
+	int ret=-1, i, num_ports;
+
+	if(!b) {
+		ERR("block is NULL");
+		goto out;
+	}
+
+	if(b->prototype==NULL) {
+		ERR("modifying prototype block not allowed");
+		goto out;
+	}
+
+	if(b->ports==NULL) {
+		ERR("no port '%s' found", name);
+		goto out;
+	}
+
+	num_ports=get_num_ports(b);
+
+	// for(port_ptr=comp->ports; port_ptr->name!=NULL; port_ptr++) {
+	for(i=0; i<=num_ports; i++)
+		if(strcmp(b->ports[i].name, name)==0)
+			break;
+
+	ubx_port_free_data(&b->ports[i]);
+
+	if(i==num_ports-1) {
+		memset(&b->ports[i], 0x0, sizeof(ubx_port_t));
+	} else {
+		b->ports[i]=b->ports[num_ports-1];
+		memset(&b->ports[num_ports-1], 0x0, sizeof(ubx_port_t));
+	}
+
+	ret=0;
  out:
 	return ret;
 }

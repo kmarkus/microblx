@@ -150,7 +150,7 @@ static void luablock_step(ubx_block_t *b)
 
 static void luablock_stop(ubx_block_t *b)
 {
-	call_hook(b, "cleanup", 0, 0);
+	call_hook(b, "stop", 0, 0);
 }
 
 static void luablock_cleanup(ubx_block_t *b)

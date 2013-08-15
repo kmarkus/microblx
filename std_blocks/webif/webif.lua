@@ -322,15 +322,15 @@ local block_ops = {
    start=ubx.block_start,
    stop=ubx.block_stop,
    cleanup=ubx.block_cleanup,
-   step=function(ni, b)
+   step=function(b)
 	   if not ubx.is_cblock_instance(b) then return end
 	   ubx.cblock_step(b)
 	end,
-   steponce=function(ni, b)
+   steponce=function(b)
 	       if not ubx.is_cblock_instance(b) then return end
-	       ubx.block_start(ni, b)
+	       ubx.block_start(b)
 	       ubx.cblock_step(b)
-	       ubx.block_stop(ni, b)
+	       ubx.block_stop(b)
 	    end
 
 }
@@ -338,7 +338,7 @@ local block_ops = {
 function handle_post(ni, pd)
    local name, op = string.match(pd, "(%w+)=(%w+)")
    local b = ubx.block_get(ni, name)
-   block_ops[op](ni, b)
+   block_ops[op](b)
 end
 
 --- Show information on a single block.
