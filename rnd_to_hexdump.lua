@@ -34,21 +34,21 @@ ubx.ni_stat(ni)
 -- ubx.set_config(webif1, "port", "8081")
 -- ubx.set_config(random1, "min_max_config", {min=77, max=88})
 
-print("running webif init", ubx.block_init(ni, webif1))
-print("running webif start", ubx.block_start(ni, webif1))
+print("running webif init", ubx.block_init(webif1))
+print("running webif start", ubx.block_start(webif1))
 
-print("running random1 init", ubx.block_init(ni, random1))
-print("running hexdump1 init", ubx.block_init(ni, hexdump1))
-print("running fifo1 init", ubx.block_init(ni, fifo1))
+print("running random1 init", ubx.block_init(random1))
+print("running hexdump1 init", ubx.block_init(hexdump1))
+print("running fifo1 init", ubx.block_init(fifo1))
 
 rand_port=ubx.block_port_get(random1, "rnd")
 
 ubx.connect_one(rand_port, hexdump1)
 ubx.connect_one(rand_port, fifo1)
 
-ubx.block_start(ni, fifo1)
-ubx.block_start(ni, random1)
-ubx.block_start(ni, hexdump1)
+ubx.block_start(fifo1)
+ubx.block_start(random1)
+ubx.block_start(hexdump1)
 
 
 local res, dat

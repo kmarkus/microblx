@@ -558,7 +558,7 @@ static int ubx_clone_config_data(ubx_config_t *cnew, const char* name, const ubx
 	cnew->value.len=(len==0) ? 1 : len;
 
 	/* alloc actual buffer */
-	cnew->value.data = calloc(len, cnew->value.type->size);
+	cnew->value.data = calloc(cnew->value.len, cnew->value.type->size);
 
 	return 0; /* all ok */
 
