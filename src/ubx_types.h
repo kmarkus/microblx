@@ -60,6 +60,7 @@ typedef struct ubx_data {
 enum {
 	PORT_DIR_IN 	= 1 << 0,
 	PORT_DIR_OUT 	= 1 << 1,
+	PORT_DIR_INOUT  = PORT_DIR_IN & PORT_DIR_OUT,
 };
 
 /* Port state */

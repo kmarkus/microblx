@@ -37,7 +37,8 @@
        3. =ubx_connect[_one]= (writer lock on (each) involved cblock)
 
      - reader lock
-       1. stepping a block =ubx_node_step=
+       1. stepping a block =ubx_node_step= (this has to use writer
+          lock, or would two simultaneous steps be allowed?)
        2. reading configuration =ubx_config_get[_data]=
 
      - interactions must handle their own locking.

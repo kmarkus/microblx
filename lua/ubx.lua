@@ -404,10 +404,11 @@ end
 -- @param resize if true, resize buffer and update data.len to fit val
 -- @return cdata ptr of the contained type
 function M.data_set(d, val, resize)
-   local d_cdata = data_to_cdata(d)
 
    -- find cdata of the target ubx_data
+   local d_cdata = data_to_cdata(d)
    local val_type=type(val)
+
    if val_type=='table' then
       for k,v in pairs(val) do
 	 if type(k)~='number' then
@@ -419,13 +420,19 @@ function M.data_set(d, val, resize)
 	       error("data_set: attempt to index beyond bounds, index="..tostring(idx)..", len="..tostring(d.len))
 	    elseif idx >= d.len and resize then
 	       M.data_resize(d, idx+1)
+	       d_cdata = data_to_cdata(d) -- pointer could have changed in realloc!
 	    end
 	    d_cdata[idx]=v
 	 end
       end
    elseif val_type=='string' then
-      if d.len<#val+1 then M.data_resize(d, #val+1) end
-      ffi.copy(d_cdata, val, #val)
+      print("data_set", d.data, val, resize)
+      if d.len<#val+1 then
+	 M.data_resize(d, #val+1)
+	 d_cdata = data_to_cdata(d) -- pointer could have changed in realloc!
+      end
+      --ffi.copy(d_cdata, val, #val)
+      ffi.copy(d_cdata, val)
    elseif val_type=='number' then d_cdata[0]=val
    else
       error("set_config: don't know how to assign "..
@@ -441,7 +448,7 @@ end
 function M.set_config(b, name, val)
    local d = ubx.ubx_config_get_data(b, name)
    if d == nil then error("set_config: unknown config '"..name.."'") end
-   print("configuring ", ffi.string(b.name), name)
+   print("configuring ".. ffi.string(b.name).."."..name.." with value "..utils.tab2str(val))
    return M.data_set(d, val, true)
 end
 

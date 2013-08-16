@@ -15,8 +15,10 @@
 
 #define LUA_BLOCK_FILE "/home/mk/prog/c/microblx/std_blocks/luablock/luablock.lua"
 
-/* make this configuration */
-static struct ubx_node_info *global_ni;
+ubx_port_t lua_ports[] = {
+	// { .name="exec_str", .attrs=PORT_DIR_INOUT, .in_type_name="char", .out_type_name="uint32_t" },
+	{ NULL }
+};
 
 ubx_config_t lua_conf[] = {
 	{ .name="lua_file", .type_name="char", .value = { .len=32 } }, /* char[10] */
@@ -169,6 +171,7 @@ ubx_block_t lua_comp = {
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = luablock_meta,
 	.configs = lua_conf,
+	.ports = lua_ports,
 
 	/* ops */
 	.init = luablock_init,
