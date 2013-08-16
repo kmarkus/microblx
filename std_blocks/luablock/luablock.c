@@ -16,7 +16,7 @@
 #define LUA_BLOCK_FILE "/home/mk/prog/c/microblx/std_blocks/luablock/luablock.lua"
 
 ubx_port_t lua_ports[] = {
-	// { .name="exec_str", .attrs=PORT_DIR_INOUT, .in_type_name="char", .out_type_name="uint32_t" },
+	{ .name="exec_str", .attrs=PORT_DIR_INOUT, .in_type_name="char", .out_type_name="uint32_t" },
 	{ NULL }
 };
 
@@ -120,7 +120,6 @@ static int luablock_init(ubx_block_t *b)
 		goto out;
 
 	b->private_data = inf;
-	inf->ni=global_ni;
 
 	lua_file = (char *) ubx_config_get_data_ptr(b, "lua_file", &lua_file_len);
 
@@ -184,14 +183,12 @@ ubx_block_t lua_comp = {
 static int lua_init(ubx_node_info_t* ni)
 {
 	DBG(" ");
-	global_ni=ni;
 	return ubx_block_register(ni, &lua_comp);
 }
 
 static void lua_cleanup(ubx_node_info_t *ni)
 {
 	DBG(" ");
-	global_ni=ni;
 	ubx_block_unregister(ni, "lua/luablock");
 }
 

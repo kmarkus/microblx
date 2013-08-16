@@ -101,11 +101,14 @@ function M.load_module(ni, libfile)
    if mod.__initialize_module(ni) ~= 0 then
       error("failed to init module "..libfile)
    end
-   ubx_modules[#ubx_modules+1]=mod
+   ubx_modules[#ubx_modules+1]={ module=mod, libfile=libfile }
 end
 
 function M.unload_modules(ni)
-   for _,mod in ipairs(ubx_modules) do mod.__cleanup_module(ni) end
+   for _,mod in ipairs(ubx_modules) do
+      print("unloading "..mod.libfile)
+      mod.module.__cleanup_module(ni)
+   end
    ubx_modules={}
 end
 
@@ -118,8 +121,18 @@ function M.node_create(name)
 end
 
 function M.node_cleanup(ni)
-   M.blocks_foreach(ni, function (b) M.block_unload(ni, b) end)
+   print("unloading block instances:")
+   M.blocks_foreach(ni, function (b)
+			   local n=M.safe_tostr(b.name)
+			   print("node_cleanup: unloading "..n)
+			   M.block_unload(ni, n)
+			end,
+		    M.is_instance)
+   print("unloading modules:")
    M.unload_modules(ni)
+
+   print("cleaning up node_info", M.safe_tostr(ni.name))
+   ubx.ubx_node_cleanup(ni)
 end
 
 --- Create a new computational block.
@@ -426,7 +439,6 @@ function M.data_set(d, val, resize)
 	 end
       end
    elseif val_type=='string' then
-      print("data_set", d.data, val, resize)
       if d.len<#val+1 then
 	 M.data_resize(d, #val+1)
 	 d_cdata = data_to_cdata(d) -- pointer could have changed in realloc!
@@ -448,7 +460,7 @@ end
 function M.set_config(b, name, val)
    local d = ubx.ubx_config_get_data(b, name)
    if d == nil then error("set_config: unknown config '"..name.."'") end
-   print("configuring ".. ffi.string(b.name).."."..name.." with value "..utils.tab2str(val))
+   -- print("configuring ".. ffi.string(b.name).."."..name.." with value "..utils.tab2str(val))
    return M.data_set(d, val, true)
 end
 

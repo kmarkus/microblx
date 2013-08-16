@@ -68,6 +68,7 @@ int ubx_node_init(ubx_node_info_t* ni, const char *name)
 void ubx_node_cleanup(ubx_node_info_t* ni)
 {
 	/* clean up all entities */
+	free((char*) ni->name);
 }
 
 
@@ -351,6 +352,7 @@ int ubx_data_resize(ubx_data_t *d, unsigned int newlen)
 
 	if((ptr=realloc(d->data, newsz))==NULL)
 		goto out;
+
 	d->data=ptr;
 	d->len=newlen;
 	ret=0;
@@ -753,7 +755,7 @@ ubx_block_t* ubx_block_create(ubx_node_info_t *ni, const char *type, const char*
  */
 int ubx_block_rm(ubx_node_info_t *ni, const char* name)
 {
-	int ret;
+	int ret=-1;
 	ubx_block_t *b;
 
 	b = ubx_block_get(ni, name);

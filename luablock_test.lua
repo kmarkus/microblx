@@ -25,13 +25,16 @@ lb1=ubx.block_create(ni, "lua/luablock", "luablock1",
 		     { lua_file="/home/mk/prog/c/microblx/std_blocks/luablock/luablock.lua"})
 
 print("running luablock init", ubx.block_init(lb1))
-
 print("running webif init", ubx.block_init(webif1))
 print("running webif start", ubx.block_start(webif1))
 
 io.read()
 
-print("running ptrig1 unload", ubx.block_unload(ni, "ptrig1"))
-print("running webif1 unload", ubx.block_unload(ni, "webif1"))
+-- print("running ptrig1 unload", ubx.block_unload(ni, "ptrig1"))
+-- print("running webif1 unload", ubx.block_unload(ni, "webif1"))
+-- print("running luablock unload", ubx.block_unload(ni, "luablock1"))
 
-ubx.unload_modules(ni)
+
+-- ubx.unload_modules(ni)
+-- ubx.ubx.ubx_node_cleanup(ni)
+ubx.node_cleanup(ni)
