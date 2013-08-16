@@ -18,7 +18,7 @@ local setup_enums
 -- @param file name of file
 -- @return string contents
 local function read_file(file)
-   local f = io.open(file, "rb")
+   local f = assert(io.open(file, "rb"))
    local data = f:read("*all")
    f:close()
    return data
