@@ -1,5 +1,5 @@
 /*
- * A system monitoring web-interface function block.
+ * A generic luajit based block.
  */
 
 #define DEBUG
@@ -21,7 +21,7 @@ ubx_port_t lua_ports[] = {
 };
 
 ubx_config_t lua_conf[] = {
-	{ .name="lua_file", .type_name="char", .value = { .len=32 } }, /* char[10] */
+	{ .name="lua_file", .type_name="char", .value = { .len=32 } },
 	{ NULL }
 };
 

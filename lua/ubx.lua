@@ -166,6 +166,7 @@ M.connect_one = ubx.ubx_connect_one
 
 --- Configuration
 M.config_add = ubx.ubx_config_add
+M.config_rm = ubx.ubx_config_rm
 
 
 --- Unload a block: bring it to state preinit and call ubx_block_rm

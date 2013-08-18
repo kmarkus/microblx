@@ -5,7 +5,7 @@ local ubx_utils = require("lua/ubx_utils")
 function init(block)
    print("init")
    for k=1,5 do
-      ubx.config_add(block, "xaoo"..tostring(k), "int32_t", 3)
+      ubx.config_add(block, "xaoo"..tostring(k), "int32_t", k)
    end
 
    return true
@@ -19,7 +19,9 @@ function start(block)
    return true
 end
 
-function step(block) print("step") end
+function step(block) print("step")
+
+end
 
 function stop(block)
    print("stop")
@@ -27,6 +29,14 @@ function stop(block)
    print("rm'ing", ubx.port_rm(block, "hoop9"))
    print("rm'ing", ubx.port_rm(block, "hoop8"))
    print("rm'ing", ubx.port_rm(block, "hoop7"))
+
+   print("rm'ing", ubx.config_rm(block, "xaoo1"))
+   print("rm'ing", ubx.config_rm(block, "xaoo5"))
+
+   for k=2,4 do
+      ubx.config_rm(block, "xaoo"..tostring(k))
+   end
+
 
    for k=1,6 do
       print("rm'ing", ubx.port_rm(block, "hoop"..tostring(k)))

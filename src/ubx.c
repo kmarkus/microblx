@@ -527,7 +527,7 @@ static int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta
  *
  * @param c config whose data to free
  */
-static void ubx_free_config_data(ubx_config_t *c)
+static void ubx_config_free_data(ubx_config_t *c)
 {
 	if(c->name) free((char*) c->name);
 	if(c->type_name) free((char*) c->type_name);
@@ -565,7 +565,7 @@ static int ubx_clone_config_data(ubx_config_t *cnew, const char* name, const ubx
 	return 0; /* all ok */
 
  out_err:
-	ubx_free_config_data(cnew);
+	ubx_config_free_data(cnew);
  	return -1;
 }
 
@@ -588,7 +588,7 @@ void ubx_block_free(ubx_block_t *b)
 	/* configs */
 	if(b->configs!=NULL) {
 		for(config_ptr=b->configs; config_ptr->name!=NULL; config_ptr++)
-			ubx_free_config_data(config_ptr);
+			ubx_config_free_data(config_ptr);
 
 		free(b->configs);
 	}
@@ -892,6 +892,17 @@ int ubx_connect(ubx_port_t* p1, ubx_port_t* p2, ubx_block_t* iblock)
 /*
  * Configuration
  */
+static unsigned int get_num_configs(ubx_block_t* b)
+{
+	unsigned int n;
+
+	if(b->configs==NULL)
+		n=0;
+	else
+		for(n=0; b->configs[n].name!=NULL; n++);
+
+	return n;
+}
 
 /**
  * ubx_config_get - retrieve a configuration type by name.
@@ -1008,6 +1019,46 @@ int ubx_config_add(ubx_block_t* b, const char* name, const char *type_name, unsi
 	return ret;
 }
 
+int ubx_config_rm(ubx_block_t* b, const char* name)
+{
+	int ret=-1, i, num_configs;
+
+	if(!b) {
+		ERR("block is NULL");
+		goto out;
+	}
+
+	if(b->prototype==NULL) {
+		ERR("modifying prototype block not allowed");
+		goto out;
+	}
+
+	if(b->configs==NULL) {
+		ERR("no config '%s' found", name);
+		goto out;
+	}
+
+	num_configs=get_num_configs(b);
+
+	for(i=0; i<=num_configs; i++)
+		if(strcmp(b->configs[i].name, name)==0)
+			break;
+
+	ubx_config_free_data(&b->configs[i]);
+
+	if(i==num_configs-1) {
+		memset(&b->configs[i], 0x0, sizeof(ubx_config_t));
+	} else {
+		b->configs[i]=b->configs[num_configs-1];
+		memset(&b->configs[num_configs-1], 0x0, sizeof(ubx_config_t));
+	}
+
+	ret=0;
+ out:
+	return ret;
+}
+
+
 /*
  * Ports
  */
@@ -1117,7 +1168,6 @@ int ubx_port_rm(ubx_block_t* b, const char* name)
 
 	num_ports=get_num_ports(b);
 
-	// for(port_ptr=comp->ports; port_ptr->name!=NULL; port_ptr++) {
 	for(i=0; i<=num_ports; i++)
 		if(strcmp(b->ports[i].name, name)==0)
 			break;
