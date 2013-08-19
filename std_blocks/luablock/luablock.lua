@@ -30,6 +30,12 @@ function stop(block)
    print("rm'ing", ubx.port_rm(block, "hoop8"))
    print("rm'ing", ubx.port_rm(block, "hoop7"))
 
+   for k=1,6 do
+      print("rm'ing", ubx.port_rm(block, "hoop"..tostring(k)))
+   end
+end
+function cleanup(block) 
+   print("cleanup") 
    print("rm'ing", ubx.config_rm(block, "xaoo1"))
    print("rm'ing", ubx.config_rm(block, "xaoo5"))
 
@@ -37,9 +43,4 @@ function stop(block)
       ubx.config_rm(block, "xaoo"..tostring(k))
    end
 
-
-   for k=1,6 do
-      print("rm'ing", ubx.port_rm(block, "hoop"..tostring(k)))
-   end
 end
-function cleanup(block) print("cleanup") end

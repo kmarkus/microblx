@@ -1040,9 +1040,14 @@ int ubx_config_rm(ubx_block_t* b, const char* name)
 
 	num_configs=get_num_configs(b);
 
-	for(i=0; i<=num_configs; i++)
+	for(i=0; i<num_configs; i++)
 		if(strcmp(b->configs[i].name, name)==0)
 			break;
+
+	if(i>=num_configs) {
+		ERR("no config %s found", name);
+		goto out;
+	}
 
 	ubx_config_free_data(&b->configs[i]);
 
@@ -1168,9 +1173,14 @@ int ubx_port_rm(ubx_block_t* b, const char* name)
 
 	num_ports=get_num_ports(b);
 
-	for(i=0; i<=num_ports; i++)
+	for(i=0; i<num_ports; i++)
 		if(strcmp(b->ports[i].name, name)==0)
 			break;
+
+	if(i>=num_ports) {
+		ERR("no port %s found", name);
+		goto out;
+	}
 
 	ubx_port_free_data(&b->ports[i]);
 
