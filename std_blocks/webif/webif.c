@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 #include "mongoose.h"
 #include "ubx.h"
@@ -36,7 +37,9 @@ struct webif_info {
 	struct mg_context *ctx;
 	struct mg_callbacks callbacks;
 	struct lua_State* L;
+	pthread_mutex_t mutex;
 };
+
 
 static int init_lua(struct webif_info* inf);
 
@@ -45,8 +48,14 @@ static int begin_request_handler(struct mg_connection *conn)
 {
 	int len;
 	const char *res, *mime_type;
+
 	const struct mg_request_info *request_info = mg_get_request_info(conn);
 	struct webif_info *inf = (struct webif_info*) request_info->user_data;
+
+	if(pthread_mutex_lock(&inf->mutex) != 0) {
+		ERR("failed to aquire mutex");
+		goto out;
+	}
 
 	/* check post */
 	char post_data[1024];
@@ -76,7 +85,7 @@ static int begin_request_handler(struct mg_connection *conn)
 
 	if(lua_pcall(inf->L, 3, 2, 0)!=0) {
 		ERR("Lua: %s", lua_tostring(inf->L, -1));
-		goto out;
+		goto out_unlock;
 	}
 
 	res=luaL_checkstring(inf->L, 1);
@@ -96,6 +105,8 @@ static int begin_request_handler(struct mg_connection *conn)
 	 /* Returning non-zero tells mongoose that our function has
 	  * replied to the client, and mongoose should not send client
 	  * any more data. */
+ out_unlock:
+	pthread_mutex_unlock(&inf->mutex);
  out:
 	return 1;
 }
@@ -103,6 +114,11 @@ static int begin_request_handler(struct mg_connection *conn)
 static int init_lua(struct webif_info* inf)
 {
 	int ret=-1;
+
+	if(pthread_mutex_init(&inf->mutex, NULL) != 0) {
+		ERR("failed to init mutex");
+		goto out;
+	}
 
 	if((inf->L=luaL_newstate())==NULL) {
 		ERR("failed to alloc lua_State");
@@ -156,6 +172,7 @@ static void wi_cleanup(ubx_block_t *c)
 	DBG(" ");
 	struct webif_info* inf = (struct webif_info*) c->private_data;
 	lua_close(inf->L);
+	pthread_mutex_destroy(&inf->mutex);
 	free(c->private_data);
 }
 
@@ -185,7 +202,7 @@ static int wi_start(ubx_block_t *c)
 
 	return 0; /* Ok */
  out_err:
-	return -1; 
+	return -1;
 }
 
 static void wi_stop(ubx_block_t *c)
