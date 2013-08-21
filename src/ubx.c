@@ -1404,6 +1404,12 @@ uint32_t __port_read(ubx_port_t* port, ubx_data_t* data)
 		goto out;
 	};
 
+	if(!data) {
+		ERR("data null");
+		ret = -1;
+		goto out;
+	};
+
 	if ((port->attrs & PORT_DIR_IN) == 0) {
 		ERR("not an IN-port");
 		ret = EPORT_INVALID_TYPE;

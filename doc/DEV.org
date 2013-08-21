@@ -4,14 +4,15 @@
 
 * Next steps
   
-** TODO [#A] add methods [add|rm}_[port|config]
+** DONE [#A] add methods [add|rm}_[port|config]
+   CLOSED: [2013-08-19 Mon 14:36]
    - add len field for configs and ports to simplify searching.
    - unify cloning and dynamically adding ports
      - ubx_port_add(b, name, meta, in_type_name, out_type_name, attrs)
        - resize target buffer
 
        
-** TODO [#A] locking
+** TODO locking
    + Options
      - rw-locks (or uRCU?)
 
@@ -55,7 +56,7 @@
    - full name: package/struct foo or package/foo_t or
    - partial hash of name: 0a407a4f51ff2bb1f92a6ae611cb63fb
 
-** TODO webif: ubx_load_types is called upon every request.
+** TODO [#C] webif: ubx_load_types is called upon every request.
    - Find a way to only call if a new type was added.
    
 

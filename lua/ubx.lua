@@ -188,10 +188,14 @@ function M.data_alloc(ni, name, num)
    num=num or 1
    local d = ubx.ubx_data_alloc(ni, name, num)
    if d==nil then error("data_alloc: unkown type '"..name.."'") end
+   ffi.gc(d, function(dat)
+		-- print("data_free: freeing data ", dat)
+		ubx.ubx_data_free(ni, dat)
+	     end)
    return d
 end
 
-M.data_free=ubx.ubx_data_free
+M.data_free = ubx.ubx_data_free
 M.type_get = ubx.ubx_type_get
 
 local def_sep = '___'
@@ -491,6 +495,27 @@ function M.interaction_write(i, val)
 end
 
 ------------------------------------------------------------------------------
+--                   Port reading and writing
+------------------------------------------------------------------------------
+
+function M.port_read(p, rdat)
+   if not data then
+      rdat = M.data_alloc(ni, p.in_type_name, p.in_data_len)
+   end
+   return ubx.__port_read(p, rdat)
+end
+
+function M.port_write(p, data)
+   ubx.__port_write(p, data)
+end
+
+function M.port_write_read(p, wdat, rdat)
+   M.port_write(p, wdat)
+   return M.port_read(p, rdat)
+end
+
+
+------------------------------------------------------------------------------
 --                   Usefull stuff: foreach, pretty printing
 ------------------------------------------------------------------------------
 
@@ -706,7 +731,5 @@ function M.ni_stat(ni)
 	 tostring(ubx.ubx_num_types(ni)).." types")
    print(string.rep('-',78))
 end
-
-
 
 return M

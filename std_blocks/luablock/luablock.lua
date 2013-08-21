@@ -19,7 +19,9 @@ function start(block)
    return true
 end
 
-function step(block) print("step")
+function step(block)
+   print("step")
+   local res, dat = ubx.port_read(ubx.block_port_get(block, "exec_str"))
 
 end
 
