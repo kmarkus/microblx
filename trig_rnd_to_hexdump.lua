@@ -45,7 +45,7 @@ print("running fifo1 init", ubx.block_init(fifo1))
 
 print("running webif start", ubx.block_start(webif1))
 
-rand_port=ubx.block_port_get(random1, "rnd")
+rand_port=ubx.port_get(random1, "rnd")
 
 ubx.connect_one(rand_port, hexdump1)
 ubx.connect_one(rand_port, fifo1)

@@ -103,7 +103,7 @@ static int init_lua_state(struct luablock_info* inf, const char* lua_file)
 
 	if(lua_file) {
 		if((ret=luaL_dofile(inf->L, lua_file))!=0) {
-			ERR("Failed to load ubx_lua.lua: %s\n", lua_tostring(inf->L, -1));
+			ERR("Failed to load lua_file '%s': %s\n", lua_file, lua_tostring(inf->L, -1));
 			goto out;
 		}
 	}
@@ -127,6 +127,7 @@ static int luablock_init(ubx_block_t *b)
 	b->private_data = inf;
 
 	lua_file = (char *) ubx_config_get_data_ptr(b, "lua_file", &lua_file_len);
+	lua_file = (!strncmp(lua_file, "", lua_file_len)) ? NULL : lua_file;
 
 	if((inf->exec_str_buff = ubx_data_alloc(b->ni, "char", EXEC_STR_BUFF_SIZE)) == NULL) {
 		ERR("failed to allocate exec_str buffer");
@@ -172,13 +173,14 @@ static void luablock_step(ubx_block_t *b)
 	if((len=__port_read(p_exec_str, inf->exec_str_buff))>0) {
 		if ((ret=luaL_dostring(inf->L, inf->exec_str_buff->data)) != 0) {
 			ERR("Failed to exec_str: %s", lua_tostring(inf->L, -1));
-			write_int(p_exec_str, &ret);
 			goto out;
 		}
-		write_int(p_exec_str, &ret);
 	}
 	call_hook(b, "step", 0, 0);
  out:
+	/* TODO: fix this. realloc could have changed port addr */
+	p_exec_str = ubx_port_get(b, "exec_str");
+	write_int(p_exec_str, &ret);
 	return;
 }
 

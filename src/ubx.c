@@ -1,5 +1,5 @@
 
-#define DEBUG 1
+/* #define DEBUG 1 */
 
 #include "ubx.h"
 
@@ -455,6 +455,8 @@ static void ubx_port_free_data(ubx_port_t* p)
 
 	if(p->meta_data) free((char*) p->meta_data);
 	if(p->name) free((char*) p->name);
+
+	memset(p, 0x0, sizeof(ubx_port_t));
 }
 
 /**
@@ -535,8 +537,10 @@ static int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta
 static void ubx_config_free_data(ubx_config_t *c)
 {
 	if(c->name) free((char*) c->name);
+	if(c->meta_data) free((char*) c->meta_data);
 	if(c->type_name) free((char*) c->type_name);
 	if(c->value.data) free(c->value.data);
+	memset(c, 0x0, sizeof(ubx_config_t));
 }
 
 /**
@@ -551,12 +555,20 @@ static void ubx_config_free_data(ubx_config_t *c)
  *
  * This function allocates memory.
  */
-static int ubx_clone_config_data(ubx_config_t *cnew, const char* name, const ubx_type_t* type, unsigned long len)
+static int ubx_clone_config_data(ubx_config_t *cnew,
+				 const char* name,
+				 const char* meta_data,
+				 const ubx_type_t* type,
+				 unsigned long len)
 {
 	memset(cnew, 0x0, sizeof(ubx_config_t));
 
 	if((cnew->name=strdup(name))==NULL)
 		goto out_err;
+
+	if(meta_data)
+		if((cnew->meta_data=strdup(meta_data))==NULL)
+			goto out_err;
 
 	if((cnew->type_name=strdup(type->name))==NULL)
 		goto out_err;
@@ -648,7 +660,7 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 			goto out_free;
 
 		for(srcconf=prot->configs, tgtconf=newb->configs; srcconf->name!=NULL; srcconf++,tgtconf++) {
-			if(ubx_clone_config_data(tgtconf, srcconf->name,
+			if(ubx_clone_config_data(tgtconf, srcconf->name, srcconf->meta_data,
 						 srcconf->value.type, srcconf->value.len) != 0)
 				goto out_free;
 		}
@@ -714,6 +726,11 @@ ubx_block_t* ubx_block_create(ubx_node_info_t *ni, const char *type, const char*
 {
 	ubx_block_t *prot, *newb;
 	newb=NULL;
+
+	if(name==NULL) {
+		ERR("name is NULL");
+		goto out;
+	}
 
 	/* find prototype */
 	HASH_FIND_STR(ni->blocks, type, prot);
@@ -979,9 +996,17 @@ void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *le
 }
 
 /**
- * @brief ubx_config_add - add a new configuration to a block
+ * ubx_config_add - add a new ubx_config value to an existing block.
+ *
+ * @param b
+ * @param name
+ * @param meta
+ * @param type_name
+ * @param len
+ *
+ * @return 0 if Ok, !=0 otherwise.
  */
-int ubx_config_add(ubx_block_t* b, const char* name, const char *type_name, unsigned long len)
+int ubx_config_add(ubx_block_t* b, const char* name, const char* meta, const char *type_name, unsigned long len)
 {
 	ubx_type_t* typ;
 	ubx_config_t* carr;
@@ -1012,7 +1037,7 @@ int ubx_config_add(ubx_block_t* b, const char* name, const char *type_name, unsi
 
 	b->configs=carr;
 
-	if((ret=ubx_clone_config_data(&b->configs[i], name, typ, len)) != 0) {
+	if((ret=ubx_clone_config_data(&b->configs[i], name, meta, typ, len)) != 0) {
 		ERR("cloning config data failed");
 		goto out;
 	}

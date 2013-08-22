@@ -5,7 +5,7 @@ local ubx_utils = require("lua/ubx_utils")
 function init(block)
    print("init")
    for k=1,5 do
-      ubx.config_add(block, "xaoo"..tostring(k), "int32_t", k)
+      ubx.config_add(block, "xaoo"..tostring(k), "meta inf here", "int32_t", k)
    end
 
    return true
@@ -21,7 +21,7 @@ end
 
 function step(block)
    print("step")
-   -- local res, dat = ubx.port_read(ubx.block_port_get(block, "exec_str"))
+   -- local res, dat = ubx.port_read(ubx.port_get(block, "exec_str"))
 end
 
 function stop(block)

@@ -121,6 +121,7 @@ typedef struct ubx_port {
  */
 typedef struct ubx_config {
 	const char* name;
+	const char* meta_data;
 	const char* type_name;
 	ubx_data_t value;
 } ubx_config_t;

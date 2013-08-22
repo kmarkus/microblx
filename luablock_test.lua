@@ -32,7 +32,7 @@ fifo1=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, eleme
 print("running webif init", ubx.block_init(webif1))
 print("running webif start", ubx.block_start(webif1))
 
-p_exec_str=ubx.block_port_get(lb1, "exec_str")
+p_exec_str=ubx.port_get(lb1, "exec_str")
 
 print("running luablock init", ubx.block_init(lb1))
 print("running fifo1 init", ubx.block_init(fifo1))
@@ -45,7 +45,7 @@ d1=ubx.data_alloc(ni, "char")
 d2=ubx.data_alloc(ni, "int")
 local cnt=0
 
-for i=1,10000 do
+for i=1,1000 do
    ubx.data_set(d1, "print('hi, code sent from outer space, cnt:"..tostring(cnt).."')", true)
    cnt=cnt+1
    ubx.interaction_write(fifo1, d1)

@@ -41,7 +41,7 @@ print("running random1 init", ubx.block_init(random1))
 print("running hexdump1 init", ubx.block_init(hexdump1))
 print("running fifo1 init", ubx.block_init(fifo1))
 
-rand_port=ubx.block_port_get(random1, "rnd")
+rand_port=ubx.port_get(random1, "rnd")
 
 ubx.connect_one(rand_port, hexdump1)
 ubx.connect_one(rand_port, fifo1)

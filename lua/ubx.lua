@@ -24,7 +24,8 @@ local function read_file(file)
    return data
 end
 
--- call only after loading libubx!
+--- Setup Enums
+-- called internally after loading libubx
 local function setup_enums()
    if M.ubx==nil then error("setup_enums called before loading libubx") end
    M.retval_tostr = {
@@ -75,37 +76,61 @@ M.ubx=ubx
 setup_enums()
 
 --- Safely convert a char* to a lua string.
+-- @param charptr C style string char* or char[]
+-- @param return lua string
 function M.safe_tostr(charptr)
    if charptr == nil then return "" end
    return ffi.string(charptr)
 end
 
---- Useful predicates
+--- Is protoype block predicate.
 function M.is_proto(b) return b.prototype==nil end
+
+--- Is instance block predicate.
 function M.is_instance(b) return b.prototype~=nil end
+
+--- Is computational block predicate.
 function M.is_cblock(b) return b.type==ffi.C.BLOCK_TYPE_COMPUTATION end
+
+--- Is interaction block predicate.
 function M.is_iblock(b) return b.type==ffi.C.BLOCK_TYPE_INTERACTION end
+
+--- Is computational block instance predicate.
 function M.is_cblock_instance(b) return M.is_cblock(b) and not M.is_proto(b) end
+
+--- Is interaction block instance predicate.
 function M.is_iblock_instance(b) return M.is_iblock(b) and not M.is_proto(b) end
+
+--- Is computational block prototype predicate.
 function M.is_cblock_proto(b) return M.is_cblock(b) and M.is_proto(b) end
+
+--- Is interaction block prototype predicate.
 function M.is_iblock_proto(b) return M.is_iblock(b) and M.is_proto(b) end
 
 ------------------------------------------------------------------------------
 --                           Node and block API
 ------------------------------------------------------------------------------
 
---- Dealing with modules. This should be moved to C eventually.
+--- Dealing with modules. This could be moved to C.
 ubx_modules = {}
+
+--- Load and initialize a ubx module.
+-- @param ni node_info pointer into which to load module
+-- @param libfile module file to load
 function M.load_module(ni, libfile)
    local mod=ffi.load(libfile)
    if mod.__initialize_module(ni) ~= 0 then
       error("failed to init module "..libfile)
    end
-   ubx_modules[#ubx_modules+1]={ module=mod, libfile=libfile }
+   if not ubx_modules[ni] then ubx_modules[ni]={} end
+   local mods = ubx_modules[ni]
+   mods[#mods+1]={ module=mod, libfile=libfile }
 end
 
+--- Unload all loaded modules
 function M.unload_modules(ni)
-   for _,mod in ipairs(ubx_modules) do
+   local mods = ubx_modules[ni]
+   for _,mod in ipairs(mods) do
       print("unloading "..mod.libfile)
       mod.module.__cleanup_module(ni)
    end
@@ -159,15 +184,25 @@ M.block_cleanup = ubx.ubx_block_cleanup
 M.cblock_step = ubx.ubx_cblock_step
 
 --- Port and Connections handling
-M.block_port_get = ubx.ubx_port_get
+M.port_get = ubx.ubx_port_get
 M.port_add = ubx.ubx_port_add
 M.port_rm = ubx.ubx_port_rm
 M.connect_one = ubx.ubx_connect_one
 
 --- Configuration
-M.config_add = ubx.ubx_config_add
-M.config_rm = ubx.ubx_config_rm
 
+--- Add a ubx_config to a block.
+-- @param b block
+-- @param name name of configuration
+-- @param meta configuration metadata
+-- @param type_name desired type of configuration
+-- @param len desired array multiplicity of contained data.
+-- @return 0 in case of success, -1 otherwise.
+M.config_add = ubx.ubx_config_add
+
+M.config_rm = ubx.ubx_config_rm
+M.config_get = ubx.ubx_config_get
+M.config_get_data = ubx.ubx_config_get_data
 
 --- Unload a block: bring it to state preinit and call ubx_block_rm
 function M.block_unload(ni, name)
@@ -539,32 +574,31 @@ function M.type_tostr(t, verb)
    return res
 end
 
+function M.port_totab(p)
+   local ptab = {}
+   ptab.name = M.safe_tostr(p.name)
+   ptab.meta_data = M.safe_tostr(p.meta_data)
+   ptab.attrs = tonumber(p.attrs)
+   ptab.state = tonumber(p.state)
+   ptab.in_type_name = M.safe_tostr(p.in_type_name)
+   ptab.out_type_name = M.safe_tostr(p.out_type_name)
+   ptab.in_data_len = tonumber(p.in_data_len)
+   ptab.out_data_len = tonumber(p.out_data_len)
+   -- TODO (?) interactions
+   return ptab
+end
+
+function M.config_totab(c)
+   if c==nil then return "NULL config" end
+   local res = {}
+   res.name = M.safe_tostr(c.name)
+   res.type_name = M.safe_tostr(c.type_name)
+   res.value = M.data_tolua(c.value)
+   return res
+end
 
 --- Convert a block to a Lua table.
 function M.block_totab(b)
-   local function port_totab(p)
-      local ptab = {}
-      ptab.name = M.safe_tostr(p.name)
-      ptab.meta_data = M.safe_tostr(p.meta_data)
-      ptab.attrs = tonumber(p.attrs)
-      ptab.state = tonumber(p.state)
-      ptab.in_type_name = M.safe_tostr(p.in_type_name)
-      ptab.out_type_name = M.safe_tostr(p.out_type_name)
-      ptab.in_data_len = tonumber(p.in_data_len)
-      ptab.out_data_len = tonumber(p.out_data_len)
-      -- TODO (?) interactions
-      return ptab
-   end
-
-   local function config_totab(c)
-      if c==nil then return "NULL config" end
-      local res = {}
-      res.name = M.safe_tostr(c.name)
-      res.type_name = M.safe_tostr(c.type_name)
-      res.value = M.data_tolua(c.value)
-      return res
-   end
-
    if b==nil then error("NULL block") end
    local res = {}
    res.name=M.safe_tostr(b.name)
@@ -579,8 +613,8 @@ function M.block_totab(b)
       res.stat_num_writes=tonumber(b.stat_num_writes)
    end
 
-   res.ports=M.ports_map(b, port_totab)
-   res.configs=M.configs_map(b, config_totab)
+   res.ports=M.ports_map(b, M.port_totab)
+   res.configs=M.configs_map(b, M.config_totab)
 
    return res
 end
