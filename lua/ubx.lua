@@ -29,8 +29,8 @@ local function setup_enums()
    if M.ubx==nil then error("setup_enums called before loading libubx") end
    M.retval_tostr = {
       [0] ='OK',
-      [ffi.C.PORT_READ_NODATA] 	  ='PORT_READ_NODATA',
-      [ffi.C.PORT_READ_NEWDATA]   ='PORT_READ_NEWDATA',
+      -- [ffi.C.PORT_READ_NODATA] 	  ='PORT_READ_NODATA',
+      -- [ffi.C.PORT_READ_NEWDATA]   ='PORT_READ_NEWDATA',
       [ffi.C.EPORT_INVALID] 	  ='EPORT_INVALID',
       [ffi.C.EPORT_INVALID_TYPE]  ='EPORT_INVALID_TYPE',
       [ffi.C.EINVALID_BLOCK_TYPE] ='EINVALID_BLOCK_TYPE',
@@ -478,20 +478,24 @@ end
 ------------------------------------------------------------------------------
 
 --- TODO!
-function M.interaction_read(ni, i)
+function M.interaction_read(i, rdat)
    if i.block_state ~= ffi.C.BLOCK_STATE_ACTIVE then
       error("interaction_read: interaction not readable in state "..M.block_state_tostr[i.block_state])
    end
-   -- figure this out automatically.
-   local rddat=M.data_alloc(ni, "unsigned int", 1)
-   local res
-   local res=i.read(i, rddat)
-   if res <= 0 then res=M.retval_tostr[res] end
-   return res, rddat
+   local res=i.read(i, rdat)
+   if res < 0 then
+      error("interaction_read failed: "..M.retval_tostr[res])
+   elseif res==0 then
+      return 0
+   end
+   return res
 end
 
---- TODO!
-function M.interaction_write(i, val)
+function M.interaction_write(i, wdat)
+   if i.block_state ~= ffi.C.BLOCK_STATE_ACTIVE then
+      error("interaction_read: interaction not readable in state "..M.block_state_tostr[i.block_state])
+   end
+   i.write(i, wdat)
 end
 
 ------------------------------------------------------------------------------
@@ -499,9 +503,6 @@ end
 ------------------------------------------------------------------------------
 
 function M.port_read(p, rdat)
-   if not data then
-      rdat = M.data_alloc(ni, p.in_type_name, p.in_data_len)
-   end
    return ubx.__port_read(p, rdat)
 end
 

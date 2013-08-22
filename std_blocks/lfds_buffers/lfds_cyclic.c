@@ -13,7 +13,7 @@
 
 /* meta-data */
 char cyclic_meta[] =
-	"{ doc='High perforance scalable, lock-free cyclic, buffered in process communication"
+	"{ doc='High performance scalable, lock-free cyclic, buffered in process communication"
 	"  description=[[This ubx interaction is based on based on liblfds"
 	"                ringbuffer (v0.6.1.1) (www.liblfds.org)]],"
 	"  version=0.01,"
@@ -145,6 +145,7 @@ static void cyclic_write(ubx_block_t *i, ubx_data_t* msg)
 	hd=lfds611_freelist_get_user_data_from_element(elem, NULL);
 	memcpy(hd->data, msg->data, len);
 	hd->len=len;
+	DBG("copying %ld bytes", len);
 
 	/* release element */
 	lfds611_ringbuffer_put_write_element(bbi->rbs, elem);
@@ -165,7 +166,7 @@ static int cyclic_read(ubx_block_t *i, ubx_data_t* msg)
 	bbi = (struct cyclic_block_info*) i->private_data;
 
 	if(lfds611_ringbuffer_get_read_element(bbi->rbs, &elem)==NULL) {
-		ret=PORT_READ_NODATA;
+		ret=0;
 		goto out;
 	}
 

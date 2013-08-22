@@ -196,7 +196,7 @@ static void fifo_write(ubx_block_t *i, ubx_data_t* msg)
 /* read */
 static int fifo_read(ubx_block_t *i, ubx_data_t* msg)
 {
-	int ret;
+	int ret=0;
 	unsigned long readsz=0, readsz1=0, readsz2=0, used;
 	struct fifo_block_info *bbi;
 
@@ -208,7 +208,6 @@ static int fifo_read(ubx_block_t *i, ubx_data_t* msg)
 	}
 
 	if(bbi->rdptr == bbi->wrptr) {
-		ret=PORT_READ_NODATA;
 		goto out_unlock;
 	}
 

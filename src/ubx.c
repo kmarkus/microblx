@@ -315,6 +315,11 @@ ubx_data_t* ubx_data_alloc(ubx_node_info_t *ni, const char* typname, unsigned lo
 	ubx_type_t* t = NULL;
 	ubx_data_t* d = NULL;
 
+	if(ni==NULL) {
+		ERR("ni is NULL");
+		goto out;
+	}
+
 	if(array_len == 0) {
 		ERR("invalid array_len 0");
 		goto out;
@@ -1394,7 +1399,7 @@ int ubx_cblock_step(ubx_block_t* b)
  */
 uint32_t __port_read(ubx_port_t* port, ubx_data_t* data)
 {
-	uint32_t ret=PORT_READ_NODATA;
+	uint32_t ret=0;
 	const char *tp;
 	ubx_block_t **iaptr;
 
@@ -1428,7 +1433,7 @@ uint32_t __port_read(ubx_port_t* port, ubx_data_t* data)
 
 	for(iaptr=port->in_interaction; *iaptr!=NULL; iaptr++) {
 		if((*iaptr)->block_state==BLOCK_STATE_ACTIVE) {
-			if((ret=(*iaptr)->read(*iaptr, data)) == PORT_READ_NEWDATA) {
+			if((ret=(*iaptr)->read(*iaptr, data)) > 0) {
 				port->stat_reades++;
 				(*iaptr)->stat_num_reads++;
 				goto out;

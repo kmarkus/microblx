@@ -71,8 +71,8 @@ enum {
 
 /* return values */
 enum {
-	PORT_READ_NODATA   	= -1,
-	PORT_READ_NEWDATA  	= -2,
+	/* PORT_READ_NODATA   	= -1, */
+	/* PORT_READ_NEWDATA  	= -2, */
 
 	/* ERROR conditions */
 	EPORT_INVALID	    	= -3,

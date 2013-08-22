@@ -21,8 +21,7 @@ end
 
 function step(block)
    print("step")
-   local res, dat = ubx.port_read(ubx.block_port_get(block, "exec_str"))
-
+   -- local res, dat = ubx.port_read(ubx.block_port_get(block, "exec_str"))
 end
 
 function stop(block)

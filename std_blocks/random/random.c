@@ -107,7 +107,7 @@ static int rnd_start(ubx_block_t *c)
 	/* seed is allowed to change at runtime, check if new one available */
 	ubx_port_t* seed_port = ubx_port_get(c, "seed");
 	ret = read_uint(seed_port, &seed);
-	if(ret==PORT_READ_NEWDATA) {
+	if(ret>0) {
 		DBG("starting component. Using seed: %d, min: %d, max: %d", seed, inf->min, inf->max);
 		srandom(seed);
 	} else {
