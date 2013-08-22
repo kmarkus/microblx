@@ -131,7 +131,7 @@ end
 function M.unload_modules(ni)
    local mods = ubx_modules[ni]
    for _,mod in ipairs(mods) do
-      print("unloading "..mod.libfile)
+      print("    unloading "..mod.libfile)
       mod.module.__cleanup_module(ni)
    end
    ubx_modules={}
@@ -149,7 +149,7 @@ function M.node_cleanup(ni)
    print("unloading block instances:")
    M.blocks_foreach(ni, function (b)
 			   local n=M.safe_tostr(b.name)
-			   print("node_cleanup: unloading "..n)
+			   print("    unloading "..n)
 			   M.block_unload(ni, n)
 			end,
 		    M.is_instance)
