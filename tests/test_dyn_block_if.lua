@@ -25,10 +25,10 @@ fifo1=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, eleme
 
 ubx.connect_one(p_exec_str, fifo1);
 
-print("running luablock init", ubx.block_init(lb1))
-print("running fifo1 init", ubx.block_init(fifo1))
-print("running luablock start", ubx.block_start(lb1))
-print("running fifo1 start", ubx.block_start(fifo1))
+assert(ubx.block_init(lb1)==0)
+assert(ubx.block_init(fifo1)==0)
+assert(ubx.block_start(lb1)==0)
+assert(ubx.block_start(fifo1)==0)
 
 local d1=ubx.data_alloc(ni, "char")
 local d2=ubx.data_alloc(ni, "int")
@@ -48,8 +48,8 @@ end
 function test_exec_str()
    assert_equal(0, exec_str("counter=75"))
    assert_equal(0, exec_str("return counter==75"))
-   assert_equal(0, exec_str("print('counter:', counter)"))
-   assert_not_equal(0, exec_str("foo()"))
+   -- assert_equal(0, exec_str("print('counter:', counter)"))
+   assert_not_equal(0, exec_str("error('this error is intentional')"))
 
    assert_equal(0, exec_str([[
 				  function start(b) this=b; return true end
@@ -101,10 +101,10 @@ function test_config_add_rm()
 			    ubx=require "ubx"
 
 			    for k=1,3 do
-			       print("adding config", ubx.config_add(this,
-								     "testconfig"..tostring(k),
-								     "{ desc='a testconfig without further meaning' }",
-								     "int32_t", 5))
+			       ubx.config_add(this,
+					      "testconfig"..tostring(k),
+					      "{ desc='a testconfig without further meaning' }",
+					      "int32_t", 5)
 			    end
 		      ]]))
 

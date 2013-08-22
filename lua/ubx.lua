@@ -141,7 +141,7 @@ end
 --- Create and initalize a new node_info struct
 function M.node_create(name)
    local ni=ffi.new("ubx_node_info_t")
-   print("ubx_node_init:", ubx.ubx_node_init(ni, name))
+   assert(ubx.ubx_node_init(ni, name)==0, "node_create failed")
    return ni
 end
 

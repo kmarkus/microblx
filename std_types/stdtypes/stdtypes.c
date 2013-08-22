@@ -2,8 +2,6 @@
  * The basic types
  */
 
-#define DEBUG 1
-
 #include <stdint.h>
 
 #include "ubx.h"

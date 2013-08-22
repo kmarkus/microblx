@@ -944,7 +944,7 @@ ubx_config_t* ubx_config_get(ubx_block_t* b, const char* name)
 	for(conf=b->configs; conf->name!=NULL; conf++)
 		if(strcmp(conf->name, name)==0)
 			goto out;
-	ERR("block %s has no config %s", b->name, name);
+	DBG("block %s has no config %s", b->name, name);
 	conf=NULL;
  out:
 	return conf;
@@ -1081,9 +1081,7 @@ int ubx_config_rm(ubx_block_t* b, const char* name)
 
 	ubx_config_free_data(&b->configs[i]);
 
-	if(i==num_configs-1) {
-		memset(&b->configs[i], 0x0, sizeof(ubx_config_t));
-	} else {
+	if(i<num_configs-1) {
 		b->configs[i]=b->configs[num_configs-1];
 		memset(&b->configs[num_configs-1], 0x0, sizeof(ubx_config_t));
 	}
@@ -1214,9 +1212,10 @@ int ubx_port_rm(ubx_block_t* b, const char* name)
 
 	ubx_port_free_data(&b->ports[i]);
 
-	if(i==num_ports-1) {
-		memset(&b->ports[i], 0x0, sizeof(ubx_port_t));
-	} else {
+	/* if the removed port is the last in list, there is nothing
+	 * to do. if not, copy the last port into the removed one [i]
+	 * and zero last one */
+	if(i<num_ports-1) {
 		b->ports[i]=b->ports[num_ports-1];
 		memset(&b->ports[num_ports-1], 0x0, sizeof(ubx_port_t));
 	}
