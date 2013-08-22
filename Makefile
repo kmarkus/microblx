@@ -34,6 +34,11 @@ clean: $(CLEANDIRS)
 $(CLEANDIRS):
 	$(MAKE) -C $(@:clean-%=%) clean
 	rm -f core vgcore*
+	rm -rf doc
+
+doc:
+	mkdir -p doc/lua
+	luadoc -d doc/lua lua/ubx.lua
 
 .PHONY: subdirs $(DIRS)
 .PHONY: subdirs $(BUILDDIRS)
@@ -41,3 +46,4 @@ $(CLEANDIRS):
 .PHONY: subdirs $(TESTDIRS)
 .PHONY: subdirs $(CLEANDIRS)
 .PHONY: all install clean test
+.PHONY: doc
