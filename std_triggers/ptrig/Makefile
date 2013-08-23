@@ -16,4 +16,4 @@ ptrig.o: ptrig.c $(INCLUDE_DIR)/ubx.h $(INCLUDE_DIR)/ubx_types.h $(INCLUDE_DIR)/
 	${CC} -fPIC -pthread -I$(INCLUDE_DIR) -c $(CFLAGS) ptrig.c
 
 clean:
-	rm -f *.o *.so *~ core
+	rm -f *.o *.so *~ core $(HEXARRS)
