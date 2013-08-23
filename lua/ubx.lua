@@ -6,7 +6,7 @@ local utils= require "utils"
 local ts=tostring
 local safe_ts=ubx_utils.safe_tostr
 local ac=require "ansicolors"
-
+-- require "strict"
 local M={}
 local setup_enums
 
@@ -65,7 +65,7 @@ ffi.cdef(read_file("src/ubx_types.h"))
 ffi.cdef(read_file("src/ubx_proto.h"))
 local ubx=ffi.load("src/libubx.so")
 
-ffi.cdef[[
+ffi.cdef [[
 void *malloc(size_t size);
 void free(void *ptr);
 void *calloc(size_t nmemb, size_t size);
@@ -118,46 +118,75 @@ ubx_modules = {}
 -- @param ni node_info pointer into which to load module
 -- @param libfile module file to load
 function M.load_module(ni, libfile)
+   local nodename=M.safe_tostr(ni.name)
+
+   if not utils.file_exists(libfile) then error("non-existing file "..tostring(libfile)) end
+
+   if ubx_modules[nodename] and ubx_modules[nodename].loaded[libfile] then
+      -- print(nodename..": library "..tostring(libfile).." already loaded, ignoring")
+      goto out
+   end
+
+
    local mod=ffi.load(libfile)
    if mod.__initialize_module(ni) ~= 0 then
       error("failed to init module "..libfile)
    end
-   if not ubx_modules[ni] then ubx_modules[ni]={} end
-   local mods = ubx_modules[ni]
+
+   -- print(nodename..": library "..tostring(libfile).." successfully loaded")
+
+   if not ubx_modules[nodename] then ubx_modules[nodename]={ loaded={}} end
+
+   local mods = ubx_modules[nodename]
    mods[#mods+1]={ module=mod, libfile=libfile }
+   mods.loaded[libfile]=true
+   M.ffi_load_types(ni)
+
+   ::out::
 end
 
 --- Unload all loaded modules
 function M.unload_modules(ni)
-   local mods = ubx_modules[ni]
+   local nodename=M.safe_tostr(ni.name)
+
+   local mods = ubx_modules[nodename] or {}
    for _,mod in ipairs(mods) do
-      print("    unloading "..mod.libfile)
+      print(nodename..": unloading "..mod.libfile)
       mod.module.__cleanup_module(ni)
    end
-   ubx_modules={}
+   ubx_modules[nodename]={ loaded={}}
 end
 
 
 --- Create and initalize a new node_info struct
+-- @param name name of node
+-- @return ubx_node_info_t
 function M.node_create(name)
+   if ubx_modules[name] then error("a node named "..tostring(name).." already exists") end
    local ni=ffi.new("ubx_node_info_t")
+   -- the following is bad, because nodes are shared among different Lua instances.
+   -- ffi.gc(ni, M.node_cleanup)
    assert(ubx.ubx_node_init(ni, name)==0, "node_create failed")
    return ni
 end
 
+--- Cleanup a node: cleanup and remove instances and unload modules.
+-- @param ni node info
 function M.node_cleanup(ni)
-   print("unloading block instances:")
+   local nname = M.safe_tostr(ni.name)
+   print(nname..": cleaning up node")
+   print(nname..": unloading block instances:")
    M.blocks_foreach(ni, function (b)
 			   local n=M.safe_tostr(b.name)
 			   print("    unloading "..n)
 			   M.block_unload(ni, n)
 			end,
 		    M.is_instance)
-   print("unloading modules:")
+   print(nname..": unloading modules:")
    M.unload_modules(ni)
-
-   print("cleaning up node_info", M.safe_tostr(ni.name))
+   print(nname..": cleaning up node info")
    ubx.ubx_node_cleanup(ni)
+   collectgarbage("collect")
 end
 
 --- Create a new computational block.
@@ -217,12 +246,32 @@ end
 --                           Data type handling
 ------------------------------------------------------------------------------
 
-function M.data_len(d) return tonumber(ubx.data_len(d)) end
+--- Return the array size of a ubx_data_t
+-- @param d ubx_data_t
+-- @return array length
+function M.data_size(d)
+   return tonumber(ubx.data_size(d))
+end
 
-function M.data_alloc(ni, name, num)
+--- Get size of an instance of the given type.
+-- @param type_name string name of type
+-- @return size in bytes
+function M.type_size(ni, type_name)
+   local t = M.type_get(ni, type_name)
+   if t==nil then error("unknown type "..tostring(type_name)) end
+   return tonumber(t.size)
+end
+
+--- Allocate a new ubx_data with a given dimensionality.
+-- This data will be automatically garbage collected.
+-- @param ni node_info
+-- @param name type of data to allocate
+-- @param num dimensionality
+-- @return ubx_data_t
+function M.data_alloc(ni, type_name, num)
    num=num or 1
-   local d = ubx.ubx_data_alloc(ni, name, num)
-   if d==nil then error("data_alloc: unkown type '"..name.."'") end
+   local d = ubx.ubx_data_alloc(ni, type_name, num)
+   if d==nil then error("data_alloc: unkown type '"..type_name.."'") end
    ffi.gc(d, function(dat)
 		-- print("data_free: freeing data ", dat)
 		ubx.ubx_data_free(ni, dat)
@@ -438,8 +487,8 @@ local function type_to_ctype(t, ptr)
 end
 
 --- Transform the value of a ubx_data_t* to a lua FFI cdata.
--- @param ubx_data_t
--- @return
+-- @param d ubx_data_t pointer
+-- @return ffi cdata
 function data_to_cdata(d)
    local ctp = type_to_ctype(d.type, true)
    return ffi.cast(ctp, d.data)

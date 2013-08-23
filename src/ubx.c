@@ -44,31 +44,41 @@ const char* get_typename(ubx_data_t *data)
  *
  * @param ni
  *
- * @return
+ * @return 0 if ok, -1 otherwise.
  */
 int ubx_node_init(ubx_node_info_t* ni, const char *name)
 {
+	int ret=-1;
+
 	/* if(mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { */
 	/* 	ERR2(errno, " "); */
 	/* 	goto out_err; */
 	/* }; */
 
-	if(name!=NULL) ni->name=strdup(name);
+	if(name==NULL) {
+		ERR("name is NULL");
+		goto out;
+	}
+
+	if((ni->name=strdup(name))==NULL) {
+		ERR("strdup failed");
+		goto out;
+	}
 
 	ni->blocks=NULL;
 	ni->types=NULL;
 	ni->cur_seqid=0;
-
-	return 0;
-
-	/* out_err: */
-	/* return -1; */
+	ret=0;
+ out:
+	return ret;
 }
 
 void ubx_node_cleanup(ubx_node_info_t* ni)
 {
 	/* clean up all entities */
+	ERR("bye bye node %p", ni->name);
 	free((char*) ni->name);
+	ni->name=NULL;
 }
 
 
@@ -85,8 +95,9 @@ int ubx_block_register(ubx_node_info_t *ni, ubx_block_t* block)
 	int ret = -1;
 	ubx_block_t *tmpc;
 
-	if(block->ni != NULL) {
-		ERR("block already registered with node %s", block->ni->name);
+	/* don't allow instances to be registered into more than one node_info */
+	if(block->prototype != NULL && block->ni != NULL) {
+		ERR("block %s already registered with node %s", block->name, block->ni->name);
 		goto out;
 	}
 
@@ -154,7 +165,6 @@ ubx_block_t* ubx_block_unregister(ubx_node_info_t* ni, const char* name)
 	}
 
 	HASH_DEL(ni->blocks, tmpc);
-	tmpc->ni=NULL;
  out:
 	return tmpc;
 }
@@ -170,6 +180,8 @@ ubx_block_t* ubx_block_unregister(ubx_node_info_t* ni, const char* name)
  */
 int ubx_type_register(ubx_node_info_t* ni, ubx_type_t* type)
 {
+	/* DBG(" node=%s, type registered=%s", ni->name, type->name); */
+
 	int ret = -1;
 	ubx_type_t* typ;
 
@@ -206,6 +218,7 @@ int ubx_type_register(ubx_node_info_t* ni, ubx_type_t* type)
  */
 ubx_type_t* ubx_type_unregister(ubx_node_info_t* ni, const char* name)
 {
+	/* DBG(" node=%s, type unregistered=%s", ni->name, name); */
 	ubx_type_t* ret = NULL;
 
 	HASH_FIND_STR(ni->types, name, ret);
@@ -406,20 +419,20 @@ int ubx_data_assign(ubx_data_t *tgt, ubx_data_t *src)
 		goto out;
 	}
 
-	memcpy(tgt->data, src->data, data_len(tgt));
+	memcpy(tgt->data, src->data, data_size(tgt));
 	ret=0;
  out:
 	return ret;
 }
 
 /**
- * Calculate the length in bytes of a ubx_data_t buffer.
+ * Calculate the size in bytes of a ubx_data_t buffer.
  *
  * @param d
  *
  * @return length in bytes
  */
-unsigned int data_len(ubx_data_t* d)
+unsigned int data_size(ubx_data_t* d)
 {
 	if(d==NULL) {
 		ERR("data is NULL");
@@ -990,7 +1003,7 @@ void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *le
 		goto out;
 
 	ret = d->data;
-	*len = data_len(d);
+	*len = data_size(d);
  out:
 	return ret;
 }

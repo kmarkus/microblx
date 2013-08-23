@@ -121,7 +121,7 @@ static void cyclic_write(ubx_block_t *i, ubx_data_t* msg)
 
 	bbi = (struct cyclic_block_info*) i->private_data;
 
-	len = data_len(msg);
+	len = data_size(msg);
 
 	if (len > bbi->size) {
 		ERR("can't store %ld bytes of data in a %ld size buffer", len, bbi->size);
@@ -172,7 +172,7 @@ static int cyclic_read(ubx_block_t *i, ubx_data_t* msg)
 
 	hd=lfds611_freelist_get_user_data_from_element(elem, NULL);
 
-	readsz=data_len(msg);
+	readsz=data_size(msg);
 	readsz=MIN(readsz, hd->len);
 	DBG("copying %ld bytes", readsz);
 

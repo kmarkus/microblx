@@ -36,7 +36,7 @@ static void hexdump(unsigned char *buf, unsigned long index, unsigned long width
 static void hexdump_write(ubx_block_t *i, ubx_data_t* data) {
 	const char* typename = get_typename(data);
 	printf("hexdump (%s): ", (typename!=NULL) ? typename : "unknown");
-	hexdump(data->data, data_len(data), 16);
+	hexdump(data->data, data_size(data), 16);
 }
 
 /* put everything together */

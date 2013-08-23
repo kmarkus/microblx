@@ -80,7 +80,6 @@ static void* thread_startup(void *arg)
 		}
 		pthread_mutex_unlock(&inf->mutex);
 
-		DBG("triggering steps");
 		trigger_steps(inf);
 	}
 

@@ -122,7 +122,7 @@ static void fifo_write(ubx_block_t *i, ubx_data_t* msg)
 		goto out;
 	}
 
-	len = data_len(msg);
+	len = data_size(msg);
 
 	if (len > bbi->size) {
 		ERR("can't store %ld bytes of data in a %ld size buffer", len, bbi->size);

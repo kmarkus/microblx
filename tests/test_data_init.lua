@@ -4,17 +4,17 @@ ubx=require"ubx"
 
 module("data_init_test", lunit.testcase, package.seeall)
 
-ni=ubx.node_create("unit_test_node")
+local ni=ubx.node_create("data_init_test")
+
 ubx.load_module(ni, "std_types/stdtypes/stdtypes.so")
 ubx.load_module(ni, "std_types/testtypes/testtypes.so")
-ubx.ffi_load_types(ni)
 
 function test_scalar_assignment()
    local d=ubx.data_alloc(ni, "unsigned int")
    ubx.data_set(d, 33)
    local numptr = ffi.cast("unsigned int*", d.data)
    assert_equal(33, numptr[0])
-   ubx.data_free(ni, d)
+   -- ubx.data_free(ni, d)
 end
 
 function test_string_assignment()
@@ -23,7 +23,7 @@ function test_string_assignment()
    ubx.data_set(d, teststr)
    local chrptr = ffi.cast("char*", d.data)
    assert_equal(teststr, ffi.string(chrptr))
-   ubx.data_free(ni, d)
+   -- ubx.data_free(ni, d)
 end
 
 function test_simple_struct_assignment()
@@ -33,7 +33,7 @@ function test_simple_struct_assignment()
    assert_equal(444, vptr.x)
    assert_equal(55.3, vptr.y)
    assert_equal(-34, vptr.z)
-   ubx.data_free(ni, d)
+   -- ubx.data_free(ni, d)
 end
 
 function test_composite_struct_assignment()
@@ -84,7 +84,7 @@ function test_simple_struct_assignment2()
    assert_equal(1, tonumber(ptr[1].benchmark))
    assert_equal(0, tonumber(ptr[2].benchmark))
 
-   ubx.data_free(ni, d)
+   -- ubx.data_free(ni, d)
 end
 
 function test_data_resize()
@@ -108,5 +108,5 @@ function test_data_resize()
 
    assert_equal(d.len, 3)
 
-   ubx.data_free(ni, d)
+   -- ubx.data_free(ni, d)
 end

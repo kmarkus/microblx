@@ -5,19 +5,18 @@ local lunit=require"lunit"
 local ubx=require"ubx"
 local utils=require"utils"
 local cdata=require"cdata"
---require"trace"
+-- require"trace"
 
 local code_str_len = 16*1024*1024
 
 module("test_dyn_block_if", lunit.testcase, package.seeall)
 
-ni=ubx.node_create("unit_test_node")
+local ni=ubx.node_create("test_dyn_block_if")
+
 ubx.load_module(ni, "std_types/stdtypes/stdtypes.so")
 ubx.load_module(ni, "std_types/testtypes/testtypes.so")
 ubx.load_module(ni, "std_blocks/luablock/luablock.so")
 ubx.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
-
-ubx.ffi_load_types(ni)
 
 lb1=ubx.block_create(ni, "lua/luablock", "lb1")
 p_exec_str=ubx.port_get(lb1, "exec_str")
@@ -33,7 +32,6 @@ assert(ubx.block_start(fifo1)==0)
 local d1=ubx.data_alloc(ni, "char")
 local d2=ubx.data_alloc(ni, "int")
 
-collectgarbage("stop")
 
 --- helper
 function exec_str(str)

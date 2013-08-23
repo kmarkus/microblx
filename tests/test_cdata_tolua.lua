@@ -7,10 +7,10 @@ local cdata=require"cdata"
 
 module("cdata_tolua_test", lunit.testcase, package.seeall)
 
-ni=ubx.node_create("unit_test_node")
+local ni=ubx.node_create("cdata_tolua_test")
+
 ubx.load_module(ni, "std_types/stdtypes/stdtypes.so")
 ubx.load_module(ni, "std_types/testtypes/testtypes.so")
-ubx.ffi_load_types(ni)
 
 function test_vector()
    local init = {x=1,y=2,z=3}
