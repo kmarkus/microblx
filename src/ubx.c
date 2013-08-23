@@ -76,7 +76,6 @@ int ubx_node_init(ubx_node_info_t* ni, const char *name)
 void ubx_node_cleanup(ubx_node_info_t* ni)
 {
 	/* clean up all entities */
-	ERR("bye bye node %p", ni->name);
 	free((char*) ni->name);
 	ni->name=NULL;
 }
