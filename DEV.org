@@ -11,7 +11,11 @@
      - ubx_port_add(b, name, meta, in_type_name, out_type_name, attrs)
        - resize target buffer
 
-       
+** TODO untyped samples in fifos can create havoc
+   - luablock: wrote resposne to exec_str even though nothing had been
+     sent (bug!) next read produced the int that was executed (and
+     failed obviously!).
+   
 ** TODO locking
    + Options
      - rw-locks (or uRCU?)
@@ -44,6 +48,11 @@
 
      - interactions must handle their own locking.
 
+** TODO add proper logging
+    either:
+    1. add new ERR3 that also prints node and block name
+    2. add log function that writes messages via log ports
+       
 
 ** TODO [#A] test communicating struct types
 ** TODO component identification (from string to uid?)

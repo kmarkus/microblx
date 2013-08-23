@@ -44,9 +44,13 @@ end
 
 function step(b)
    local res = ubx.port_read(ubx.port_get(b, "pos"), rd)
-   if res<=0 then error("step: no sample received") end
-   local cdat=ubx.data_to_ctype(d)
-   print("vector: ", cdat.x, cdat.y, cdat.z)
+   if res<=0 then
+       print("step: no sample received", res)
+       goto out
+   end
+   local cdat=ubx.data_to_cdata(rd)
+   print("received vector["..tostring(res).."]: ", cdat.x, cdat.y, cdat.z)
+   ::out::
 end
 
 function cleanup(b)
@@ -57,18 +61,27 @@ end
 
 lb1=ubx.block_create(ni, "lua/luablock", "lb1", { lua_str=lua_testcomp } )
 fifo1=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, element_size=code_str_len})
-fifo2=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo12", {element_num=4, element_size=ubx.type_size(ni, "testtypes/struct Vector")})
-
-p_exec_str=ubx.port_get(lb1, "exec_str")
-ubx.connect_one(p_exec_str, fifo1)
+fifo2=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo2", {element_num=4, element_size=ubx.type_size(ni, "testtypes/struct Vector")})
 
 assert(ubx.block_init(lb1)==0)
 assert(ubx.block_init(fifo1)==0)
+assert(ubx.block_init(fifo2)==0)
+
+p_exec_str=ubx.port_get(lb1, "exec_str")
+p_pos=ubx.port_get(lb1, "pos")
+
+ubx.connect_one(p_exec_str, fifo1)
+ubx.connect_one(p_pos, fifo2)
+
 assert(ubx.block_start(lb1)==0)
 assert(ubx.block_start(fifo1)==0)
+assert(ubx.block_start(fifo2)==0)
 
 local d1=ubx.data_alloc(ni, "char")
 local d2=ubx.data_alloc(ni, "int")
+local _v=ubx.data_alloc(ni, "testtypes/struct Vector")
+vcd = ubx.data_to_cdata(_v)
+ubx.data_set(_v, {x=1,y=2,z=3})
 
 --- call helper
 function exec_str(str)
@@ -81,10 +94,15 @@ function exec_str(str)
 end
 
 function test_exec_str()
+   for i=1,3 do
+      vcd.x=vcd.x*i; vcd.y=vcd.y*i; vcd.z=vcd.z*i;
+      ubx.interaction_write(fifo2, _v)
+      ubx.cblock_step(lb1)
+   end
 end
 
 
 function test_comm()
-   
-   
+
+
 end

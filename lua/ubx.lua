@@ -489,7 +489,7 @@ end
 --- Transform the value of a ubx_data_t* to a lua FFI cdata.
 -- @param d ubx_data_t pointer
 -- @return ffi cdata
-function data_to_cdata(d)
+function M.data_to_cdata(d)
    local ctp = type_to_ctype(d.type, true)
    return ffi.cast(ctp, d.data)
 end
@@ -508,7 +508,7 @@ end
 function M.data_set(d, val, resize)
 
    -- find cdata of the target ubx_data
-   local d_cdata = data_to_cdata(d)
+   local d_cdata = M.data_to_cdata(d)
    local val_type=type(val)
 
    if val_type=='table' then
@@ -522,7 +522,7 @@ function M.data_set(d, val, resize)
 	       error("data_set: attempt to index beyond bounds, index="..tostring(idx)..", len="..tostring(d.len))
 	    elseif idx >= d.len and resize then
 	       M.data_resize(d, idx+1)
-	       d_cdata = data_to_cdata(d) -- pointer could have changed in realloc!
+	       d_cdata = M.data_to_cdata(d) -- pointer could have changed in realloc!
 	    end
 	    d_cdata[idx]=v
 	 end
@@ -530,7 +530,7 @@ function M.data_set(d, val, resize)
    elseif val_type=='string' then
       if d.len<#val+1 then
 	 M.data_resize(d, #val+1)
-	 d_cdata = data_to_cdata(d) -- pointer could have changed in realloc!
+	 d_cdata = M.data_to_cdata(d) -- pointer could have changed in realloc!
       end
       --ffi.copy(d_cdata, val, #val)
       ffi.copy(d_cdata, val)

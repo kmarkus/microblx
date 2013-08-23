@@ -130,7 +130,7 @@ static void cyclic_write(ubx_block_t *i, ubx_data_t* msg)
 
 	/* remember type, this should better happen in preconnect-hook. */
 	if(bbi->type==NULL) {
-		DBG("SETTING type to msg->type = %p, %s", msg->type, msg->type->name);
+		DBG("%s: SETTING type to msg->type = %p, %s", i->name, msg->type, msg->type->name);
 		bbi->type=msg->type;
 	}
 
@@ -138,14 +138,14 @@ static void cyclic_write(ubx_block_t *i, ubx_data_t* msg)
 
 	if(ret) {
 		bbi->overruns++;
-		DBG("buffer overrun (#%ld), overwriting old data.", bbi->overruns);
+		DBG("%s: buffer overrun (#%ld), overwriting old data.", i->name, bbi->overruns);
 	};
 
 	/* write */
 	hd=lfds611_freelist_get_user_data_from_element(elem, NULL);
 	memcpy(hd->data, msg->data, len);
 	hd->len=len;
-	DBG("copying %ld bytes", len);
+	DBG("%s: copying %ld bytes", i->name, len);
 
 	/* release element */
 	lfds611_ringbuffer_put_write_element(bbi->rbs, elem);
@@ -173,8 +173,12 @@ static int cyclic_read(ubx_block_t *i, ubx_data_t* msg)
 	hd=lfds611_freelist_get_user_data_from_element(elem, NULL);
 
 	readsz=data_size(msg);
+
+	if(readsz < hd->len)
+		ERR("%s: warning: only copying %lu of %lu bytes", i->name, readsz, hd->len);
+
 	readsz=MIN(readsz, hd->len);
-	DBG("copying %ld bytes", readsz);
+	DBG("%s: copying %ld bytes", i->name, readsz);
 
 	memcpy(msg->data, hd->data, readsz);
 	lfds611_ringbuffer_put_read_element(bbi->rbs, elem);
