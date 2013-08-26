@@ -1,0 +1,5 @@
+
+enum {
+	YOUBOT_BASE_CMODE_VEL,
+	YOUBOT_BASE_CMODE_CUR,
+};
