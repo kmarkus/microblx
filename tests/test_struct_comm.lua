@@ -28,7 +28,7 @@ function init(b)
    this=b
    ubx.ffi_load_types(b.ni)
 
-   print("adding port 'pos_in' to block ", ubx.safe_tostr(b.name))
+   -- print("adding port 'pos_in' to block ", ubx.safe_tostr(b.name))
    ubx.port_add(b, "pos_in",
 		  "{ desc='current measured position' }",
 		  "testtypes/struct Vector", 1, nil, 0, 0)
