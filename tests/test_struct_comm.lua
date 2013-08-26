@@ -18,7 +18,7 @@ ubx.load_module(ni, "std_types/testtypes/testtypes.so")
 ubx.load_module(ni, "std_blocks/luablock/luablock.so")
 ubx.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
 
-local lua_testcomp = [=[
+local lua_testcomp = [[
 ubx=require "ubx"
 ffi=require "ffi"
 local rd, this
@@ -28,10 +28,14 @@ function init(b)
    this=b
    ubx.ffi_load_types(b.ni)
 
-   print("adding port 'pos' to block ", ubx.safe_tostr(b.name))
-   ubx.port_add(b, "pos",
+   print("adding port 'pos_in' to block ", ubx.safe_tostr(b.name))
+   ubx.port_add(b, "pos_in",
 		  "{ desc='current measured position' }",
 		  "testtypes/struct Vector", 1, nil, 0, 0)
+
+   ubx.port_add(b, "pos_out",
+		  "{ desc='desired position' }",
+		  nil, 0, "testtypes/struct Vector", 1, 0)
 
    rd = ubx.data_alloc(b.ni, "testtypes/struct Vector")
    return true
@@ -41,47 +45,59 @@ function start(b)
    return true
 end
 
-
 function step(b)
-   local res = ubx.port_read(ubx.port_get(b, "pos"), rd)
+   local res = ubx.port_read(ubx.port_get(b, "pos_in"), rd)
    if res<=0 then
        print("step: no sample received", res)
        goto out
    end
    local cdat=ubx.data_to_cdata(rd)
-   print("received vector["..tostring(res).."]: ", cdat.x, cdat.y, cdat.z)
+   -- print("received vector["..tostring(res).."]: ", cdat.x, cdat.y, cdat.z)
+   cdat.x=cdat.x*2; cdat.y=cdat.y*2; cdat.z=cdat.z*2;
+   ubx.port_write(ubx.port_get(b, "pos_out"), rd)
    ::out::
 end
 
 function cleanup(b)
    ubx.port_rm(b, "pos")
 end
-]=]
+]]
 
 
 lb1=ubx.block_create(ni, "lua/luablock", "lb1", { lua_str=lua_testcomp } )
 fifo1=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, element_size=code_str_len})
-fifo2=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo2", {element_num=4, element_size=ubx.type_size(ni, "testtypes/struct Vector")})
+
+fifo_in=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo_in",
+			 {element_num=4, element_size=ubx.type_size(ni, "testtypes/struct Vector")})
+fifo_out=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo_out",
+			  {element_num=4, element_size=ubx.type_size(ni, "testtypes/struct Vector")})
 
 assert(ubx.block_init(lb1)==0)
 assert(ubx.block_init(fifo1)==0)
-assert(ubx.block_init(fifo2)==0)
+assert(ubx.block_init(fifo_in)==0)
+assert(ubx.block_init(fifo_out)==0)
 
 p_exec_str=ubx.port_get(lb1, "exec_str")
-p_pos=ubx.port_get(lb1, "pos")
+p_pos_in=ubx.port_get(lb1, "pos_in")
+p_pos_out=ubx.port_get(lb1, "pos_out")
 
 ubx.connect_one(p_exec_str, fifo1)
-ubx.connect_one(p_pos, fifo2)
+ubx.connect_one(p_pos_in, fifo_in)
+ubx.connect_one(p_pos_out, fifo_out)
 
 assert(ubx.block_start(lb1)==0)
 assert(ubx.block_start(fifo1)==0)
-assert(ubx.block_start(fifo2)==0)
+assert(ubx.block_start(fifo_in)==0)
+assert(ubx.block_start(fifo_out)==0)
 
 local d1=ubx.data_alloc(ni, "char")
 local d2=ubx.data_alloc(ni, "int")
-local _v=ubx.data_alloc(ni, "testtypes/struct Vector")
-vcd = ubx.data_to_cdata(_v)
-ubx.data_set(_v, {x=1,y=2,z=3})
+local _vin=ubx.data_alloc(ni, "testtypes/struct Vector")
+local _vout=ubx.data_alloc(ni, "testtypes/struct Vector")
+vcdin = ubx.data_to_cdata(_vin)
+vcdout = ubx.data_to_cdata(_vout)
+
+ubx.data_set(_vin, {x=1,y=2,z=3})
 
 --- call helper
 function exec_str(str)
@@ -93,16 +109,14 @@ function exec_str(str)
    return ubx.data_tolua(d2)
 end
 
-function test_exec_str()
-   for i=1,3 do
-      vcd.x=vcd.x*i; vcd.y=vcd.y*i; vcd.z=vcd.z*i;
-      ubx.interaction_write(fifo2, _v)
-      ubx.cblock_step(lb1)
-   end
-end
-
-
 function test_comm()
-
-
+   for i=1,10 do
+      vcdin.x=vcdin.x*i; vcdin.y=vcdin.y*i; vcdin.z=vcdin.z*i;
+      ubx.interaction_write(fifo_in, _vin)
+      ubx.cblock_step(lb1)
+      assert_true(ubx.interaction_read(fifo_out, _vout) > 0, "test block produced no output")
+      assert_equal(vcdin.x*2, vcdout.x)
+      assert_equal(vcdin.y*2, vcdout.y)
+      assert_equal(vcdin.z*2, vcdout.z)
+   end
 end
