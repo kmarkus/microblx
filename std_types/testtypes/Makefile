@@ -5,9 +5,6 @@ INCLUDE_DIR=$(ROOT_DIR)/src/
 TYPES:=$(wildcard types/*.h)
 HEXARRS:=$(TYPES:%=%.hexarr)
 
-%.h.hexarr: %.h
-	../../tools/file2carr.lua $<
-
 testtypes.so: testtypes.o $(INCLUDE_DIR)/libubx.so
 	${CC} -shared -l:$(INCLUDE_DIR)/libubx.so -o testtypes.so testtypes.o
 

@@ -6,9 +6,6 @@ INCLUDE_DIR=$(ROOT_DIR)/src/
 TYPES:=$(wildcard types/*.h)
 HEXARRS:=$(TYPES:%=%.hexarr)
 
-%.h.hexarr: %.h
-	../../tools/file2carr.lua $<
-
 cppdemo.so: cppdemo.o $(INCLUDE_DIR)/libubx.so 
 	${CC} $(CFLAGS_SHARED) -l:$(INCLUDE_DIR)/libubx.so -o cppdemo.so cppdemo.o
 

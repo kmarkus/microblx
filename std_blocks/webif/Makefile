@@ -5,9 +5,6 @@ INCLUDE_DIR=$(ROOT_DIR)/src/
 TYPES:=$(wildcard types/*.h)
 HEXARRS:=$(TYPES:%=%.hexarr)
 
-%.h.hexarr: %.h
-	../../tools/file2carr.lua $<
-
 webif.so: webif.o mongoose.o $(INCLUDE_DIR)/libubx.so 
 	${CC} $(CFLAGS_SHARED) -lluajit-5.1  -lpthread -l:$(INCLUDE_DIR)/libubx.so -o webif.so webif.o mongoose.o
 
