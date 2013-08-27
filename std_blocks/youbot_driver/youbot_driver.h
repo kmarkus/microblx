@@ -201,12 +201,13 @@ struct youbot_arm_info {
 	struct youbot_jnt_info {
 		uint32_t slave_idx;	/* the indenx into ec_salve */
 
-		in_motor_t* in_motor;	/* set to ec_slave[slave_idx].inputs (which points to io_map). */
-		out_motor_t* out_motor;	/* set to ec_slave[slave_idx].outputs (which points to io_map). */
-
 		int32_t msr_pos;
 		int32_t msr_vel;
 		int32_t msr_cur;
+
+		int32_t cmd_pos;
+		int32_t cmd_vel;
+		int32_t cmd_cur;
 
 		uint32_t max_cur;	/* cut-off currents larger than this */
 
@@ -225,12 +226,13 @@ struct youbot_base_info {
 	struct youbot_wheel_info {
 		uint32_t slave_idx;	/* the index into ec_salve */
 
-		in_motor_t* in_motor;	/* set to ec_slave[slave_idx].inputs (which points to io_map). */
-		out_motor_t* out_motor;	/* set to ec_slave[slave_idx].outputs (which points to io_map). */
-
 		int32_t msr_pos;
 		int32_t msr_vel;
 		int32_t msr_cur;
+
+		int32_t cmd_pos;
+		int32_t cmd_vel;
+		int32_t cmd_cur;
 
 		struct youbot_slave_stats stats;
 	} wheel_inf[YOUBOT_NR_OF_WHEELS];
@@ -246,4 +248,8 @@ struct youbot_info {
 	struct youbot_base_info base;
 	struct youbot_arm_info arm1;
 	struct youbot_arm_info arm2;
+
+	/* global stats */
+	uint64_t pd_send_err;
+	uint64_t pd_recv_err;
 };

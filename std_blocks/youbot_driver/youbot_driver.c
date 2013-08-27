@@ -39,10 +39,12 @@ ubx_config_t youbot_config[] = {
 ubx_port_t youbot_ports[] = {
 	{ .name="events", .attrs=PORT_DIR_OUT, .in_type_name="unsigned int" },
 
-	{ .name="base_control_mode", .attrs=PORT_DIR_IN, .out_type_name="int32_t" },
-	{ .name="base_odometry", .attrs=PORT_DIR_OUT, .in_type_name="int32_t" },
+	{ .name="base_control_mode", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .out_type_name="int" },
 	{ .name="base_cmd_twist", .attrs=PORT_DIR_IN, .out_type_name="int32_t" },
 	{ .name="base_cmd_current", .attrs=PORT_DIR_IN, .out_type_name="int32_t" },
+
+	{ .name="base_odometry", .attrs=PORT_DIR_OUT, .out_type_name="int32_t" },
+	{ .name="base_", .attrs=PORT_DIR_OUT, .out_type_name="int32_t" },
 
 	{ NULL },
 };
@@ -381,18 +383,115 @@ static int youbot_init(ubx_block_t *b)
 	return ret;
 }
 
-
-static void youbot_cleanup(ubx_block_t *b)
+/* set all commanded quantities to zero */
+static int base_prepare_start(struct youbot_base_info *base)
 {
-	free((struct youbot_info*) b->private_data);
+	int i, ret=-1;
+	int32_t dummy;
+
+	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
+		base->wheel_inf[i].cmd_pos=0;
+		base->wheel_inf[i].cmd_vel=0;
+		base->wheel_inf[i].cmd_cur=0;
+	}
+
+	/* reset EC_TIMEOUT */
+	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
+		if(!send_mbx(0, SAP, CLR_EC_TIMEOUT, base->wheel_inf[i].slave_idx, 0, &dummy)) {
+			ERR("failed to clear EC_TIMEOUT");
+			goto out;
+		}
+	}
+
+	ret=0;
+ out:
+	return ret;
+}
+
+/* set all commanded quantities to zero */
+static int arm_prepare_start(struct youbot_arm_info *arm)
+{
+	int i, ret=-1;
+	int32_t dummy;
+
+	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
+		arm->jnt_inf[i].cmd_pos=0;
+		arm->jnt_inf[i].cmd_vel=0;
+		arm->jnt_inf[i].cmd_cur=0;
+	}
+
+	/* reset EC_TIMEOUT */
+	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
+		if(!send_mbx(0, SAP, CLR_EC_TIMEOUT, arm->jnt_inf[i].slave_idx, 0, &dummy)) {
+			ERR("failed to clear EC_TIMEOUT");
+			goto out;
+		}
+	}
+
+	ret=0;
+ out:
+	return ret;
 }
 
 static int youbot_start(ubx_block_t *b)
 {
-	return 0; /* Ok */
+	DBG(" ");
+	int ret=-1, i;
+	struct youbot_info *inf=b->private_data;
+
+	/* reset old commands */
+	if(inf->base.detected && base_prepare_start(&inf->base) != 0) goto out;
+	if(inf->arm1.detected && arm_prepare_start(&inf->arm1) != 0) goto out;
+	if(inf->arm2.detected && arm_prepare_start(&inf->arm2) != 0) goto out;
+
+	/* requesting operational for all slaves */
+	ec_slave[0].state = EC_STATE_OPERATIONAL;
+	ec_writestate(0);
+
+	/* wait for all slaves to reach SAFE_OP state */
+	ec_statecheck(0, EC_STATE_OPERATIONAL, EC_TIMEOUTSTATE);
+
+	if(ec_slave[0].state != EC_STATE_OPERATIONAL) {
+		ERR("not all slaves reached state operational:");
+		for (i=0; i<=ec_slavecount; i++) {
+			if (ec_slave[i].state != EC_STATE_OPERATIONAL) {
+				ERR("\tslave %d (%s) is in state=0x%x, ALstatuscode=0x%x",
+				    i, ec_slave[i].name, ec_slave[i].state, ec_slave[i].ALstatuscode);
+			}
+		}
+		goto out;
+	}
+
+	/* get things rolling */
+	if (ec_send_processdata() <= 0) {
+		inf->pd_send_err++;
+		ERR("sending initial process data failed");
+	}
+
+	ret=0;
+ out:
+	return ret;
 }
 
-static void youbot_step(ubx_block_t *b) {
+static void youbot_stop(ubx_block_t *b)
+{
+	DBG(" ");
+}
+
+static void youbot_step(ubx_block_t *b)
+{
+	DBG(" ");
+	/* read ports and update youbot_info */
+
+
+}
+
+static void youbot_cleanup(ubx_block_t *b)
+{
+	ec_slave[0].state = EC_STATE_PRE_OP;
+	ec_writestate(0);
+	ec_close();
+	free((struct youbot_info*) b->private_data);
 }
 
 
@@ -407,6 +506,7 @@ ubx_block_t youbot_comp = {
 	/* ops */
 	.init = youbot_init,
 	.start = youbot_start,
+	.stop = youbot_stop,
 	.step = youbot_step,
 	.cleanup = youbot_cleanup,
 };
