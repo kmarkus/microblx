@@ -6,14 +6,29 @@
 
 #include "ubx.h"
 
-#include "types/test_trig_conf.h"
-#include "types/test_trig_conf.h.hexarr"
+#include "types/vector.h"
+#include "types/vector.h.hexarr"
+
+#include "types/rotation.h"
+#include "types/rotation.h.hexarr"
+
+#include "types/frame.h"
+#include "types/frame.h.hexarr"
+
+#include "types/twist.h"
+#include "types/twist.h.hexarr"
+
+#include "types/wrench.h"
+#include "types/wrench.h.hexarr"
 
 
 /* declare types */
 ubx_type_t types[] = {
-	def_basic_ctype(char[50]),
-	def_struct_type("testtypes", struct test_trig_conf, &test_trig_conf_h),
+	def_struct_type("kdl", struct Vector, &vector_h),
+	def_struct_type("kdl", struct Rotation, &rotation_h),
+	def_struct_type("kdl", struct Frame, &frame_h),
+	def_struct_type("kdl", struct Twist, &twist_h),
+	def_struct_type("kdl", struct Wrench, &wrench_h),
 	{ NULL },
 };
 

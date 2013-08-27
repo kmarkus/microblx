@@ -2,5 +2,7 @@
 export LUA_PATH="$LUA_PATH;`pwd`/lua/?.lua"
 LJIT=`which luajit`
 
-lunit -i $LJIT tests/test_*.lua
+for t in tests/test_*.lua; do
+    lunit -i $LJIT  $t
+done
 

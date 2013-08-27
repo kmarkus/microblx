@@ -14,7 +14,7 @@ module("test_struct_comm", lunit.testcase, package.seeall)
 local ni = ubx.node_create("test_struct_comm")
 
 ubx.load_module(ni, "std_types/stdtypes/stdtypes.so")
-ubx.load_module(ni, "std_types/testtypes/testtypes.so")
+ubx.load_module(ni, "std_types/kdl/kdl_types.so")
 ubx.load_module(ni, "std_blocks/luablock/luablock.so")
 ubx.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
 
@@ -31,13 +31,13 @@ function init(b)
    -- print("adding port 'pos_in' to block ", ubx.safe_tostr(b.name))
    ubx.port_add(b, "pos_in",
 		  "{ desc='current measured position' }",
-		  "testtypes/struct Vector", 1, nil, 0, 0)
+		  "kdl/struct Vector", 1, nil, 0, 0)
 
    ubx.port_add(b, "pos_out",
 		  "{ desc='desired position' }",
-		  nil, 0, "testtypes/struct Vector", 1, 0)
+		  nil, 0, "kdl/struct Vector", 1, 0)
 
-   rd = ubx.data_alloc(b.ni, "testtypes/struct Vector")
+   rd = ubx.data_alloc(b.ni, "kdl/struct Vector")
    return true
 end
 
@@ -68,9 +68,9 @@ lb1=ubx.block_create(ni, "lua/luablock", "lb1", { lua_str=lua_testcomp } )
 fifo1=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, element_size=code_str_len})
 
 fifo_in=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo_in",
-			 {element_num=4, element_size=ubx.type_size(ni, "testtypes/struct Vector")})
+			 {element_num=4, element_size=ubx.type_size(ni, "kdl/struct Vector")})
 fifo_out=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo_out",
-			  {element_num=4, element_size=ubx.type_size(ni, "testtypes/struct Vector")})
+			  {element_num=4, element_size=ubx.type_size(ni, "kdl/struct Vector")})
 
 assert(ubx.block_init(lb1)==0)
 assert(ubx.block_init(fifo1)==0)
@@ -92,8 +92,8 @@ assert(ubx.block_start(fifo_out)==0)
 
 local d1=ubx.data_alloc(ni, "char")
 local d2=ubx.data_alloc(ni, "int")
-local _vin=ubx.data_alloc(ni, "testtypes/struct Vector")
-local _vout=ubx.data_alloc(ni, "testtypes/struct Vector")
+local _vin=ubx.data_alloc(ni, "kdl/struct Vector")
+local _vout=ubx.data_alloc(ni, "kdl/struct Vector")
 vcdin = ubx.data_to_cdata(_vin)
 vcdout = ubx.data_to_cdata(_vout)
 

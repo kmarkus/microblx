@@ -8,6 +8,7 @@ local ni=ubx.node_create("data_init_test")
 
 ubx.load_module(ni, "std_types/stdtypes/stdtypes.so")
 ubx.load_module(ni, "std_types/testtypes/testtypes.so")
+ubx.load_module(ni, "std_types/kdl/kdl_types.so")
 
 function test_scalar_assignment()
    local d=ubx.data_alloc(ni, "unsigned int")
@@ -27,7 +28,7 @@ function test_string_assignment()
 end
 
 function test_simple_struct_assignment()
-   local d=ubx.data_alloc(ni, "testtypes/struct Vector")
+   local d=ubx.data_alloc(ni, "kdl/struct Vector")
    ubx.data_set(d, {x=444,y=55.3, z=-34})
    local vptr = ffi.cast("struct Vector*", d.data)
    assert_equal(444, vptr.x)
@@ -37,13 +38,14 @@ function test_simple_struct_assignment()
 end
 
 function test_composite_struct_assignment()
-   local d=ubx.data_alloc(ni, "testtypes/struct Frame")
+   local d=ubx.data_alloc(ni, "kdl/struct Frame")
    local conf = {
       p={ x=444, y=55.3, z=-34 },
-      M={ X={ x=1, y=2, z=3 },
-	  Y={ x=11, y=22, z=33 },
-	  Z={ x=111, y=222, z=333 },
-       }
+      M={ data={ 
+	     [0]=1,   [1]=2,   [2]=3,
+	     [3]=11,  [4]=22,  [5]=33,
+	     [6]=111, [7]=222, [8]=333 }
+      }
    }
 
    ubx.data_set(d, conf)
@@ -52,17 +54,17 @@ function test_composite_struct_assignment()
    assert_equal(55.3, vptr.p.y)
    assert_equal(-34, vptr.p.z)
 
-   assert_equal(1, vptr.M.X.x)
-   assert_equal(2, vptr.M.X.y)
-   assert_equal(3, vptr.M.X.z)
+   assert_equal(1, vptr.M.data[0])
+   assert_equal(11, vptr.M.data[3])
+   assert_equal(111, vptr.M.data[6])
 
-   assert_equal(11, vptr.M.Y.x)
-   assert_equal(22, vptr.M.Y.y)
-   assert_equal(33, vptr.M.Y.z)
+   assert_equal(2, vptr.M.data[1])
+   assert_equal(22, vptr.M.data[4])
+   assert_equal(222, vptr.M.data[7])
 
-   assert_equal(111, vptr.M.Z.x)
-   assert_equal(222, vptr.M.Z.y)
-   assert_equal(333, vptr.M.Z.z)
+   assert_equal(3, vptr.M.data[2])
+   assert_equal(33, vptr.M.data[5])
+   assert_equal(333, vptr.M.data[8])
 end
 
 function test_simple_struct_assignment2()

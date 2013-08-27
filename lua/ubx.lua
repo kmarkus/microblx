@@ -271,7 +271,7 @@ end
 function M.data_alloc(ni, type_name, num)
    num=num or 1
    local d = ubx.ubx_data_alloc(ni, type_name, num)
-   if d==nil then error("data_alloc: unkown type '"..type_name.."'") end
+   if d==nil then error(M.safe_tostr(ni.name)..": data_alloc: unkown type '"..type_name.."'") end
    ffi.gc(d, function(dat)
 		-- print("data_free: freeing data ", dat)
 		ubx.ubx_data_free(ni, dat)

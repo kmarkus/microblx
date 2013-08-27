@@ -4,19 +4,44 @@
 
 * Next steps
   
-** DONE [#A] add methods [add|rm}_[port|config]
-   CLOSED: [2013-08-19 Mon 14:36]
-   - add len field for configs and ports to simplify searching.
-   - unify cloning and dynamically adding ports
-     - ubx_port_add(b, name, meta, in_type_name, out_type_name, attrs)
-       - resize target buffer
+
+** TODO store seqid in node specific structure
+   Otherwise, loading the same type in multiple nodes will foobar
+   maintaining the sequence. -> registered types are global!!!
+
+** TODO add function ffi_basic_type_is_loaded(t)
+   - such that reloading a char[50] will go ok too.
 
 ** TODO untyped samples in fifos can create havoc
    - luablock: wrote resposne to exec_str even though nothing had been
      sent (bug!) next read produced the int that was executed (and
      failed obviously!).
    
-** TODO locking
+** TODO add proper logging
+    either:
+    1. add new ERR3 that also prints node and block name
+    2. add log function that writes messages via log ports
+       
+
+** TODO component identification (from string to uid?)
+   - replace string as primary key by numeric ubx_block_id_t ?
+     Advantage: would be easier to use for configuring trigger blocks,
+     etc. -> easier for communicating block_id's via ports.
+
+** TODO type id comparison: remote use SHA1 (parts) and local type-ptr
+** TODO introduce typeid's: (like git commitish)
+   - full name: package/struct foo or package/foo_t or
+   - partial hash of name: 0a407a4f51ff2bb1f92a6ae611cb63fb
+
+** TODO [#C] webif: ubx_load_types is called upon every request.
+   - Find a way to only call if a new type was added.
+   
+
+** CANCELED locking
+   CLOSED: [2013-08-27 Tue 16:46]
+
+   - coordinate such that no locking is required.
+   
    + Options
      - rw-locks (or uRCU?)
 
@@ -48,26 +73,14 @@
 
      - interactions must handle their own locking.
 
-** TODO add proper logging
-    either:
-    1. add new ERR3 that also prints node and block name
-    2. add log function that writes messages via log ports
-       
-
-** TODO [#A] test communicating struct types
-** TODO component identification (from string to uid?)
-   - replace string as primary key by numeric ubx_block_id_t ?
-     Advantage: would be easier to use for configuring trigger blocks,
-     etc. -> easier for communicating block_id's via ports.
-
-** TODO type id comparison: remote use SHA1 (parts) and local type-ptr
-** TODO introduce typeid's: (like git commitish)
-   - full name: package/struct foo or package/foo_t or
-   - partial hash of name: 0a407a4f51ff2bb1f92a6ae611cb63fb
-
-** TODO [#C] webif: ubx_load_types is called upon every request.
-   - Find a way to only call if a new type was added.
-   
+** DONE [#A] test communicating struct types
+   CLOSED: [2013-08-27 Tue 16:47]
+** DONE [#A] add methods [add|rm}_[port|config]
+   CLOSED: [2013-08-19 Mon 14:36]
+   - add len field for configs and ports to simplify searching.
+   - unify cloning and dynamically adding ports
+     - ubx_port_add(b, name, meta, in_type_name, out_type_name, attrs)
+       - resize target buffer
 
 ** DONE [#A] make an example of how to use C++
    CLOSED: [2013-08-13 Tue 13:38]
