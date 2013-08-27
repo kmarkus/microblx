@@ -1,34 +1,40 @@
-#define YOUBOT_NR_OF_WHEELS			4
-#define YOUBOT_NR_OF_JOINTS 			5
-#define YOUBOT_NR_OF_BASE_SLAVES 		(YOUBOT_NR_OF_WHEELS + 1) //wheels + 1 power boards
-#define YOUBOT_NR_OF_ARM_SLAVES 		(YOUBOT_NR_OF_JOINTS + 1) //arm joints, 1 power boards
+/* youbot driver information */
 
-#define YOUBOT_MOTOR_DEFAULT_MAX_CURRENT 	8000 /* [mA] */
-#define YOUBOT_MOTOR_DEFAULT_NOMINAL_SPEED  	100  /* [r/s] */
+#define YOUBOT_SYSCONF_BASE_ONLY		1
+#define YOUBOT_SYSCONF_BASE_ONE_ARM		2
+#define YOUBOT_SYSCONF_BASE_TWO_ARM		3
+
+#define YOUBOT_NR_OF_WHEELS			4
+#define YOUBOT_NR_OF_JOINTS			5
+#define YOUBOT_NR_OF_BASE_SLAVES		(YOUBOT_NR_OF_WHEELS + 1) //wheels + 1 power boards
+#define YOUBOT_NR_OF_ARM_SLAVES			(YOUBOT_NR_OF_JOINTS + 1) //arm joints, 1 power boards
+
+#define YOUBOT_MOTOR_DEFAULT_MAX_CURRENT	8000 /* [mA] */
+#define YOUBOT_MOTOR_DEFAULT_NOMINAL_SPEED	100  /* [r/s] */
 
 #define YOUBOT_WHEEL_PWRB_NAME			"KR-845"
-#define YOUBOT_WHEEL_CTRL_NAME	 		"TMCM-174"
-#define YOUBOT_WHEEL_CTRL_NAME2	 		"TMCM-1632" /* newer version */
+#define YOUBOT_WHEEL_CTRL_NAME			"TMCM-174"
+#define YOUBOT_WHEEL_CTRL_NAME2			"TMCM-1632" /* newer version */
 
 #define YOUBOT_ARM_PWRB_NAME			"KR-843"
-#define YOUBOT_JNT_CTRL_NAME			"TMCM-KR-841"
-#define YOUBOT_JNT_CTRL_NAME2			"TMCM-1610" /* newer version */
+#define YOUBOT_ARM_CTRL_NAME			"TMCM-KR-841"
+#define YOUBOT_ARM_CTRL_NAME2			"TMCM-1610" /* newer version */
 
 #define YOUBOT_WHEELRADIUS			0.052
 #define YOUBOT_MOTORTRANSMISSION		26
 #define YOUBOT_JOINT_INIT_VALUE			0
 #define YOUBOT_FRONT_TO_REAR_WHE		0.47
 #define YOUBOT_LEFT_TO_RIGHT_WHE		0.3
-					
+
 #define YOUBOT_TICKS_PER_REVOLUT		4096
 #define YOUBOT_WHEEL_CIRCUMFEREN		(YOUBOT_WHEELRADIUS*2*M_PI)
 
 /* cartesian [ m/s ] to motor [ rpm ] velocity */
-#define YOUBOT_CARTESIAN_VELOCITY_TO_RPM 	(YOUBOT_MOTORTRANSMISSION*60)/(YOUBOT_WHEEL_CIRCUMFERENCE)
+#define YOUBOT_CARTESIAN_VELOCITY_TO_RPM	(YOUBOT_MOTORTRANSMISSION*60)/(YOUBOT_WHEEL_CIRCUMFERENCE)
 
 /* angular [ rad/s ] to wheel [ m/s] velocity */
-#define  YOUBOT_ANGULAR_TO_WHEEL_VELOCITY 	(YOUBOT_FRONT_TO_REAR_WHEEL+YOUBOT_LEFT_TO_RIGHT_WHEEL)/2
-#define PWM_VALUE_MAX 				1799
+#define  YOUBOT_ANGULAR_TO_WHEEL_VELOCITY	(YOUBOT_FRONT_TO_REAR_WHEEL+YOUBOT_LEFT_TO_RIGHT_WHEEL)/2
+#define PWM_VALUE_MAX				1799
 
 #define GRIPPER_ENC_WIDTH			67000 /* encoder width of gripper */
 
@@ -36,47 +42,52 @@
 #define BASE_TIMEOUT				1;
 
 /* Motor control modes */
-static const uint8_t MotorStop 			= 0;
-static const uint8_t Positioning 		= 1;
-static const uint8_t Velocity 			= 2;
-static const uint8_t NoAction 			= 3;
-static const uint8_t SetPositionToReference 	= 4;
-static const uint8_t PWM 			= 5;
-static const uint8_t Current 			= 6;
-static const uint8_t Initialize 		= 7;
+static const uint8_t MotorStop			= 0;
+static const uint8_t Positioning		= 1;
+static const uint8_t Velocity			= 2;
+static const uint8_t NoAction			= 3;
+static const uint8_t SetPositionToReference	= 4;
+static const uint8_t PWM			= 5;
+static const uint8_t Current			= 6;
+static const uint8_t Initialize			= 7;
 
-static const uint8_t ROR 			= 1;
-static const uint8_t ROL 			= 2;
-static const uint8_t MST 			= 3;
-static const uint8_t MVP 			= 4;
-static const uint8_t SAP 			= 5;
-static const uint8_t GAP 			= 6;
+static const uint8_t ROR			= 1;
+static const uint8_t ROL			= 2;
+static const uint8_t MST			= 3;
+static const uint8_t MVP			= 4;
+static const uint8_t SAP			= 5;
+static const uint8_t GAP			= 6;
 static const uint8_t STAP			= 7;
 static const uint8_t RSAP			= 8;
-static const uint8_t SGP 			= 9;
-static const uint8_t GGP 			= 10;
+static const uint8_t SGP			= 9;
+static const uint8_t GGP			= 10;
 static const uint8_t STGP			= 11;
 static const uint8_t RSGP			= 12;
 
-static const uint8_t TARGET_POS 		= 0;
-static const uint8_t ACTUAL_POS 		= 1;
-static const uint8_t TARGET_SPEED 		= 2;
-static const uint8_t ACTUAL_SPEED 		= 3;
-static const uint8_t MAX_RAMP_VEL 		= 4;
-static const uint8_t PWM_LIMIT	 		= 5;
-static const uint8_t MAX_CURRENT 		= 6;
-static const uint8_t MAX_VEL_SETPOS 		= 7;
-static const uint8_t VEL_PID_THRES 		= 8;
-static const uint8_t CLR_TARGET_DIST 		= 9;
-static const uint8_t MAX_DIST_SETPOS 		= 10;
-static const uint8_t ACCEL 			= 11;
-static const uint8_t POS_PID_THRES 		= 12;
-static const uint8_t RAMP_GEN_SPEED 		= 13;
-static const uint8_t INIT_BLDC 			= 15;
+static const uint8_t TARGET_POS			= 0;
+static const uint8_t ACTUAL_POS			= 1;
+static const uint8_t TARGET_SPEED		= 2;
+static const uint8_t ACTUAL_SPEED		= 3;
+static const uint8_t MAX_RAMP_VEL		= 4;
+static const uint8_t PWM_LIMIT			= 5;
+static const uint8_t MAX_CURRENT		= 6;
+static const uint8_t MAX_VEL_SETPOS		= 7;
+static const uint8_t VEL_PID_THRES		= 8;
+static const uint8_t CLR_TARGET_DIST		= 9;
+static const uint8_t MAX_DIST_SETPOS		= 10;
+static const uint8_t ACCEL			= 11;
+static const uint8_t POS_PID_THRES		= 12;
+static const uint8_t RAMP_GEN_SPEED		= 13;
+static const uint8_t INIT_BLDC			= 15;
 
-static const uint8_t CLEAR_I2T 			= 29;
+static const uint8_t CLEAR_I2T			= 29;
 // ..
 static const uint8_t CLR_EC_TIMEOUT		= 158;
+static const uint8_t COMMUTATION_MODE		= 159;
+// ..
+
+
+
 /* more to be added on demand... */
 
 /// @name Ethercat structs (documentation as given in the EtherCAT
@@ -149,7 +160,7 @@ typedef struct {
 
 static const int YOUBOT_ARM_JOINT_GEAR_RATIOS[YOUBOT_NR_OF_JOINTS] = {156, 156, 100, 71, 71};
 
-static const double YOUBOT_ARM_JOINT_TORQUE_CONSTANTS[YOUBOT_NR_OF_JOINTS] = 
+static const double YOUBOT_ARM_JOINT_TORQUE_CONSTANTS[YOUBOT_NR_OF_JOINTS] =
 	{0.0335, 0.0335, 0.0335, 0.051, 0.049}; //Nm/A
 
 static const double YOUBOT_ARM_SOFT_LIMIT = 0.8; // legal yb soft limit range (%)
@@ -163,3 +174,76 @@ static const double YOUBOT_ARM_SCALE_END = 0.85; // somewhere between START and 
 static const double YOUBOT_ARM_LOWER_LIMIT[YOUBOT_NR_OF_JOINTS] = { -169, -90, -146, -102.5, -167.5 };
 static const double YOUBOT_ARM_UPPER_LIMIT[YOUBOT_NR_OF_JOINTS] = { 169, 65, 151, 102.5, 167.5 };
 
+
+/*
+ * driver local state
+ */
+
+/* statistics */
+struct youbot_slave_stats {
+	uint64_t overcurrent;
+	uint64_t undervoltage;
+	uint64_t overvoltage;
+	uint64_t overtemp;
+	uint64_t hall_err;
+	uint64_t encoder_err;
+	uint64_t sine_comm_init_err;
+	uint64_t emergency_stop;
+	uint64_t ec_timeout;
+	uint64_t i2t_exceeded;
+};
+
+/* Arm */
+struct youbot_arm_info {
+	uint32_t detected;		/* has been detected and is in use */
+	uint8_t control_mode;		/* current used control mode */
+
+	struct youbot_jnt_info {
+		uint32_t slave_idx;	/* the indenx into ec_salve */
+
+		in_motor_t* in_motor;	/* set to ec_slave[slave_idx].inputs (which points to io_map). */
+		out_motor_t* out_motor;	/* set to ec_slave[slave_idx].outputs (which points to io_map). */
+
+		int32_t msr_pos;
+		int32_t msr_vel;
+		int32_t msr_cur;
+
+		uint32_t max_cur;	/* cut-off currents larger than this */
+
+		struct youbot_slave_stats stats;
+	} jnt_inf[YOUBOT_NR_OF_JOINTS];
+
+	struct timespec last_twist;
+};
+
+
+/* Base */
+struct youbot_base_info {
+	uint32_t detected;
+	uint8_t control_mode;
+
+	struct youbot_wheel_info {
+		uint32_t slave_idx;	/* the index into ec_salve */
+
+		in_motor_t* in_motor;	/* set to ec_slave[slave_idx].inputs (which points to io_map). */
+		out_motor_t* out_motor;	/* set to ec_slave[slave_idx].outputs (which points to io_map). */
+
+		int32_t msr_pos;
+		int32_t msr_vel;
+		int32_t msr_cur;
+
+		struct youbot_slave_stats stats;
+	} wheel_inf[YOUBOT_NR_OF_WHEELS];
+
+	struct timespec last_twist;
+
+	/* odometry information */
+};
+
+struct youbot_info {
+	uint8_t io_map[4096];
+
+	struct youbot_base_info base;
+	struct youbot_arm_info arm1;
+	struct youbot_arm_info arm2;
+};
