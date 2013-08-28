@@ -27,7 +27,7 @@ fo = assert(io.open(outfile, "w"))
 
 data=fi:read("*a")
 
-fo:write(string.format("static unsigned char %s [] = {\n\t", structname))
+fo:write(string.format("static const unsigned char %s [] = {\n\t", structname))
 
 for i=1,#data do
    fo:write(string.format("0x%.2x, ", string.byte(data, i)))
