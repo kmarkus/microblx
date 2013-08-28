@@ -18,10 +18,6 @@
 
 #include "youbot_driver.h"
 
-/* communicated types */
-#include "types/control_modes.h"
-
-
 char youbot_meta[] =
 	"{ doc='A youbot driver block',"
 	"  license='LGPL',"
@@ -40,8 +36,10 @@ ubx_port_t youbot_ports[] = {
 	{ .name="events", .attrs=PORT_DIR_OUT, .in_type_name="unsigned int" },
 
 	{ .name="base_control_mode", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .out_type_name="int" },
-	{ .name="base_cmd_twist", .attrs=PORT_DIR_IN, .out_type_name="int32_t" },
-	{ .name="base_cmd_current", .attrs=PORT_DIR_IN, .out_type_name="int32_t" },
+	{ .name="base_cmd_twist", .attrs=PORT_DIR_IN, .in_type_name="int32_t" },
+	{ .name="base_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="int32_t" },
+	{ .name="base_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t" },
+
 
 	{ .name="base_odometry", .attrs=PORT_DIR_OUT, .out_type_name="int32_t" },
 	{ .name="base_", .attrs=PORT_DIR_OUT, .out_type_name="int32_t" },
@@ -160,7 +158,7 @@ int send_mbx(int gripper,
 	}
 
 	if (ec_mbxreceive(slave_nr, &mbx_in, EC_TIMEOUTSAFE) <= 0) {
-		ERR("failed to receive mbx (request: gripper:%d, instr_nr=%d, param_nr=%d, slave_nr=%d, bank_nr=%d, value=%d",
+		ERR("failed to receive mbx (gripper:%d, instr_nr=%d, param_nr=%d, slave_nr=%d, bank_nr=%d, value=%d",
 		    gripper, instr_nr, param_nr, slave_nr, bank_nr, *value);
 		goto out;
 	}
@@ -433,6 +431,8 @@ static int arm_prepare_start(struct youbot_arm_info *arm)
 	return ret;
 }
 
+
+
 static int youbot_start(ubx_block_t *b)
 {
 	DBG(" ");
@@ -468,6 +468,12 @@ static int youbot_start(ubx_block_t *b)
 		ERR("sending initial process data failed");
 	}
 
+	/* cache port pointers */
+	inf->base.p_control_mode = ubx_port_get(b, "base_control_mode");
+	inf->base.p_cmd_twist = ubx_port_get(b, "base_cmd_twist");
+	inf->base.p_cmd_vel = ubx_port_get(b, "base_cmd_vel");
+	inf->base.p_cmd_cur = ubx_port_get(b, "base_cmd_cur");
+
 	ret=0;
  out:
 	return ret;
@@ -478,12 +484,199 @@ static void youbot_stop(ubx_block_t *b)
 	DBG(" ");
 }
 
+/**
+ * base_proc_errflg - update statistics and return number of fatal
+ * errors.
+ *
+ * @param minf
+ *
+ * @return number of fatal errors
+ */
+static int base_proc_errflg(struct youbot_base_info* binf)
+{
+	int fatal_errs, i, dummy;
+
+	/* check and raise errors */
+	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
+		if(binf->wheel_inf[i].error_flags & OVERCURRENT) {
+			binf->wheel_inf[i].stats.overcurrent++; fatal_errs++;
+			ERR("OVERCURRENT on wheel %i", i);
+		}
+		if(binf->wheel_inf[i].error_flags & UNDERVOLTAGE) {
+			binf->wheel_inf[i].stats.undervoltage++; fatal_errs++;
+			ERR("UNDERVOLTAGE on wheel %i", i);
+		}
+		if(binf->wheel_inf[i].error_flags & OVERTEMP) {
+			binf->wheel_inf[i].stats.overtemp++; fatal_errs++;
+			ERR("OVERTEMP on wheel %i", i);
+		}
+		if(binf->wheel_inf[i].error_flags & HALL_ERR) {
+			binf->wheel_inf[i].stats.hall_err++;
+			ERR("HALL_ERR on wheel %i", i);
+		}
+		if(binf->wheel_inf[i].error_flags & ENCODER_ERR) {
+			binf->wheel_inf[i].stats.encoder_err++;
+			ERR("ENCODER_ERR on wheel %i", i);
+		}
+		if(binf->wheel_inf[i].error_flags & SINE_COMM_INIT_ERR) {
+			binf->wheel_inf[i].stats.sine_comm_init_err++;
+			ERR("SINE_COMM_INIT_ERR on wheel %i", i);
+		}
+		if(binf->wheel_inf[i].error_flags & EMERGENCY_STOP) {
+			binf->wheel_inf[i].stats.emergency_stop++;
+			ERR("EMERGENCY_STOP on wheel %i", i);
+		}
+		if(binf->wheel_inf[i].error_flags & MODULE_INIT) {
+			if (! (binf->mod_init_stat & (1 << i)))
+				DBG("MODULE_INIT set for wheel %d", i);
+			binf->mod_init_stat |= 1<<i;
+		}
+		if(binf->wheel_inf[i].error_flags & EC_TIMEOUT) {
+			binf->wheel_inf[i].stats.ec_timeout++;
+			ERR("EC_TIMEOUT on wheel %i", i);
+			if(!send_mbx(0, SAP, CLR_EC_TIMEOUT, binf->wheel_inf[i].slave_idx, 0, &dummy)) {
+				ERR("failed to clear EC_TIMEOUT flag");
+				fatal_errs++;
+			}
+		}
+
+		if(binf->wheel_inf[i].error_flags & I2T_EXCEEDED && !binf->wheel_inf[i].i2t_ex) {
+			/* i2t error rising edge */
+			ERR("I2T_EXCEEDED on wheel %i setting base to control_mode=MotorStop.", i);
+			binf->wheel_inf[i].stats.i2t_exceeded++;
+			binf->wheel_inf[i].i2t_ex=1;
+			binf->control_mode=YOUBOT_CMODE_MOTORSTOP;
+			fatal_errs++;
+
+			if(!send_mbx(0, SAP, CLEAR_I2T, binf->wheel_inf[i].slave_idx, 0, &dummy))
+				ERR("wheel %d, failed to clear I2T_EXCEEDED bit", i);
+
+		} else if (!(binf->wheel_inf[i].error_flags & I2T_EXCEEDED) && binf->wheel_inf[i].i2t_ex) {
+			/* i2t error falling edge */
+			DBG("I2T_EXCEEDED reset on wheel %i", i);
+			binf->wheel_inf[i].i2t_ex=0;
+		}
+	}
+
+	return fatal_errs;
+}
+
+/**
+ * base_is_configured - check if all base slaves have been configured.
+ *
+ * @param base
+ *
+ * @return 1 if configured, 0 otherwise.
+ */
+static int base_is_configured(struct youbot_base_info* base)
+{
+	return base->mod_init_stat & ((1 << YOUBOT_NR_OF_BASE_SLAVES)-1);
+}
+
+
+/**
+ * base_proc_update - process new information received via ethercat.
+ * update stats, reset EC_TIMEOUT
+ *
+ * @param base
+ *
+ * @return
+ */
+static int base_proc_update(struct youbot_base_info* base)
+{
+	int i, tmp, ret=-1;
+	int32_t cm;
+	in_motor_t *motor_in;
+	out_motor_t *motor_out;
+
+	/* copy data */
+	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
+		motor_in = (in_motor_t*) ec_slave[ base->wheel_inf[i].slave_idx ].inputs;
+		base->wheel_inf[i].msr_pos = motor_in->position;
+		base->wheel_inf[i].msr_vel = motor_in->velocity;
+		base->wheel_inf[i].msr_cur = motor_in->current;
+		base->wheel_inf[i].error_flags = motor_in->error_flags;
+#ifdef FIRMWARE_V2
+		base->wheel_inf[i].msr_pwm = motor_in->pwm;
+#endif
+	}
+
+	base_proc_errflg(base);
+
+	/* Force initialize if unconfigured */
+	if(!base_is_configured(base))
+		base->control_mode = YOUBOT_CMODE_INITIALIZE;
+
+
+	/* new control mode? */
+	if(read_int(base->p_control_mode, &cm) > 0) {
+		if(cm<0 || cm>7) {
+			ERR("invalid control_mode %d", cm);
+			tmp=-1;
+			write_int(base->p_control_mode, &tmp);
+		} else {
+			DBG("setting control_mode to %d", cm);
+			base->control_mode=cm;
+			tmp=0;
+			write_int(base->p_control_mode, &tmp);
+		}
+	}
+
+	/* propagate "master" control_mode to all slaves */
+	for (i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
+		motor_out = (out_motor_t*) ec_slave[ base->wheel_inf[i].slave_idx ].outputs;
+		motor_out->controller_mode = base->control_mode;
+	}
+
+	switch(base->control_mode) {
+	case YOUBOT_CMODE_MOTORSTOP:
+		goto out_ok;
+	case YOUBOT_CMODE_VELOCITY:
+	default:
+		ERR("unexpected control_mode: %d, switching to MOTORSTOP", base->control_mode);
+		base->control_mode = YOUBOT_CMODE_MOTORSTOP;
+		goto out;
+	}
+ out_ok:
+	ret=0;
+ out:
+	return ret;
+}
+
+
+static void base_data_send(struct youbot_base_info* base)
+{
+
+}
+
+
 static void youbot_step(ubx_block_t *b)
 {
 	DBG(" ");
-	/* read ports and update youbot_info */
+	struct youbot_info *inf=b->private_data;
 
+	/* TODO set time out to zero? */
+	if(ec_receive_processdata(EC_TIMEOUTRET) == 0) {
+		ERR("failed to receive processdata");
+		inf->pd_recv_err++;
+		goto out;
+	}
 
+	/* process update */
+	if(inf->base.detected)
+		base_proc_update(&inf->base);
+
+	if (ec_send_processdata() <= 0){
+		ERR("failed to send processdata");
+		inf->pd_send_err++;
+	}
+
+	/* send out data on ports */
+	if(inf->base.detected)
+		base_data_send(&inf->base);
+
+ out:
+	return;
 }
 
 static void youbot_cleanup(ubx_block_t *b)

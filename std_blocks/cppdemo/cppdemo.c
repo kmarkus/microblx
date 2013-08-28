@@ -8,6 +8,7 @@
 using namespace std;
 
 #include "ubx.h"
+#include <cstring>
 
 
 /* function block meta-data

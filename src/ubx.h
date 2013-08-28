@@ -14,7 +14,7 @@ extern "C"
 #include <string.h>
 #include <sys/mman.h>
 #include <errno.h>
-
+#include <assert.h>
 #include <uthash.h>
 
 #include "ubx_types.h"
@@ -43,28 +43,31 @@ void __cleanup_module(ubx_node_info_t* ni) { exitfn(ni); }
 /* normally the user would have to box/unbox his value himself. This
  * would generate a typed, automatic boxing version for
  * convenience. */
-#define def_write_fun(function_name, typename) \
-void function_name(ubx_port_t* port, typename *outval) \
-{ \
- ubx_data_t val; \
- if(port==NULL) { ERR("port is NULL"); return; } \
- val.data = outval; \
- val.type = port->out_type; \
- val.len=1; \
- __port_write(port, &val);	\
-} \
+#define def_write_fun(function_name, typename) 		\
+void function_name(ubx_port_t* port, typename *outval) 	\
+{ 							\
+ ubx_data_t val; 					\
+ if(port==NULL) { ERR("port is NULL"); return; } 	\
+ assert(strcmp(#typename, port->out_type_name)==0); 	\
+ val.data = outval; 					\
+ val.type = port->out_type; 				\
+ val.len=1;						\
+ __port_write(port, &val);				\
+} 							\
 
 /* generate a typed read function: arguments to the function are the
  * port and a pointer to the result value. 
  */
-#define def_read_fun(function_name, typename) \
-uint32_t function_name(ubx_port_t* port, typename *inval) \
-{ \
- ubx_data_t val; 		\
- val.type=port->in_type;	\
- val.data = inval;	  	\
- return __port_read(port, &val);	\
-} \
+#define def_read_fun(function_name, typename) 		\
+int32_t function_name(ubx_port_t* port, typename *inval) \
+{ 							\
+ ubx_data_t val; 					\
+ if(port==NULL) { ERR("port is NULL"); return -1; } 	\
+ assert(strcmp(#typename, port->in_type_name)==0);	\
+ val.type=port->in_type;				\
+ val.data = inval;	  				\
+ return __port_read(port, &val);			\
+} 							\
 
 /*
  * Debug stuff

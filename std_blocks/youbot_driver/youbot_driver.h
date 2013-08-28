@@ -33,23 +33,16 @@
 #define YOUBOT_CARTESIAN_VELOCITY_TO_RPM	(YOUBOT_MOTORTRANSMISSION*60)/(YOUBOT_WHEEL_CIRCUMFERENCE)
 
 /* angular [ rad/s ] to wheel [ m/s] velocity */
-#define  YOUBOT_ANGULAR_TO_WHEEL_VELOCITY	(YOUBOT_FRONT_TO_REAR_WHEEL+YOUBOT_LEFT_TO_RIGHT_WHEEL)/2
+#define YOUBOT_ANGULAR_TO_WHEEL_VELOCITY	(YOUBOT_FRONT_TO_REAR_WHEEL+YOUBOT_LEFT_TO_RIGHT_WHEEL)/2
 #define PWM_VALUE_MAX				1799
 
 #define GRIPPER_ENC_WIDTH			67000 /* encoder width of gripper */
 
 /* timeout in seconds after which base is stopped when no new twist is received. */
-#define BASE_TIMEOUT				1;
+#define BASE_TIMEOUT				1
 
 /* Motor control modes */
-static const uint8_t MotorStop			= 0;
-static const uint8_t Positioning		= 1;
-static const uint8_t Velocity			= 2;
-static const uint8_t NoAction			= 3;
-static const uint8_t SetPositionToReference	= 4;
-static const uint8_t PWM			= 5;
-static const uint8_t Current			= 6;
-static const uint8_t Initialize			= 7;
+#include "types/control_modes.h"
 
 static const uint8_t ROR			= 1;
 static const uint8_t ROL			= 2;
@@ -81,61 +74,57 @@ static const uint8_t RAMP_GEN_SPEED		= 13;
 static const uint8_t INIT_BLDC			= 15;
 
 static const uint8_t CLEAR_I2T			= 29;
-// ..
+/* .. */
 static const uint8_t CLR_EC_TIMEOUT		= 158;
 static const uint8_t COMMUTATION_MODE		= 159;
-// ..
+/* .. more to be added on demand... */
 
-
-
-/* more to be added on demand... */
-
-/// @name Ethercat structs (documentation as given in the EtherCAT
-/// Manual posted at youbot@best-of-robotics.org on 23/12/2010 by
-/// Bischof Rainer)
-
-///Output buffer protocol
+/* Output buffer protocol */
 typedef struct {
-    int32_t value; //Reference (Position, Velocity, PWM or Current)
-    uint8_t controller_mode; //Controller Mode
-    //0: Motor stop
-    //1: Positioning mode
-    //2: Velocity mode
-    //3: no more action
-    //4: set position to reference
-    //5: PWM mode
-    //6: Current mode
-    //7: Initialize
+	int32_t value;			/* Reference (Position, Velocity, PWM or Current) */
+	uint8_t controller_mode;	/* Controller Mode */
+	/* 0: Motor stop
+	   1: Positioning mode
+	   2: Velocity mode
+	   3: no more action
+	   4: set position to reference
+	   5: PWM mode
+	   6: Current mode
+	   7: Initialize */
 } out_motor_t;
 
-///Input buffer protocol
+/* Input buffer protocol */
 typedef struct {
-    int32_t position;//Actual position, 32-bit Up-Down Counter, 4096 ticks/revolution
-    int32_t current;//Actual current in mA
-    int32_t velocity;//Actual velocity rpm motor axis
-    uint32_t error_flags;//Error flags
-    //bit 0: OverCurrent
-    //bit 1: UnderVoltage
-    //bit 2: OverVoltage
-    //bit 3: OverTemperature
-    //bit 4: Motor Halted
-    //bit 5: Hall-Sensor error
-    //bit 6: Encoder error
-    //bit 7: Sine commutation initilization error
-    //bit 8: PWM mode active
-    //bit 9: Velocity mode active
-    //bit 10: Position mode active
-    //bit 11: Current mode active
-    //bit 12: Emergency stop
-    //bit 13: Freerunning
-    //bit 14: Position end
-    //bit 15: Module initialized
-    //bit 16: EtherCAT timeout (reset with SAP 158)
-    //bit 17: I2t exceeded (reset with SAP 29)
-    uint16_t temperature;//Driver Temperature (on-board NTC), 0..4095
-    //25C: 1.34V..1.43V..1.52V (Has to be configured)
-    //1C: 4mV..4.3mV..4.6mV
-    //Temp: 25.0 + ( ADC * 3.3V / 4096 - 1.43 ) / 0.0043
+	int32_t position;	/* Actual position, 32-bit Up-Down Counter, 4096 ticks/revolution */
+	int32_t current;	/* Actual current in mA */
+	int32_t velocity;	/* Actual velocity rpm motor axis */
+	uint32_t error_flags;	/* Error flags */
+	/* bit 0: OverCurrent
+	   bit 1: UnderVoltage
+	   bit 2: OverVoltage
+	   bit 3: OverTemperature
+	   bit 4: Motor Halted
+	   bit 5: Hall-Sensor error
+	   bit 6: Encoder error
+	   bit 7: Sine commutation initilization error
+	   bit 8: PWM mode active
+	   bit 9: Velocity mode active
+	   bit 10: Position mode active
+	   bit 11: Current mode active
+	   bit 12: Emergency stop
+	   bit 13: Freerunning
+	   bit 14: Position end
+	   bit 15: Module initialized
+	   bit 16: EtherCAT timeout (reset with SAP 158)
+	   bit 17: I2t exceeded (reset with SAP 29) */
+#ifdef FIRMWARE_V2
+	int32_t pwm;
+#else
+	uint16_t temperature; /* Driver Temperature (on-board NTC), 0..4095 */
+	/* 25C: 1.34V..1.43V..1.52V (Has to be configured)
+	   1C: 4mV..4.3mV..4.6mV
+	   Temp: 25.0 + ( ADC * 3.3V / 4096 - 1.43 ) / 0.0043 */
+#endif
 } in_motor_t;
 
 
@@ -193,51 +182,55 @@ struct youbot_slave_stats {
 	uint64_t i2t_exceeded;
 };
 
+/* Holds the information about one motor (for both wheels and arm
+ * axis).
+ */
+struct youbot_motor_info {
+	uint32_t slave_idx;	/* the index into ec_salve */
+
+	int32_t msr_pos;
+	int32_t msr_vel;
+	int32_t msr_cur;
+	uint32_t error_flags;
+
+#ifdef FIRMWARE_V2
+	int32_t msr_pwm;
+#else
+	int16_t temperature;
+#endif
+	int32_t i2t_ex;		/* i2t currently exceeded? */
+
+	int32_t cmd_pos;
+	int32_t cmd_vel;
+	int32_t cmd_cur;
+
+	uint32_t max_cur;	/* cut-off currents larger than this */
+
+	struct youbot_slave_stats stats;
+};
+
 /* Arm */
 struct youbot_arm_info {
 	uint32_t detected;		/* has been detected and is in use */
 	uint8_t control_mode;		/* current used control mode */
-
-	struct youbot_jnt_info {
-		uint32_t slave_idx;	/* the indenx into ec_salve */
-
-		int32_t msr_pos;
-		int32_t msr_vel;
-		int32_t msr_cur;
-
-		int32_t cmd_pos;
-		int32_t cmd_vel;
-		int32_t cmd_cur;
-
-		uint32_t max_cur;	/* cut-off currents larger than this */
-
-		struct youbot_slave_stats stats;
-	} jnt_inf[YOUBOT_NR_OF_JOINTS];
-
-	struct timespec last_twist;
+	struct youbot_motor_info jnt_inf[YOUBOT_NR_OF_JOINTS];
+	struct timespec last_cmd;
 };
 
 
 /* Base */
 struct youbot_base_info {
+	/* port cache */
+	ubx_port_t *p_control_mode;
+	ubx_port_t *p_cmd_twist;
+	ubx_port_t *p_cmd_vel;
+	ubx_port_t *p_cmd_cur;
+
 	uint32_t detected;
+	uint32_t mod_init_stat;
 	uint8_t control_mode;
-
-	struct youbot_wheel_info {
-		uint32_t slave_idx;	/* the index into ec_salve */
-
-		int32_t msr_pos;
-		int32_t msr_vel;
-		int32_t msr_cur;
-
-		int32_t cmd_pos;
-		int32_t cmd_vel;
-		int32_t cmd_cur;
-
-		struct youbot_slave_stats stats;
-	} wheel_inf[YOUBOT_NR_OF_WHEELS];
-
-	struct timespec last_twist;
+	struct youbot_motor_info wheel_inf[YOUBOT_NR_OF_WHEELS];
+	struct timespec last_cmd;
 
 	/* odometry information */
 };
