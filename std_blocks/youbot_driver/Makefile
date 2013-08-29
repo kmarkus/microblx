@@ -11,10 +11,10 @@ TYPES:=$(wildcard types/*.h)
 HEXARRS:=$(TYPES:%=%.hexarr)
 
 youbot_driver.so: youbot_driver.o $(UBX_DIR)/libubx.so 
-	${CC} $(CFLAGS_SHARED) -l:$(UBX_DIR)/libubx.so -l:$(SOEM_DIR)/lib/linux/libsoem.a -o youbot_driver.so youbot_driver.o
+	${CC} $(CFLAGS_SHARED) -l:$(UBX_DIR)/libubx.so -pthread -o youbot_driver.so youbot_driver.o $(SOEM_DIR)/lib/linux/libsoem.a $(SOEM_DIR)/lib/linux/liboshw.a
 
 youbot_driver.o: youbot_driver.c youbot_driver.h $(UBX_DIR)/ubx.h $(UBX_DIR)/ubx_types.h $(UBX_DIR)/ubx.c $(HEXARRS)
-	${CC} -fPIC -I$(UBX_DIR) $(INCLUDES) -c $(CFLAGS) youbot_driver.c
+	${CC} -fPIC -pthread -I$(UBX_DIR) $(INCLUDES) -c $(CFLAGS) youbot_driver.c
 
 clean:
 	rm -f *.o *.so *~ core $(HEXARRS)

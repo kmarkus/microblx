@@ -956,7 +956,7 @@ ubx_config_t* ubx_config_get(ubx_block_t* b, const char* name)
 	for(conf=b->configs; conf->name!=NULL; conf++)
 		if(strcmp(conf->name, name)==0)
 			goto out;
-	DBG("block %s has no config %s", b->name, name);
+	ERR("block %s has no config %s", b->name, name);
 	conf=NULL;
  out:
 	return conf;

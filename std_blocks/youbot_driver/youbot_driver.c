@@ -33,20 +33,32 @@ ubx_config_t youbot_config[] = {
 	{ NULL },
 };
 
-
 ubx_port_t youbot_ports[] = {
 	{ .name="events", .attrs=PORT_DIR_OUT, .in_type_name="unsigned int" },
 
-	{ .name="base_control_mode", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .out_type_name="int" },
-	{ .name="base_cmd_twist", .attrs=PORT_DIR_IN, .in_type_name="int32_t" },
-	{ .name="base_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="int32_t" },
-	{ .name="base_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t" },
+	{ .name="base_control_mode", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .out_type_name="int32_t" },
+	{ .name="base_cmd_twist", .attrs=PORT_DIR_IN, .in_type_name="kdl/struct kdl_twist" },
+	{ .name="base_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=4 },
+	{ .name="base_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=4 },
 
 	{ .name="base_msr_odom", .attrs=PORT_DIR_OUT, .out_type_name="youbot/struct youbot_odometry" },
-	{ .name="base_msr_twist", .attrs=PORT_DIR_OUT, .out_type_name="youbot/struct kdl_twist" },
+	{ .name="base_msr_twist", .attrs=PORT_DIR_OUT, .out_type_name="kdl/struct kdl_twist" },
 
 	{ NULL },
 };
+
+/* types */
+/* declare types */
+
+#include "types/youbot_odometry.h.hexarr"
+#include "types/youbot_control_modes.h.hexarr"
+
+ubx_type_t youbot_types[] = {
+	def_struct_type("youbot", struct youbot_odometry, &youbot_odometry_h),
+	/* def_struct_type("youbot", enum youbot_control_modes, &youbot_control_modes_h), */
+	{ NULL },
+};
+
 
 /* convenience functions to read/write from the ports */
 def_read_fun(read_int, int32_t)
@@ -286,10 +298,10 @@ static int youbot_init(ubx_block_t *b)
 	char* interface;
 	struct youbot_info *inf;
 
-	interface = (char *) ubx_config_get_data_ptr(b, "if", &interface_len);
+	interface = (char *) ubx_config_get_data_ptr(b, "ethernet_if", &interface_len);
 
 	if(strncmp(interface, "", interface_len)==0) {
-		ERR("config interface unset");
+		ERR("config ethernet_if unset");
 		goto out;
 	}
 
@@ -797,12 +809,21 @@ ubx_block_t youbot_comp = {
 static int youbot_mod_init(ubx_node_info_t* ni)
 {
 	DBG(" ");
+	ubx_type_t *tptr;
+	for(tptr=youbot_types; tptr->name!=NULL; tptr++)
+		ubx_type_register(ni, tptr);
+
 	return ubx_block_register(ni, &youbot_comp);
 }
 
 static void youbot_mod_cleanup(ubx_node_info_t *ni)
 {
 	DBG(" ");
+	const ubx_type_t *tptr;
+
+	for(tptr=youbot_types; tptr->name!=NULL; tptr++)
+		ubx_type_unregister(ni, tptr->name);
+
 	ubx_block_unregister(ni, "youbot/youbot_driver");
 }
 
