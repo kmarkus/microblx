@@ -24,11 +24,11 @@
 
 /* declare types */
 ubx_type_t types[] = {
-	def_struct_type("kdl", struct Vector, &vector_h),
-	def_struct_type("kdl", struct Rotation, &rotation_h),
-	def_struct_type("kdl", struct Frame, &frame_h),
-	def_struct_type("kdl", struct Twist, &twist_h),
-	def_struct_type("kdl", struct Wrench, &wrench_h),
+	def_struct_type("kdl", struct kdl_vector, &vector_h),
+	def_struct_type("kdl", struct kdl_rotation, &rotation_h),
+	def_struct_type("kdl", struct kdl_frame, &frame_h),
+	def_struct_type("kdl", struct kdl_twist, &twist_h),
+	def_struct_type("kdl", struct kdl_wrench, &wrench_h),
 	{ NULL },
 };
 

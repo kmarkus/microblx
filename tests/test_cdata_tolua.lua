@@ -15,7 +15,7 @@ ubx.load_module(ni, "std_types/kdl/kdl_types.so")
 
 function test_vector()
    local init = {x=1,y=2,z=3}
-   local v1 = ffi.new("struct Vector", init)
+   local v1 = ffi.new("struct kdl_vector", init)
 
    local val=cdata.tolua(v1)
    assert_true(utils.table_cmp(val, init), "A: table->vector rountrip comparison error")
@@ -23,7 +23,7 @@ end
 
 function test_vector_inv()
    local init = {x=1,y=2,z=3}
-   local v1 = ffi.new("struct Vector", init)
+   local v1 = ffi.new("struct kdl_vector", init)
    v1.x=33
    v1.z=55
    local val=cdata.tolua(v1)
@@ -41,7 +41,7 @@ function test_frame()
       p={ x=1.2, y=2.2, z=3.2 } 
    }
    
-   local f1 = ffi.new("struct Frame", init)
+   local f1 = ffi.new("struct kdl_frame", init)
    local val=cdata.tolua(f1)
    assert_true(utils.table_cmp(val, init), "C: table->frame rountrip comparison error")
 end
@@ -55,7 +55,7 @@ function test_frame_inv()
       },
       p={ x=1.2, y=2.2, z=3.2 } 
    }
-   local f1 = ffi.new("struct Frame", init)
+   local f1 = ffi.new("struct kdl_frame", init)
    init.p.x=33
    local val=cdata.tolua(f1)
    assert_false(utils.table_cmp(val, init), "D: table->frame rountrip comparison error")
@@ -88,7 +88,7 @@ function test_int_inv()
 end
 
 function test_ubx_data()
-   local ubx_data_vect = ubx.data_alloc(ni, "kdl/struct Vector", 1)
+   local ubx_data_vect = ubx.data_alloc(ni, "kdl/struct kdl_vector", 1)
    local init = { x=7, y=8, z=9 }
    ubx.data_set(ubx_data_vect, init, true)
    local val = ubx.data_tolua(ubx_data_vect)
@@ -96,7 +96,7 @@ function test_ubx_data()
 end
 
 function test_ubx_data_inv()
-   local ubx_data_vect = ubx.data_alloc(ni, "kdl/struct Vector", 1)
+   local ubx_data_vect = ubx.data_alloc(ni, "kdl/struct kdl_vector", 1)
    local init = { x=2, y=5, z=22 }
    ubx.data_set(ubx_data_vect, init, true)
    init.x=344

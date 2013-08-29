@@ -14,6 +14,8 @@
 #include "ethercatdc.h"
 #include "ethercatprint.h"
 
+#include <time.h>
+
 #include "ubx.h"
 
 #include "youbot_driver.h"
@@ -40,9 +42,8 @@ ubx_port_t youbot_ports[] = {
 	{ .name="base_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="int32_t" },
 	{ .name="base_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t" },
 
-
-	{ .name="base_odometry", .attrs=PORT_DIR_OUT, .out_type_name="int32_t" },
-	{ .name="base_", .attrs=PORT_DIR_OUT, .out_type_name="int32_t" },
+	{ .name="base_msr_odom", .attrs=PORT_DIR_OUT, .out_type_name="youbot/struct youbot_odometry" },
+	{ .name="base_msr_twist", .attrs=PORT_DIR_OUT, .out_type_name="youbot/struct kdl_twist" },
 
 	{ NULL },
 };
@@ -50,6 +51,9 @@ ubx_port_t youbot_ports[] = {
 /* convenience functions to read/write from the ports */
 def_read_fun(read_int, int32_t)
 def_write_fun(write_int, int32_t)
+
+def_read_fun(read_kdl_twist, struct kdl_twist)
+def_write_fun(write_kdl_twist, struct kdl_twist)
 
 
 /**
@@ -219,7 +223,7 @@ int set_param(uint32_t slave_nr, uint8_t param_nr, int32_t val)
 	}
 
 	ret=0;
-out:
+ out:
 	return ret;
 }
 
@@ -237,7 +241,7 @@ static int base_config_params(struct youbot_base_info* binf)
 		set_param(binf->wheel_inf[i].slave_idx, 253, 16); // nr motor poles
 		set_param(binf->wheel_inf[i].slave_idx, 254, 1); // invert hall sensor
 	}
-		return 0;
+	return 0;
 }
 
 static int arm_config_params(struct youbot_arm_info* ainf)
@@ -268,6 +272,7 @@ static int arm_config_params(struct youbot_arm_info* ainf)
  out:
 	return ret;
 }
+
 
 /*
  * Microblx driver wrapper starts here.
@@ -387,11 +392,8 @@ static int base_prepare_start(struct youbot_base_info *base)
 	int i, ret=-1;
 	int32_t dummy;
 
-	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
-		base->wheel_inf[i].cmd_pos=0;
-		base->wheel_inf[i].cmd_vel=0;
-		base->wheel_inf[i].cmd_cur=0;
-	}
+	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++)
+		base->wheel_inf[i].cmd_val=0;
 
 	/* reset EC_TIMEOUT */
 	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
@@ -412,11 +414,8 @@ static int arm_prepare_start(struct youbot_arm_info *arm)
 	int i, ret=-1;
 	int32_t dummy;
 
-	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
-		arm->jnt_inf[i].cmd_pos=0;
-		arm->jnt_inf[i].cmd_vel=0;
-		arm->jnt_inf[i].cmd_cur=0;
-	}
+	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
+		arm->jnt_inf[i].cmd_val=0;
 
 	/* reset EC_TIMEOUT */
 	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
@@ -473,6 +472,8 @@ static int youbot_start(ubx_block_t *b)
 	inf->base.p_cmd_twist = ubx_port_get(b, "base_cmd_twist");
 	inf->base.p_cmd_vel = ubx_port_get(b, "base_cmd_vel");
 	inf->base.p_cmd_cur = ubx_port_get(b, "base_cmd_cur");
+	inf->base.p_msr_odom = ubx_port_get(b, "base_odom");
+	inf->base.p_msr_twist = ubx_port_get(b, "base_twist");
 
 	ret=0;
  out:
@@ -561,6 +562,55 @@ static int base_proc_errflg(struct youbot_base_info* binf)
 	return fatal_errs;
 }
 
+static void base_output_msr_data(struct youbot_base_info* base)
+{
+	/* translate wheel velocities to cartesian base velocities */
+	base->msr_twist.vel.x =
+		(double) ( base->wheel_inf[0].msr_vel - base->wheel_inf[1].msr_vel
+			   + base->wheel_inf[2].msr_vel - base->wheel_inf[3].msr_vel )
+		/ (double) ( YOUBOT_NR_OF_WHEELS *  YOUBOT_CARTESIAN_VELOCITY_TO_RPM );
+
+	base->msr_twist.vel.y =
+		(double) ( - base->wheel_inf[0].msr_vel - base->wheel_inf[1].msr_vel
+			   + base->wheel_inf[2].msr_vel + base->wheel_inf[3].msr_vel )
+		/ (double) ( YOUBOT_NR_OF_WHEELS * YOUBOT_CARTESIAN_VELOCITY_TO_RPM );
+
+	base->msr_twist.rot.z =
+		(double) ( - base->wheel_inf[0].msr_vel - base->wheel_inf[1].msr_vel
+			   - base->wheel_inf[2].msr_vel - base->wheel_inf[3].msr_vel )
+		/ (double) ( YOUBOT_NR_OF_WHEELS * YOUBOT_CARTESIAN_VELOCITY_TO_RPM * YOUBOT_ANGULAR_TO_WHEEL_VELOCITY);
+
+
+	write_kdl_twist(base->p_msr_twist, &base->msr_twist);
+
+	/* TODO: the previous odometry implementation is not working
+	   correctly. Find out why before adding */
+}
+
+
+/**
+ * twist_to_wheel_val - convert twist to wheel motions.
+ * More precisely: convert base->command_twist to base->wheel_inf[i].cmd_val.
+ *
+ * @param base
+ */
+void twist_to_wheel_val(struct youbot_base_info* base)
+{
+	struct kdl_twist* twist=&base->cmd_twist;
+
+	base->wheel_inf[0].cmd_val = ( -twist->vel.x + twist->vel.y + twist->rot.z *
+				       YOUBOT_ANGULAR_TO_WHEEL_VELOCITY ) * YOUBOT_CARTESIAN_VELOCITY_TO_RPM;
+
+	base->wheel_inf[1].cmd_val = ( twist->vel.x + twist->vel.y + twist->rot.z *
+				       YOUBOT_ANGULAR_TO_WHEEL_VELOCITY ) * YOUBOT_CARTESIAN_VELOCITY_TO_RPM;
+
+	base->wheel_inf[2].cmd_val = ( -twist->vel.x - twist->vel.y + twist->rot.z  *
+				       YOUBOT_ANGULAR_TO_WHEEL_VELOCITY ) * YOUBOT_CARTESIAN_VELOCITY_TO_RPM;
+
+	base->wheel_inf[3].cmd_val = ( twist->vel.x - twist->vel.y + twist->rot.z *
+				       YOUBOT_ANGULAR_TO_WHEEL_VELOCITY ) * YOUBOT_CARTESIAN_VELOCITY_TO_RPM;
+}
+
 /**
  * base_is_configured - check if all base slaves have been configured.
  *
@@ -573,6 +623,33 @@ static int base_is_configured(struct youbot_base_info* base)
 	return base->mod_init_stat & ((1 << YOUBOT_NR_OF_BASE_SLAVES)-1);
 }
 
+/**
+ * check_watchdog - check if expired and trigger.
+ * currently only second resolution!
+ *
+ * @param base
+ * @param trig if != 0 then trigger watchdog
+ */
+static void check_watchdog(struct youbot_base_info* base, int trig)
+{
+	struct timespec ts_cur;
+
+	if(clock_gettime(CLOCK_MONOTONIC, &ts_cur) != 0) {
+		ERR2(errno, "clock_gettime failed");
+		goto out;
+	}
+
+	if(ts_cur.tv_sec - base->last_cmd.tv_sec >= BASE_TIMEOUT) {
+		base->control_mode=YOUBOT_CMODE_MOTORSTOP;
+		goto out;
+	}
+
+	if(trig)
+		base->last_cmd = ts_cur;
+
+ out:
+	return;
+}
 
 /**
  * base_proc_update - process new information received via ethercat.
@@ -603,10 +680,11 @@ static int base_proc_update(struct youbot_base_info* base)
 
 	base_proc_errflg(base);
 
-	/* Force initialize if unconfigured */
-	if(!base_is_configured(base))
+	/* Force control_mode to INITIALIZE if unconfigured */
+	if(!base_is_configured(base)) {
 		base->control_mode = YOUBOT_CMODE_INITIALIZE;
-
+		goto handle_cm;
+	}
 
 	/* new control mode? */
 	if(read_int(base->p_control_mode, &cm) > 0) {
@@ -622,31 +700,47 @@ static int base_proc_update(struct youbot_base_info* base)
 		}
 	}
 
-	/* propagate "master" control_mode to all slaves */
-	for (i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
-		motor_out = (out_motor_t*) ec_slave[ base->wheel_inf[i].slave_idx ].outputs;
-		motor_out->controller_mode = base->control_mode;
-	}
+	base_output_msr_data(base);
+
+ handle_cm:
 
 	switch(base->control_mode) {
 	case YOUBOT_CMODE_MOTORSTOP:
 		goto out_ok;
 	case YOUBOT_CMODE_VELOCITY:
+
+		if(read_kdl_twist(base->p_cmd_twist, &base->cmd_twist) <= 0) {
+			/* no new data */
+			if(base->wheel_inf[0].cmd_val==0 && base->wheel_inf[1].cmd_val==0 &&
+			   base->wheel_inf[2].cmd_val==0 && base->wheel_inf[3].cmd_val==0) {
+				check_watchdog(base, 1);
+			} else {
+				check_watchdog(base, 0);
+			}
+			goto out;
+		}
+
+		/* update wheel[i].cmd_val, values are copied to output below */
+		check_watchdog(base, 1);
+		twist_to_wheel_val(base);
+
 	default:
 		ERR("unexpected control_mode: %d, switching to MOTORSTOP", base->control_mode);
 		base->control_mode = YOUBOT_CMODE_MOTORSTOP;
 		goto out;
 	}
+
+	/* copy cmd_val to output buffer */
+	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
+		motor_out = (out_motor_t*) ec_slave[ base->wheel_inf[i].slave_idx ].outputs;
+		motor_out->value = base->wheel_inf[i].cmd_val;
+		motor_out->controller_mode = base->control_mode;
+	}
+
  out_ok:
 	ret=0;
  out:
 	return ret;
-}
-
-
-static void base_data_send(struct youbot_base_info* base)
-{
-
 }
 
 
@@ -670,10 +764,6 @@ static void youbot_step(ubx_block_t *b)
 		ERR("failed to send processdata");
 		inf->pd_send_err++;
 	}
-
-	/* send out data on ports */
-	if(inf->base.detected)
-		base_data_send(&inf->base);
 
  out:
 	return;

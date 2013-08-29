@@ -1,3 +1,5 @@
+#include <math.h>
+
 /* youbot driver information */
 
 #define YOUBOT_SYSCONF_BASE_ONLY		1
@@ -23,11 +25,11 @@
 #define YOUBOT_WHEELRADIUS			0.052
 #define YOUBOT_MOTORTRANSMISSION		26
 #define YOUBOT_JOINT_INIT_VALUE			0
-#define YOUBOT_FRONT_TO_REAR_WHE		0.47
-#define YOUBOT_LEFT_TO_RIGHT_WHE		0.3
+#define YOUBOT_FRONT_TO_REAR_WHEEL		0.47
+#define YOUBOT_LEFT_TO_RIGHT_WHEEL		0.3
 
 #define YOUBOT_TICKS_PER_REVOLUT		4096
-#define YOUBOT_WHEEL_CIRCUMFEREN		(YOUBOT_WHEELRADIUS*2*M_PI)
+#define YOUBOT_WHEEL_CIRCUMFERENCE		(YOUBOT_WHEELRADIUS*2*M_PI)
 
 /* cartesian [ m/s ] to motor [ rpm ] velocity */
 #define YOUBOT_CARTESIAN_VELOCITY_TO_RPM	(YOUBOT_MOTORTRANSMISSION*60)/(YOUBOT_WHEEL_CIRCUMFERENCE)
@@ -41,8 +43,10 @@
 /* timeout in seconds after which base is stopped when no new twist is received. */
 #define BASE_TIMEOUT				1
 
-/* Motor control modes */
-#include "types/control_modes.h"
+/* types that are sent via ports are defined here */
+#include "types/youbot_control_modes.h"
+#include "../std_types/kdl/types/kdl.h"
+#include "types/youbot_odometry.h"
 
 static const uint8_t ROR			= 1;
 static const uint8_t ROL			= 2;
@@ -200,9 +204,7 @@ struct youbot_motor_info {
 #endif
 	int32_t i2t_ex;		/* i2t currently exceeded? */
 
-	int32_t cmd_pos;
-	int32_t cmd_vel;
-	int32_t cmd_cur;
+	int32_t cmd_val;	/* commanded value. unit depends on control mode */
 
 	uint32_t max_cur;	/* cut-off currents larger than this */
 
@@ -220,19 +222,28 @@ struct youbot_arm_info {
 
 /* Base */
 struct youbot_base_info {
+	uint32_t detected;		/* did we detect a base? */
+	uint32_t mod_init_stat;		/* bitfield, bit is set for each initialized slave */
+	uint8_t control_mode;		/* current control mode */
+
+	struct youbot_motor_info wheel_inf[YOUBOT_NR_OF_WHEELS];
+
+	/* commanded information */
+	struct timespec last_cmd;	/* timestamp when last command was received */
+	struct kdl_twist cmd_twist;
+
+	/* sensor information */
+	struct youbot_odometry msr_odom;
+	struct kdl_twist msr_twist;
+	int odom_started;
+
 	/* port cache */
 	ubx_port_t *p_control_mode;
 	ubx_port_t *p_cmd_twist;
 	ubx_port_t *p_cmd_vel;
 	ubx_port_t *p_cmd_cur;
-
-	uint32_t detected;
-	uint32_t mod_init_stat;
-	uint8_t control_mode;
-	struct youbot_motor_info wheel_inf[YOUBOT_NR_OF_WHEELS];
-	struct timespec last_cmd;
-
-	/* odometry information */
+	ubx_port_t *p_msr_odom;
+	ubx_port_t *p_msr_twist;
 };
 
 struct youbot_info {

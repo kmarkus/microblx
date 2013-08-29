@@ -28,9 +28,9 @@ function test_string_assignment()
 end
 
 function test_simple_struct_assignment()
-   local d=ubx.data_alloc(ni, "kdl/struct Vector")
+   local d=ubx.data_alloc(ni, "kdl/struct kdl_vector")
    ubx.data_set(d, {x=444,y=55.3, z=-34})
-   local vptr = ffi.cast("struct Vector*", d.data)
+   local vptr = ffi.cast("struct kdl_vector*", d.data)
    assert_equal(444, vptr.x)
    assert_equal(55.3, vptr.y)
    assert_equal(-34, vptr.z)
@@ -38,7 +38,7 @@ function test_simple_struct_assignment()
 end
 
 function test_composite_struct_assignment()
-   local d=ubx.data_alloc(ni, "kdl/struct Frame")
+   local d=ubx.data_alloc(ni, "kdl/struct kdl_frame")
    local conf = {
       p={ x=444, y=55.3, z=-34 },
       M={ data={ 
@@ -49,7 +49,7 @@ function test_composite_struct_assignment()
    }
 
    ubx.data_set(d, conf)
-   local vptr = ffi.cast("struct Frame*", d.data)
+   local vptr = ffi.cast("struct kdl_frame*", d.data)
    assert_equal(444, vptr.p.x)
    assert_equal(55.3, vptr.p.y)
    assert_equal(-34, vptr.p.z)

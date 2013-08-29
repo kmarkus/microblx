@@ -41,7 +41,7 @@ void __cleanup_module(ubx_node_info_t* ni) { exitfn(ni); }
 
 
 /* normally the user would have to box/unbox his value himself. This
- * would generate a typed, automatic boxing version for
+ * generate a strongly typed, automatic boxing version for
  * convenience. */
 #define def_write_fun(function_name, typename) 		\
 void function_name(ubx_port_t* port, typename *outval) 	\
