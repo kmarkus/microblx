@@ -7,7 +7,7 @@ TYPES:=$(wildcard types/*.h)
 HEXARRS:=$(TYPES:%=%.hexarr)
 
 cppdemo.so: cppdemo.o $(INCLUDE_DIR)/libubx.so 
-	${CC} $(CFLAGS_SHARED) -l:$(INCLUDE_DIR)/libubx.so -o cppdemo.so cppdemo.o
+	${CC} $(CFLAGS_SHARED) -o cppdemo.so cppdemo.o $(INCLUDE_DIR)/libubx.so
 
 cppdemo.o: cppdemo.c $(INCLUDE_DIR)/ubx.h $(INCLUDE_DIR)/ubx_types.h $(INCLUDE_DIR)/ubx.c $(HEXARRS)
 	${CC} -fPIC -I$(INCLUDE_DIR) -c $(CFLAGS) cppdemo.c

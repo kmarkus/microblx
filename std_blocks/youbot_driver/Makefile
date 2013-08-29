@@ -1,5 +1,5 @@
 # Configure this:
-SOEM_DIR=/home/mk/src/tarballs/SOEM1.3.0
+SOEM_DIR=/home/mk/src/git/soem/
 
 ROOT_DIR=$(CURDIR)/../..
 include $(ROOT_DIR)/make.conf
@@ -11,7 +11,7 @@ TYPES:=$(wildcard types/*.h)
 HEXARRS:=$(TYPES:%=%.hexarr)
 
 youbot_driver.so: youbot_driver.o $(UBX_DIR)/libubx.so 
-	${CC} $(CFLAGS_SHARED) -l:$(UBX_DIR)/libubx.so -pthread -o youbot_driver.so youbot_driver.o $(SOEM_DIR)/lib/linux/libsoem.a $(SOEM_DIR)/lib/linux/liboshw.a
+	${CC} $(CFLAGS_SHARED) -o youbot_driver.so youbot_driver.o $(SOEM_DIR)/lib/linux/libsoem.a $(SOEM_DIR)/lib/linux/liboshw.a $(UBX_DIR)/libubx.so -pthread
 
 youbot_driver.o: youbot_driver.c youbot_driver.h $(UBX_DIR)/ubx.h $(UBX_DIR)/ubx_types.h $(UBX_DIR)/ubx.c $(HEXARRS)
 	${CC} -fPIC -pthread -I$(UBX_DIR) $(INCLUDES) -c $(CFLAGS) youbot_driver.c

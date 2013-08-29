@@ -3,7 +3,7 @@ include $(ROOT_DIR)/make.conf
 INCLUDE_DIR=$(ROOT_DIR)/src/
 
 lfds_cyclic.so: lfds_cyclic.o $(INCLUDE_DIR)/libubx.so liblfds611/bin/liblfds611.a
-	${CC} $(CFLAGS_SHARED) -l:$(INCLUDE_DIR)/libubx.so -o lfds_cyclic.so lfds_cyclic.o liblfds611/bin/liblfds611.a
+	${CC} $(CFLAGS_SHARED) -o lfds_cyclic.so lfds_cyclic.o liblfds611/bin/liblfds611.a $(INCLUDE_DIR)/libubx.so
 
 liblfds611/bin/liblfds611.a:
 	$(shell mkdir -p liblfds611/obj liblfds611/bin)

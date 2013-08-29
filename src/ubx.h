@@ -15,8 +15,8 @@ extern "C"
 #include <sys/mman.h>
 #include <errno.h>
 #include <assert.h>
-#include <uthash.h>
 
+#include "uthash.h"
 #include "ubx_types.h"
 #include "ubx_proto.h"
 

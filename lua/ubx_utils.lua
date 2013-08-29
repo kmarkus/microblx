@@ -1,4 +1,4 @@
-local md5 = require "md5"
+-- local md5 = require "md5"
 local m={}
 --- Convert a string to a hex representation of a string.
 function m.str_to_hexstr(str,spacer)
