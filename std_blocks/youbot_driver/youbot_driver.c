@@ -162,10 +162,10 @@ int send_mbx(int gripper,
 	mbx_out[3] = bank_nr;
 
 	/* TODO: replace with htobe32 */
-	mbx_out[4] = (uint32)*value >> 24;
-	mbx_out[5] = (uint32)*value >> 16;
-	mbx_out[6] = (uint32)*value >> 8;
-	mbx_out[7] = (uint32)*value & 0xff;
+	mbx_out[4] = (uint32)(*value >> 24);
+	mbx_out[5] = (uint32)(*value >> 16);
+	mbx_out[6] = (uint32)(*value >> 8);
+	mbx_out[7] = (uint32)(*value & 0xff);
 
 	if (ec_mbxsend(slave_nr, &mbx_out, EC_TIMEOUTSAFE) <= 0) {
 		ERR("failed to send mbx (gripper:%d, instr_nr=%d, param_nr=%d, slave_nr=%d, bank_nr=%d, value=%d",
@@ -182,8 +182,8 @@ int send_mbx(int gripper,
 	*value = (mbx_in[4] << 24 | mbx_in[5] << 16 | mbx_in[6] << 8 | mbx_in[7]);
 
 	if(((int) mbx_in[2]) != 100) {
-		ERR("receiving mbx failed., addr=%d, module=%d, status=%d, command=%d, value=%d",
-		    mbx_in[0], mbx_in[1], mbx_in[2], mbx_in[3], *value);
+		ERR("receiving mbx failed: module=%d, status=%d, command=%d, value=%d",
+		    mbx_in[1], mbx_in[2], mbx_in[3], *value);
 		goto out;
 	}
 
