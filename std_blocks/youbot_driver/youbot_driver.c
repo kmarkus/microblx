@@ -122,8 +122,8 @@ static int validate_arm_slaves(int start_num)
 	}
 
 	for(i++; i<=start_num+YOUBOT_NR_OF_JOINTS; i++) {
-		if(strcmp(ec_slave[i].name, YOUBOT_ARM_CTRL_NAME) != 0 ||
-		   strcmp(ec_slave[i].name, YOUBOT_ARM_CTRL_NAME2) != 0) {
+		if(strcmp(ec_slave[i].name, YOUBOT_ARM_CTRL_NAME) == 0 &&
+		   strcmp(ec_slave[i].name, YOUBOT_ARM_CTRL_NAME2) == 0) {
 			ERR("expected arm controller (%s or %s), found %s",
 			    YOUBOT_ARM_CTRL_NAME, YOUBOT_ARM_CTRL_NAME2, ec_slave[i].name);
 			goto out;
@@ -166,6 +166,9 @@ int send_mbx(int gripper,
 	mbx_out[5] = (uint32)(*value >> 16);
 	mbx_out[6] = (uint32)(*value >> 8);
 	mbx_out[7] = (uint32)(*value & 0xff);
+
+	DBG("sending send mbx (gripper:%d, instr_nr=%d, param_nr=%d, slave_nr=%d, bank_nr=%d, value=%d",
+	    gripper, instr_nr, param_nr, slave_nr, bank_nr, *value);
 
 	if (ec_mbxsend(slave_nr, &mbx_out, EC_TIMEOUTSAFE) <= 0) {
 		ERR("failed to send mbx (gripper:%d, instr_nr=%d, param_nr=%d, slave_nr=%d, bank_nr=%d, value=%d",
@@ -241,8 +244,8 @@ int set_param(uint32_t slave_nr, uint8_t param_nr, int32_t val)
 
 static int base_config_params(struct youbot_base_info* binf)
 {
+#ifndef FIRMWARE_V2
 	int i;
-
 	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
 		set_param(binf->wheel_inf[i].slave_idx, COMMUTATION_MODE, 3);
 		set_param(binf->wheel_inf[i].slave_idx, 167, 0); // Block PWM scheme
@@ -253,6 +256,7 @@ static int base_config_params(struct youbot_base_info* binf)
 		set_param(binf->wheel_inf[i].slave_idx, 253, 16); // nr motor poles
 		set_param(binf->wheel_inf[i].slave_idx, 254, 1); // invert hall sensor
 	}
+#endif
 	return 0;
 }
 
@@ -274,7 +278,7 @@ static int arm_config_params(struct youbot_arm_info* ainf)
 
 	/* read max_current into local data */
 	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
-		if(!send_mbx(0, GAP, MAX_CURRENT, ainf->jnt_inf[i].slave_idx, 0, &val)) {
+		if(send_mbx(0, GAP, MAX_CURRENT, ainf->jnt_inf[i].slave_idx, 0, &val)) {
 			ERR("reading MAX_CURRENT failed");
 			goto out;
 		}
@@ -409,7 +413,7 @@ static int base_prepare_start(struct youbot_base_info *base)
 
 	/* reset EC_TIMEOUT */
 	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
-		if(!send_mbx(0, SAP, CLR_EC_TIMEOUT, base->wheel_inf[i].slave_idx, 0, &dummy)) {
+		if(send_mbx(0, SAP, CLR_EC_TIMEOUT, base->wheel_inf[i].slave_idx, 0, &dummy)) {
 			ERR("failed to clear EC_TIMEOUT");
 			goto out;
 		}
@@ -431,7 +435,7 @@ static int arm_prepare_start(struct youbot_arm_info *arm)
 
 	/* reset EC_TIMEOUT */
 	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
-		if(!send_mbx(0, SAP, CLR_EC_TIMEOUT, arm->jnt_inf[i].slave_idx, 0, &dummy)) {
+		if(send_mbx(0, SAP, CLR_EC_TIMEOUT, arm->jnt_inf[i].slave_idx, 0, &dummy)) {
 			ERR("failed to clear EC_TIMEOUT");
 			goto out;
 		}
@@ -547,7 +551,7 @@ static int base_proc_errflg(struct youbot_base_info* binf)
 		if(binf->wheel_inf[i].error_flags & EC_TIMEOUT) {
 			binf->wheel_inf[i].stats.ec_timeout++;
 			ERR("EC_TIMEOUT on wheel %i", i);
-			if(!send_mbx(0, SAP, CLR_EC_TIMEOUT, binf->wheel_inf[i].slave_idx, 0, &dummy)) {
+			if(send_mbx(0, SAP, CLR_EC_TIMEOUT, binf->wheel_inf[i].slave_idx, 0, &dummy)) {
 				ERR("failed to clear EC_TIMEOUT flag");
 				fatal_errs++;
 			}
@@ -561,7 +565,7 @@ static int base_proc_errflg(struct youbot_base_info* binf)
 			binf->control_mode=YOUBOT_CMODE_MOTORSTOP;
 			fatal_errs++;
 
-			if(!send_mbx(0, SAP, CLEAR_I2T, binf->wheel_inf[i].slave_idx, 0, &dummy))
+			if(send_mbx(0, SAP, CLEAR_I2T, binf->wheel_inf[i].slave_idx, 0, &dummy))
 				ERR("wheel %d, failed to clear I2T_EXCEEDED bit", i);
 
 		} else if (!(binf->wheel_inf[i].error_flags & I2T_EXCEEDED) && binf->wheel_inf[i].i2t_ex) {
@@ -692,6 +696,7 @@ static int base_proc_update(struct youbot_base_info* base)
 
 	base_proc_errflg(base);
 
+
 	/* Force control_mode to INITIALIZE if unconfigured */
 	if(!base_is_configured(base)) {
 		base->control_mode = YOUBOT_CMODE_INITIALIZE;
@@ -718,7 +723,7 @@ static int base_proc_update(struct youbot_base_info* base)
 
 	switch(base->control_mode) {
 	case YOUBOT_CMODE_MOTORSTOP:
-		goto out_ok;
+		break;
 	case YOUBOT_CMODE_VELOCITY:
 
 		if(read_kdl_twist(base->p_cmd_twist, &base->cmd_twist) <= 0) {
@@ -729,17 +734,19 @@ static int base_proc_update(struct youbot_base_info* base)
 			} else {
 				check_watchdog(base, 0);
 			}
-			goto out;
+			break;
 		}
 
 		/* update wheel[i].cmd_val, values are copied to output below */
 		check_watchdog(base, 1);
 		twist_to_wheel_val(base);
 
+	case YOUBOT_CMODE_INITIALIZE:
+		break;
 	default:
 		ERR("unexpected control_mode: %d, switching to MOTORSTOP", base->control_mode);
 		base->control_mode = YOUBOT_CMODE_MOTORSTOP;
-		goto out;
+		break;
 	}
 
 	/* copy cmd_val to output buffer */
@@ -749,9 +756,7 @@ static int base_proc_update(struct youbot_base_info* base)
 		motor_out->controller_mode = base->control_mode;
 	}
 
- out_ok:
 	ret=0;
- out:
 	return ret;
 }
 

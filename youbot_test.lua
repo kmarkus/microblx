@@ -38,11 +38,13 @@ assert(ubx.block_start(i_twist))
 assert(ubx.block_init(i_control_mode))
 assert(ubx.block_start(i_control_mode))
 
-ubx.connect_one(ubx.port_get(youbot1, "base_cmd_twist"), i_twist)
+assert(ubx.block_init(ptrig1))
 
+ubx.connect_one(ubx.port_get(youbot1, "base_cmd_twist"), i_twist)
 ubx.connect_one(ubx.port_get(youbot1, "base_control_mode"), i_control_mode)
 
 cm_data=ubx.data_alloc(ni, "int32_t")
+twist_data=ubx.data_alloc(ni, "kdl/struct kdl_twist")
 
 function set_control_mode(mode)
    ubx.data_set(cm_data, mode)
@@ -57,7 +59,14 @@ end
 print("running webif init", ubx.block_init(webif1))
 print("running webif start", ubx.block_start(webif1))
 
--- start youbot
+print("running youbot init", ubx.block_init(youbot1))
+print("running youbot start", ubx.block_start(youbot1))
+
+assert(ubx.block_start(ptrig1))
+
+
+-- start youbot and move it for five seconds in vel mode.
+
 io.read()
 
 ubx.node_cleanup(ni)

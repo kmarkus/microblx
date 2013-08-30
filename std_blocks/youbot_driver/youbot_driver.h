@@ -1,5 +1,6 @@
 #include <math.h>
 
+#define FIRMWARE_V2
 /* youbot driver information */
 
 #define YOUBOT_SYSCONF_BASE_ONLY		1
@@ -60,6 +61,16 @@ static const uint8_t SGP			= 9;
 static const uint8_t GGP			= 10;
 static const uint8_t STGP			= 11;
 static const uint8_t RSGP			= 12;
+
+/* Mailbox errors */
+#define YB_MBX_STAT_OK				100
+#define YB_MBX_STAT_INVALID_CMD			2
+#define YB_MBX_STAT_WRONG_TYPE			3
+#define YB_MBX_STAT_EINVAL			4
+#define YB_MBX_STAT_EEPROM_LOCKED		5
+#define YB_MBX_STAT_CMD_UNAVAILABLE		6
+#define YB_MBX_STAT_PARAM_PWDPROT		7
+
 
 static const uint8_t TARGET_POS			= 0;
 static const uint8_t ACTUAL_POS			= 1;
