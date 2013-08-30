@@ -1,7 +1,7 @@
 --- microblx Lua interface
 local ffi=require "ffi"
-local cdata = require "lua/cdata"
-local ubx_utils = require "lua/ubx_utils"
+local cdata = require "cdata"
+local ubx_utils = require "ubx_utils"
 local utils= require "utils"
 local ts=tostring
 local safe_ts=ubx_utils.safe_tostr

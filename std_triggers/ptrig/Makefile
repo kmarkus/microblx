@@ -10,7 +10,7 @@ HEXARRS:=$(TYPES:%=%.hexarr)
 	../../tools/file2carr.lua $<
 
 ptrig.so: ptrig.o $(INCLUDE_DIR)/libubx.so
-	${CC} $(CFLAGS_SHARED) -pthread -l:$(INCLUDE_DIR)/libubx.so -o ptrig.so ptrig.o
+	${CC} $(CFLAGS_SHARED) -o ptrig.so ptrig.o -pthread $(INCLUDE_DIR)/libubx.so
 
 ptrig.o: ptrig.c $(INCLUDE_DIR)/ubx.h $(INCLUDE_DIR)/ubx_types.h $(INCLUDE_DIR)/ubx.c $(HEXARRS)
 	${CC} -fPIC -pthread -I$(INCLUDE_DIR) -c $(CFLAGS) ptrig.c

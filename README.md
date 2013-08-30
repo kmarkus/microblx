@@ -18,6 +18,14 @@ Building
 --------
 
 
+FAQ
+---
+
+
+```
+$ sudo setcap cap_sys_nice,cap_net_raw+ep /usr/local/bin/luajit-2.0.2
+
+```
  
 License
 -------

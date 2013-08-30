@@ -6,7 +6,7 @@ TYPES:=$(wildcard types/*.h)
 HEXARRS:=$(TYPES:%=%.hexarr)
 
 webif.so: webif.o mongoose.o $(INCLUDE_DIR)/libubx.so 
-	${CC} $(CFLAGS_SHARED) -o webif.so webif.o mongoose.o -lluajit-5.1  -lpthread $(INCLUDE_DIR)/libubx.so
+	${CC} $(CFLAGS_SHARED) -o webif.so webif.o mongoose.o -lluajit-5.1 -lpthread $(INCLUDE_DIR)/libubx.so
 
 mongoose.o: mongoose.h mongoose.c
 	${CC} -fPIC -c $(CFLAGS) mongoose.c

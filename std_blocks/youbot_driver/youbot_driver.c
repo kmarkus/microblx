@@ -89,8 +89,8 @@ static int validate_base_slaves(int start_num)
 	}
 
 	for(i++; i<=start_num+YOUBOT_NR_OF_WHEELS; i++) {
-		if(strcmp(ec_slave[i].name, YOUBOT_WHEEL_CTRL_NAME) != 0 ||
-		   strcmp(ec_slave[i].name, YOUBOT_WHEEL_CTRL_NAME2) != 0) {
+		if(strcmp(ec_slave[i].name, YOUBOT_WHEEL_CTRL_NAME) == 0 &&
+		   strcmp(ec_slave[i].name, YOUBOT_WHEEL_CTRL_NAME2) == 0) {
 			ERR("expected base controller (%s or %s), found %s",
 			    YOUBOT_WHEEL_CTRL_NAME, YOUBOT_WHEEL_CTRL_NAME2, ec_slave[i].name);
 			goto out;

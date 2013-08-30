@@ -1,8 +1,8 @@
 #!/usr/bin/luajit
 
 local ffi = require("ffi")
-local ubx = require "lua/ubx"
-local ubx_utils = require("lua/ubx_utils")
+local ubx = require "ubx"
+local ubx_utils = require("ubx_utils")
 local ts = tostring
 
 -- prog starts here.
@@ -20,7 +20,7 @@ print("creating instance of 'webif/webif'")
 webif1=ubx.block_create(ni, "webif/webif", "webif1", { port="8888" })
 
 print("creating instance of 'youbot/youbot_driver'")
-youbot1=ubx.block_create(ni, "youbot/youbot_driver", "youbot1", {ethernet_if="eth1" })
+youbot1=ubx.block_create(ni, "youbot/youbot_driver", "youbot1", {ethernet_if="eth0" })
 
 print("creating instance of 'std_triggers/ptrig'")
 ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1",

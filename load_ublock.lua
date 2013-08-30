@@ -1,7 +1,7 @@
 #!/usr/bin/luajit
 
 local ffi = require("ffi")
-local ubx_utils = require("lua/ubx_utils")
+local ubx_utils = require("ubx_utils")
 -- local bit = require("bit")
 
 -- load ubx_types and library

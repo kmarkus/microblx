@@ -1,8 +1,8 @@
-#!/usr/bin/luajit
+#!/usr/local/bin/luajit
 
 local ffi = require("ffi")
-local ubx = require "lua/ubx"
-local ubx_utils = require("lua/ubx_utils")
+local ubx = require "ubx"
+local ubx_utils = require("ubx_utils")
 local ts = tostring
 
 -- prog starts here.
