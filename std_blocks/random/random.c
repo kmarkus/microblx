@@ -13,21 +13,7 @@
 #include "types/random_config.h"
 #include "types/random_config.h.hexarr"
 
-ubx_type_t random_config_type = {
-	.name="random/struct random_config",
-	.type_class=TYPE_CLASS_STRUCT,
-	.size=sizeof(struct random_config),
-	.private_data = &random_config_h,
-};
-
-/* #define def_struct_ctype(modulename, typename) */
-/* { \ */
-/* 	.name=#module "/" #typename, \ */
-/* 	.type_class=TYPE_CLASS_STRUCT, \ */
-/*      .size=sizeof(typename), \ */
-/* 	.private_data=&random_config_h, \ */
-/* }; \ */
-
+ubx_type_t random_config_type = def_struct_type("random", struct random_config, &random_config_h);
 
 /* function block meta-data
  * used by higher level functions.

@@ -511,7 +511,7 @@ static void youbot_stop(ubx_block_t *b)
  */
 static int base_proc_errflg(struct youbot_base_info* binf)
 {
-	int fatal_errs, i, dummy;
+	int fatal_errs=0, i, dummy;
 
 	/* check and raise errors */
 	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {

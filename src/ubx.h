@@ -36,7 +36,7 @@ void __cleanup_module(ubx_node_info_t* ni) { exitfn(ni); }
 	.name=module "/" #typename, 	\
 	.type_class=TYPE_CLASS_STRUCT,	\
 	.size=sizeof(typename),		\
-	.private_data=hexdata, 		\
+	.private_data=(void*) hexdata,	\
 }
 
 
