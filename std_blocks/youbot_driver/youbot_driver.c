@@ -149,14 +149,14 @@ static int validate_arm_slaves(int start_num)
 int send_mbx(int gripper,
 	     uint8_t instr_nr,
 	     uint8_t param_nr,
-	     uint8_t slave_nr,
+	     uint16_t slave_nr,
 	     uint8_t bank_nr,
 	     int32_t *value)
 {
 	int ret=-1;
 	ec_mbxbuft mbx_out, mbx_in;
 
-	mbx_out[0] = (gripper==0) ? 1 : 0;
+	mbx_out[0] = (gripper) ? 1 : 0;
 	mbx_out[1] = instr_nr;
 	mbx_out[2] = param_nr;
 	mbx_out[3] = bank_nr;
@@ -209,7 +209,7 @@ int set_param(uint32_t slave_nr, uint8_t param_nr, int32_t val)
 	DBG("set_param: setting slave %d param_nr=%d to val=%d", slave_nr, param_nr, val);
 
 	/* read param */
-	if(!send_mbx(0, GAP, param_nr, slave_nr, 0, &rdval)) {
+	if(send_mbx(0, GAP, param_nr, slave_nr, 0, &rdval)) {
 		ERR("slave %d, failed to read param=%d", slave_nr, param_nr);
 		goto out;
 	}
@@ -218,13 +218,13 @@ int set_param(uint32_t slave_nr, uint8_t param_nr, int32_t val)
 		DBG("set_param: slave=%d, param=%d not yet set, trying to set.", slave_nr, param_nr);
 
 	/* set param */
-	if(!send_mbx(0, SAP, param_nr, slave_nr, 0, &val)) {
+	if(send_mbx(0, SAP, param_nr, slave_nr, 0, &val)) {
 		ERR("failed to set slave=%d param=%d to val=%d. Password required?", slave_nr, param_nr, val);
 		goto out;
 	}
 
 	// re-read and check
-	if(!send_mbx(0, GAP, param_nr, slave_nr, 0, &rdval)) {
+	if(send_mbx(0, GAP, param_nr, slave_nr, 0, &rdval)) {
 		ERR("slave %d, failed to re-read param=%d", slave_nr, param_nr);
 		goto out;
 	}
