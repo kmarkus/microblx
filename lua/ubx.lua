@@ -233,6 +233,9 @@ M.config_rm = ubx.ubx_config_rm
 M.config_get = ubx.ubx_config_get
 M.config_get_data = ubx.ubx_config_get_data
 
+-- OS stuff
+M.clock_mono_gettime = ubx.ubx_clock_mono_gettime
+
 --- Unload a block: bring it to state preinit and call ubx_block_rm
 function M.block_unload(ni, name)
    local b=M.block_get(ni, name)
@@ -415,6 +418,7 @@ end
 -- @param d ubx_data_t type
 -- @return Lua data
 function M.data_tolua(d)
+   if d==nil then error("ubx_data_t argument is nil") end
    if d.data==nil then return nil end
 
    if not(d.type.type_class==ubx.TYPE_CLASS_BASIC or

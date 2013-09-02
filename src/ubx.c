@@ -1241,22 +1241,23 @@ int ubx_port_rm(ubx_block_t* b, const char* name)
 /**
  * ubx_port_get - retrieve a block port by name
  *
- * @param comp
+ * @param b
  * @param name
  *
  * @return port pointer or NULL
  */
-ubx_port_t* ubx_port_get(ubx_block_t* comp, const char *name)
+ubx_port_t* ubx_port_get(ubx_block_t* b, const char *name)
 {
 	ubx_port_t *port_ptr;
 
-	if(comp->ports==NULL)
+	if(b->ports==NULL)
 		goto out_notfound;
 
-	for(port_ptr=comp->ports; port_ptr->name!=NULL; port_ptr++)
+	for(port_ptr=b->ports; port_ptr->name!=NULL; port_ptr++)
 		if(strcmp(port_ptr->name, name)==0)
 			goto out;
  out_notfound:
+	ERR("block %s has no port %s", b->name, name);
 	port_ptr=NULL;
  out:
 	return port_ptr;
@@ -1529,4 +1530,29 @@ void __port_write(ubx_port_t* port, ubx_data_t* data)
 	port->stat_writes++;
  out:
 	return;
+}
+
+
+/* OS stuff, for scripting layer */
+
+
+int ubx_clock_mono_gettime(struct ubx_timespec* uts)
+{
+	int ret=-1;
+	struct timespec ts;
+
+	if(uts==NULL) {
+		ERR("struct ubx_timespec argument missing");
+		goto out;
+	}
+
+	if(clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+		ERR2(errno, "clock_gettime failed");
+		goto out;
+	}
+	uts->sec=ts.tv_sec;
+	uts->nsec=ts.tv_nsec;
+	ret=0;
+out:
+	return ret;
 }

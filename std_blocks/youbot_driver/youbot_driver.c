@@ -257,6 +257,7 @@ static int base_config_params(struct youbot_base_info* binf)
 		set_param(binf->wheel_inf[i].slave_idx, 254, 1); // invert hall sensor
 	}
 #endif
+	binf->control_mode = YOUBOT_CMODE_INITIALIZE;
 	return 0;
 }
 
@@ -484,12 +485,12 @@ static int youbot_start(ubx_block_t *b)
 	}
 
 	/* cache port pointers */
-	inf->base.p_control_mode = ubx_port_get(b, "base_control_mode");
-	inf->base.p_cmd_twist = ubx_port_get(b, "base_cmd_twist");
-	inf->base.p_cmd_vel = ubx_port_get(b, "base_cmd_vel");
-	inf->base.p_cmd_cur = ubx_port_get(b, "base_cmd_cur");
-	inf->base.p_msr_odom = ubx_port_get(b, "base_odom");
-	inf->base.p_msr_twist = ubx_port_get(b, "base_twist");
+	assert(inf->base.p_control_mode = ubx_port_get(b, "base_control_mode"));
+	assert(inf->base.p_cmd_twist = ubx_port_get(b, "base_cmd_twist"));
+	assert(inf->base.p_cmd_vel = ubx_port_get(b, "base_cmd_vel"));
+	assert(inf->base.p_cmd_cur = ubx_port_get(b, "base_cmd_cur"));
+	assert(inf->base.p_msr_odom = ubx_port_get(b, "base_msr_odom"));
+	assert(inf->base.p_msr_twist = ubx_port_get(b, "base_msr_twist"));
 
 	ret=0;
  out:
@@ -636,7 +637,7 @@ void twist_to_wheel_val(struct youbot_base_info* base)
  */
 static int base_is_configured(struct youbot_base_info* base)
 {
-	return base->mod_init_stat & ((1 << YOUBOT_NR_OF_BASE_SLAVES)-1);
+	return (base->mod_init_stat == ((1 << YOUBOT_NR_OF_WHEELS)-1));
 }
 
 /**
@@ -701,20 +702,28 @@ static int base_proc_update(struct youbot_base_info* base)
 	if(!base_is_configured(base)) {
 		base->control_mode = YOUBOT_CMODE_INITIALIZE;
 		goto handle_cm;
+	} else if (base_is_configured(base) && base->control_mode == YOUBOT_CMODE_INITIALIZE) {
+		DBG("init completed, switching to MOTORSTOP");
+		tmp=YOUBOT_CMODE_MOTORSTOP;
+		write_int(base->p_control_mode, &tmp);
 	}
 
 	/* new control mode? */
 	if(read_int(base->p_control_mode, &cm) > 0) {
 		if(cm<0 || cm>7) {
 			ERR("invalid control_mode %d", cm);
-			tmp=-1;
+			base->control_mode=YOUBOT_CMODE_MOTORSTOP;
+			tmp=YOUBOT_CMODE_MOTORSTOP;
 			write_int(base->p_control_mode, &tmp);
 		} else {
 			DBG("setting control_mode to %d", cm);
 			base->control_mode=cm;
-			tmp=0;
+			tmp=cm;
 			write_int(base->p_control_mode, &tmp);
 		}
+		/* reset output quantity upon control_mode switch */
+		for(i=0; i<YOUBOT_NR_OF_WHEELS; i++)
+			base->wheel_inf[i].cmd_val=0;
 	}
 
 	base_output_msr_data(base);
@@ -740,7 +749,7 @@ static int base_proc_update(struct youbot_base_info* base)
 		/* update wheel[i].cmd_val, values are copied to output below */
 		check_watchdog(base, 1);
 		twist_to_wheel_val(base);
-
+		break;
 	case YOUBOT_CMODE_INITIALIZE:
 		break;
 	default:
@@ -763,7 +772,6 @@ static int base_proc_update(struct youbot_base_info* base)
 
 static void youbot_step(ubx_block_t *b)
 {
-	DBG(" ");
 	struct youbot_info *inf=b->private_data;
 
 	/* TODO set time out to zero? */

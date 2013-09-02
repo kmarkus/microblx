@@ -209,3 +209,10 @@ typedef struct ubx_node_info {
 	ubx_type_t *types; /* known types */
 	unsigned long cur_seqid;
 } ubx_node_info_t;
+
+
+/* OS stuff */
+struct ubx_timespec {
+  long int sec;
+  long nsec;
+};

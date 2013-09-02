@@ -14,6 +14,7 @@ extern "C"
 #include <string.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <time.h>
 #include <assert.h>
 
 #include "uthash.h"
@@ -48,7 +49,7 @@ void function_name(ubx_port_t* port, typename *outval) 	\
 { 							\
  ubx_data_t val; 					\
  if(port==NULL) { ERR("port is NULL"); return; } 	\
- assert(strcmp(#typename, port->out_type_name)==0); 	\
+ /* assert(strcmp(#typename, port->out_type_name)==0); */ 	\
  val.data = outval; 					\
  val.type = port->out_type; 				\
  val.len=1;						\
@@ -63,7 +64,7 @@ int32_t function_name(ubx_port_t* port, typename *inval) \
 { 							\
  ubx_data_t val; 					\
  if(port==NULL) { ERR("port is NULL"); return -1; } 	\
- assert(strcmp(#typename, port->in_type_name)==0);	\
+ /* assert(strcmp(#typename, port->in_type_name)==0); */ \
  val.type=port->in_type;				\
  val.data = inval;	  				\
  return __port_read(port, &val);			\
