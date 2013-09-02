@@ -452,6 +452,9 @@ unsigned int data_size(ubx_data_t* d)
 		goto out_err;
 	}
 
+	if(d->len * d->type->size == 0)
+		ERR("0!! %s, len=%ld, size=%ld", d->type->name, d->len, d->type->size);
+
 	return d->len * d->type->size;
 
  out_err:
@@ -1101,6 +1104,11 @@ ubx_config_t* ubx_config_get(ubx_block_t* b, const char* name)
 {
 	ubx_config_t* conf = NULL;
 
+	if(b==NULL) {
+		ERR("block is NULL");
+		goto out;
+	}
+
 	if(b->configs==NULL || name==NULL)
 		goto out;
 
@@ -1126,6 +1134,11 @@ ubx_data_t* ubx_config_get_data(ubx_block_t* b, const char *name)
 	ubx_config_t *conf;
 	ubx_data_t *data=NULL;
 
+	if(b==NULL) {
+		ERR("block is NULL");
+		goto out;
+	}
+
 	if((conf=ubx_config_get(b, name))==NULL)
 		goto out;
 	data=&conf->value;
@@ -1148,6 +1161,11 @@ void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *le
 	ubx_data_t *d;
 	void *ret = NULL;
 	*len=0;
+
+	if(b==NULL) {
+		ERR("block is NULL");
+		goto out;
+	}
 
 	if((d = ubx_config_get_data(b, name))==NULL)
 		goto out;
@@ -1623,6 +1641,12 @@ uint32_t __port_read(ubx_port_t* port, ubx_data_t* data)
 		ret = -1;
 		goto out;
 	};
+
+	if(data->len<=0) {
+		ERR("data->len is <=0");
+		ret = -1;
+		goto out;
+	}
 
 	if ((port->attrs & PORT_DIR_IN) == 0) {
 		ERR("not an IN-port");

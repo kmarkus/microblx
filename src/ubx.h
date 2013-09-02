@@ -74,6 +74,7 @@ int32_t function_name(ubx_port_t* port, typename *inval) \
  /* assert(strcmp(#typename, port->in_type_name)==0); */ \
  val.type=port->in_type;				\
  val.data = inval;	  				\
+ val.len = 1;						\
  return __port_read(port, &val);			\
 } 							\
 

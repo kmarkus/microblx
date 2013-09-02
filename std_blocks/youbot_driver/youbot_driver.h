@@ -42,7 +42,7 @@
 #define GRIPPER_ENC_WIDTH			67000 /* encoder width of gripper */
 
 /* timeout in seconds after which base is stopped when no new twist is received. */
-#define BASE_TIMEOUT				1
+#define BASE_TIMEOUT				2
 
 /* types that are sent via ports are defined here */
 #include "types/youbot_control_modes.h"

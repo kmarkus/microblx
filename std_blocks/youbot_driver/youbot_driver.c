@@ -641,7 +641,7 @@ static int base_is_configured(struct youbot_base_info* base)
 }
 
 /**
- * check_watchdog - check if expired and trigger.
+ * check_watchdog - check if expired or trigger.
  * currently only second resolution!
  *
  * @param base
@@ -656,14 +656,16 @@ static void check_watchdog(struct youbot_base_info* base, int trig)
 		goto out;
 	}
 
-	if(ts_cur.tv_sec - base->last_cmd.tv_sec >= BASE_TIMEOUT) {
-		base->control_mode=YOUBOT_CMODE_MOTORSTOP;
+	if(trig) {
+		base->last_cmd = ts_cur;
 		goto out;
 	}
 
-	if(trig)
-		base->last_cmd = ts_cur;
-
+	if(ts_cur.tv_sec - base->last_cmd.tv_sec >= BASE_TIMEOUT) {
+		ERR("watchdog timeout out, setting control_mode to MOTORSTOP");
+		base->control_mode=YOUBOT_CMODE_MOTORSTOP;
+		goto out;
+	}
  out:
 	return;
 }
@@ -704,6 +706,7 @@ static int base_proc_update(struct youbot_base_info* base)
 		goto handle_cm;
 	} else if (base_is_configured(base) && base->control_mode == YOUBOT_CMODE_INITIALIZE) {
 		DBG("init completed, switching to MOTORSTOP");
+		base->control_mode = YOUBOT_CMODE_MOTORSTOP;
 		tmp=YOUBOT_CMODE_MOTORSTOP;
 		write_int(base->p_control_mode, &tmp);
 	}
@@ -724,6 +727,8 @@ static int base_proc_update(struct youbot_base_info* base)
 		/* reset output quantity upon control_mode switch */
 		for(i=0; i<YOUBOT_NR_OF_WHEELS; i++)
 			base->wheel_inf[i].cmd_val=0;
+
+		check_watchdog(base, 1);
 	}
 
 	base_output_msr_data(base);
@@ -735,8 +740,8 @@ static int base_proc_update(struct youbot_base_info* base)
 		break;
 	case YOUBOT_CMODE_VELOCITY:
 
+		/* no new data */
 		if(read_kdl_twist(base->p_cmd_twist, &base->cmd_twist) <= 0) {
-			/* no new data */
 			if(base->wheel_inf[0].cmd_val==0 && base->wheel_inf[1].cmd_val==0 &&
 			   base->wheel_inf[2].cmd_val==0 && base->wheel_inf[3].cmd_val==0) {
 				check_watchdog(base, 1);
@@ -778,19 +783,21 @@ static void youbot_step(ubx_block_t *b)
 	if(ec_receive_processdata(EC_TIMEOUTRET) == 0) {
 		ERR("failed to receive processdata");
 		inf->pd_recv_err++;
-		goto out;
+
+		goto out_send;
 	}
 
 	/* process update */
 	if(inf->base.detected)
 		base_proc_update(&inf->base);
 
+out_send:
+
 	if (ec_send_processdata() <= 0){
 		ERR("failed to send processdata");
 		inf->pd_send_err++;
 	}
 
- out:
 	return;
 }
 
