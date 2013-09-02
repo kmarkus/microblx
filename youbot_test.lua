@@ -85,10 +85,82 @@ end
 
 
 --- Create an inversly connected port
--- @param bname name of block
+-- @param bname block
 -- @param pname name of port
-function port_clone_conn(bname, pname, buff_len)
+-- @param buff_len1 desired buffer length (if in_out port: length of out->in buffer)
+-- @param buff_len2 if in_out port: length of in->out buffer
+function port_clone_conn(block, pname, buff_len1, buff_len2)
+   local prot = ubx.port_get(b, pname)
+   local p=ffi.new("ubx_port_t")
+   local ts = ffi.new("struct ubx_timespec")
 
+   ubx.clock_mono_gettime(ts)
+
+   if ubx.clone_port_data(p, M.safe_tostr(prot.name)..'_inv', prot.meta_data,
+			  prot.out_type, prot.out_type_len
+			  prot.in_type, prot.in_type_len, state) ~= 0 then
+      error("port_clone_conn: cloning port data failed")
+   end
+
+   if p.in_type and p.out_type then buff_len2 = buff_len2 or buff_len1 end
+
+   local i_p_to_prot=nil
+   if p.out_type then
+      local iname = string.format("PCC->%s.%s_%x:%x",
+				  M.safe_tostr(block.name), pname,
+				  tonumber(ts.sec), tonumber(ts.nsec))
+
+      i_p_to_prot = ubx.block_create(block.ni, "lfds_buffers/cyclic", iname,
+				     { element_num=buff_len1,
+				       element_size=tonumber(p.out_type.size * p.out_type_len) })
+
+      ubx.block_init(i_p_to_prot)
+
+      if ubx_ports_connect_uni(p, prot, i_p_to_prot)~=0 then
+	 ubx.port_free_data(p)
+	 error("failed to connect port"..M.safe_tostr(p.name))
+      end
+      ubx.block_start(i_p_to_prot)
+   end
+
+   local i_prot_to_p=nil
+   if p.in_type then
+      local iname = string.format("PCC<-%s.%s_%x:%x",
+				  M.safe_tostr(block.name), pname,
+				  tonumber(ts.sec), tonumber(ts.nsec))
+
+      i_prot_to_p = ubx.block_create(block.ni, "lfds_buffers/cyclic", iname,
+				     { element_num=buff_len1,
+				       element_size=tonumber(p.in_type.size * p.in_type_len) })
+
+      ubx.block_init(i_prot_to_p)
+
+      if ubx.ports_connect_uni(prot, p, i_prot_to_p)~=0 then
+	 -- TODO disconnect if connected above.
+	 ubx.port_free_data(p)
+	 error("failed to connect port"..M.safe_tostr(p.name))
+      end
+      ubx.block_start(i_in_out)
+   end
+
+
+   -- cleanup interaction and port once the reference is lost
+   ffi.gc(p, function (p)
+		print "cleaning up port PCC port "..M.safe_tostr(p.name)
+
+		if i_p_to_prot then 
+		   ubx.block_stop(i_p_to_prot) 
+		   ubx_ports_disconnect_uni(p, prot, i_p_to_prot)
+		   ubx.block_unload(b.ni, i_p_to_prot.name)
+		end
+
+		if i_prot_to_p then
+		   ubx.block_stop(i_prot_to_p)
+		   ubx_ports_disconnect_uni(prot, p, i_prot_to_p)
+		   ubx.block_unload(b.ni, i_prot_to_p.name)
+		end
+	     end)
+   return p
 end
 
 -- start webif

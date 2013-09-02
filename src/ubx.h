@@ -3,6 +3,9 @@
  * pure C
  */
 
+#define CONFIG_DUMPABLE		1
+/* #define CONFIG_MLOCK_ALL	1 */
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -16,6 +19,10 @@ extern "C"
 #include <errno.h>
 #include <time.h>
 #include <assert.h>
+
+#ifdef CONFIG_DUMPABLE
+#include <sys/prctl.h>
+#endif
 
 #include "uthash.h"
 #include "ubx_types.h"

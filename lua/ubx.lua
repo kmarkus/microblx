@@ -216,7 +216,19 @@ M.cblock_step = ubx.ubx_cblock_step
 M.port_get = ubx.ubx_port_get
 M.port_add = ubx.ubx_port_add
 M.port_rm = ubx.ubx_port_rm
-M.connect_one = ubx.ubx_connect_one
+M.connect_one = ubx.ubx_connect_one -- deprecated
+M.clone_port_data = ubx.ubx_clone_port_data
+M.port_free_data = ubx.ubx_port_free_data
+
+M.port_connect_in=ubx.ubx_port_connect_in
+M.port_connect_out=ubx.ubx_port_connect_out
+M.ports_connect_uni=ubx.ubx_ports_connect_uni
+
+M.port_disconnect_in=ubx.ubx_port_disconnect_in
+M.port_disconnect_out=ubx.ubx_port_disconnect_out
+M.ports_disconnect_uni=ubx.ubx_ports_disconnect_uni
+
+
 
 --- Configuration
 

@@ -50,10 +50,19 @@ int ubx_node_init(ubx_node_info_t* ni, const char *name)
 {
 	int ret=-1;
 
-	/* if(mlockall(MCL_CURRENT | MCL_FUTURE) != 0) { */
-	/* 	ERR2(errno, " "); */
-	/* 	goto out_err; */
-	/* }; */
+#ifdef CONFIG_DUMPABLE
+	if(prctl(PR_SET_DUMPABLE, 1, 0, 0, 0)!=0)
+		ERR2(errno, "failed to set PR_SET_DUMPABLE");
+	else
+		DBG("Process option PR_SET_DUMPABLE set");
+#endif
+
+#ifdef CONFIG_MLOCK_ALL
+	if(mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
+		ERR2(errno, " ");
+		goto out_err;
+	};
+#endif
 
 	if(name==NULL) {
 		ERR("name is NULL");
@@ -457,7 +466,7 @@ int ubx_num_types(ubx_node_info_t* ni) { return HASH_COUNT(ni->types); }
  *
  * @param p port pointer
  */
-static void ubx_port_free_data(ubx_port_t* p)
+void ubx_port_free_data(ubx_port_t* p)
 {
 	if(p->out_type_name) free((char*) p->out_type_name);
 	if(p->in_type_name) free((char*) p->in_type_name);
@@ -490,9 +499,9 @@ static void ubx_port_free_data(ubx_port_t* p)
  *
  * This function allocates memory.
  */
-static int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta_data,
-			       ubx_type_t* in_type, unsigned long in_data_len,
-			       ubx_type_t* out_type, unsigned long out_data_len, uint32_t state)
+int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta_data,
+			ubx_type_t* in_type, unsigned long in_data_len,
+			ubx_type_t* out_type, unsigned long out_data_len, uint32_t state)
 {
 	int ret = EOUTOFMEM;
 
@@ -858,8 +867,38 @@ static int array_block_add(ubx_block_t ***arr, ubx_block_t *newblock)
 	return ret;
 }
 
+static int array_block_rm(ubx_block_t ***arr, ubx_block_t *rmblock)
+{
+	int ret=-1, cnt, match=-1;
+	ubx_block_t **tmpb;
+
+	for(tmpb=*arr,cnt=0; *tmpb!=NULL; tmpb++,cnt++) {
+		if (*tmpb==rmblock)
+			match=cnt;
+	}
+
+	if(match==-1) {
+		ERR("no block %s found", rmblock->name);
+		goto out;
+	}
+
+	ERR("match=%d, total=%d", match, cnt);
+
+	/* case 1: remove last */
+	if (match==cnt-1)
+		(*arr)[match]=NULL;
+	else {
+		(*arr)[match]=(*arr)[cnt-1];
+		(*arr)[cnt-1]=NULL;
+	}
+
+	ret=0;
+out:
+	return ret;
+}
+
 /**
- * ubx_connect - connect a port with an interaction.
+ * ubx_connect - connect a port with an interaction. DEPRECATED.
  *
  * @param p1
  * @param iblock
@@ -868,6 +907,7 @@ static int array_block_add(ubx_block_t ***arr, ubx_block_t *newblock)
  *
  * This should be made real-time safe by adding an operation
  * ubx_interaction_set_max_conn[in|out]
+ * __attribute__ ((deprecated))
  */
 int ubx_connect_one(ubx_port_t* p, ubx_block_t* iblock)
 {
@@ -889,8 +929,9 @@ int ubx_connect_one(ubx_port_t* p, ubx_block_t* iblock)
 	return ret;
 }
 
+
 /**
- * ubx_connect - connect to ports with a given interaction.
+ * ubx_connect - connect to ports with a given interaction. DEPRECATED!
  *
  * @param p1
  * @param p2
@@ -922,6 +963,116 @@ int ubx_connect(ubx_port_t* p1, ubx_port_t* p2, ubx_block_t* iblock)
  out:
 	return ret;
 }
+
+int ubx_port_connect_out(ubx_port_t* p, ubx_block_t* iblock)
+{
+	int ret=-1;
+
+	if(p->attrs & PORT_DIR_OUT) {
+		if((ret=array_block_add(&p->out_interaction, iblock))!=0) {
+			ERR("failed to connect port %s out-channel to interaction %s", p->name, iblock->name);
+			goto out;
+		}
+	} else {
+		ERR("port %s is not an out port", p->name);
+		goto out;
+	}
+
+	/* all ok */
+	ret=0;
+out:
+	return ret;
+}
+
+int ubx_port_connect_in(ubx_port_t* p, ubx_block_t* iblock)
+{
+	int ret=-1;
+
+	if(p->attrs & PORT_DIR_IN) {
+		if((ret=array_block_add(&p->in_interaction, iblock))!=0) {
+			ERR("failed to connect port %s in-channel to interaction %s", p->name, iblock->name);
+			goto out;
+		}
+	} else {
+		ERR("port %s is not an in port", p->name);
+		goto out;
+	}
+
+	/* all ok */
+	ret=0;
+out:
+	return ret;
+}
+
+/**
+ * ubx_ports_connect_uni - connect out_port to in_port using interaction iblock
+ *
+ */
+int ubx_ports_connect_uni(ubx_port_t* out_port, ubx_port_t* in_port, ubx_block_t* iblock)
+{
+	int ret=-1;
+
+	if(iblock->type != BLOCK_TYPE_INTERACTION) {
+		ERR("block not of type interaction");
+		goto out;
+	}
+
+	if((ret=ubx_port_connect_out(out_port, iblock))!=0) goto out;
+	if((ret=ubx_port_connect_in(in_port, iblock))!=0) goto out;
+
+	ret=0;
+out:
+	return ret;
+}
+
+
+int ubx_port_disconnect_out(ubx_port_t* out_port, ubx_block_t* iblock)
+{
+	int ret=-1;
+	if(out_port->attrs & PORT_DIR_OUT) {
+		if((ret=array_block_rm(&out_port->out_interaction, iblock))!=0)
+			goto out;
+	} else {
+		ERR("port %s is not an out-port", out_port->name);
+		goto out;
+	}
+	ret=0;
+out:
+	return ret;
+}
+
+int ubx_port_disconnect_in(ubx_port_t* in_port, ubx_block_t* iblock)
+{
+	int ret=-1;
+	if(in_port->attrs & PORT_DIR_IN) {
+		if((ret=array_block_rm(&in_port->in_interaction, iblock))!=0)
+			goto out;
+	} else {
+		ERR("port %s is not an in-port", in_port->name);
+		goto out;
+	}
+	ret=0;
+out:
+	return ret;
+}
+
+int ubx_ports_disconnect_uni(ubx_port_t* out_port, ubx_port_t* in_port, ubx_block_t* iblock)
+{
+	int ret=-1;
+
+	if(iblock->type != BLOCK_TYPE_INTERACTION) {
+		ERR("block not of type interaction");
+		goto out;
+	}
+
+	if((ret=ubx_port_disconnect_out(out_port, iblock))!=0) goto out;
+	if((ret=ubx_port_disconnect_in(in_port, iblock))!=0) goto out;
+
+	ret=0;
+out:
+	return ret;
+}
+
 
 /*
  * Configuration
@@ -1248,7 +1399,12 @@ int ubx_port_rm(ubx_block_t* b, const char* name)
  */
 ubx_port_t* ubx_port_get(ubx_block_t* b, const char *name)
 {
-	ubx_port_t *port_ptr;
+	ubx_port_t *port_ptr=NULL;
+
+	if(b==NULL) {
+		ERR("block is NULL");
+		goto out;
+	}
 
 	if(b->ports==NULL)
 		goto out_notfound;
@@ -1313,6 +1469,11 @@ int ubx_block_start(ubx_block_t* b)
 {
 	int ret = -1;
 
+	if(b==NULL) {
+		ERR("block is NULL");
+		goto out;
+	}
+
 	if(b->block_state!=BLOCK_STATE_INACTIVE) {
 		ERR("block '%s' not in state inactive, but in %s",
 		    b->name, block_state_tostr(b->block_state));
@@ -1345,6 +1506,11 @@ int ubx_block_stop(ubx_block_t* b)
 {
 	int ret = -1;
 
+	if(b==NULL) {
+		ERR("block is NULL");
+		goto out;
+	}
+
 	if(b->block_state!=BLOCK_STATE_ACTIVE) {
 		ERR("block '%s' not in state active, but in %s",
 		    b->name, block_state_tostr(b->block_state));
@@ -1374,6 +1540,11 @@ int ubx_block_cleanup(ubx_block_t* b)
 {
 	int ret=-1;
 
+	if(b==NULL) {
+		ERR("block is NULL");
+		goto out;
+	}
+
 	if(b->block_state!=BLOCK_STATE_INACTIVE) {
 		ERR("block '%s' not in state inactive, but in %s",
 		    b->name, block_state_tostr(b->block_state));
@@ -1402,6 +1573,7 @@ int ubx_block_cleanup(ubx_block_t* b)
 int ubx_cblock_step(ubx_block_t* b)
 {
 	int ret = -1;
+
 	if(b==NULL) {
 		ERR("block is NULL");
 		goto out;
