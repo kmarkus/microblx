@@ -44,11 +44,19 @@ function split(str, pat)
    return t
 end
 
+function url_decode(str)
+   str = string.gsub (str, "+", " ")
+   str = string.gsub (str, "%%(%x%x)", 
+		      function(h) return string.char(tonumber(h,16)) end)
+   str = string.gsub (str, "\r\n", "\n")
+   return str
+end
+
 function query_string_to_tab(qs)
    local res = {}
    local keyvals=split(qs, "&")
    for _,kv in ipairs(keyvals) do
-      local k,v = string.match(kv, "^(%w+)=([%w/_]+)$")
+      local k,v = string.match(url_decode(kv), "^(%w+)=(.+)$")
       res[k]=v
    end
    return res

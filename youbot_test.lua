@@ -2,8 +2,11 @@
 
 ffi = require("ffi")
 ubx = require "ubx"
+
 ubx_utils = require("ubx_utils")
 ts = tostring
+
+
 -- require"strict"
 -- require"trace"
 
@@ -38,6 +41,12 @@ p_cmd_vel = ubx.port_clone_conn(youbot1, "base_cmd_vel", 1, 1)
 p_cmd_cur = ubx.port_clone_conn(youbot1, "base_cmd_cur", 1, 1)
 
 cm_data=ubx.data_alloc(ni, "int32_t")
+
+__time=ffi.new("struct ubx_timespec")
+function gettime()
+   ubx.clock_mono_gettime(__time)
+   return {sec=tonumber(__time.sec), nsec=tonumber(__time.nsec)}
+end
 
 --- Configure the control mode.
 -- @param mode control mode.
@@ -89,15 +98,16 @@ null_vel_data=ubx.data_alloc(ni, "int32_t", 4)
 function move_vel(vel_tab, dur)
    set_control_mode(2) -- VELOCITY
    ubx.data_set(vel_data, vel_tab)
-   local ts_start=ffi.new("struct ubx_timespec")
-   local ts_cur=ffi.new("struct ubx_timespec")
+   local dur = {sec=dur, nsec=0}
+   local ts_start=gettime()
+   local ts_cur=gettime()
+   local diff = {sec=0,nsec=0}
 
-   ubx.clock_mono_gettime(ts_start)
-   ubx.clock_mono_gettime(ts_cur)
-
-   while ts_cur.sec - ts_start.sec < dur do
+   while true do
+      diff.sec,diff.nsec=time.sub(ts_cur, ts_start)
+      if time.cmp(diff, dur)==1 then break end
       ubx.port_write(p_cmd_vel, vel_data)
-      ubx.clock_mono_gettime(ts_cur)
+      ts_cur=gettime()
    end
    ubx.port_write(p_cmd_vel, null_vel_data)
 end
