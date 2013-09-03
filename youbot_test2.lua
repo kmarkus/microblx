@@ -17,7 +17,7 @@ function port_clone_conn(block, pname, buff_len1, buff_len2)
    local p=ffi.new("ubx_port_t")
    local ts = ffi.new("struct ubx_timespec")
 
-   print("port_clone_conn, block=", ubx.safe_tostr(block.name), ", port=", pname)
+   -- print("port_clone_conn, block=", ubx.safe_tostr(block.name), ", port=", pname)
 
    ubx.clock_mono_gettime(ts)
 
@@ -37,7 +37,7 @@ function port_clone_conn(block, pname, buff_len1, buff_len2)
 				  ubx.safe_tostr(block.name), pname,
 				  tonumber(ts.sec), tonumber(ts.nsec))
 
-      print("creating interaction", iname, buff_len1, tonumber(p.out_type.size * p.out_data_len))
+      -- print("creating interaction", iname, buff_len1, tonumber(p.out_type.size * p.out_data_len))
 
       i_p_to_prot = ubx.block_create(block.ni, "lfds_buffers/cyclic", iname,
 				     { element_num=buff_len1,
@@ -59,8 +59,7 @@ function port_clone_conn(block, pname, buff_len1, buff_len2)
 				  ubx.safe_tostr(block.name), pname,
 				  tonumber(ts.sec), tonumber(ts.nsec))
 
-      print("p.in_type", p.in_type)
-      print("creating interaction", iname, buff_len2, tonumber(p.in_type.size * p.in_data_len))
+      -- print("creating interaction", iname, buff_len2, tonumber(p.in_type.size * p.in_data_len))
 
       i_prot_to_p = ubx.block_create(block.ni, "lfds_buffers/cyclic", iname,
 				     { element_num=buff_len2,
@@ -132,43 +131,45 @@ print("creating instance of 'youbot/youbot_driver'")
 youbot1=ubx.block_create(ni, "youbot/youbot_driver", "youbot1", {ethernet_if="eth0" })
 
 print("creating instance of 'std_triggers/ptrig'")
-ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1",
-			{trig_blocks={ { b=youbot1, num_steps=1, measure=0 } } } )
+ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1", {trig_blocks={ { b=youbot1, num_steps=1, measure=0 } } } )
 
 assert(ubx.block_init(ptrig1))
 
-
+--- The following creates new ports that are automagically connected
+--- to the specified peer port.
 print("cloning base_control_mode port")
 p_cmode = port_clone_conn(youbot1, "base_control_mode", 1, 1)
-
-print("cloning base_cmd_twist port")
 p_cmd_twist = port_clone_conn(youbot1, "base_cmd_twist", 1, 1)
-
+p_cmd_vel = port_clone_conn(youbot1, "base_cmd_vel", 1, 1)
+p_cmd_cur = port_clone_conn(youbot1, "base_cmd_cur", 1, 1)
 
 cm_data=ubx.data_alloc(ni, "int32_t")
 
+--- Configure the control mode.
+-- @param mode control mode.
+-- @return true if mode was set, false otherwise.
 function set_control_mode(mode)
    ubx.data_set(cm_data, mode)
    ubx.port_write(p_cmode, cm_data)
-   -- ubx.cblock_step(youbot1)
    local res = port_read_timed(p_cmode, cm_data, 3)
    return ubx.data_tolua(cm_data)==mode
 end
 
+--- Return once the youbot is initialized or raise an error.
 function youbot_initialized()
    local res=port_read_timed(p_cmode, cm_data, 5)
    return ubx.data_tolua(cm_data)==0 -- 0=MOTORSTOP
 end
 
-function send_twist(tw)
-   ubx.port_write(p_cmd_twist, tw)
-   -- ubx.cblock_step(youbot1)
-end
+
 
 twist_data=ubx.data_alloc(ni, "kdl/struct kdl_twist")
 null_twist_data=ubx.data_alloc(ni, "kdl/struct kdl_twist")
 
-function move_vel(twist_tab, dur)
+--- Move with a given twist.
+-- @param twist table.
+-- @param dur duration in seconds
+function move_twist(twist_tab, dur)
    set_control_mode(2) -- VELOCITY
    ubx.data_set(twist_data, twist_tab)
    local ts_start=ffi.new("struct ubx_timespec")
@@ -178,32 +179,70 @@ function move_vel(twist_tab, dur)
    ubx.clock_mono_gettime(ts_cur)
 
    while ts_cur.sec - ts_start.sec < dur do
-      send_twist(twist_data)
+      ubx.port_write(p_cmd_twist, twist_data)
       ubx.clock_mono_gettime(ts_cur)
    end
-   send_twist(null_twist_data)
+   ubx.port_write(p_cmd_twist, null_twist_data)
 end
 
 
--- start webif
-print("running webif init", ubx.block_init(webif1))
-print("running webif start", ubx.block_start(webif1))
+vel_data=ubx.data_alloc(ni, "int32_t", 4)
+null_vel_data=ubx.data_alloc(ni, "int32_t", 4)
 
-print("running youbot init", ubx.block_init(youbot1))
-print("running youbot start", ubx.block_start(youbot1))
+--- Move each wheel with an individual RPM value.
+-- @param table of size for with wheel velocity
+-- @param dur time in seconds to apply velocity
+function move_vel(vel_tab, dur)
+   set_control_mode(2) -- VELOCITY
+   ubx.data_set(vel_data, vel_tab)
+   local ts_start=ffi.new("struct ubx_timespec")
+   local ts_cur=ffi.new("struct ubx_timespec")
+
+   ubx.clock_mono_gettime(ts_start)
+   ubx.clock_mono_gettime(ts_cur)
+
+   while ts_cur.sec - ts_start.sec < dur do
+      ubx.port_write(p_cmd_vel, vel_data)
+      ubx.clock_mono_gettime(ts_cur)
+   end
+   ubx.port_write(p_cmd_vel, null_vel_data)
+end
+
+cur_data=ubx.data_alloc(ni, "int32_t", 4)
+null_cur_data=ubx.data_alloc(ni, "int32_t", 4)
+
+--- Move each wheel with an individual RPM value.
+-- @param table of size for with wheel velocity
+-- @param dur time in seconds to apply velocity
+function move_cur(cur_tab, dur)
+   set_control_mode(6) -- CURRENT
+   ubx.data_set(cur_data, cur_tab)
+
+   local ts_start=ffi.new("struct ubx_timespec")
+   local ts_cur=ffi.new("struct ubx_timespec")
+
+   ubx.clock_mono_gettime(ts_start)
+   ubx.clock_mono_gettime(ts_cur)
+
+   while ts_cur.sec - ts_start.sec < dur do
+      ubx.port_write(p_cmd_cur, cur_data)
+      ubx.clock_mono_gettime(ts_cur)
+   end
+   ubx.port_write(p_cmd_cur, null_cur_data)
+end
+
+-- start and init webif and youbot
+assert(ubx.block_init(webif1)==0)
+assert(ubx.block_start(webif1)==0)
+assert(ubx.block_init(youbot1)==0)
+assert(ubx.block_start(youbot1)==0)
 
 -- make sure youbot is running ok.
 assert(ubx.block_start(ptrig1))
-
-print("waiting for youbot init to complete...")
 youbot_initialized()
-print("init completed.")
 
 twst={vel={x=0.05,y=0,z=0},rot={x=0,y=0,z=0.1}}
--- move_vel(twst, 1)
+vel_tab={1,1,1,1}
 
--- start youbot and move it for five seconds in vel mode.
-
--- io.read()
 
 -- ubx.node_cleanup(ni)

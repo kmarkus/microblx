@@ -64,6 +64,8 @@ ubx_type_t youbot_types[] = {
 def_read_fun(read_int, int32_t)
 def_write_fun(write_int, int32_t)
 
+def_read_arr_fun(read_int4, int32_t, 4)
+
 def_read_fun(read_kdl_twist, struct kdl_twist)
 def_write_fun(write_kdl_twist, struct kdl_twist)
 
@@ -154,6 +156,7 @@ int send_mbx(int gripper,
 	     int32_t *value)
 {
 	int ret=-1;
+	char* msg;
 	ec_mbxbuft mbx_out, mbx_in;
 
 	mbx_out[0] = (gripper) ? 1 : 0;
@@ -167,8 +170,8 @@ int send_mbx(int gripper,
 	mbx_out[6] = (uint32)(*value >> 8);
 	mbx_out[7] = (uint32)(*value & 0xff);
 
-	DBG("sending send mbx (gripper:%d, instr_nr=%d, param_nr=%d, slave_nr=%d, bank_nr=%d, value=%d",
-	    gripper, instr_nr, param_nr, slave_nr, bank_nr, *value);
+	/* DBG("sending send mbx (gripper:%d, instr_nr=%d, param_nr=%d, slave_nr=%d, bank_nr=%d, value=%d", */
+	/*     gripper, instr_nr, param_nr, slave_nr, bank_nr, *value); */
 
 	if (ec_mbxsend(slave_nr, &mbx_out, EC_TIMEOUTSAFE) <= 0) {
 		ERR("failed to send mbx (gripper:%d, instr_nr=%d, param_nr=%d, slave_nr=%d, bank_nr=%d, value=%d",
@@ -184,14 +187,25 @@ int send_mbx(int gripper,
 
 	*value = (mbx_in[4] << 24 | mbx_in[5] << 16 | mbx_in[6] << 8 | mbx_in[7]);
 
-	if(((int) mbx_in[2]) != 100) {
-		ERR("receiving mbx failed: module=%d, status=%d, command=%d, value=%d",
-		    mbx_in[1], mbx_in[2], mbx_in[3], *value);
-		goto out;
+	switch(((int) mbx_in[2])) {
+	case YB_MBX_STAT_OK: goto out_ok;
+	case YB_MBX_STAT_INVALID_CMD: msg="invalid command"; break;
+	case YB_MBX_STAT_WRONG_TYPE: msg="wrong type"; break;
+	case YB_MBX_STAT_EINVAL: msg="invalid value"; break;
+	case YB_MBX_STAT_EEPROM_LOCKED: msg="Configuration EEPROM locked"; break;
+	case YB_MBX_STAT_CMD_UNAVAILABLE: msg="Command not available"; break;
+	case YB_MBX_STAT_PARAM_PWDPROT: msg="Parameter is password protected"; break;
+	default: msg="unkown error";
 	}
 
+	if(((int) mbx_in[2]) != 100) {
+		ERR("receiving mbx failed: module=%d, status=%d, command=%d, value=%d: %s.",
+		    mbx_in[1], mbx_in[2], mbx_in[3], *value, msg);
+		goto out;
+	}
+out_ok:
 	ret=0;
- out:
+out:
 	return ret;
 }
 
@@ -394,6 +408,17 @@ static int youbot_init(ubx_block_t *b)
 	if(inf->arm1.detected) arm_config_params(&inf->arm1);
 	if(inf->arm2.detected) arm_config_params(&inf->arm2);
 
+#if 0
+	int tmp
+	/* find firmware version */
+	if(send_mbx(0, FIRMWARE_VERSION, 1, 0, 0, &tmp)) {
+		ERR("Failed to read firmware version");
+		goto out;
+	}
+	else
+		DBG("youbot firmware version %d", tmp);
+
+#endif
 	ret=0;
 	goto out;
 
@@ -545,8 +570,7 @@ static int base_proc_errflg(struct youbot_base_info* binf)
 			ERR("EMERGENCY_STOP on wheel %i", i);
 		}
 		if(binf->wheel_inf[i].error_flags & MODULE_INIT) {
-			if (! (binf->mod_init_stat & (1 << i)))
-				DBG("MODULE_INIT set for wheel %d", i);
+			/* if (! (binf->mod_init_stat & (1 << i))) DBG("MODULE_INIT set for wheel %d", i); */
 			binf->mod_init_stat |= 1<<i;
 		}
 		if(binf->wheel_inf[i].error_flags & EC_TIMEOUT) {
@@ -684,6 +708,7 @@ static int base_proc_update(struct youbot_base_info* base)
 	int32_t cm;
 	in_motor_t *motor_in;
 	out_motor_t *motor_out;
+	int32_t cmd_cur_vel[YOUBOT_NR_OF_WHEELS];
 
 	/* copy data */
 	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
@@ -739,21 +764,36 @@ static int base_proc_update(struct youbot_base_info* base)
 	case YOUBOT_CMODE_MOTORSTOP:
 		break;
 	case YOUBOT_CMODE_VELOCITY:
-
-		/* no new data */
-		if(read_kdl_twist(base->p_cmd_twist, &base->cmd_twist) <= 0) {
+		if(read_int4(base->p_cmd_vel, &cmd_cur_vel) == 4) { /* raw velocity */
+			for(i=0; i<YOUBOT_NR_OF_WHEELS; i++)
+				base->wheel_inf[i].cmd_val=cmd_cur_vel[i];
+			check_watchdog(base, 1);
+		} else if (read_kdl_twist(base->p_cmd_twist, &base->cmd_twist) > 0) { /* twist */
+			twist_to_wheel_val(base);
+			check_watchdog(base, 1);
+		} else { /* no new data */
+			/* if cmd_vel is zero, trigger watchdog */
 			if(base->wheel_inf[0].cmd_val==0 && base->wheel_inf[1].cmd_val==0 &&
 			   base->wheel_inf[2].cmd_val==0 && base->wheel_inf[3].cmd_val==0) {
 				check_watchdog(base, 1);
 			} else {
 				check_watchdog(base, 0);
 			}
-			break;
 		}
-
-		/* update wheel[i].cmd_val, values are copied to output below */
-		check_watchdog(base, 1);
-		twist_to_wheel_val(base);
+		break;
+	case YOUBOT_CMODE_CURRENT:
+		if(read_int4(base->p_cmd_cur, &cmd_cur_vel) == 4) { /* raw velocity */
+			for(i=0; i<YOUBOT_NR_OF_WHEELS; i++)
+				base->wheel_inf[i].cmd_val=cmd_cur_vel[i];
+			check_watchdog(base, 1);
+		} else {
+			if(base->wheel_inf[0].cmd_val==0 && base->wheel_inf[1].cmd_val==0 &&
+			   base->wheel_inf[2].cmd_val==0 && base->wheel_inf[3].cmd_val==0) {
+				check_watchdog(base, 1);
+			} else {
+				check_watchdog(base, 0);
+			}
+		}
 		break;
 	case YOUBOT_CMODE_INITIALIZE:
 		break;
@@ -762,6 +802,7 @@ static int base_proc_update(struct youbot_base_info* base)
 		base->control_mode = YOUBOT_CMODE_MOTORSTOP;
 		break;
 	}
+
 
 	/* copy cmd_val to output buffer */
 	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {

@@ -51,7 +51,7 @@ void __cleanup_module(ubx_node_info_t* ni) { exitfn(ni); }
 /* normally the user would have to box/unbox his value himself. This
  * generate a strongly typed, automatic boxing version for
  * convenience. */
-#define def_write_fun(function_name, typename) 		\
+#define def_write_fun(function_name, typename)		\
 void function_name(ubx_port_t* port, typename *outval) 	\
 { 							\
  ubx_data_t val; 					\
@@ -66,7 +66,7 @@ void function_name(ubx_port_t* port, typename *outval) 	\
 /* generate a typed read function: arguments to the function are the
  * port and a pointer to the result value. 
  */
-#define def_read_fun(function_name, typename) 		\
+#define def_read_fun(function_name, typename)		 \
 int32_t function_name(ubx_port_t* port, typename *inval) \
 { 							\
  ubx_data_t val; 					\
@@ -75,6 +75,31 @@ int32_t function_name(ubx_port_t* port, typename *inval) \
  val.type=port->in_type;				\
  val.data = inval;	  				\
  val.len = 1;						\
+ return __port_read(port, &val);			\
+} 							\
+
+/* these ones are for arrays */
+#define def_write_arr_fun(function_name, typename, arrlen)	\
+void function_name(ubx_port_t* port, typename (*outval)[arrlen]) \
+{ 							\
+ ubx_data_t val; 					\
+ if(port==NULL) { ERR("port is NULL"); return; } 	\
+ /* assert(strcmp(#typename, port->out_type_name)==0); */ 	\
+ val.data = outval; 					\
+ val.type = port->out_type; 				\
+ val.len=arrlen;					\
+ __port_write(port, &val);				\
+} 							\
+
+#define def_read_arr_fun(function_name, typename, arrlen)	 \
+int32_t function_name(ubx_port_t* port, typename (*inval)[arrlen])	\
+{ 							\
+ ubx_data_t val; 					\
+ if(port==NULL) { ERR("port is NULL"); return -1; } 	\
+ /* assert(strcmp(#typename, port->in_type_name)==0); */ \
+ val.type = port->in_type;				\
+ val.data = inval;	  				\
+ val.len = arrlen;					\
  return __port_read(port, &val);			\
 } 							\
 

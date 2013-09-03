@@ -61,6 +61,7 @@ static const uint8_t SGP			= 9;
 static const uint8_t GGP			= 10;
 static const uint8_t STGP			= 11;
 static const uint8_t RSGP			= 12;
+static const uint8_t FIRMWARE_VERSION		= 136;
 
 /* Mailbox errors */
 #define YB_MBX_STAT_OK				100
@@ -69,7 +70,7 @@ static const uint8_t RSGP			= 12;
 #define YB_MBX_STAT_EINVAL			4
 #define YB_MBX_STAT_EEPROM_LOCKED		5
 #define YB_MBX_STAT_CMD_UNAVAILABLE		6
-#define YB_MBX_STAT_PARAM_PWDPROT		7
+#define YB_MBX_STAT_PARAM_PWDPROT		8
 
 
 static const uint8_t TARGET_POS			= 0;
@@ -95,7 +96,7 @@ static const uint8_t COMMUTATION_MODE		= 159;
 /* .. more to be added on demand... */
 
 /* Output buffer protocol */
-typedef struct {
+typedef struct __attribute__((__packed__)) {
 	int32_t value;			/* Reference (Position, Velocity, PWM or Current) */
 	uint8_t controller_mode;	/* Controller Mode */
 	/* 0: Motor stop
@@ -109,7 +110,7 @@ typedef struct {
 } out_motor_t;
 
 /* Input buffer protocol */
-typedef struct {
+typedef struct __attribute__((__packed__)) {
 	int32_t position;	/* Actual position, 32-bit Up-Down Counter, 4096 ticks/revolution */
 	int32_t current;	/* Actual current in mA */
 	int32_t velocity;	/* Actual velocity rpm motor axis */
@@ -214,9 +215,7 @@ struct youbot_motor_info {
 	int16_t temperature;
 #endif
 	int32_t i2t_ex;		/* i2t currently exceeded? */
-
 	int32_t cmd_val;	/* commanded value. unit depends on control mode */
-
 	uint32_t max_cur;	/* cut-off currents larger than this */
 
 	struct youbot_slave_stats stats;
