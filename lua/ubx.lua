@@ -832,4 +832,116 @@ function M.ni_stat(ni)
    print(string.rep('-',78))
 end
 
+
+
+
+--- Create an inversly connected port
+-- @param bname block
+-- @param pname name of port
+-- @param buff_len1 desired buffer length (if in_out port: length of out->in buffer)
+-- @param buff_len2 if in_out port: length of in->out buffer
+function M.port_clone_conn(block, pname, buff_len1, buff_len2)
+   local prot = M.port_get(block, pname)
+   local p=ffi.new("ubx_port_t")
+   local ts = ffi.new("struct ubx_timespec")
+
+   -- print("port_clone_conn, block=", ubx.safe_tostr(block.name), ", port=", pname)
+
+   M.clock_mono_gettime(ts)
+
+   if M.clone_port_data(p, M.safe_tostr(prot.name)..'_inv', prot.meta_data,
+			  prot.out_type, prot.out_data_len,
+			  prot.in_type, prot.in_data_len, 0) ~= 0 then
+      error("port_clone_conn: cloning port data failed")
+   end
+
+   buff_len1=buff_len1 or 1
+   if p.in_type and p.out_type then buff_len2 = buff_len2 or buff_len1 end
+
+   -- New port is an out-port?
+   local i_p_to_prot=nil
+   if p.out_type~=nil then
+      local iname = string.format("PCC->%s.%s_%x:%x",
+				  M.safe_tostr(block.name), pname,
+				  tonumber(ts.sec), tonumber(ts.nsec))
+
+      -- print("creating interaction", iname, buff_len1, tonumber(p.out_type.size * p.out_data_len))
+
+      i_p_to_prot = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
+				     { element_num=buff_len1,
+				       element_size=tonumber(p.out_type.size * p.out_data_len) })
+
+      M.block_init(i_p_to_prot)
+
+      if M.ports_connect_uni(p, prot, i_p_to_prot)~=0 then
+	 M.port_free_data(p)
+	 error("failed to connect port"..M.safe_tostr(p.name))
+      end
+      M.block_start(i_p_to_prot)
+   end
+
+   -- New port is (also) an in-port?
+   local i_prot_to_p=nil
+   if p.in_type ~= nil then
+      local iname = string.format("PCC<-%s.%s_%x:%x",
+				  M.safe_tostr(block.name), pname,
+				  tonumber(ts.sec), tonumber(ts.nsec))
+
+      -- print("creating interaction", iname, buff_len2, tonumber(p.in_type.size * p.in_data_len))
+
+      i_prot_to_p = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
+				     { element_num=buff_len2,
+				       element_size=tonumber(p.in_type.size * p.in_data_len) })
+
+      M.block_init(i_prot_to_p)
+
+      if M.ports_connect_uni(prot, p, i_prot_to_p)~=0 then
+	 -- TODO disconnect if connected above.
+	 M.port_free_data(p)
+	 error("failed to connect port"..M.safe_tostr(p.name))
+      end
+      M.block_start(i_prot_to_p)
+   end
+
+
+   -- cleanup interaction and port once the reference is lost
+   ffi.gc(p, function (p)
+		print("cleaning up port PCC port "..M.safe_tostr(p.name))
+
+		if i_p_to_prot then
+		   M.block_stop(i_p_to_prot)
+		   M.ports_disconnect_uni(p, prot, i_p_to_prot)
+		   M.block_unload(block.ni, i_p_to_prot.name)
+		end
+
+		if i_prot_to_p then
+		   M.block_stop(i_prot_to_p)
+		   M.ports_disconnect_uni(prot, p, i_prot_to_p)
+		   M.block_unload(block.ni, i_prot_to_p.name)
+		end
+		M.port_free_data(p)
+	     end)
+   return p
+end
+
+--- Read from port with timeout.
+-- @param p port to read from
+-- @param data data to store result of read
+-- @param sec duration to block in seconds
+function M.port_read_timed(p, data, sec)
+   local res
+   local ts_start=ffi.new("struct ubx_timespec")
+   local ts_cur=ffi.new("struct ubx_timespec")
+
+   M.clock_mono_gettime(ts_start)
+   M.clock_mono_gettime(ts_cur)
+
+   while ts_cur.sec - ts_start.sec < sec do
+      res=M.port_read(p, data)
+      if res>0 then return res end
+      M.clock_mono_gettime(ts_cur)
+   end
+   error("port_read_timed: timeout after reading "..M.safe_tostr(p.name).." for "..tostring(sec).." seconds")
+end
+
 return M

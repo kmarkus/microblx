@@ -7,112 +7,6 @@ ts = tostring
 -- require"strict"
 -- require"trace"
 
---- Create an inversly connected port
--- @param bname block
--- @param pname name of port
--- @param buff_len1 desired buffer length (if in_out port: length of out->in buffer)
--- @param buff_len2 if in_out port: length of in->out buffer
-function port_clone_conn(block, pname, buff_len1, buff_len2)
-   local prot = ubx.port_get(block, pname)
-   local p=ffi.new("ubx_port_t")
-   local ts = ffi.new("struct ubx_timespec")
-
-   -- print("port_clone_conn, block=", ubx.safe_tostr(block.name), ", port=", pname)
-
-   ubx.clock_mono_gettime(ts)
-
-   if ubx.clone_port_data(p, ubx.safe_tostr(prot.name)..'_inv', prot.meta_data,
-			  prot.out_type, prot.out_data_len,
-			  prot.in_type, prot.in_data_len, 0) ~= 0 then
-      error("port_clone_conn: cloning port data failed")
-   end
-
-   buff_len1=buff_len1 or 1
-   if p.in_type and p.out_type then buff_len2 = buff_len2 or buff_len1 end
-
-   -- New port is an out-port?
-   local i_p_to_prot=nil
-   if p.out_type~=nil then
-      local iname = string.format("PCC->%s.%s_%x:%x",
-				  ubx.safe_tostr(block.name), pname,
-				  tonumber(ts.sec), tonumber(ts.nsec))
-
-      -- print("creating interaction", iname, buff_len1, tonumber(p.out_type.size * p.out_data_len))
-
-      i_p_to_prot = ubx.block_create(block.ni, "lfds_buffers/cyclic", iname,
-				     { element_num=buff_len1,
-				       element_size=tonumber(p.out_type.size * p.out_data_len) })
-
-      ubx.block_init(i_p_to_prot)
-
-      if ubx.ports_connect_uni(p, prot, i_p_to_prot)~=0 then
-	 ubx.port_free_data(p)
-	 error("failed to connect port"..ubx.safe_tostr(p.name))
-      end
-      ubx.block_start(i_p_to_prot)
-   end
-
-   -- New port is (also) an in-port?
-   local i_prot_to_p=nil
-   if p.in_type ~= nil then
-      local iname = string.format("PCC<-%s.%s_%x:%x",
-				  ubx.safe_tostr(block.name), pname,
-				  tonumber(ts.sec), tonumber(ts.nsec))
-
-      -- print("creating interaction", iname, buff_len2, tonumber(p.in_type.size * p.in_data_len))
-
-      i_prot_to_p = ubx.block_create(block.ni, "lfds_buffers/cyclic", iname,
-				     { element_num=buff_len2,
-				       element_size=tonumber(p.in_type.size * p.in_data_len) })
-
-      ubx.block_init(i_prot_to_p)
-
-      if ubx.ports_connect_uni(prot, p, i_prot_to_p)~=0 then
-	 -- TODO disconnect if connected above.
-	 ubx.port_free_data(p)
-	 error("failed to connect port"..ubx.safe_tostr(p.name))
-      end
-      ubx.block_start(i_prot_to_p)
-   end
-
-
-   -- cleanup interaction and port once the reference is lost
-   ffi.gc(p, function (p)
-		print("cleaning up port PCC port "..ubx.safe_tostr(p.name))
-
-		if i_p_to_prot then 
-		   ubx.block_stop(i_p_to_prot) 
-		   ubx.ports_disconnect_uni(p, prot, i_p_to_prot)
-		   ubx.block_unload(block.ni, i_p_to_prot.name)
-		end
-
-		if i_prot_to_p then
-		   ubx.block_stop(i_prot_to_p)
-		   ubx.ports_disconnect_uni(prot, p, i_prot_to_p)
-		   ubx.block_unload(block.ni, i_prot_to_p.name)
-		end
-		ubx.port_free_data(p)
-	     end)
-   return p
-end
-
-
-function port_read_timed(p, data, sec)
-   local res
-   local ts_start=ffi.new("struct ubx_timespec")
-   local ts_cur=ffi.new("struct ubx_timespec")
-
-   ubx.clock_mono_gettime(ts_start)
-   ubx.clock_mono_gettime(ts_cur)
-
-   while ts_cur.sec - ts_start.sec < sec do
-      res=ubx.port_read(p, data)
-      if res>0 then return res end
-      ubx.clock_mono_gettime(ts_cur)
-   end
-   error("port_read_timed: timeout after reading "..ubx.safe_tostr(p.name).." for "..tostring(sec).." seconds")
-end
-
 -- prog starts here.
 ni=ubx.node_create("youbot")
 
@@ -138,10 +32,10 @@ assert(ubx.block_init(ptrig1))
 --- The following creates new ports that are automagically connected
 --- to the specified peer port.
 print("cloning base_control_mode port")
-p_cmode = port_clone_conn(youbot1, "base_control_mode", 1, 1)
-p_cmd_twist = port_clone_conn(youbot1, "base_cmd_twist", 1, 1)
-p_cmd_vel = port_clone_conn(youbot1, "base_cmd_vel", 1, 1)
-p_cmd_cur = port_clone_conn(youbot1, "base_cmd_cur", 1, 1)
+p_cmode = ubx.port_clone_conn(youbot1, "base_control_mode", 1, 1)
+p_cmd_twist = ubx.port_clone_conn(youbot1, "base_cmd_twist", 1, 1)
+p_cmd_vel = ubx.port_clone_conn(youbot1, "base_cmd_vel", 1, 1)
+p_cmd_cur = ubx.port_clone_conn(youbot1, "base_cmd_cur", 1, 1)
 
 cm_data=ubx.data_alloc(ni, "int32_t")
 
@@ -151,13 +45,13 @@ cm_data=ubx.data_alloc(ni, "int32_t")
 function set_control_mode(mode)
    ubx.data_set(cm_data, mode)
    ubx.port_write(p_cmode, cm_data)
-   local res = port_read_timed(p_cmode, cm_data, 3)
+   local res = ubx.port_read_timed(p_cmode, cm_data, 3)
    return ubx.data_tolua(cm_data)==mode
 end
 
 --- Return once the youbot is initialized or raise an error.
 function youbot_initialized()
-   local res=port_read_timed(p_cmode, cm_data, 5)
+   local res=ubx.port_read_timed(p_cmode, cm_data, 5)
    return ubx.data_tolua(cm_data)==0 -- 0=MOTORSTOP
 end
 
