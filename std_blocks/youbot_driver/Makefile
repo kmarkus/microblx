@@ -1,9 +1,9 @@
 # Configure this:
-SOEM_DIR=/home/mk/src/git/SOEM1.2.5
-# 1.3: SOEM_LIBS=$(SOEM_DIR)/lib/linux/libsoem.a $(SOEM_DIR)/lib/linux/liboshw.a $(SOEM_DIR)/lib/linux/libosal.a
-# 1.3: SOEM_INC=-I$(SOEM_DIR)/soem/ -I$(SOEM_DIR)/osal/ -I$(SOEM_DIR)/oshw/linux/
-SOEM_LIBS=$(SOEM_DIR)/src/libsoem.a
-SOEM_INC=-I$(SOEM_DIR)/src/
+SOEM_DIR=/home/mk/src/git/soem
+SOEM_LIBS=$(SOEM_DIR)/lib/linux/libsoem.a $(SOEM_DIR)/lib/linux/liboshw.a $(SOEM_DIR)/lib/linux/libosal.a
+SOEM_INC=-I$(SOEM_DIR)/soem/ -I$(SOEM_DIR)/osal/ -I$(SOEM_DIR)/oshw/linux/
+#SOEM_LIBS=$(SOEM_DIR)/src/libsoem.a
+#SOEM_INC=-I$(SOEM_DIR)/src/
 
 
 ROOT_DIR=$(CURDIR)/../..

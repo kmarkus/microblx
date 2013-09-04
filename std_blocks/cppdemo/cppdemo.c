@@ -39,10 +39,6 @@ ubx_port_t cppdemo_ports[] = {
 	{ NULL },
 };
 
-/* convenience functions to read/write from the ports */
-def_read_fun(read_uint, unsigned int)
-def_write_fun(write_uint, unsigned int)
-
 static int cppdemo_init(ubx_block_t *c)
 {
 	cout << "cppdemo_init: hi from " << c->name << endl;

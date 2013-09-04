@@ -52,7 +52,7 @@ void __cleanup_module(ubx_node_info_t* ni) { exitfn(ni); }
  * generate a strongly typed, automatic boxing version for
  * convenience. */
 #define def_write_fun(function_name, typename)		\
-void function_name(ubx_port_t* port, typename *outval) 	\
+static void function_name(ubx_port_t* port, typename *outval) 	\
 { 							\
  ubx_data_t val; 					\
  if(port==NULL) { ERR("port is NULL"); return; } 	\
@@ -67,7 +67,7 @@ void function_name(ubx_port_t* port, typename *outval) 	\
  * port and a pointer to the result value. 
  */
 #define def_read_fun(function_name, typename)		 \
-int32_t function_name(ubx_port_t* port, typename *inval) \
+static int32_t function_name(ubx_port_t* port, typename *inval) \
 { 							\
  ubx_data_t val; 					\
  if(port==NULL) { ERR("port is NULL"); return -1; } 	\
@@ -80,7 +80,7 @@ int32_t function_name(ubx_port_t* port, typename *inval) \
 
 /* these ones are for arrays */
 #define def_write_arr_fun(function_name, typename, arrlen)	\
-void function_name(ubx_port_t* port, typename (*outval)[arrlen]) \
+static void function_name(ubx_port_t* port, typename (*outval)[arrlen]) \
 { 							\
  ubx_data_t val; 					\
  if(port==NULL) { ERR("port is NULL"); return; } 	\
@@ -92,7 +92,7 @@ void function_name(ubx_port_t* port, typename (*outval)[arrlen]) \
 } 							\
 
 #define def_read_arr_fun(function_name, typename, arrlen)	 \
-int32_t function_name(ubx_port_t* port, typename (*inval)[arrlen])	\
+static int32_t function_name(ubx_port_t* port, typename (*inval)[arrlen])	\
 { 							\
  ubx_data_t val; 					\
  if(port==NULL) { ERR("port is NULL"); return -1; } 	\
