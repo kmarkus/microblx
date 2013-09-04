@@ -257,6 +257,7 @@ struct youbot_base_info {
 	ubx_port_t *p_cmd_cur;
 	ubx_port_t *p_msr_odom;
 	ubx_port_t *p_msr_twist;
+	ubx_port_t *p_base_motorinfo;
 };
 
 struct youbot_info {

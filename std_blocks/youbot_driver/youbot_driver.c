@@ -43,6 +43,7 @@ ubx_port_t youbot_ports[] = {
 
 	{ .name="base_msr_odom", .attrs=PORT_DIR_OUT, .out_type_name="kdl/struct kdl_frame" },
 	{ .name="base_msr_twist", .attrs=PORT_DIR_OUT, .out_type_name="kdl/struct kdl_twist" },
+	{ .name="base_motorinfo", .attrs=PORT_DIR_OUT, .out_type_name="struct youbot_base_motorinfo" },
 
 	{ NULL },
 };
@@ -50,6 +51,8 @@ ubx_port_t youbot_ports[] = {
 /* types */
 /* declare types */
 
+#include "types/youbot_base_motorinfo.h"
+#include "types/youbot_base_motorinfo.h.hexarr"
 #include "types/youbot_control_modes.h.hexarr"
 
 ubx_type_t youbot_types[] = {
@@ -68,6 +71,7 @@ def_read_fun(read_kdl_twist, struct kdl_twist)
 def_write_fun(write_kdl_twist, struct kdl_twist)
 
 def_write_fun(write_kdl_frame, struct kdl_frame)
+def_write_fun(write_base_motorinfo, struct youbot_base_motorinfo)
 
 /**
  * validate_base_slaves - check whether a valid base was detected.
@@ -515,6 +519,7 @@ static int youbot_start(ubx_block_t *b)
 	assert(inf->base.p_cmd_cur = ubx_port_get(b, "base_cmd_cur"));
 	assert(inf->base.p_msr_odom = ubx_port_get(b, "base_msr_odom"));
 	assert(inf->base.p_msr_twist = ubx_port_get(b, "base_msr_twist"));
+	assert(inf->base.p_base_motorinfo = ubx_port_get(b, "base_motorinfo"));
 
 	ret=0;
  out:
@@ -606,6 +611,18 @@ static void base_output_msr_data(struct youbot_base_info* base)
 {
 	int i;
 	float delta_pos[YOUBOT_NR_OF_WHEELS];
+	struct youbot_base_motorinfo motorinf;
+
+
+	/* copy and write out the "raw" driver information */
+	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
+		motorinf.pos[i]=base->wheel_inf[i].msr_pos;
+		motorinf.vel[i]=base->wheel_inf[i].msr_vel;
+		motorinf.cur[i]=base->wheel_inf[i].msr_cur;
+	}
+
+	write_base_motorinfo(base->p_base_motorinfo, &motorinf);
+
 
 	/* translate wheel velocities to cartesian base velocities */
 	base->msr_twist.vel.x =
