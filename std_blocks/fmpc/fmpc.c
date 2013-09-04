@@ -10,7 +10,7 @@
 
 #include "ubx.h"
 
-#include "../youbot_driver/types/youbot_motorinfo.h"
+#include "../youbot_driver/types/youbot_base_motorinfo.h"
 
 /* function block meta-data
  * used by higher level functions.
@@ -30,7 +30,7 @@ ubx_port_t fmpc_ports[] = {
 
 /* convenience functions to read/write from the ports */
 def_write_arr_fun(write_int4, int32_t, 4)
-def_read_fun(read_motorinfo, struct youbot_motorinfo)
+def_read_fun(read_motorinfo, struct youbot_base_motorinfo)
 
 /* your data here */
 struct fmpc_info {
@@ -69,7 +69,7 @@ static int fmpc_start(ubx_block_t *b)
 static void fmpc_step(ubx_block_t *b)
 {
 	int32_t cmd_vel[4];
-	struct youbot_motorinfo ymi;
+	struct youbot_base_motorinfo ymi;
 
 	struct fmpc_info* inf = (struct fmpc_info*) b->private_data;
 
