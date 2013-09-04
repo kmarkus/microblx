@@ -43,7 +43,7 @@ ubx_port_t youbot_ports[] = {
 
 	{ .name="base_msr_odom", .attrs=PORT_DIR_OUT, .out_type_name="kdl/struct kdl_frame" },
 	{ .name="base_msr_twist", .attrs=PORT_DIR_OUT, .out_type_name="kdl/struct kdl_twist" },
-	{ .name="base_motorinfo", .attrs=PORT_DIR_OUT, .out_type_name="struct youbot_base_motorinfo" },
+	{ .name="base_motorinfo", .attrs=PORT_DIR_OUT, .out_type_name="youbot/struct youbot_base_motorinfo" },
 
 	{ NULL },
 };
@@ -56,6 +56,7 @@ ubx_port_t youbot_ports[] = {
 #include "types/youbot_control_modes.h.hexarr"
 
 ubx_type_t youbot_types[] = {
+	def_struct_type("youbot", struct youbot_base_motorinfo, &youbot_base_motorinfo_h),
 	/* def_struct_type("youbot", enum youbot_control_modes, &youbot_control_modes_h), */
 	{ NULL },
 };

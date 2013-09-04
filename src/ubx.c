@@ -885,7 +885,7 @@ static int array_block_rm(ubx_block_t ***arr, ubx_block_t *rmblock)
 		goto out;
 	}
 
-	ERR("match=%d, total=%d", match, cnt);
+	/* ERR("match=%d, total=%d", match, cnt); */
 
 	/* case 1: remove last */
 	if (match==cnt-1)
