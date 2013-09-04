@@ -2,7 +2,6 @@ local ffi=require"ffi"
 local ubx=require"ubx"
 local utils=require "utils"
 
-require "strict"
 local safe_ts = ubx.safe_tostr
 
 -- Configuration

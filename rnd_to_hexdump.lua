@@ -61,7 +61,7 @@ for i=1,8 do
 end
 
 for i=1,8 do
-   res, dat = ubx.interaction_read(ni, fifo1)
+   res, dat = ubx.interaction_read(fifo1)
    print("fifo1 read", res, ubx.data_tostr(dat))
    -- os.execute("sleep 0.3")
 end
