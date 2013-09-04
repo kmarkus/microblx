@@ -29,7 +29,7 @@
 #define YOUBOT_FRONT_TO_REAR_WHEEL		0.47
 #define YOUBOT_LEFT_TO_RIGHT_WHEEL		0.3
 
-#define YOUBOT_TICKS_PER_REVOLUT		4096
+#define YOUBOT_TICKS_PER_REVOLUTION		4096
 #define YOUBOT_WHEEL_CIRCUMFERENCE		(YOUBOT_WHEELRADIUS*2*M_PI)
 
 /* cartesian [ m/s ] to motor [ rpm ] velocity */
@@ -47,7 +47,6 @@
 /* types that are sent via ports are defined here */
 #include "types/youbot_control_modes.h"
 #include "../std_types/kdl/types/kdl.h"
-#include "types/youbot_odometry.h"
 
 static const uint8_t ROR			= 1;
 static const uint8_t ROL			= 2;
@@ -243,9 +242,13 @@ struct youbot_base_info {
 	struct kdl_twist cmd_twist;
 
 	/* sensor information */
-	struct youbot_odometry msr_odom;
-	struct kdl_twist msr_twist;
+	struct kdl_frame msr_odom;
 	int odom_started;
+	int last_pos[YOUBOT_NR_OF_WHEELS];
+	float odom_yaw;
+
+	struct kdl_twist msr_twist;
+
 
 	/* port cache */
 	ubx_port_t *p_control_mode;

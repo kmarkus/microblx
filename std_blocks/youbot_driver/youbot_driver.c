@@ -41,7 +41,7 @@ ubx_port_t youbot_ports[] = {
 	{ .name="base_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=4 },
 	{ .name="base_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=4 },
 
-	{ .name="base_msr_odom", .attrs=PORT_DIR_OUT, .out_type_name="youbot/struct youbot_odometry" },
+	{ .name="base_msr_odom", .attrs=PORT_DIR_OUT, .out_type_name="kdl/struct kdl_frame" },
 	{ .name="base_msr_twist", .attrs=PORT_DIR_OUT, .out_type_name="kdl/struct kdl_twist" },
 
 	{ NULL },
@@ -50,11 +50,9 @@ ubx_port_t youbot_ports[] = {
 /* types */
 /* declare types */
 
-#include "types/youbot_odometry.h.hexarr"
 #include "types/youbot_control_modes.h.hexarr"
 
 ubx_type_t youbot_types[] = {
-	def_struct_type("youbot", struct youbot_odometry, &youbot_odometry_h),
 	/* def_struct_type("youbot", enum youbot_control_modes, &youbot_control_modes_h), */
 	{ NULL },
 };
@@ -69,6 +67,7 @@ def_read_arr_fun(read_int4, int32_t, 4)
 def_read_fun(read_kdl_twist, struct kdl_twist)
 def_write_fun(write_kdl_twist, struct kdl_twist)
 
+def_write_fun(write_kdl_frame, struct kdl_frame)
 
 /**
  * validate_base_slaves - check whether a valid base was detected.
@@ -605,6 +604,9 @@ static int base_proc_errflg(struct youbot_base_info* binf)
 
 static void base_output_msr_data(struct youbot_base_info* base)
 {
+	int i;
+	float delta_pos[YOUBOT_NR_OF_WHEELS];
+
 	/* translate wheel velocities to cartesian base velocities */
 	base->msr_twist.vel.x =
 		(double) ( base->wheel_inf[0].msr_vel - base->wheel_inf[1].msr_vel
@@ -621,11 +623,51 @@ static void base_output_msr_data(struct youbot_base_info* base)
 			   - base->wheel_inf[2].msr_vel - base->wheel_inf[3].msr_vel )
 		/ (double) ( YOUBOT_NR_OF_WHEELS * YOUBOT_CARTESIAN_VELOCITY_TO_RPM * YOUBOT_ANGULAR_TO_WHEEL_VELOCITY);
 
-
 	write_kdl_twist(base->p_msr_twist, &base->msr_twist);
 
-	/* TODO: the previous odometry implementation is not working
-	   correctly. Find out why before adding */
+
+	/* TODO: this odometry calculation is broken. It goes haywire
+	 * upon rotating the base */
+
+	/* skip the first ten samples.
+	 * mk: I think we can remove this?
+	 */
+	if(base->odom_started < 10) {
+		for(i=0; i<YOUBOT_NR_OF_WHEELS; i++)
+			base->last_pos[i]=base->wheel_inf[i].msr_pos;
+		base->odom_started++;
+		goto out;
+	}
+
+	for(i = 0; i < YOUBOT_NR_OF_WHEELS; i++) {
+		delta_pos[i] =
+			(float) ( base->wheel_inf[i].msr_pos - base->last_pos[i] )
+			* (float) (YOUBOT_WHEEL_CIRCUMFERENCE)
+			/ (float) (YOUBOT_TICKS_PER_REVOLUTION * YOUBOT_MOTORTRANSMISSION ) ;
+		base->last_pos[i] = base->wheel_inf[i].msr_pos;
+	}
+
+	base->odom_yaw += ( delta_pos[0] + delta_pos[1] + delta_pos[2] + delta_pos[3] )
+		/ ( YOUBOT_NR_OF_WHEELS * YOUBOT_ANGULAR_TO_WHEEL_VELOCITY );
+
+	base->msr_odom.p.x +=
+		- ( ( ( delta_pos[0] - delta_pos[1] + delta_pos[2] - delta_pos[3] )
+		      / YOUBOT_NR_OF_WHEELS ) * cos( base->odom_yaw )
+		    - ( ( - delta_pos[0] - delta_pos[1] + delta_pos[2] + delta_pos[3] )
+			/ YOUBOT_NR_OF_WHEELS ) * sin( base->odom_yaw ));
+
+	base->msr_odom.p.y +=
+		- ( ( ( delta_pos[0] - delta_pos[1] + delta_pos[2] - delta_pos[3] )
+		      / YOUBOT_NR_OF_WHEELS ) * sin( base->odom_yaw )
+		    + ( ( - delta_pos[0] - delta_pos[1] + delta_pos[2] + delta_pos[3] )
+			/ YOUBOT_NR_OF_WHEELS ) * cos( base->odom_yaw ));
+
+	/* m_odom.pose.pose.orientation = tf::createQuaternionMsgFromYaw(base->odom_yaw); */
+	write_kdl_frame(base->p_msr_odom, &base->msr_odom);
+
+
+ out:
+	return;
 }
 
 
