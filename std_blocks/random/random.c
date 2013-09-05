@@ -32,7 +32,7 @@ char rnd_meta[] =
  * if an array is required, then .value = { .len=<LENGTH> } can be used.
  */
 ubx_config_t rnd_config[] = {
-	{ .name="min_max_config", .type_name = "random/struct random_config" },
+	{ .name="min_max_config", .type_name = "struct random_config" },
 	{ NULL },
 };
 

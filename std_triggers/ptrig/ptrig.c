@@ -31,7 +31,7 @@ ubx_config_t ptrig_config[] = {
 	{ .name="stacksize", .type_name = "size_t" },
 	{ .name="sched_priority", .type_name = "int" },
 	{ .name="sched_policy", .type_name = "char", .value = { .len=12 } },
-	{ .name="trig_blocks", .type_name = "std_triggers/struct ptrig_config" },
+	{ .name="trig_blocks", .type_name = "struct ptrig_config" },
 	{ NULL },
 };
 
