@@ -4,6 +4,7 @@ INCLUDE_DIR=$(ROOT_DIR)/src/
 
 TYPES:=$(wildcard types/*.h)
 HEXARRS:=$(TYPES:%=%.hexarr)
+HEXARRS += webif.lua.hexarr
 
 webif.so: webif.o mongoose.o $(INCLUDE_DIR)/libubx.so 
 	${CC} $(CFLAGS_SHARED) -o webif.so webif.o mongoose.o -lluajit-5.1 -lpthread $(INCLUDE_DIR)/libubx.so
