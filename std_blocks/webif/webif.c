@@ -137,8 +137,6 @@ static int init_lua(struct webif_info* inf)
 #else
 	ret = luaL_dofile(inf->L, WEBIF_FILE);
 #endif
-
-
 	if (ret) {
 		ERR("Failed to load ubx_webif.lua: %s\n", lua_tostring(inf->L, -1));
 		goto out;

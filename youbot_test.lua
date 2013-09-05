@@ -19,6 +19,7 @@ ubx.load_module(ni, "std_blocks/webif/webif.so")
 ubx.load_module(ni, "std_blocks/youbot_driver/youbot_driver.so")
 ubx.load_module(ni, "std_triggers/ptrig/ptrig.so")
 ubx.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
+ubx.load_module(ni, "std_blocks/reporter/file_rep.so")
 
 print("creating instance of 'webif/webif'")
 webif1=ubx.block_create(ni, "webif/webif", "webif1", { port="8888" })
@@ -29,7 +30,18 @@ youbot1=ubx.block_create(ni, "youbot/youbot_driver", "youbot1", {ethernet_if="et
 print("creating instance of 'std_triggers/ptrig'")
 ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1", {trig_blocks={ { b=youbot1, num_steps=1, measure=0 } } } )
 
-assert(ubx.block_init(ptrig1))
+print("creating instance of 'reporter/file_rep'")
+
+rep_conf=[[
+{
+   { blockname='youbot1', portname="base_motorinfo", buff_len=10, }
+}
+]]
+
+file_rep1=ubx.block_create(ni, "reporter/file_rep", "file_rep1",
+			   {filename=os.date("%Y%m%d_%H%M%S")..'_report.dat',
+			    separator=',',
+			    report_conf=rep_conf})
 
 --- The following creates new ports that are automagically connected
 --- to the specified peer port.
@@ -135,13 +147,18 @@ function move_cur(cur_tab, dur)
 end
 
 -- start and init webif and youbot
+assert(ubx.block_init(ptrig1))
+assert(ubx.block_init(file_rep1))
 assert(ubx.block_init(webif1)==0)
-assert(ubx.block_start(webif1)==0)
 assert(ubx.block_init(youbot1)==0)
+
+assert(ubx.block_start(webif1)==0)
+assert(ubx.block_start(file_rep1)==0)
 assert(ubx.block_start(youbot1)==0)
+assert(ubx.block_start(ptrig1)==0)
+
 
 -- make sure youbot is running ok.
-assert(ubx.block_start(ptrig1))
 youbot_initialized()
 
 twst={vel={x=0.05,y=0,z=0},rot={x=0,y=0,z=0.1}}

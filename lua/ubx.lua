@@ -346,6 +346,9 @@ function M.data_tolua(d)
       res=M.safe_tostr(d.data)
    else
       local ptrname
+      -- TODO: simplify this and pcall ffi.new. If it fails, the type
+      -- is probably unknown, and running ubx.ffi_load_types may help.
+
       if d.type.type_class==ubx.TYPE_CLASS_STRUCT then
 	 ptrname = ffi.string(d.type.name).."*"
       else -- BASIC:
@@ -374,11 +377,10 @@ end
 -- @return luajit FFI ctype
 local function __type_to_ctype_str(t, ptr)
    if ptr then ptr='*' else ptr="" end
-   if t.type_class==ffi.C.TYPE_CLASS_BASIC then
+   if t.type_class==ffi.C.TYPE_CLASS_BASIC or t.type_class==ffi.C.TYPE_CLASS_STRUCT then
       return ffi.string(t.name)..ptr
-   elseif t.type_class==ffi.C.TYPE_CLASS_STRUCT then
-      return structname_to_ns(ffi.string(t.name))..ptr
    end
+   error("__type_to_ctype_str: unknown type_class")
 end
 
 --- No NS variant:
