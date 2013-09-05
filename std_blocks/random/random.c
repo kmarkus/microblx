@@ -13,7 +13,7 @@
 #include "types/random_config.h"
 #include "types/random_config.h.hexarr"
 
-ubx_type_t random_config_type = def_struct_type("random", struct random_config, &random_config_h);
+ubx_type_t random_config_type = def_struct_type(struct random_config, &random_config_h);
 
 /* function block meta-data
  * used by higher level functions.

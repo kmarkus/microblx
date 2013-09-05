@@ -6,29 +6,29 @@
 
 #include "ubx.h"
 
-#include "types/vector.h"
-#include "types/vector.h.hexarr"
+#include "types/kdl_vector.h"
+#include "types/kdl_vector.h.hexarr"
 
-#include "types/rotation.h"
-#include "types/rotation.h.hexarr"
+#include "types/kdl_rotation.h"
+#include "types/kdl_rotation.h.hexarr"
 
-#include "types/frame.h"
-#include "types/frame.h.hexarr"
+#include "types/kdl_frame.h"
+#include "types/kdl_frame.h.hexarr"
 
-#include "types/twist.h"
-#include "types/twist.h.hexarr"
+#include "types/kdl_twist.h"
+#include "types/kdl_twist.h.hexarr"
 
-#include "types/wrench.h"
-#include "types/wrench.h.hexarr"
+#include "types/kdl_wrench.h"
+#include "types/kdl_wrench.h.hexarr"
 
 
 /* declare types */
 ubx_type_t types[] = {
-	def_struct_type("kdl", struct kdl_vector, &vector_h),
-	def_struct_type("kdl", struct kdl_rotation, &rotation_h),
-	def_struct_type("kdl", struct kdl_frame, &frame_h),
-	def_struct_type("kdl", struct kdl_twist, &twist_h),
-	def_struct_type("kdl", struct kdl_wrench, &wrench_h),
+	def_struct_type(struct kdl_vector, &kdl_vector_h),
+	def_struct_type(struct kdl_rotation, &kdl_rotation_h),
+	def_struct_type(struct kdl_frame, &kdl_frame_h),
+	def_struct_type(struct kdl_twist, &kdl_twist_h),
+	def_struct_type(struct kdl_wrench, &kdl_wrench_h),
 	{ NULL },
 };
 

@@ -31,13 +31,13 @@ function init(b)
    -- print("adding port 'pos_in' to block ", ubx.safe_tostr(b.name))
    ubx.port_add(b, "pos_in",
 		  "{ desc='current measured position' }",
-		  "kdl/struct kdl_vector", 1, nil, 0, 0)
+		  "struct kdl_vector", 1, nil, 0, 0)
 
    ubx.port_add(b, "pos_out",
 		  "{ desc='desired position' }",
-		  nil, 0, "kdl/struct kdl_vector", 1, 0)
+		  nil, 0, "struct kdl_vector", 1, 0)
 
-   rd = ubx.data_alloc(b.ni, "kdl/struct kdl_vector")
+   rd = ubx.data_alloc(b.ni, "struct kdl_vector")
    return true
 end
 
@@ -68,9 +68,9 @@ lb1=ubx.block_create(ni, "lua/luablock", "lb1", { lua_str=lua_testcomp } )
 fifo1=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, element_size=code_str_len})
 
 fifo_in=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo_in",
-			 {element_num=4, element_size=ubx.type_size(ni, "kdl/struct kdl_vector")})
+			 {element_num=4, element_size=ubx.type_size(ni, "struct kdl_vector")})
 fifo_out=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo_out",
-			  {element_num=4, element_size=ubx.type_size(ni, "kdl/struct kdl_vector")})
+			  {element_num=4, element_size=ubx.type_size(ni, "struct kdl_vector")})
 
 assert(ubx.block_init(lb1)==0)
 assert(ubx.block_init(fifo1)==0)
@@ -92,8 +92,8 @@ assert(ubx.block_start(fifo_out)==0)
 
 local d1=ubx.data_alloc(ni, "char")
 local d2=ubx.data_alloc(ni, "int")
-local _vin=ubx.data_alloc(ni, "kdl/struct kdl_vector")
-local _vout=ubx.data_alloc(ni, "kdl/struct kdl_vector")
+local _vin=ubx.data_alloc(ni, "struct kdl_vector")
+local _vout=ubx.data_alloc(ni, "struct kdl_vector")
 vcdin = ubx.data_to_cdata(_vin)
 vcdout = ubx.data_to_cdata(_vout)
 

@@ -22,7 +22,7 @@ char ptrig_meta[] =
 
 /* types defined by ptrig block */
 ubx_type_t ptrig_types[] = {
-	def_struct_type("std_triggers", struct ptrig_config, &ptrig_config_h),
+	def_struct_type(struct ptrig_config, &ptrig_config_h),
 	{ NULL },
 };
 

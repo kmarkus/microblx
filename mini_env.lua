@@ -24,7 +24,7 @@ webif1=ubx.block_create(ni, "webif/webif", "webif1", { port="8888" })
 print("running webif init", ubx.block_init(webif1))
 print("running webif start", ubx.block_start(webif1))
 
-i1=ubx.data_alloc(ni, "kdl/struct kdl_vector", 1)
+i1=ubx.data_alloc(ni, "struct kdl_vector", 1)
 print(ubx.data_tostr(i1))
 
 

@@ -39,9 +39,9 @@ void __cleanup_module(ubx_node_info_t* ni) { exitfn(ni); }
 /* type definition helpers */
 #define def_basic_ctype(typename) { .name=#typename, .type_class=TYPE_CLASS_BASIC, .size=sizeof(typename) }
 
-#define def_struct_type(module, typename, hexdata) \
+#define def_struct_type(typename, hexdata) \
 { 					\
-	.name=module "/" #typename, 	\
+	.name=#typename, 		\
 	.type_class=TYPE_CLASS_STRUCT,	\
 	.size=sizeof(typename),		\
 	.private_data=(void*) hexdata,	\

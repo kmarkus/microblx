@@ -88,7 +88,7 @@ function test_int_inv()
 end
 
 function test_ubx_data()
-   local ubx_data_vect = ubx.data_alloc(ni, "kdl/struct kdl_vector", 1)
+   local ubx_data_vect = ubx.data_alloc(ni, "struct kdl_vector", 1)
    local init = { x=7, y=8, z=9 }
    ubx.data_set(ubx_data_vect, init, true)
    local val = ubx.data_tolua(ubx_data_vect)
@@ -96,7 +96,7 @@ function test_ubx_data()
 end
 
 function test_ubx_data_inv()
-   local ubx_data_vect = ubx.data_alloc(ni, "kdl/struct kdl_vector", 1)
+   local ubx_data_vect = ubx.data_alloc(ni, "struct kdl_vector", 1)
    local init = { x=2, y=5, z=22 }
    ubx.data_set(ubx_data_vect, init, true)
    init.x=344

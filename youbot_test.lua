@@ -65,8 +65,8 @@ end
 
 
 
-twist_data=ubx.data_alloc(ni, "kdl/struct kdl_twist")
-null_twist_data=ubx.data_alloc(ni, "kdl/struct kdl_twist")
+twist_data=ubx.data_alloc(ni, "struct kdl_twist")
+null_twist_data=ubx.data_alloc(ni, "struct kdl_twist")
 
 --- Move with a given twist.
 -- @param twist table.

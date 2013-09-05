@@ -13,7 +13,7 @@
 /* declare types */
 ubx_type_t types[] = {
 	def_basic_ctype(char[50]),
-	def_struct_type("testtypes", struct test_trig_conf, &test_trig_conf_h),
+	def_struct_type(struct test_trig_conf, &test_trig_conf_h),
 	{ NULL },
 };
 
