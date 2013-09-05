@@ -3,7 +3,8 @@
  */
 
 #undef DEBUG
-#define WEBIF_RELOAD 1
+#define WEBIF_RELOAD			 1
+#define COMPILE_IN_WEBIF_LUA_FILE	 1
 
 #include <luajit-2.0/lauxlib.h>
 #include <luajit-2.0/lualib.h>
@@ -16,7 +17,11 @@
 #include "mongoose.h"
 #include "ubx.h"
 
+#ifdef COMPILE_IN_WEBIF_LUA_FILE
+#include "webif.lua.hexarr"
+#else
 #define WEBIF_FILE "/home/mk/prog/c/microblx/std_blocks/webif/webif.lua"
+#endif
 
 /* make this configuration */
 static struct ubx_node_info *global_ni;
@@ -127,7 +132,12 @@ static int init_lua(struct webif_info* inf)
 
 	luaL_openlibs(inf->L);
 
+#ifdef COMPILE_IN_WEBIF_LUA_FILE
+	ret = luaL_dostring(inf->L, (const char*) &webif_lua);
+#else
 	ret = luaL_dofile(inf->L, WEBIF_FILE);
+#endif
+
 
 	if (ret) {
 		ERR("Failed to load ubx_webif.lua: %s\n", lua_tostring(inf->L, -1));
