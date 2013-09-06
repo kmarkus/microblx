@@ -14,7 +14,9 @@ ubx.load_module(ni, "std_blocks/random/random.so")
 ubx.load_module(ni, "std_blocks/hexdump/hexdump.so")
 ubx.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
 ubx.load_module(ni, "std_blocks/webif/webif.so")
+ubx.load_module(ni, "std_blocks/reporter/file_rep.so")
 ubx.load_module(ni, "std_triggers/ptrig/ptrig.so")
+
 ubx.ffi_load_types(ni)
 
 print("creating instance of 'webif/webif'")
@@ -29,9 +31,24 @@ hexdump1=ubx.block_create(ni, "hexdump/hexdump", "hexdump1")
 print("creating instance of 'lfds_buffers/cyclic'")
 fifo1=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, element_size=4})
 
+print("creating instance of 'reporter/file_rep'")
+
+rep_conf=[[
+{
+   { blockname='random1', portname="rnd", buff_len=1, }
+}
+]]
+
+file_rep1=ubx.block_create(ni, "reporter/file_rep", "file_rep1",
+			   {filename=os.date("%Y%m%d_%H%M%S")..'_report.dat',
+			    separator=',',
+			    report_conf=rep_conf})
+
 print("creating instance of 'std_triggers/ptrig'")
 ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1",
-			{trig_blocks={ { b=random1, num_steps=1, measure=0 } } } )
+			{trig_blocks={ { b=random1, num_steps=1, measure=0 },
+				       { b=file_rep1, num_steps=1, measure=0 }
+			} } )
 
 ubx.ni_stat(ni)
 

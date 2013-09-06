@@ -204,7 +204,7 @@ static int file_rep_mod_init(ubx_node_info_t* ni)
 
 static void file_rep_mod_cleanup(ubx_node_info_t *ni)
 {
-	ubx_block_unregister(ni, "lua/file_rep");
+	ubx_block_unregister(ni, "reporter/file_rep");
 }
 
 module_init(file_rep_mod_init)

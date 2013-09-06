@@ -1,8 +1,8 @@
-
 local ubx=require("ubx")
 local ubx_utils = require("ubx_utils")
 local utils = require("utils")
 local ffi = require("ffi")
+local time = require("time")
 local ts = tostring
 
 -- global state
@@ -15,6 +15,14 @@ fd=nil
 --    { blockname='blockA', portname="port1", buff_len=10, },
 --    { blockname='blockB', portname=true, buff_len=10 }, -- report all
 --}
+
+local ts1=ffi.new("struct ubx_timespec")
+local ns_per_s = 1000000000
+
+function get_time()
+   ubx.clock_mono_gettime(ts1)
+   return tonumber(ts1.sec) + tonumber(ts1.nsec) / ns_per_s
+end
 
 --- safely convert a Lua configuration table string to a table.
 -- @param str
@@ -33,7 +41,7 @@ function create_read_sample(p, ni)
 end
 
 --- convert the report_conf string to a table.
--- @param report_conf str 
+-- @param report_conf str
 -- @param ni node_info
 -- @return rconf table with inv. conn. ports
 local function report_conf_to_portlist(rc, ni)
@@ -93,7 +101,10 @@ end
 
 function step(b)
    b=ffi.cast("ubx_block_t*", b)
+   local cur_t = get_time()
    local wtab = {}
+
+   wtab[#wtab+1] = ("time=%f"):format(cur_t)
 
    for _,c in ipairs(rconf) do
       local bpn=c.blockname.."."..c.portname
@@ -107,7 +118,7 @@ function step(b)
    fd:write("{ "..table.concat(wtab, ', ').." }\n")
 end
 
-function cleanup(b) 
+function cleanup(b)
    io.close(fd)
    fd=nil
    filename=nil
