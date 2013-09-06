@@ -3,7 +3,7 @@
  */
 
 #define DEBUG
-#undef COMPILE_IN_REP_LUA_FILE
+#define COMPILE_IN_REP_LUA_FILE
 
 #include <luajit-2.0/lauxlib.h>
 #include <luajit-2.0/lualib.h>
