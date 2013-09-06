@@ -5,8 +5,6 @@ local utils = require("utils")
 local ffi = require("ffi")
 local ts = tostring
 
-require("strict")
-
 -- global state
 filename=nil
 rconf=nil
