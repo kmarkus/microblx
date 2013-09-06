@@ -1,4 +1,3 @@
-
 /* #define DEBUG 1 */
 
 #include "ubx.h"
@@ -550,7 +549,7 @@ int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta_data,
  out_err:
 	ERR("out of memory");
  out:
- 	return ret;
+	return ret;
 }
 
 /**
@@ -607,7 +606,7 @@ static int ubx_clone_config_data(ubx_config_t *cnew,
 
  out_err:
 	ubx_config_free_data(cnew);
- 	return -1;
+	return -1;
 }
 
 
@@ -732,7 +731,7 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 
  out_free:
 	ubx_block_free(newb);
- 	ERR("insufficient memory");
+	ERR("insufficient memory");
 	return NULL;
 }
 
@@ -1015,6 +1014,21 @@ int ubx_ports_connect_uni(ubx_port_t* out_port, ubx_port_t* in_port, ubx_block_t
 {
 	int ret=-1;
 
+	if(iblock==NULL) {
+		ERR("iblock NULL");
+		goto out;
+	}
+
+	if(out_port==NULL) {
+		ERR("out_port NULL");
+		goto out;
+	}
+
+	if(in_port==NULL) {
+		ERR("in_port NULL");
+		goto out;
+	}
+
 	if(iblock->type != BLOCK_TYPE_INTERACTION) {
 		ERR("block not of type interaction");
 		goto out;
@@ -1062,6 +1076,21 @@ out:
 int ubx_ports_disconnect_uni(ubx_port_t* out_port, ubx_port_t* in_port, ubx_block_t* iblock)
 {
 	int ret=-1;
+
+	if(iblock==NULL) {
+		ERR("iblock NULL");
+		goto out;
+	}
+
+	if(out_port==NULL) {
+		ERR("out_port NULL");
+		goto out;
+	}
+
+	if(in_port==NULL) {
+		ERR("in_port NULL");
+		goto out;
+	}
 
 	if(iblock->type != BLOCK_TYPE_INTERACTION) {
 		ERR("block not of type interaction");
@@ -1721,7 +1750,7 @@ void __port_write(ubx_port_t* port, ubx_data_t* data)
 
 	/* above looks nicer */
 	/* for(i=0; port->out_interaction[i]!=NULL; i++) */
-	/* 	port->out_interaction[i]->write(port->out_interaction[i], data); */
+	/*	port->out_interaction[i]->write(port->out_interaction[i], data); */
 
 	port->stat_writes++;
  out:
