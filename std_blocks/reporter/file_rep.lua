@@ -103,10 +103,10 @@ function step(b)
       if ubx.port_read(c.pinv, c.sample) < 0 then
 	 print("file_rep error: failed to read "..c.blockname.."."..c.portname)
       else
-	 wtab[#wtab+1] = ('"%s"=%s'):format(bpn, ubx.data_tostr(c.sample))
+	 wtab[#wtab+1] = ('["%s"]=%s'):format(bpn, ubx.data_tostr(c.sample))
       end
    end
-   fd:write("{ "..table.concat(wtab, ' ').." }\n")
+   fd:write("{ "..table.concat(wtab, ', ').." }\n")
 end
 
 function cleanup(b) 
