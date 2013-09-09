@@ -3,10 +3,16 @@
  */
 
 #define DEBUG 1
+#define CONFIG_PTHREAD_SETNAME
+
+#ifdef CONFIG_PTHREAD_SETNAME
+#define _GNU_SOURCE
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <limits.h>	/* PTHREAD_STACK_MIN */
 
 #include "ubx.h"
 
@@ -31,6 +37,7 @@ ubx_config_t ptrig_config[] = {
 	{ .name="stacksize", .type_name = "size_t" },
 	{ .name="sched_priority", .type_name = "int" },
 	{ .name="sched_policy", .type_name = "char", .value = { .len=12 } },
+	{ .name="thread_name", .type_name = "char", .value = { .len=12 } },
 	{ .name="trig_blocks", .type_name = "struct ptrig_config" },
 	{ NULL },
 };
@@ -87,10 +94,68 @@ static void* thread_startup(void *arg)
 	pthread_exit(NULL);
 }
 
+static void ptrig_handle_config(ubx_block_t *b)
+{
+	int ret;
+	unsigned int tmplen, schedpol;
+	char *schedpol_str;
+	size_t stacksize;
+	struct sched_param sched_param; /* prio */
+	struct ptrig_inf *inf=(struct ptrig_inf*) b->private_data;
+
+	/* stacksize */
+	stacksize = *((int*) ubx_config_get_data_ptr(b, "stacksize", &tmplen));
+	if(stacksize != 0) {
+		if(stacksize<PTHREAD_STACK_MIN) {
+			ERR("%s: stacksize less than %d", b->name, PTHREAD_STACK_MIN);
+		} else {
+			if(pthread_attr_setstacksize(&inf->attr, stacksize))
+				ERR2(errno, "pthread_attr_setstacksize failed");
+		}
+	}
+
+	/* schedpolicy */
+	schedpol_str = (char*) ubx_config_get_data_ptr(b, "sched_policy", &tmplen);
+	schedpol_str = (strncmp(schedpol_str, "", tmplen) == 0) ? "SCHED_OTHER" : schedpol_str;
+
+	if (strncmp(schedpol_str, "SCHED_OTHER", tmplen) == 0) {
+		schedpol=SCHED_OTHER;
+	} else if (strncmp(schedpol_str, "SCHED_FIFO", tmplen) == 0) {
+		schedpol = SCHED_FIFO;
+	} else if (strncmp(schedpol_str, "SCHED_RR", tmplen) == 0) {
+		schedpol = SCHED_RR;
+	} else {
+		ERR("%s: sched_policy config: illegal value %s", b->name, schedpol_str);
+		schedpol=SCHED_OTHER;
+	}
+
+	if((schedpol==SCHED_FIFO || schedpol==SCHED_RR) && sched_param.sched_priority > 0) {
+		ERR("%s sched_priority is %d with %s policy", b->name, sched_param.sched_priority, schedpol_str);
+	}
+
+	if(pthread_attr_setschedpolicy(&inf->attr, schedpol)) {
+		ERR("pthread_attr_setschedpolicy failed");
+	}
+
+	/* see PTHREAD_ATTR_SETSCHEDPOLICY(3) */
+	if((ret=pthread_attr_setinheritsched(&inf->attr, PTHREAD_EXPLICIT_SCHED))!=0)
+		ERR2(ret, "failed to set PTHREAD_EXPLICIT_SCHED.");
+
+	/* priority */
+	sched_param.sched_priority = *((int*) ubx_config_get_data_ptr(b, "sched_priority", &tmplen));
+	if(pthread_attr_setschedparam(&inf->attr, &sched_param))
+		ERR("failed to set sched_policy.sched_priority to %d", sched_param.sched_priority);
+
+	DBG("%s config: policy=%s, prio=%d, stacksize=%lu (0=default size)",
+	    b->name, schedpol_str, sched_param.sched_priority, stacksize);
+}
+
 /* init */
 static int ptrig_init(ubx_block_t *b)
 {
+	unsigned int tmplen;
 	int ret = EOUTOFMEM;
+	const char* threadname;
 	struct ptrig_inf* inf;
 
 	if((b->private_data=calloc(1, sizeof(struct ptrig_inf)))==NULL) {
@@ -106,11 +171,22 @@ static int ptrig_init(ubx_block_t *b)
 	pthread_mutex_init(&inf->mutex, NULL);
 	pthread_attr_init(&inf->attr);
 	pthread_attr_setdetachstate(&inf->attr, PTHREAD_CREATE_JOINABLE);
-	
+
+	ptrig_handle_config(b);
+
 	if((ret=pthread_create(&inf->tid, &inf->attr, thread_startup, b))!=0) {
 		ERR2(ret, "pthread_create failed");
 		goto out_err;
 	}
+
+#ifdef CONFIG_PTHREAD_SETNAME
+	/* setup thread name */
+	threadname = (char*) ubx_config_get_data_ptr(b, "thread_name", &tmplen);
+	threadname = (strncmp(threadname, "", tmplen)==0) ? b->name : threadname;
+
+	if(pthread_setname_np(inf->tid, threadname))
+		ERR("failed to set thread_name to %s", threadname);
+#endif
 
 	/* OK */
 	ret=0;
@@ -149,7 +225,7 @@ static void ptrig_stop(ubx_block_t *b)
 	DBG(" ");
 	struct ptrig_inf *inf;
 	inf = (struct ptrig_inf*) b->private_data;
-	
+
 	pthread_mutex_lock(&inf->mutex);
 	inf->state=BLOCK_STATE_INACTIVE;
 	pthread_mutex_unlock(&inf->mutex);
@@ -165,11 +241,12 @@ static void ptrig_cleanup(ubx_block_t *b)
 
 	if((ret=pthread_cancel(inf->tid))!=0)
 		ERR2(ret, "pthread_cancel failed");
-	
+
 	/* join */
 	if((ret=pthread_join(inf->tid, NULL))!=0)
 		ERR2(ret, "pthread_join failed");
 
+	pthread_attr_destroy(&inf->attr);
 	free(b->private_data);
 }
 

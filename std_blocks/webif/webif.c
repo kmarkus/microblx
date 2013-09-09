@@ -6,6 +6,8 @@
 #define WEBIF_RELOAD			 1
 #define COMPILE_IN_WEBIF_LUA_FILE	 1
 
+#define MONGOOSE_NR_THREADS		 "1"	/* don't change. */
+
 #include <luajit-2.0/lauxlib.h>
 #include <luajit-2.0/lualib.h>
 #include <luajit-2.0/lua.h>
@@ -198,10 +200,10 @@ static int wi_start(ubx_block_t *c)
 	port_num = (char *) ubx_config_get_data_ptr(c, "port", &port_num_len);
 	port_num = (port_num_len==0) ?  "8080" : port_num;
 
-	DBG("starting mongoose on port %s", port_num);
+	DBG("starting mongoose on port %s using %s thread(s)", port_num, MONGOOSE_NR_THREADS);
 
 	/* List of options. Last element must be NULL. */
-	const char *options[] = {"listening_ports", port_num, NULL};
+	const char *options[] = {"listening_ports", port_num, "num_threads", MONGOOSE_NR_THREADS, NULL};
 
 	if((inf->ctx = mg_start(&inf->callbacks, inf, options))==NULL) {
 		ERR("failed to start mongoose on port %s", port_num);
