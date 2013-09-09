@@ -47,10 +47,11 @@ file_rep1=ubx.block_create(ni, "reporter/file_rep", "file_rep1",
 print("creating instance of 'std_triggers/ptrig'")
 ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1",
 			{
+			   period = {sec=0, usec=100000 },
 			   sched_policy="SCHED_OTHER", sched_priority=0,
 			   trig_blocks={ { b=random1, num_steps=1, measure=0 },
-				       { b=file_rep1, num_steps=1, measure=0 }
-			} } )
+					 { b=file_rep1, num_steps=1, measure=0 }
+			   } } )
 
 ubx.ni_stat(ni)
 

@@ -12,12 +12,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <time.h>
 #include <limits.h>	/* PTHREAD_STACK_MIN */
 
 #include "ubx.h"
 
+#define NSEC_PER_SEC            1000000000
+#define NSEC_PER_USEC           1000
+
 #include "types/ptrig_config.h"
 #include "types/ptrig_config.h.hexarr"
+
+#include "types/ptrig_period.h"
+#include "types/ptrig_period.h.hexarr"
 
 /* ptrig metadata */
 char ptrig_meta[] =
@@ -29,11 +36,13 @@ char ptrig_meta[] =
 /* types defined by ptrig block */
 ubx_type_t ptrig_types[] = {
 	def_struct_type(struct ptrig_config, &ptrig_config_h),
+	def_struct_type(struct ptrig_period, &ptrig_period_h),
 	{ NULL },
 };
 
 /* configuration */
 ubx_config_t ptrig_config[] = {
+	{ .name="period", .type_name = "struct ptrig_period" },
 	{ .name="stacksize", .type_name = "size_t" },
 	{ .name="sched_priority", .type_name = "int" },
 	{ .name="sched_policy", .type_name = "char", .value = { .len=12 } },
@@ -51,12 +60,24 @@ struct ptrig_inf {
 	pthread_cond_t active_cond;
 	struct ptrig_config *trig_list;
 	unsigned int trig_list_len;
+
+	struct ptrig_period period;
 };
 
-/* trigger the configured blocks */
-int trigger_steps(struct ptrig_inf *inf)
+/* the following function is borrowed from rt-tests/cyclictest,
+   GPLv2 */
+static inline void tsnorm(struct timespec *ts)
 {
-	int i, steps, res=-1;
+	while (ts->tv_nsec >= NSEC_PER_SEC) {
+		ts->tv_nsec -= NSEC_PER_SEC;
+		ts->tv_sec++;
+	}
+}
+
+/* trigger the configured blocks */
+static int trigger_steps(struct ptrig_inf *inf)
+{
+	int i, steps, ret=-1;
 
 	for(i=0; i<inf->trig_list_len; i++) {
 		for(steps=0; steps<inf->trig_list[i].num_steps; steps++) {
@@ -65,16 +86,18 @@ int trigger_steps(struct ptrig_inf *inf)
 		}
 	}
 
-	res=0;
+	ret=0;
  out:
-	return res;
+	return ret;
 }
 
 /* thread entry */
 static void* thread_startup(void *arg)
 {
+	int ret = -1;
 	ubx_block_t *b;
 	struct ptrig_inf *inf;
+	struct timespec ts;
 
 	b = (ubx_block_t*) arg;
 	inf = (struct ptrig_inf*) b->private_data;
@@ -87,9 +110,24 @@ static void* thread_startup(void *arg)
 		}
 		pthread_mutex_unlock(&inf->mutex);
 
+		if((ret=clock_gettime(CLOCK_MONOTONIC, &ts))) {
+			ERR2(ret, "clock_gettime failed");
+			goto out;
+		}
+
 		trigger_steps(inf);
+
+		ts.tv_sec += inf->period.sec;
+		ts.tv_nsec += inf->period.usec*NSEC_PER_USEC;
+		tsnorm(&ts);
+
+		if((ret=clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL))) {
+			ERR2(ret, "clock_nanosleep failed");
+			goto out;
+		}
 	}
 
+ out:
 	/* block on cond var that signals block is running */
 	pthread_exit(NULL);
 }
@@ -102,6 +140,9 @@ static void ptrig_handle_config(ubx_block_t *b)
 	size_t stacksize;
 	struct sched_param sched_param; /* prio */
 	struct ptrig_inf *inf=(struct ptrig_inf*) b->private_data;
+
+	/* period */
+	inf->period = *((struct ptrig_period*) ubx_config_get_data_ptr(b, "period", &tmplen));
 
 	/* stacksize */
 	stacksize = *((int*) ubx_config_get_data_ptr(b, "stacksize", &tmplen));
@@ -146,8 +187,8 @@ static void ptrig_handle_config(ubx_block_t *b)
 	if(pthread_attr_setschedparam(&inf->attr, &sched_param))
 		ERR("failed to set sched_policy.sched_priority to %d", sched_param.sched_priority);
 
-	DBG("%s config: policy=%s, prio=%d, stacksize=%lu (0=default size)",
-	    b->name, schedpol_str, sched_param.sched_priority, stacksize);
+	DBG("%s config: period=%lus:%luus, policy=%s, prio=%d, stacksize=%lu (0=default size)",
+	    b->name, inf->period.sec, inf->period.usec, schedpol_str, sched_param.sched_priority, stacksize);
 }
 
 /* init */
