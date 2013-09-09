@@ -15,7 +15,7 @@ ubx.load_module(ni, "std_blocks/hexdump/hexdump.so")
 ubx.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
 ubx.load_module(ni, "std_blocks/webif/webif.so")
 ubx.load_module(ni, "std_blocks/reporter/file_rep.so")
-ubx.load_module(ni, "std_triggers/ptrig/ptrig.so")
+ubx.load_module(ni, "std_blocks/ptrig/ptrig.so")
 
 ubx.ffi_load_types(ni)
 

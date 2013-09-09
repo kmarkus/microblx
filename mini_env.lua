@@ -16,7 +16,7 @@ ubx.load_module(ni, "std_blocks/random/random.so")
 ubx.load_module(ni, "std_blocks/hexdump/hexdump.so")
 ubx.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
 ubx.load_module(ni, "std_blocks/webif/webif.so")
-ubx.load_module(ni, "std_triggers/ptrig/ptrig.so")
+ubx.load_module(ni, "std_blocks/ptrig/ptrig.so")
 
 print("creating instance of 'webif/webif'")
 webif1=ubx.block_create(ni, "webif/webif", "webif1", { port="8888" })

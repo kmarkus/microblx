@@ -10,7 +10,7 @@ ni=ubx.node_create("testnode")
 
 ubx.load_module(ni, "std_types/stdtypes/stdtypes.so")
 ubx.load_module(ni, "std_blocks/webif/webif.so")
-ubx.load_module(ni, "std_triggers/ptrig/ptrig.so")
+ubx.load_module(ni, "std_blocks/ptrig/ptrig.so")
 ubx.ffi_load_types(ni)
 
 print("creating instance of 'webif/webif'")
