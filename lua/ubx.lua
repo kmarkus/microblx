@@ -902,13 +902,15 @@ function M.conn_uni(b1, pname1, b2, pname2, iblock_type, iblock_config, dont_sta
 end
 
 function M.port_out_size(p)
-   if p==nil then error("port_size: port is nil") end
-   return p.out_type.size * p.out_data_len
+   if p==nil then error("port_out_size: port is nil") end
+   if not M.is_outport(p) then error("port "..M.safe_tostr(p.name).." is not an outport") end
+   return tonumber(p.out_type.size * p.out_data_len)
 end
 
 function M.port_in_size(p)
-   if p==nil then error("port_size: port is nil") end
-   return p.out_type.size * p.out_data_len
+   if p==nil then error("port_in_size: port is nil") end
+   if not M.is_inport(p) then error("port_in_size: port "..M.safe_tostr(p.name).." is not an inport") end
+   return tonumber(p.in_type.size * p.in_data_len)
 end
 
 function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
@@ -919,10 +921,17 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
    p1 = M.port_get(b1, pname1)
    p2 = M.port_get(b2, pname2)
 
+   if p1==nil then error("block "..bname1.." has no port '"..M.safe_tostr(pname1).."'") end
+   if p2==nil then error("block "..bname2.." has no port '"..M.safe_tostr(pname2).."'") end
+
+   if not M.is_outport(p1) then error("conn_uni: block "..bname1.."'s port "..pname1.." is not an outport") end
+   if not M.is_inport(p2) then error("conn_uni: block "..bname2.."'s port "..pname2.." is not an inport") end
+
    size = max(M.port_out_size(p1), M.port_in_size(p2))
+   print("size: ", size)
 
    return M.conn_uni(b1, pname1, b2, pname2, "lfds_buffers/cyclic",
-		     {element_num=element_num, element_size=size})
+		     {element_num=element_num, element_size=size}, dont_start)
 end
 
 return M
