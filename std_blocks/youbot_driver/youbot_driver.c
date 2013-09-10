@@ -548,31 +548,31 @@ static int base_proc_errflg(struct youbot_base_info* binf)
 	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
 		if(binf->wheel_inf[i].error_flags & OVERCURRENT) {
 			binf->wheel_inf[i].stats.overcurrent++; fatal_errs++;
-			ERR("OVERCURRENT on wheel %i", i);
+			DBG("OVERCURRENT on wheel %i", i);
 		}
 		if(binf->wheel_inf[i].error_flags & UNDERVOLTAGE) {
 			binf->wheel_inf[i].stats.undervoltage++; fatal_errs++;
-			ERR("UNDERVOLTAGE on wheel %i", i);
+			DBG("UNDERVOLTAGE on wheel %i", i);
 		}
 		if(binf->wheel_inf[i].error_flags & OVERTEMP) {
 			binf->wheel_inf[i].stats.overtemp++; fatal_errs++;
-			ERR("OVERTEMP on wheel %i", i);
+			DBG("OVERTEMP on wheel %i", i);
 		}
 		if(binf->wheel_inf[i].error_flags & HALL_ERR) {
 			binf->wheel_inf[i].stats.hall_err++;
-			ERR("HALL_ERR on wheel %i", i);
+			DBG("HALL_ERR on wheel %i", i);
 		}
 		if(binf->wheel_inf[i].error_flags & ENCODER_ERR) {
 			binf->wheel_inf[i].stats.encoder_err++;
-			ERR("ENCODER_ERR on wheel %i", i);
+			DBG("ENCODER_ERR on wheel %i", i);
 		}
 		if(binf->wheel_inf[i].error_flags & SINE_COMM_INIT_ERR) {
 			binf->wheel_inf[i].stats.sine_comm_init_err++;
-			ERR("SINE_COMM_INIT_ERR on wheel %i", i);
+			DBG("SINE_COMM_INIT_ERR on wheel %i", i);
 		}
 		if(binf->wheel_inf[i].error_flags & EMERGENCY_STOP) {
 			binf->wheel_inf[i].stats.emergency_stop++;
-			ERR("EMERGENCY_STOP on wheel %i", i);
+			DBG("EMERGENCY_STOP on wheel %i", i);
 		}
 		if(binf->wheel_inf[i].error_flags & MODULE_INIT) {
 			/* if (! (binf->mod_init_stat & (1 << i))) DBG("MODULE_INIT set for wheel %d", i); */
@@ -580,7 +580,7 @@ static int base_proc_errflg(struct youbot_base_info* binf)
 		}
 		if(binf->wheel_inf[i].error_flags & EC_TIMEOUT) {
 			binf->wheel_inf[i].stats.ec_timeout++;
-			ERR("EC_TIMEOUT on wheel %i", i);
+			DBG("EC_TIMEOUT on wheel %i", i);
 			if(send_mbx(0, SAP, CLR_EC_TIMEOUT, binf->wheel_inf[i].slave_idx, 0, &dummy)) {
 				ERR("failed to clear EC_TIMEOUT flag");
 				fatal_errs++;
