@@ -30,15 +30,15 @@ local function setup_enums()
    if M.ubx==nil then error("setup_enums called before loading libubx") end
    M.retval_tostr = {
       [0] ='OK',
-      -- [ffi.C.PORT_READ_NODATA] 	  ='PORT_READ_NODATA',
+      -- [ffi.C.PORT_READ_NODATA]	  ='PORT_READ_NODATA',
       -- [ffi.C.PORT_READ_NEWDATA]   ='PORT_READ_NEWDATA',
-      [ffi.C.EPORT_INVALID] 	  ='EPORT_INVALID',
+      [ffi.C.EPORT_INVALID]	  ='EPORT_INVALID',
       [ffi.C.EPORT_INVALID_TYPE]  ='EPORT_INVALID_TYPE',
       [ffi.C.EINVALID_BLOCK_TYPE] ='EINVALID_BLOCK_TYPE',
-      [ffi.C.ENOSUCHBLOCK] 	  ='ENOSUCHBLOCK',
+      [ffi.C.ENOSUCHBLOCK]	  ='ENOSUCHBLOCK',
       [ffi.C.EALREADY_REGISTERED] ='EALREADY_REGISTERED',
-      [ffi.C.EOUTOFMEM] 	  ='EOUTOFMEM',
-      [ffi.C.EINVALID_CONFIG] 	  ='EINVALID_CONFIG'
+      [ffi.C.EOUTOFMEM]		  ='EOUTOFMEM',
+      [ffi.C.EINVALID_CONFIG]	  ='EINVALID_CONFIG'
    }
 
    M.block_type_tostr={
@@ -106,6 +106,12 @@ function M.is_cblock_proto(b) return M.is_cblock(b) and M.is_proto(b) end
 
 --- Is interaction block prototype predicate.
 function M.is_iblock_proto(b) return M.is_iblock(b) and M.is_proto(b) end
+
+
+-- Port predicates
+function M.is_outport(p) return p.out_type_name ~= nil end
+function M.is_inport(p) return p.in_type_name ~= nil end
+function M.is_inoutport(p) return M.is_outport(p) and M.is_inport(p) end
 
 ------------------------------------------------------------------------------
 --                           Node and block API
@@ -842,6 +848,81 @@ function M.port_read_timed(p, data, sec)
       M.clock_mono_gettime(ts_cur)
    end
    error("port_read_timed: timeout after reading "..M.safe_tostr(p.name).." for "..tostring(sec).." seconds")
+end
+
+
+--- Connect two blocks' ports via a unidirectional connection.
+-- @param b1 block1
+-- @param pname1 name of a block1's out port to connect from.
+-- @param b2 block2
+-- @param pname2 name of a block2's in port to connect to
+-- @param iblock_type type of interaction to use
+-- @param configuration for interaction.
+-- @param dont_start if true, then don't start the interaction (stays stopped)
+function M.conn_uni(b1, pname1, b2, pname2, iblock_type, iblock_config, dont_start)
+   local p1, p2, ni, bname1, bname2
+   local ts = ffi.new("struct ubx_timespec")
+
+   if b1==nil or b2==nil then error("parameter 1 or 3 (ubx_block_t) is nil") end
+
+   bname1 = M.safe_tostr(b1.name)
+   bname2 = M.safe_tostr(b2.name)
+
+   ni = b1.ni
+
+   p1 = M.port_get(b1, pname1)
+   p2 = M.port_get(b2, pname2)
+
+   if p1==nil then error("block "..bname1.." has no port '"..M.safe_tostr(pname1).."'") end
+   if p2==nil then error("block "..bname2.." has no port '"..M.safe_tostr(pname2).."'") end
+
+   if not M.is_outport(p1) then error("conn_uni: block "..bname1.."'s port "..pname1.." is not an outport") end
+   if not M.is_inport(p2) then error("conn_uni: block "..bname2.."'s port "..pname2.." is not an inport") end
+
+   -- get time stamp
+   M.clock_mono_gettime(ts)
+
+   local iblock_name = string.format("I_%s.%s->%s.%s_%x:%x",
+				     bname1, pname1, bname2, pname2,
+				     tonumber(ts.sec), tonumber(ts.nsec))
+
+   -- create iblock, configure
+   local ib=M.block_create(ni, iblock_type, iblock_name, iblock_config)
+
+   M.block_init(ib)
+
+   if M.ports_connect_uni(p1, p2, ib) ~= 0 then
+      error("failed to connect "..bname1.."."..pname1.."->"..bname2.."."..pname2)
+   end
+
+   if not dont_start then M.block_start(ib) end
+
+   return ib
+
+end
+
+function M.port_out_size(p)
+   if p==nil then error("port_size: port is nil") end
+   return p.out_type.size * p.out_data_len
+end
+
+function M.port_in_size(p)
+   if p==nil then error("port_size: port is nil") end
+   return p.out_type.size * p.out_data_len
+end
+
+function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
+   local function max(x1, x2) if x1>x2 then return x1; else return x2; end end
+
+   local p1, p2, len
+
+   p1 = M.port_get(b1, pname1)
+   p2 = M.port_get(b2, pname2)
+
+   size = max(M.port_out_size(p1), M.port_in_size(p2))
+
+   return M.conn_uni(b1, pname1, b2, pname2, "lfds_buffers/cyclic",
+		     {element_num=element_num, element_size=size})
 end
 
 return M

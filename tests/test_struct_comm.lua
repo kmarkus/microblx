@@ -67,28 +67,16 @@ end
 lb1=ubx.block_create(ni, "lua/luablock", "lb1", { lua_str=lua_testcomp } )
 fifo1=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, element_size=code_str_len})
 
-fifo_in=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo_in",
-			 {element_num=4, element_size=ubx.type_size(ni, "struct kdl_vector")})
-fifo_out=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo_out",
-			  {element_num=4, element_size=ubx.type_size(ni, "struct kdl_vector")})
-
 assert(ubx.block_init(lb1)==0)
 assert(ubx.block_init(fifo1)==0)
-assert(ubx.block_init(fifo_in)==0)
-assert(ubx.block_init(fifo_out)==0)
 
 p_exec_str=ubx.port_get(lb1, "exec_str")
-p_pos_in=ubx.port_get(lb1, "pos_in")
-p_pos_out=ubx.port_get(lb1, "pos_out")
-
 ubx.connect_one(p_exec_str, fifo1)
-ubx.connect_one(p_pos_in, fifo_in)
-ubx.connect_one(p_pos_out, fifo_out)
+
+ubx.conn_lfds_cyclic(lb1, "pos_out", lb1, "pos_in", 4)
 
 assert(ubx.block_start(lb1)==0)
 assert(ubx.block_start(fifo1)==0)
-assert(ubx.block_start(fifo_in)==0)
-assert(ubx.block_start(fifo_out)==0)
 
 local d1=ubx.data_alloc(ni, "char")
 local d2=ubx.data_alloc(ni, "int")
