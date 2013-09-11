@@ -898,7 +898,6 @@ function M.conn_uni(b1, pname1, b2, pname2, iblock_type, iblock_config, dont_sta
    if not dont_start then M.block_start(ib) end
 
    return ib
-
 end
 
 function M.port_out_size(p)
@@ -928,7 +927,6 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
    if not M.is_inport(p2) then error("conn_uni: block "..bname2.."'s port "..pname2.." is not an inport") end
 
    size = max(M.port_out_size(p1), M.port_in_size(p2))
-   print("size: ", size)
 
    return M.conn_uni(b1, pname1, b2, pname2, "lfds_buffers/cyclic",
 		     {element_num=element_num, element_size=size}, dont_start)
