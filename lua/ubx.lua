@@ -135,7 +135,7 @@ function M.load_module(ni, libfile)
 
 
    local mod=ffi.load(libfile)
-   if mod.__initialize_module(ni) ~= 0 then
+   if mod.__ubx_initialize_module(ni) ~= 0 then
       error("failed to init module "..libfile)
    end
 
@@ -158,7 +158,7 @@ function M.unload_modules(ni)
    local mods = ubx_modules[nodename] or {}
    for _,mod in ipairs(mods) do
       print(nodename..": unloading "..mod.libfile)
-      mod.module.__cleanup_module(ni)
+      mod.module.__ubx_cleanup_module(ni)
    end
    ubx_modules[nodename]={ loaded={}}
 end

@@ -145,5 +145,5 @@ static void random_cleanup(ubx_node_info_t *ni)
 	ubx_block_unregister(ni, "random/random");
 }
 
-module_init(random_init)
-module_cleanup(random_cleanup)
+UBX_MODULE_INIT(random_init)
+UBX_MODULE_CLEANUP(random_cleanup)

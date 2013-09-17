@@ -250,5 +250,5 @@ static void webif_cleanup(ubx_node_info_t *ni)
 	ubx_block_unregister(ni, "webif/webif");
 }
 
-module_init(webif_init)
-module_cleanup(webif_cleanup)
+UBX_MODULE_INIT(webif_init)
+UBX_MODULE_CLEANUP(webif_cleanup)

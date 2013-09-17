@@ -61,5 +61,5 @@ static void hexdump_mod_cleanup(ubx_node_info_t *ni)
 	ubx_block_unregister(ni, "hexdump/hexdump");
 }
 
-module_init(hexdump_mod_init)
-module_cleanup(hexdump_mod_cleanup)
+UBX_MODULE_INIT(hexdump_mod_init)
+UBX_MODULE_CLEANUP(hexdump_mod_cleanup)

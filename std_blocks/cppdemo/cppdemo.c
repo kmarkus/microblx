@@ -89,5 +89,5 @@ static void cppdemo_cleanup(ubx_node_info_t *ni)
 	ubx_block_unregister(ni, "cppdemo/cppdemo");
 }
 
-module_init(cppdemo_init)
-module_cleanup(cppdemo_cleanup)
+UBX_MODULE_INIT(cppdemo_init)
+UBX_MODULE_CLEANUP(cppdemo_cleanup)

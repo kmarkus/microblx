@@ -214,5 +214,5 @@ static void cyclic_mod_cleanup(ubx_node_info_t *ni)
 	ubx_block_unregister(ni, "lfds_buffers/cyclic");
 }
 
-module_init(cyclic_mod_init)
-module_cleanup(cyclic_mod_cleanup)
+UBX_MODULE_INIT(cyclic_mod_init)
+UBX_MODULE_CLEANUP(cyclic_mod_cleanup)

@@ -48,5 +48,5 @@ static void stdtypes_cleanup(ubx_node_info_t *ni)
 		ubx_type_unregister(ni, tptr->name);
 }
 
-module_init(stdtypes_init)
-module_cleanup(stdtypes_cleanup)
+UBX_MODULE_INIT(stdtypes_init)
+UBX_MODULE_CLEANUP(stdtypes_cleanup)

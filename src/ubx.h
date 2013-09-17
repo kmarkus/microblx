@@ -30,11 +30,11 @@ extern "C"
 
 
 /* module init, cleanup */
-#define module_init(initfn) \
-int __initialize_module(ubx_node_info_t* ni) { return initfn(ni); }
+#define UBX_MODULE_INIT(initfn) \
+int __ubx_initialize_module(ubx_node_info_t* ni) { return initfn(ni); }
 
-#define module_cleanup(exitfn) \
-void __cleanup_module(ubx_node_info_t* ni) { exitfn(ni); }
+#define UBX_MODULE_CLEANUP(exitfn)				\
+void __ubx_cleanup_module(ubx_node_info_t* ni) { exitfn(ni); }
 
 /* type definition helpers */
 #define def_basic_ctype(typename) { .name=#typename, .type_class=TYPE_CLASS_BASIC, .size=sizeof(typename) }

@@ -207,5 +207,5 @@ static void file_rep_mod_cleanup(ubx_node_info_t *ni)
 	ubx_block_unregister(ni, "reporter/file_rep");
 }
 
-module_init(file_rep_mod_init)
-module_cleanup(file_rep_mod_cleanup)
+UBX_MODULE_INIT(file_rep_mod_init)
+UBX_MODULE_CLEANUP(file_rep_mod_cleanup)

@@ -1,6 +1,11 @@
 #include <math.h>
 
 #define FIRMWARE_V2
+
+/* firmware bug workaround, limit max current in software
+ * don't deactivate unless you know what you are doing. */
+#define LIMIT_CURRENT_SOFT
+
 /* youbot driver information */
 
 #define YOUBOT_SYSCONF_BASE_ONLY		1
@@ -201,7 +206,7 @@ struct youbot_slave_stats {
  * axis).
  */
 struct youbot_motor_info {
-	uint32_t slave_idx;	/* the index into ec_salve */
+	uint32_t slave_idx;	/* the index into ec_slave */
 
 	int32_t msr_pos;
 	int32_t msr_vel;
@@ -223,8 +228,12 @@ struct youbot_motor_info {
 /* Arm */
 struct youbot_arm_info {
 	uint32_t detected;		/* has been detected and is in use */
+	uint32_t mod_init_stat;		/* bitfield, bit is set for each initialized slave */
 	uint8_t control_mode;		/* current used control mode */
 	struct youbot_motor_info jnt_inf[YOUBOT_NR_OF_JOINTS];
+
+	uint32_t max_cur[YOUBOT_NR_OF_JOINTS];
+
 	struct timespec last_cmd;
 };
 

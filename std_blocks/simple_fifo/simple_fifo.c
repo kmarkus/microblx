@@ -268,5 +268,5 @@ static void fifo_mod_cleanup(ubx_node_info_t *ni)
 	ubx_block_unregister(ni, "examples/simple_fifo");
 }
 
-module_init(fifo_mod_init)
-module_cleanup(fifo_mod_cleanup)
+UBX_MODULE_INIT(fifo_mod_init)
+UBX_MODULE_CLEANUP(fifo_mod_cleanup)

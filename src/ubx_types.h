@@ -16,8 +16,8 @@ struct ubx_node_info;
 /*
  * module and node
  */
-int __initialize_module(struct ubx_node_info *ni);
-void __cleanup_module(struct ubx_node_info *ni);
+int __ubx_initialize_module(struct ubx_node_info *ni);
+void __ubx_cleanup_module(struct ubx_node_info *ni);
 
 /* serialization */
 typedef struct ubx_serialization {
@@ -62,9 +62,6 @@ enum {
 	PORT_DIR_IN 	= 1 << 0,
 	PORT_DIR_OUT 	= 1 << 1,
 	PORT_DIR_INOUT  = PORT_DIR_IN & PORT_DIR_OUT,
-
-	/* */
-	PORT_DROP_
 };
 
 /* Port state */
@@ -80,9 +77,6 @@ enum {
 
 /* return values */
 enum {
-	/* PORT_READ_NODATA   	= -1, */
-	/* PORT_READ_NEWDATA  	= -2, */
-
 	/* ERROR conditions */
 	EPORT_INVALID	    	= -3,
 	EPORT_INVALID_TYPE  	= -4,

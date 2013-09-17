@@ -24,7 +24,6 @@ char youbot_meta[] =
 	"{ doc='A youbot driver block',"
 	"  license='LGPL',"
 	"  real-time=true,"
-	"  aperiodic=true, "
 	"}";
 
 
@@ -36,14 +35,20 @@ ubx_config_t youbot_config[] = {
 ubx_port_t youbot_ports[] = {
 	{ .name="events", .attrs=PORT_DIR_OUT, .in_type_name="unsigned int" },
 
-	{ .name="base_control_mode", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .out_type_name="int32_t" },
+	{ .name="base_control_mode", .attrs=PORT_DIR_INOUT, .in_type_name="int32_t", .out_type_name="int32_t" },
 	{ .name="base_cmd_twist", .attrs=PORT_DIR_IN, .in_type_name="struct kdl_twist" },
-	{ .name="base_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=4 },
-	{ .name="base_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=4 },
+	{ .name="base_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_WHEELS },
+	{ .name="base_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_WHEELS },
 
 	{ .name="base_msr_odom", .attrs=PORT_DIR_OUT, .out_type_name="struct kdl_frame" },
 	{ .name="base_msr_twist", .attrs=PORT_DIR_OUT, .out_type_name="struct kdl_twist" },
 	{ .name="base_motorinfo", .attrs=PORT_DIR_OUT, .out_type_name="struct youbot_base_motorinfo" },
+
+	{ .name="arm_control_mode", .attrs=PORT_DIR_INOUT, .in_type_name="int32_t", .out_type_name="int32_t" },
+	{ .name="arm_cmd_pos", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
+	{ .name="arm_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
+	{ .name="arm_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
+	{ .name="arm_motorinfo", .attrs=PORT_DIR_OUT, .out_type_name="struct youbot_arm_motorinfo" },
 
 	{ NULL },
 };
@@ -53,6 +58,9 @@ ubx_port_t youbot_ports[] = {
 
 #include "types/youbot_base_motorinfo.h"
 #include "types/youbot_base_motorinfo.h.hexarr"
+#include "types/youbot_arm_motorinfo.h"
+#include "types/youbot_arm_motorinfo.h.hexarr"
+
 #include "types/youbot_control_modes.h.hexarr"
 
 ubx_type_t youbot_types[] = {
@@ -281,6 +289,7 @@ static int base_config_params(struct youbot_base_info* binf)
 
 static int arm_config_params(struct youbot_arm_info* ainf)
 {
+#ifndef FIRMWARE_V2
 	int32_t val;
 	int i, ret=-1;
 
@@ -306,131 +315,11 @@ static int arm_config_params(struct youbot_arm_info* ainf)
 	}
  out:
 	return ret;
+#else /* FIRMWARE_V2 */
+	return 0;
+#endif /* FIRMWARE_V2 */
 }
 
-
-/*
- * Microblx driver wrapper starts here.
- */
-
-
-static int youbot_init(ubx_block_t *b)
-{
-	int ret=-1, i, cur_slave;
-	unsigned int interface_len;
-	char* interface;
-	struct youbot_info *inf;
-
-	interface = (char *) ubx_config_get_data_ptr(b, "ethernet_if", &interface_len);
-
-	if(strncmp(interface, "", interface_len)==0) {
-		ERR("config ethernet_if unset");
-		goto out;
-	}
-
-	/* allocate driver data */
-	if((inf=calloc(1, sizeof(struct youbot_info)))==NULL) {
-		ERR("failed to alloc youbot_info");
-		goto out;
-	}
-
-	b->private_data=inf;
-
-	if(ec_init(interface) <= 0) {
-		ERR("ec_init failed (IF=%s), sufficient rights, correct interface?", interface);
-		goto out_free;
-	}
-
-	if(ec_config(TRUE, &inf->io_map) <= 0) {
-		ERR("ec_config failed  (IF=%s)", interface);
-		goto out_free;
-	} else {
-		DBG("detected %d slaves", ec_slavecount);
-	}
-
-	/* Let's see what we have...
-	 * check for base, base is mandatory for a youbot */
-	if(ec_slavecount >= YOUBOT_NR_OF_BASE_SLAVES && validate_base_slaves(1) == 0) {
-		DBG("detected youbot base");
-		inf->base.detected=1;
-
-		for(i=0, cur_slave=2; i<YOUBOT_NR_OF_WHEELS; i++, cur_slave++)
-			inf->base.wheel_inf[i].slave_idx=cur_slave;
-
-	} else {
-		ERR("no base detected");
-		goto out_free;
-	}
-
-	/* check for first arm */
-	if(ec_slavecount >= (YOUBOT_NR_OF_BASE_SLAVES + YOUBOT_NR_OF_ARM_SLAVES) &&
-	   validate_arm_slaves(1+YOUBOT_NR_OF_BASE_SLAVES)) {
-		DBG("detected first youbot arm");
-		inf->arm1.detected=1;
-
-		for(i=0, cur_slave=YOUBOT_NR_OF_BASE_SLAVES+1; i<YOUBOT_NR_OF_JOINTS; i++, cur_slave++)
-			inf->arm1.jnt_inf[i].slave_idx=cur_slave;
-	}
-
-	/* check for second arm */
-	if(ec_slavecount >= (YOUBOT_NR_OF_BASE_SLAVES + (2 * YOUBOT_NR_OF_ARM_SLAVES)) &&
-	   validate_arm_slaves(1+YOUBOT_NR_OF_BASE_SLAVES+YOUBOT_NR_OF_ARM_SLAVES)) {
-		DBG("detected second youbot arm");
-		inf->arm2.detected=1;
-
-		for(i=0, cur_slave=(YOUBOT_NR_OF_BASE_SLAVES+YOUBOT_NR_OF_ARM_SLAVES+1);
-		    i<YOUBOT_NR_OF_JOINTS; i++, cur_slave++)
-			inf->arm2.jnt_inf[i].slave_idx=cur_slave;
-	}
-
-	/* wait for all slaves to reach SAFE_OP state */
-	ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE);
-
-	if(ec_slave[0].state != EC_STATE_SAFE_OP) {
-		ERR("not all slaves reached state safe_operational:");
-		for (i=0; i<=ec_slavecount; i++) {
-			if (ec_slave[i].state != EC_STATE_SAFE_OP) {
-				ERR("\tslave %d (%s) is in state=0x%x, ALstatuscode=0x%x",
-				    i, ec_slave[i].name, ec_slave[i].state, ec_slave[i].ALstatuscode);
-			}
-		}
-		goto out_free;
-	}
-
-	/* send and receive bogus process data to get things going */
-	if(ec_send_processdata() <= 0) {
-		ERR("failed to send bootstrap process data");
-		goto out_free;
-	}
-
-	if(ec_receive_processdata(EC_TIMEOUTRET) == 0) {
-		ERR("failed to receive bootstrap process data");
-		goto out_free;
-	}
-
-	if(inf->base.detected) base_config_params(&inf->base);
-	if(inf->arm1.detected) arm_config_params(&inf->arm1);
-	if(inf->arm2.detected) arm_config_params(&inf->arm2);
-
-#if 0
-	int tmp
-	/* find firmware version */
-	if(send_mbx(0, FIRMWARE_VERSION, 1, 0, 0, &tmp)) {
-		ERR("Failed to read firmware version");
-		goto out;
-	}
-	else
-		DBG("youbot firmware version %d", tmp);
-
-#endif
-	ret=0;
-	goto out;
-
- out_free:
-	free(b->private_data);
- out:
-	return ret;
-}
 
 /* set all commanded quantities to zero */
 static int base_prepare_start(struct youbot_base_info *base)
@@ -458,14 +347,24 @@ static int base_prepare_start(struct youbot_base_info *base)
 static int arm_prepare_start(struct youbot_arm_info *arm)
 {
 	int i, ret=-1;
-	int32_t dummy;
+	int32_t val;
 
 	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
 		arm->jnt_inf[i].cmd_val=0;
 
+#ifdef LIMIT_CURRENT_SOFT
+	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
+		if(send_mbx(0, GAP, MAX_CURRENT, arm->jnt_inf[i].slave_idx, 0, &val)) {
+			ERR("failed to get MAX_CURRENT for slave %d", arm->jnt_inf[i].slave_idx);
+			goto out;
+		}
+		arm->max_cur[i]=val;
+	}
+#endif
+
 	/* reset EC_TIMEOUT */
 	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
-		if(send_mbx(0, SAP, CLR_EC_TIMEOUT, arm->jnt_inf[i].slave_idx, 0, &dummy)) {
+		if(send_mbx(0, SAP, CLR_EC_TIMEOUT, arm->jnt_inf[i].slave_idx, 0, &val)) {
 			ERR("failed to clear EC_TIMEOUT");
 			goto out;
 		}
@@ -478,65 +377,14 @@ static int arm_prepare_start(struct youbot_arm_info *arm)
 
 
 
-static int youbot_start(ubx_block_t *b)
-{
-	DBG(" ");
-	int ret=-1, i;
-	struct youbot_info *inf=b->private_data;
 
-	/* reset old commands */
-	if(inf->base.detected && base_prepare_start(&inf->base) != 0) goto out;
-	if(inf->arm1.detected && arm_prepare_start(&inf->arm1) != 0) goto out;
-	if(inf->arm2.detected && arm_prepare_start(&inf->arm2) != 0) goto out;
 
-	/* requesting operational for all slaves */
-	ec_slave[0].state = EC_STATE_OPERATIONAL;
-	ec_writestate(0);
-
-	/* wait for all slaves to reach SAFE_OP state */
-	ec_statecheck(0, EC_STATE_OPERATIONAL, EC_TIMEOUTSTATE);
-
-	if(ec_slave[0].state != EC_STATE_OPERATIONAL) {
-		ERR("not all slaves reached state operational:");
-		for (i=0; i<=ec_slavecount; i++) {
-			if (ec_slave[i].state != EC_STATE_OPERATIONAL) {
-				ERR("\tslave %d (%s) is in state=0x%x, ALstatuscode=0x%x",
-				    i, ec_slave[i].name, ec_slave[i].state, ec_slave[i].ALstatuscode);
-			}
-		}
-		goto out;
-	}
-
-	/* get things rolling */
-	if (ec_send_processdata() <= 0) {
-		inf->pd_send_err++;
-		ERR("sending initial process data failed");
-	}
-
-	/* cache port pointers */
-	assert(inf->base.p_control_mode = ubx_port_get(b, "base_control_mode"));
-	assert(inf->base.p_cmd_twist = ubx_port_get(b, "base_cmd_twist"));
-	assert(inf->base.p_cmd_vel = ubx_port_get(b, "base_cmd_vel"));
-	assert(inf->base.p_cmd_cur = ubx_port_get(b, "base_cmd_cur"));
-	assert(inf->base.p_msr_odom = ubx_port_get(b, "base_msr_odom"));
-	assert(inf->base.p_msr_twist = ubx_port_get(b, "base_msr_twist"));
-	assert(inf->base.p_base_motorinfo = ubx_port_get(b, "base_motorinfo"));
-
-	ret=0;
- out:
-	return ret;
-}
-
-static void youbot_stop(ubx_block_t *b)
-{
-	DBG(" ");
-}
 
 /**
  * base_proc_errflg - update statistics and return number of fatal
  * errors.
  *
- * @param minf
+ * @param binf
  *
  * @return number of fatal errors
  */
@@ -725,13 +573,13 @@ static int base_is_configured(struct youbot_base_info* base)
 }
 
 /**
- * check_watchdog - check if expired or trigger.
+ * base_check_watchdog - check if expired or trigger.
  * currently only second resolution!
  *
  * @param base
  * @param trig if != 0 then trigger watchdog
  */
-static void check_watchdog(struct youbot_base_info* base, int trig)
+static void base_check_watchdog(struct youbot_base_info* base, int trig)
 {
 	struct timespec ts_cur;
 
@@ -813,7 +661,7 @@ static int base_proc_update(struct youbot_base_info* base)
 		for(i=0; i<YOUBOT_NR_OF_WHEELS; i++)
 			base->wheel_inf[i].cmd_val=0;
 
-		check_watchdog(base, 1);
+		base_check_watchdog(base, 1);
 	}
 
 	base_output_msr_data(base);
@@ -827,17 +675,17 @@ static int base_proc_update(struct youbot_base_info* base)
 		if(read_int4(base->p_cmd_vel, &cmd_cur_vel) == 4) { /* raw velocity */
 			for(i=0; i<YOUBOT_NR_OF_WHEELS; i++)
 				base->wheel_inf[i].cmd_val=cmd_cur_vel[i];
-			check_watchdog(base, 1);
+			base_check_watchdog(base, 1);
 		} else if (read_kdl_twist(base->p_cmd_twist, &base->cmd_twist) > 0) { /* twist */
 			twist_to_wheel_val(base);
-			check_watchdog(base, 1);
+			base_check_watchdog(base, 1);
 		} else { /* no new data */
 			/* if cmd_vel is zero, trigger watchdog */
 			if(base->wheel_inf[0].cmd_val==0 && base->wheel_inf[1].cmd_val==0 &&
 			   base->wheel_inf[2].cmd_val==0 && base->wheel_inf[3].cmd_val==0) {
-				check_watchdog(base, 1);
+				base_check_watchdog(base, 1);
 			} else {
-				check_watchdog(base, 0);
+				base_check_watchdog(base, 0);
 			}
 		}
 		break;
@@ -845,13 +693,13 @@ static int base_proc_update(struct youbot_base_info* base)
 		if(read_int4(base->p_cmd_cur, &cmd_cur_vel) == 4) { /* raw velocity */
 			for(i=0; i<YOUBOT_NR_OF_WHEELS; i++)
 				base->wheel_inf[i].cmd_val=cmd_cur_vel[i];
-			check_watchdog(base, 1);
+			base_check_watchdog(base, 1);
 		} else {
 			if(base->wheel_inf[0].cmd_val==0 && base->wheel_inf[1].cmd_val==0 &&
 			   base->wheel_inf[2].cmd_val==0 && base->wheel_inf[3].cmd_val==0) {
-				check_watchdog(base, 1);
+				base_check_watchdog(base, 1);
 			} else {
-				check_watchdog(base, 0);
+				base_check_watchdog(base, 0);
 			}
 		}
 		break;
@@ -875,6 +723,196 @@ static int base_proc_update(struct youbot_base_info* base)
 	return ret;
 }
 
+static int arm_is_configured(struct youbot_arm_info* arm)
+{
+	return (arm->mod_init_stat == ((1 << YOUBOT_NR_OF_JOINTS)-1));
+}
+
+static int arm_proc_update(struct youbot_arm_info* arm)
+{
+	int ret=-1;
+	/* TODO: copy base proc_update code here and */
+	return ret;
+}
+
+/*
+ * Microblx driver wrapper starts here.
+ */
+
+
+static int youbot_init(ubx_block_t *b)
+{
+	int ret=-1, i, cur_slave;
+	unsigned int interface_len;
+	char* interface;
+	struct youbot_info *inf;
+
+	interface = (char *) ubx_config_get_data_ptr(b, "ethernet_if", &interface_len);
+
+	if(strncmp(interface, "", interface_len)==0) {
+		ERR("config ethernet_if unset");
+		goto out;
+	}
+
+	/* allocate driver data */
+	if((inf=calloc(1, sizeof(struct youbot_info)))==NULL) {
+		ERR("failed to alloc youbot_info");
+		goto out;
+	}
+
+	b->private_data=inf;
+
+	if(ec_init(interface) <= 0) {
+		ERR("ec_init failed (IF=%s), sufficient rights, correct interface?", interface);
+		goto out_free;
+	}
+
+	if(ec_config(TRUE, &inf->io_map) <= 0) {
+		ERR("ec_config failed  (IF=%s)", interface);
+		goto out_free;
+	} else {
+		DBG("detected %d slaves", ec_slavecount);
+	}
+
+	/* Let's see what we have...
+	 * check for base, base is mandatory for a youbot */
+	if(ec_slavecount >= YOUBOT_NR_OF_BASE_SLAVES && validate_base_slaves(1) == 0) {
+		DBG("detected youbot base");
+		inf->base.detected=1;
+
+		for(i=0, cur_slave=2; i<YOUBOT_NR_OF_WHEELS; i++, cur_slave++)
+			inf->base.wheel_inf[i].slave_idx=cur_slave;
+
+	} else {
+		ERR("no base detected");
+		goto out_free;
+	}
+
+	/* check for first arm */
+	if(ec_slavecount >= (YOUBOT_NR_OF_BASE_SLAVES + YOUBOT_NR_OF_ARM_SLAVES) &&
+	   validate_arm_slaves(1+YOUBOT_NR_OF_BASE_SLAVES)) {
+		DBG("detected first youbot arm");
+		inf->arm1.detected=1;
+
+		for(i=0, cur_slave=YOUBOT_NR_OF_BASE_SLAVES+1; i<YOUBOT_NR_OF_JOINTS; i++, cur_slave++)
+			inf->arm1.jnt_inf[i].slave_idx=cur_slave;
+	}
+
+	/* check for second arm */
+	if(ec_slavecount >= (YOUBOT_NR_OF_BASE_SLAVES + (2 * YOUBOT_NR_OF_ARM_SLAVES)) &&
+	   validate_arm_slaves(1+YOUBOT_NR_OF_BASE_SLAVES+YOUBOT_NR_OF_ARM_SLAVES)) {
+		DBG("detected second youbot arm");
+		inf->arm2.detected=1;
+
+		for(i=0, cur_slave=(YOUBOT_NR_OF_BASE_SLAVES+YOUBOT_NR_OF_ARM_SLAVES+1);
+		    i<YOUBOT_NR_OF_JOINTS; i++, cur_slave++)
+			inf->arm2.jnt_inf[i].slave_idx=cur_slave;
+	}
+
+	/* wait for all slaves to reach SAFE_OP state */
+	ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE);
+
+	if(ec_slave[0].state != EC_STATE_SAFE_OP) {
+		ERR("not all slaves reached state safe_operational:");
+		for (i=0; i<=ec_slavecount; i++) {
+			if (ec_slave[i].state != EC_STATE_SAFE_OP) {
+				ERR("\tslave %d (%s) is in state=0x%x, ALstatuscode=0x%x",
+				    i, ec_slave[i].name, ec_slave[i].state, ec_slave[i].ALstatuscode);
+			}
+		}
+		goto out_free;
+	}
+
+	/* send and receive bogus process data to get things going */
+	if(ec_send_processdata() <= 0) {
+		ERR("failed to send bootstrap process data");
+		goto out_free;
+	}
+
+	if(ec_receive_processdata(EC_TIMEOUTRET) == 0) {
+		ERR("failed to receive bootstrap process data");
+		goto out_free;
+	}
+
+	if(inf->base.detected) base_config_params(&inf->base);
+	if(inf->arm1.detected) arm_config_params(&inf->arm1);
+	if(inf->arm2.detected) arm_config_params(&inf->arm2);
+
+#if 0
+	int tmp
+	/* find firmware version */
+	if(send_mbx(0, FIRMWARE_VERSION, 1, 0, 0, &tmp)) {
+		ERR("Failed to read firmware version");
+		goto out;
+	}
+	else
+		DBG("youbot firmware version %d", tmp);
+
+#endif
+	ret=0;
+	goto out;
+
+ out_free:
+	free(b->private_data);
+ out:
+	return ret;
+}
+
+
+static int youbot_start(ubx_block_t *b)
+{
+	DBG(" ");
+	int ret=-1, i;
+	struct youbot_info *inf=b->private_data;
+
+	/* reset old commands */
+	if(inf->base.detected && base_prepare_start(&inf->base) != 0) goto out;
+	if(inf->arm1.detected && arm_prepare_start(&inf->arm1) != 0) goto out;
+	if(inf->arm2.detected && arm_prepare_start(&inf->arm2) != 0) goto out;
+
+	/* requesting operational for all slaves */
+	ec_slave[0].state = EC_STATE_OPERATIONAL;
+	ec_writestate(0);
+
+	/* wait for all slaves to reach SAFE_OP state */
+	ec_statecheck(0, EC_STATE_OPERATIONAL, EC_TIMEOUTSTATE);
+
+	if(ec_slave[0].state != EC_STATE_OPERATIONAL) {
+		ERR("not all slaves reached state operational:");
+		for (i=0; i<=ec_slavecount; i++) {
+			if (ec_slave[i].state != EC_STATE_OPERATIONAL) {
+				ERR("\tslave %d (%s) is in state=0x%x, ALstatuscode=0x%x",
+				    i, ec_slave[i].name, ec_slave[i].state, ec_slave[i].ALstatuscode);
+			}
+		}
+		goto out;
+	}
+
+	/* get things rolling */
+	if (ec_send_processdata() <= 0) {
+		inf->pd_send_err++;
+		ERR("sending initial process data failed");
+	}
+
+	/* cache port pointers */
+	assert(inf->base.p_control_mode = ubx_port_get(b, "base_control_mode"));
+	assert(inf->base.p_cmd_twist = ubx_port_get(b, "base_cmd_twist"));
+	assert(inf->base.p_cmd_vel = ubx_port_get(b, "base_cmd_vel"));
+	assert(inf->base.p_cmd_cur = ubx_port_get(b, "base_cmd_cur"));
+	assert(inf->base.p_msr_odom = ubx_port_get(b, "base_msr_odom"));
+	assert(inf->base.p_msr_twist = ubx_port_get(b, "base_msr_twist"));
+	assert(inf->base.p_base_motorinfo = ubx_port_get(b, "base_motorinfo"));
+
+	ret=0;
+ out:
+	return ret;
+}
+
+static void youbot_stop(ubx_block_t *b)
+{
+	DBG(" ");
+}
+
 
 static void youbot_step(ubx_block_t *b)
 {
@@ -888,9 +926,9 @@ static void youbot_step(ubx_block_t *b)
 		goto out_send;
 	}
 
-	/* process update */
-	if(inf->base.detected)
-		base_proc_update(&inf->base);
+	if(inf->base.detected) base_proc_update(&inf->base);
+	if(inf->arm1.detected) arm_proc_update(&inf->arm1);
+	if(inf->arm2.detected) arm_proc_update(&inf->arm2);
 
 out_send:
 
@@ -927,6 +965,7 @@ ubx_block_t youbot_comp = {
 	.cleanup = youbot_cleanup,
 };
 
+/* module init and cleanup */
 static int youbot_mod_init(ubx_node_info_t* ni)
 {
 	DBG(" ");
@@ -948,5 +987,5 @@ static void youbot_mod_cleanup(ubx_node_info_t *ni)
 	ubx_block_unregister(ni, "youbot/youbot_driver");
 }
 
-module_init(youbot_mod_init)
-module_cleanup(youbot_mod_cleanup)
+UBX_MODULE_INIT(youbot_mod_init)
+UBX_MODULE_CLEANUP(youbot_mod_cleanup)

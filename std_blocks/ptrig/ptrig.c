@@ -330,5 +330,5 @@ static void ptrig_mod_cleanup(ubx_node_info_t *ni)
 	ubx_block_unregister(ni, "std_triggers/ptrig");
 }
 
-module_init(ptrig_mod_init)
-module_cleanup(ptrig_mod_cleanup)
+UBX_MODULE_INIT(ptrig_mod_init)
+UBX_MODULE_CLEANUP(ptrig_mod_cleanup)

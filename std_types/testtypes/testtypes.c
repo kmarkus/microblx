@@ -38,5 +38,5 @@ static void testtypes_cleanup(ubx_node_info_t *ni)
 		ubx_type_unregister(ni, tptr->name);
 }
 
-module_init(testtypes_init)
-module_cleanup(testtypes_cleanup)
+UBX_MODULE_INIT(testtypes_init)
+UBX_MODULE_CLEANUP(testtypes_cleanup)

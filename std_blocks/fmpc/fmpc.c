@@ -102,17 +102,17 @@ ubx_block_t fmpc_comp = {
 	.cleanup = fmpc_cleanup,
 };
 
-static int fmpc_module_init(ubx_node_info_t* ni)
+static int fmpc_UBX_MODULE_INIT(ubx_node_info_t* ni)
 {
 	DBG(" ");
 	return ubx_block_register(ni, &fmpc_comp);
 }
 
-static void fmpc_module_cleanup(ubx_node_info_t *ni)
+static void fmpc_UBX_MODULE_CLEANUP(ubx_node_info_t *ni)
 {
 	DBG(" ");
 	ubx_block_unregister(ni, "fmpc/fmpc");
 }
 
-module_init(fmpc_module_init)
-module_cleanup(fmpc_module_cleanup)
+UBX_MODULE_INIT(fmpc_UBX_MODULE_INIT)
+UBX_MODULE_CLEANUP(fmpc_UBX_MODULE_CLEANUP)

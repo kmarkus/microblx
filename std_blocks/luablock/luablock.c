@@ -246,5 +246,5 @@ static void lua_cleanup(ubx_node_info_t *ni)
 	ubx_block_unregister(ni, "lua/luablock");
 }
 
-module_init(lua_init)
-module_cleanup(lua_cleanup)
+UBX_MODULE_INIT(lua_init)
+UBX_MODULE_CLEANUP(lua_cleanup)
