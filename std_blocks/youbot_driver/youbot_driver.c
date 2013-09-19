@@ -49,8 +49,9 @@ ubx_port_t youbot_ports[] = {
 	/* arm */
 	{ .name="arm1_control_mode", .attrs=PORT_DIR_INOUT, .in_type_name="int32_t", .out_type_name="int32_t" },
 	{ .name="arm1_calibrate_cmd", .attrs=PORT_DIR_IN, .in_type_name="int32_t" },
-	{ .name="arm1_cmd_pos", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
-	{ .name="arm1_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
+	{ .name="arm1_cmd_pos", .attrs=PORT_DIR_IN, .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS },
+	{ .name="arm1_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS },
+	{ .name="arm1_cmd_eff", .attrs=PORT_DIR_IN, .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS },
 	{ .name="arm1_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
 
 	{ .name="arm1_motorinfo", .attrs=PORT_DIR_OUT, .out_type_name="struct youbot_arm_motorinfo" },
@@ -99,6 +100,7 @@ def_write_fun(write_int, int32_t)
 
 def_read_arr_fun(read_int4, int32_t, 4)
 def_read_arr_fun(read_int5, int32_t, 5)
+def_read_arr_fun(read_double5, double, 5)
 
 def_read_fun(read_kdl_twist, struct kdl_twist)
 def_write_fun(write_kdl_twist, struct kdl_twist)
@@ -304,6 +306,8 @@ int set_param(uint32_t slave_nr, uint8_t param_nr, int32_t val)
 
 static int base_config_params(struct youbot_base_info* binf)
 {
+	binf->control_mode = YOUBOT_CMODE_INITIALIZE;
+
 #ifndef FIRMWARE_V2
 	int i;
 	for(i=0; i<YOUBOT_NR_OF_WHEELS; i++) {
@@ -317,12 +321,13 @@ static int base_config_params(struct youbot_base_info* binf)
 		set_param(binf->wheel_inf[i].slave_idx, 254, 1); // invert hall sensor
 	}
 #endif
-	binf->control_mode = YOUBOT_CMODE_INITIALIZE;
 	return 0;
 }
 
 static int arm_config_params(struct youbot_arm_info* ainf)
 {
+	ainf->control_mode = YOUBOT_CMODE_INITIALIZE;
+
 #ifndef FIRMWARE_V2
 	int32_t val;
 	int i, ret=-1;
@@ -337,17 +342,6 @@ static int arm_config_params(struct youbot_arm_info* ainf)
 		set_param(ainf->jnt_inf[i].slave_idx, 253, 16); // nr motor poles
 		set_param(ainf->jnt_inf[i].slave_idx, 254, 1); // invert hall sensor
 	}
-
-	/* read max_current into local data */
-	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
-		if(send_mbx(0, GAP, MAX_CURRENT, ainf->jnt_inf[i].slave_idx, 0, &val)) {
-			ERR("reading MAX_CURRENT failed");
-			goto out;
-		}
-		ainf->jnt_inf[i].max_cur = val;
-		DBG("limiting axis[%d] to max_current %d", i, val);
-	}
- out:
 	return ret;
 #else /* FIRMWARE_V2 */
 	return 0;
@@ -392,7 +386,8 @@ static int arm_prepare_start(struct youbot_arm_info *arm)
 			ERR("failed to get MAX_CURRENT for slave %d", arm->jnt_inf[i].slave_idx);
 			goto out;
 		}
-		arm->max_cur[i]=val;
+		arm->jnt_inf[i].max_cur = val;
+		DBG("limiting axis[%d] to max_current %d", i, val);
 	}
 #endif
 
@@ -876,7 +871,7 @@ static void arm_output_msr_data(struct youbot_arm_info* arm)
  *
  * @param arm pointer to struct youbot_arm_info
  *
- * @return 0 when completed, non-zero otherwise.
+ * @return 1 when completed, zero otherwise.
  */
 static int arm_move_to_lim(struct youbot_arm_info* arm)
 {
@@ -890,15 +885,16 @@ static int arm_move_to_lim(struct youbot_arm_info* arm)
 			arm->jnt_inf[i].cmd_val = 0;
 			arm->axis_at_limit[i]=1;
 		} else if(arm->axis_at_limit[i] != 1) { /* not finished yet */
-			arm->jnt_inf[i].cmd_val = arm_calib_move_in_vel[i] / ((double) ARM_RPM_TO_VEL);
+			arm->jnt_inf[i].cmd_val = arm_calib_move_in_vel[i] / ARM_RPM_TO_VEL;
 		}
 		ret = ret && arm->axis_at_limit[i];
 	}
 
 	/* are we in limits? */
-	if(ret==0) {
-		for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
+	if(ret==1) {
+		for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
 			arm->axis_at_limit[i]=0;
+		}
 	}
 
 	return ret;
@@ -910,8 +906,9 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 	int32_t cm;
 	in_motor_t *motor_in;
 	out_motor_t *motor_out;
-	int32_t cmd_pos[YOUBOT_NR_OF_JOINTS];
-	int32_t cmd_vel[YOUBOT_NR_OF_JOINTS];
+	double cmd_pos[YOUBOT_NR_OF_JOINTS];
+	double cmd_vel[YOUBOT_NR_OF_JOINTS];
+	double cmd_eff[YOUBOT_NR_OF_JOINTS];
 	int32_t cmd_cur[YOUBOT_NR_OF_JOINTS];
 
 	/* copy data */
@@ -939,11 +936,32 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 		write_int(arm->p_control_mode, &tmp);
 	}
 
+	arm_output_msr_data(arm);
+
 	/* calibration requested? */
 	if(read_int(arm->p_calibrate_cmd, &tmp) > 0) {
 		DBG("calibration: starting");
 		arm->calibrating=1;
-		goto handle_calib;
+	}
+
+	if(arm->calibrating) {
+		/* moving to limits */
+		if(arm->calibrating == 1) {
+			if(arm_move_to_lim(arm)==1) {
+				arm->calibrating=2;
+				arm->control_mode=YOUBOT_CMODE_SET_POSITION_TO_REFERENCE;
+				DBG("calibration: setting refpos");
+			}
+		} else if(arm->calibrating == 2) {
+			/* move to home? */
+			arm->calibrating=0;
+			arm->control_mode=YOUBOT_CMODE_MOTORSTOP;
+			DBG("calibration: completed!");
+		}
+
+		/* when calibrating, control mode switches, etc are
+		 * not allowed */
+		goto handle_cm;
 	}
 
 	/* new control mode? */
@@ -965,60 +983,44 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 			arm->jnt_inf[i].cmd_val=0;
 	}
 
- handle_calib:
-	if(arm->calibrating) {
-		/* moving to limits */
-		if(arm->calibrating == 1) {
-			if(arm_move_to_lim(arm)==0) {
-				arm->calibrating=2;
-				arm->control_mode=YOUBOT_CMODE_SET_POSITION_TO_REFERENCE;
-				DBG("calibration: setting refpos");
-			}
-		} else if(arm->calibrating == 2) {
-			/* move to home? */
-			arm->calibrating=0;
-			arm->control_mode=YOUBOT_CMODE_MOTORSTOP;
-			DBG("calibration: completed!");
-		}
-	}
-
-	/* output this while calibrating? why not ... */
-	arm_output_msr_data(arm);
-
  handle_cm:
 	switch(arm->control_mode) {
 	case YOUBOT_CMODE_MOTORSTOP:
 		break;
 	case YOUBOT_CMODE_POSITIONING:
-		if(read_int5(arm->p_cmd_pos, &cmd_pos) == YOUBOT_NR_OF_JOINTS) { /* raw velocity */
+		if(read_double5(arm->p_cmd_pos, &cmd_pos) == YOUBOT_NR_OF_JOINTS) { /* raw velocity */
 			for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
-				arm->jnt_inf[i].cmd_val = cmd_pos[i] / ((double) ARM_TICKS_TO_POS);
+				arm->jnt_inf[i].cmd_val = cmd_pos[i] / ARM_TICKS_TO_POS;
 		}
 		break;
 	case YOUBOT_CMODE_VELOCITY:
-		if(read_int5(arm->p_cmd_vel, &cmd_vel) == YOUBOT_NR_OF_JOINTS) { /* raw velocity */
+		if(read_double5(arm->p_cmd_vel, &cmd_vel) == YOUBOT_NR_OF_JOINTS) { /* raw velocity */
 			for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
-				arm->jnt_inf[i].cmd_val = cmd_vel[i] / ((double) ARM_RPM_TO_VEL);
+				arm->jnt_inf[i].cmd_val = cmd_vel[i] / ARM_RPM_TO_VEL;
 		}
 		break;
 	case YOUBOT_CMODE_CURRENT:
-		if(read_int5(arm->p_cmd_cur, &cmd_cur) == YOUBOT_NR_OF_JOINTS) { /* raw current */
+		if(read_double5(arm->p_cmd_eff, &cmd_eff) == YOUBOT_NR_OF_JOINTS) { /* efforts */
 			for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
-				arm->jnt_inf[i].cmd_val = cmd_cur[i] / ((double) ARM_CUR_TO_EFF);
+				arm->jnt_inf[i].cmd_val = cmd_eff[i] / ARM_CUR_TO_EFF;
+		} else if(read_int5(arm->p_cmd_cur, &cmd_cur) == YOUBOT_NR_OF_JOINTS) { /* raw current */
+			for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
+				arm->jnt_inf[i].cmd_val = cmd_cur[i];
 		}
 		break;
 	case YOUBOT_CMODE_INITIALIZE:
 		break;
 	case YOUBOT_CMODE_SET_POSITION_TO_REFERENCE:
-		for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
-			arm->jnt_inf[i].cmd_val = arm_calib_ref_pos[i] / ((double) ARM_TICKS_TO_POS);
+		for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
+			arm->jnt_inf[i].cmd_val = arm_calib_ref_pos[i] / ARM_TICKS_TO_POS;
+			DBG("setting ref pos on axis %d to %d", i, arm->jnt_inf[i].cmd_val);
+		}
 		break;
 	default:
 		ERR("unexpected control_mode: %d, switching to MOTORSTOP", arm->control_mode);
 		arm->control_mode = YOUBOT_CMODE_MOTORSTOP;
 		break;
 	}
-
 
 	/* copy cmd_val to output buffer */
 	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
@@ -1087,22 +1089,23 @@ static int youbot_init(ubx_block_t *b)
 
 	/* check for first arm */
 	if(ec_slavecount >= (YOUBOT_NR_OF_BASE_SLAVES + YOUBOT_NR_OF_ARM_SLAVES) &&
-	   validate_arm_slaves(1+YOUBOT_NR_OF_BASE_SLAVES)) {
-		DBG("detected first youbot arm");
+	   validate_arm_slaves(1+YOUBOT_NR_OF_BASE_SLAVES)==0) {
+		DBG("detected youbot arm #1 (first slave=%d)", cur_slave);
 		inf->arm1.detected=1;
+		cur_slave++; /* skip the power board */
 
-		for(i=0, cur_slave=YOUBOT_NR_OF_BASE_SLAVES+1; i<YOUBOT_NR_OF_JOINTS; i++, cur_slave++)
+		for(i=0; i<YOUBOT_NR_OF_JOINTS; i++, cur_slave++)
 			inf->arm1.jnt_inf[i].slave_idx=cur_slave;
 	}
 
 	/* check for second arm */
 	if(ec_slavecount >= (YOUBOT_NR_OF_BASE_SLAVES + (2 * YOUBOT_NR_OF_ARM_SLAVES)) &&
-	   validate_arm_slaves(1+YOUBOT_NR_OF_BASE_SLAVES+YOUBOT_NR_OF_ARM_SLAVES)) {
-		DBG("detected second youbot arm");
+	   validate_arm_slaves(1+YOUBOT_NR_OF_BASE_SLAVES+YOUBOT_NR_OF_ARM_SLAVES)==0) {
+		DBG("detected youbot arm #2 (first slave=%d)", cur_slave);
 		inf->arm2.detected=1;
+		cur_slave++; /* skip the power board */
 
-		for(i=0, cur_slave=(YOUBOT_NR_OF_BASE_SLAVES+YOUBOT_NR_OF_ARM_SLAVES+1);
-		    i<YOUBOT_NR_OF_JOINTS; i++, cur_slave++)
+		for(i=0; i<YOUBOT_NR_OF_JOINTS; i++, cur_slave++)
 			inf->arm2.jnt_inf[i].slave_idx=cur_slave;
 	}
 
@@ -1205,6 +1208,7 @@ static int youbot_start(ubx_block_t *b)
 	assert(inf->arm1.p_cmd_pos = ubx_port_get(b, "arm1_cmd_pos"));
 	assert(inf->arm1.p_cmd_vel = ubx_port_get(b, "arm1_cmd_vel"));
 	assert(inf->arm1.p_cmd_cur = ubx_port_get(b, "arm1_cmd_cur"));
+	assert(inf->arm1.p_cmd_eff = ubx_port_get(b, "arm1_cmd_eff"));
 	assert(inf->arm1.p_arm_state = ubx_port_get(b, "arm1_state"));
 	assert(inf->arm1.p_arm_motorinfo = ubx_port_get(b, "arm1_motorinfo"));
 	assert(inf->arm1.p_gripper = ubx_port_get(b, "arm1_gripper"));

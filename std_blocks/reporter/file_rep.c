@@ -162,7 +162,6 @@ static int file_rep_start(ubx_block_t *b)
  */
 static void file_rep_step(ubx_block_t *b)
 {
-	DBG(" %p", b);
 	call_hook(b, "step", 0, 0);
 	return;
 }

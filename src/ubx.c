@@ -1685,7 +1685,8 @@ uint32_t __port_read(ubx_port_t* port, ubx_data_t* data)
 
 	if(port->in_type != data->type) {
 		tp=get_typename(data);
-		ERR("mismatching types, data: %s, port: %s", tp, port->in_type->name);
+		ERR("port %s, mismatching types, data: %s, port: %s",
+		    port->name, tp, port->in_type->name);
 		goto out;
 	}
 
@@ -1731,7 +1732,8 @@ void __port_write(ubx_port_t* port, ubx_data_t* data)
 
 	if(port->out_type != data->type) {
 		tp=get_typename(data);
-		ERR("mismatching types data: %s, port: %s", tp, port->out_type->name);
+		ERR("port %s, mismatching types, data: %s, port: %s",
+		    port->name, tp, port->out_type->name);
 		goto out;
 	}
 

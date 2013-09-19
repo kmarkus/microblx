@@ -174,8 +174,8 @@ static const double YOUBOT_ARM_JOINT_TORQUE_CONSTANTS[YOUBOT_NR_OF_JOINTS] = {0.
 static const double arm_calib_ref_pos[YOUBOT_NR_OF_JOINTS] = {2.8793, 1.1414, 2.50552, 1.76662, 2.8767};
 static const int32_t arm_calib_cur_high[YOUBOT_NR_OF_JOINTS] = {1000, 1500, 1000, 500, 400};
 
-static const int32_t arm_calib_move_in_vel[YOUBOT_NR_OF_JOINTS] = {0.005, 0.005, 0.005, 0.005, 0.005 };
-static const int32_t arm_calib_move_out_vel[YOUBOT_NR_OF_JOINTS] = {-0.02, -0.02, -0.02, -0.02, -0.02 };
+static const double_t arm_calib_move_in_vel[YOUBOT_NR_OF_JOINTS] = {0.05, 0.05, 0.05, 0.05, 0.05 };
+static const double arm_calib_move_out_vel[YOUBOT_NR_OF_JOINTS] = {-0.02, -0.02, -0.02, -0.02, -0.02 };
 
 #define ARM_TICKS_TO_POS	(2 * M_PI / (YOUBOT_ARM_JOINT_GEAR_RATIOS[i] * YOUBOT_TICKS_PER_REVOLUTION))
 #define ARM_RPM_TO_VEL		(2 * M_PI / (60 * YOUBOT_ARM_JOINT_GEAR_RATIOS[i]))
@@ -242,8 +242,6 @@ struct youbot_arm_info {
 	int8_t control_mode;		/* currently used control mode */
 	struct youbot_motor_info jnt_inf[YOUBOT_NR_OF_JOINTS];
 
-	uint32_t max_cur[YOUBOT_NR_OF_JOINTS];
-
 	/* calibration stuff */
 	int calibrating;
 	int axis_at_limit[YOUBOT_NR_OF_JOINTS];
@@ -253,6 +251,7 @@ struct youbot_arm_info {
 	ubx_port_t *p_cmd_pos;
 	ubx_port_t *p_cmd_vel;
 	ubx_port_t *p_cmd_cur;
+	ubx_port_t *p_cmd_eff;
 	ubx_port_t *p_arm_state;
 	ubx_port_t *p_arm_motorinfo;
 	ubx_port_t *p_gripper;

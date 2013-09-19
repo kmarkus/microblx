@@ -6,7 +6,7 @@ time = require("time")
 ubx_utils = require("ubx_utils")
 ts = tostring
 
--- require"strict"
+require"strict"
 -- require"trace"
 
 -- prog starts here.
@@ -28,14 +28,17 @@ print("creating instance of 'youbot/youbot_driver'")
 youbot1=ubx.block_create(ni, "youbot/youbot_driver", "youbot1", {ethernet_if="eth0" })
 
 print("creating instance of 'std_triggers/ptrig'")
-ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1", {trig_blocks={ { b=youbot1, num_steps=1, measure=0 } } } )
+ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1",
+			{ period={sec=0, usec=1000 }, sched_policy="SCHED_FIFO", sched_priority=80,
+			  trig_blocks={ { b=youbot1, num_steps=1, measure=0 } } } )
 
 print("creating instance of 'reporter/file_rep'")
 
 rep_conf=[[
 {
-   { blockname='youbot1', portname="base_motorinfo", buff_len=10, },
-   { blockname='youbot1', portname="arm_motorinfo", buff_len=10, }
+   { blockname='youbot1', portname="base_motorinfo", buff_len=3, },
+   { blockname='youbot1', portname="arm1_motorinfo", buff_len=3, },
+   { blockname='youbot1', portname="arm1_control_mode", buff_len=3 },
 }
 ]]
 
@@ -44,12 +47,18 @@ file_rep1=ubx.block_create(ni, "reporter/file_rep", "file_rep1",
 			    separator=',',
 			    report_conf=rep_conf})
 
+print("creating instance of 'std_triggers/ptrig'")
+ptrig2=ubx.block_create(ni, "std_triggers/ptrig", "ptrig2",
+			{ period={sec=0, usec=250000 },
+			  trig_blocks={ { b=file_rep1, num_steps=1, measure=0 } } } )
+
+
 --- Create a table of all inversely connected ports:
 local yb_pinv={}
-ubx.ports_map(b,
+ubx.ports_map(youbot1,
 	      function(p)
 		 local pname = ubx.safe_tostr(p.name)
-		 yb_ports[pname] = ubx.port_clone_conn(b, pname)
+		 yb_pinv[pname] = ubx.port_clone_conn(youbot1, pname)
 	      end)
 
 -- --- The following creates new ports that are automagically connected
@@ -60,13 +69,13 @@ ubx.ports_map(b,
 -- p_cmd_vel = ubx.port_clone_conn(youbot1, "base_cmd_vel", 1, 1)
 -- p_cmd_cur = ubx.port_clone_conn(youbot1, "base_cmd_cur", 1, 1)
 
-cm_data=ubx.data_alloc(ni, "int32_t")
-
 __time=ffi.new("struct ubx_timespec")
 function gettime()
    ubx.clock_mono_gettime(__time)
    return {sec=tonumber(__time.sec), nsec=tonumber(__time.nsec)}
 end
+
+cm_data=ubx.data_alloc(ni, "int32_t")
 
 --- Configure the base control mode.
 -- @param mode control mode.
@@ -78,22 +87,43 @@ function base_set_control_mode(mode)
    return ubx.data_tolua(cm_data)==mode
 end
 
+--- Configure the arm control mode.
+-- @param mode control mode.
+-- @return true if mode was set, false otherwise.
+function arm_set_control_mode(mode)
+   ubx.data_set(cm_data, mode)
+   ubx.port_write(yb_pinv.arm1_control_mode, cm_data)
+   local res = ubx.port_read_timed(yb_pinv.arm1_control_mode, cm_data, 3)
+   return ubx.data_tolua(cm_data)==mode
+end
+
 --- Return once the youbot is initialized or raise an error.
 function base_initialized()
    local res=ubx.port_read_timed(yb_pinv.base_control_mode, cm_data, 5)
    return ubx.data_tolua(cm_data)==0 -- 0=MOTORSTOP
 end
 
+--- Return once the youbot is initialized or raise an error.
+function arm_initialized()
+   local res=ubx.port_read_timed(yb_pinv.arm1_control_mode, cm_data, 5)
+   return ubx.data_tolua(cm_data)==0 -- 0=MOTORSTOP
+end
 
-twist_data=ubx.data_alloc(ni, "struct kdl_twist")
-null_twist_data=ubx.data_alloc(ni, "struct kdl_twist")
+
+calib_int=ubx.data_alloc(ni, "int32_t")
+function arm_calibrate()
+   ubx.port_write(yb_pinv.arm1_calibrate_cmd, calib_int)
+end
+
+base_twist_data=ubx.data_alloc(ni, "struct kdl_twist")
+base_null_twist_data=ubx.data_alloc(ni, "struct kdl_twist")
 
 --- Move with a given twist.
 -- @param twist table.
 -- @param dur duration in seconds
 function base_move_twist(twist_tab, dur)
-   set_control_mode(2) -- VELOCITY
-   ubx.data_set(twist_data, twist_tab)
+   base_set_control_mode(2) -- VELOCITY
+   ubx.data_set(base_twist_data, twist_tab)
    local ts_start=ffi.new("struct ubx_timespec")
    local ts_cur=ffi.new("struct ubx_timespec")
 
@@ -101,22 +131,22 @@ function base_move_twist(twist_tab, dur)
    ubx.clock_mono_gettime(ts_cur)
 
    while ts_cur.sec - ts_start.sec < dur do
-      ubx.port_write(yb_pinv.base_cmd_twist, twist_data)
+      ubx.port_write(yb_pinv.base_cmd_twist, base_twist_data)
       ubx.clock_mono_gettime(ts_cur)
    end
-   ubx.port_write(yb_pinv.base_cmd_twist, null_twist_data)
+   ubx.port_write(yb_pinv.base_cmd_twist, base_null_twist_data)
 end
 
 
-vel_data=ubx.data_alloc(ni, "int32_t", 4)
-null_vel_data=ubx.data_alloc(ni, "int32_t", 4)
+base_vel_data=ubx.data_alloc(ni, "int32_t", 4)
+base_null_vel_data=ubx.data_alloc(ni, "int32_t", 4)
 
 --- Move each wheel with an individual RPM value.
 -- @param table of size for with wheel velocity
 -- @param dur time in seconds to apply velocity
-function move_vel(vel_tab, dur)
-   set_control_mode(2) -- VELOCITY
-   ubx.data_set(vel_data, vel_tab)
+function base_move_vel(vel_tab, dur)
+   base_set_control_mode(2) -- VELOCITY
+   ubx.data_set(base_vel_data, vel_tab)
    local dur = {sec=dur, nsec=0}
    local ts_start=gettime()
    local ts_cur=gettime()
@@ -125,21 +155,21 @@ function move_vel(vel_tab, dur)
    while true do
       diff.sec,diff.nsec=time.sub(ts_cur, ts_start)
       if time.cmp(diff, dur)==1 then break end
-      ubx.port_write(yb_pinv.base_cmd_vel, vel_data)
+      ubx.port_write(yb_pinv.base_cmd_vel, base_vel_data)
       ts_cur=gettime()
    end
-   ubx.port_write(yb_pinv.base_cmd_vel, null_vel_data)
+   ubx.port_write(yb_pinv.base_cmd_vel, base_null_vel_data)
 end
 
-cur_data=ubx.data_alloc(ni, "int32_t", 4)
-null_cur_data=ubx.data_alloc(ni, "int32_t", 4)
+base_cur_data=ubx.data_alloc(ni, "int32_t", 4)
+base_null_cur_data=ubx.data_alloc(ni, "int32_t", 4)
 
 --- Move each wheel with an individual current value.
 -- @param table of size 4 for with wheel current
 -- @param dur time in seconds to apply currents.
-function move_cur(cur_tab, dur)
-   set_control_mode(6) -- CURRENT
-   ubx.data_set(cur_data, cur_tab)
+function base_move_cur(cur_tab, dur)
+   base_set_control_mode(6) -- CURRENT
+   ubx.data_set(base_cur_data, cur_tab)
 
    local ts_start=ffi.new("struct ubx_timespec")
    local ts_cur=ffi.new("struct ubx_timespec")
@@ -148,14 +178,127 @@ function move_cur(cur_tab, dur)
    ubx.clock_mono_gettime(ts_cur)
 
    while ts_cur.sec - ts_start.sec < dur do
-      ubx.port_write(yb_pinv.base_cmd_cur, cur_data)
+      ubx.port_write(yb_pinv.base_cmd_cur, base_cur_data)
       ubx.clock_mono_gettime(ts_cur)
    end
-   ubx.port_write(yb_pinv.base_cmd_cur, null_cur_data)
+   ubx.port_write(yb_pinv.base_cmd_cur, base_null_cur_data)
+end
+
+
+arm_vel_data=ubx.data_alloc(ni, "double", 5)
+arm_null_vel_data=ubx.data_alloc(ni, "double", 5)
+
+--- Move each joint with an individual rad/s value.
+-- @param table of size for with wheel velocity
+-- @param dur time in seconds to apply velocity
+function arm_move_vel(vel_tab, dur)
+   arm_set_control_mode(2) -- VELOCITY
+   ubx.data_set(arm_vel_data, vel_tab)
+   local dur = {sec=dur, nsec=0}
+   local ts_start=gettime()
+   local ts_cur=gettime()
+   local diff = {sec=0,nsec=0}
+
+   while true do
+      diff.sec,diff.nsec=time.sub(ts_cur, ts_start)
+      if time.cmp(diff, dur)==1 then break end
+      ubx.port_write(yb_pinv.arm1_cmd_vel, arm_vel_data)
+      ts_cur=gettime()
+   end
+   ubx.port_write(yb_pinv.arm1_cmd_vel, arm_null_vel_data)
+end
+
+arm_eff_data=ubx.data_alloc(ni, "double", 5)
+arm_null_eff_data=ubx.data_alloc(ni, "double", 5)
+
+--- Move each wheel with an individual RPM value.
+-- @param table of size for with wheel effocity
+-- @param dur time in seconds to apply effocity
+function arm_move_eff(eff_tab, dur)
+   arm_set_control_mode(6) --
+   ubx.data_set(arm_eff_data, eff_tab)
+   local dur = {sec=dur, nsec=0}
+   local ts_start=gettime()
+   local ts_eff=gettime()
+   local diff = {sec=0,nsec=0}
+
+   while true do
+      diff.sec,diff.nsec=time.sub(ts_eff, ts_start)
+      if time.cmp(diff, dur)==1 then break end
+      ubx.port_write(yb_pinv.arm1_cmd_eff, arm_eff_data)
+      ts_eff=gettime()
+   end
+   ubx.port_write(yb_pinv.arm1_cmd_eff, arm_null_eff_data)
+end
+
+arm_cur_data=ubx.data_alloc(ni, "int32_t", 5)
+arm_null_cur_data=ubx.data_alloc(ni, "int32_t", 5)
+
+--- Move each wheel with an individual RPM value.
+-- @param table of size for with wheel curocity
+-- @param dur time in seconds to apply curocity
+function arm_move_cur(cur_tab, dur)
+   arm_set_control_mode(6) --
+   ubx.data_set(arm_cur_data, cur_tab)
+   local dur = {sec=dur, nsec=0}
+   local ts_start=gettime()
+   local ts_cur=gettime()
+   local diff = {sec=0,nsec=0}
+
+   while true do
+      diff.sec,diff.nsec=time.sub(ts_cur, ts_start)
+      if time.cmp(diff, dur)==1 then break end
+      ubx.port_write(yb_pinv.arm1_cmd_cur, arm_cur_data)
+      ts_cur=gettime()
+   end
+   ubx.port_write(yb_pinv.arm1_cmd_cur, arm_null_cur_data)
+end
+
+
+arm_pos_data=ubx.data_alloc(ni, "double", 5)
+-- arm_null_pos_data=ubx.data_alloc(ni, "double", 5)
+
+--- Move each wheel with an individual RPM value.
+-- @param table of size for with wheel posocity
+-- @param dur time in seconds to apply posocity
+function arm_move_pos(pos_tab, dur)
+   arm_set_control_mode(1) -- POS
+   ubx.data_set(arm_pos_data, pos_tab)
+   local dur = {sec=dur, nsec=0}
+   local ts_start=gettime()
+   local ts_cur=gettime()
+   local diff = {sec=0,nsec=0}
+
+   while true do
+      diff.sec,diff.nsec=time.sub(ts_cur, ts_start)
+      if time.cmp(diff, dur)==1 then break end
+      ubx.port_write(yb_pinv.arm1_cmd_pos, arm_pos_data)
+      ts_cur=gettime()
+   end
+   -- ubx.port_write(yb_pinv.arm1_cmd_pos, arm_null_pos_data)
+end
+
+function help()
+   print[[
+youbot test script.
+      base_set_control_mode(mode)	mode: mstop=0, pos=1, vel=2, cur=6
+      base_move_twist(twist_tab, dur)  	move with twist (as Lua table) for dur seconds
+      base_move_vel(vel_tab, dur)       move each wheel with individual vel [rpm] for dur seconds
+      base_move_cur(cur_tab, dur)       move each wheel with individual current [mA] for dur seconds
+
+
+      arm_set_control_mode(mode)	see base.
+      arm_calibrate()			calibrate the arm. !!! DO THIS FIRST !!!
+      arm_move_pos(pos_tab, dur)	move to pos. pos_tab is Lua table of len=5 [rad]
+      arm_move_vel(vel_tab, dur)	move joints. vel_tab is Lua table of len=5 [rad/s]
+      arm_move_eff(eff_tab, dur)        move joints. eff_tab is Lua table of len=5 [Nm]
+      arm_move_cur(cur_tab, dur)        move joints. cur_tab is Lua table of len=5 [mA]
+   ]]
 end
 
 -- start and init webif and youbot
 assert(ubx.block_init(ptrig1))
+assert(ubx.block_init(ptrig2))
 assert(ubx.block_init(file_rep1))
 assert(ubx.block_init(webif1)==0)
 assert(ubx.block_init(youbot1)==0)
@@ -165,12 +308,13 @@ assert(ubx.block_start(file_rep1)==0)
 assert(ubx.block_start(youbot1)==0)
 assert(ubx.block_start(ptrig1)==0)
 
-
 -- make sure youbot is running ok.
-youbot_initialized()
+base_initialized()
+arm_initialized()
 
 twst={vel={x=0.05,y=0,z=0},rot={x=0,y=0,z=0.1}}
 vel_tab={1,1,1,1}
+arm_vel_tab={0.002,0.002,0.003,0.002, 0.002}
 
-
+print('Please run "help()" for information on available functions')
 -- ubx.node_cleanup(ni)
