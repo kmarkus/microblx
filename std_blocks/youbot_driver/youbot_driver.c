@@ -184,7 +184,7 @@ static int validate_arm_slaves(int start_num)
  * @param instr_nr command number (GAP, SAP, ...)
  * @param param_nr type number
  * @param slave_nr slave index
- * @param bank_nr always zero. Motor or Bank number
+ * @param bank_nr mostly zero. Motor or Bank number
  * @param value value to send and location to store result.
  *
  * @return 0 if Ok, -1 otherwise.
@@ -371,6 +371,8 @@ static int base_prepare_start(struct youbot_base_info *base)
 	return ret;
 }
 
+static int32_t arm_is_calibrated();
+
 /* set all commanded quantities to zero */
 static int arm_prepare_start(struct youbot_arm_info *arm)
 {
@@ -390,6 +392,7 @@ static int arm_prepare_start(struct youbot_arm_info *arm)
 		DBG("limiting axis[%d] to max_current %d", i, val);
 	}
 #endif
+	DBG("arm calibrated: %d", arm_is_calibrated());
 
 	/* reset EC_TIMEOUT */
 	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
@@ -874,6 +877,23 @@ static void arm_output_msr_data(struct youbot_arm_info* arm)
 	write_arm_state(arm->p_arm_state, &arm_state);
 }
 
+static int32_t arm_is_calibrated()
+{
+	int32_t res;
+	/* grip=0, GGP, param_nr=16, slave=1, bank=2 (user) */
+	if(send_mbx(0, GGP, 16, 1, 2, &res))
+		ERR("failed to read volatile calibrated state");
+	return res==3001;
+}
+
+static void arm_set_calibrated()
+{
+	int32_t val = 3001;
+	if(send_mbx(0, SGP, 16, 1, 2, &val))
+		ERR("failed to set volatile calibrated state");
+}
+
+
 /**
  * Move all arm joints into limits
  *
@@ -965,6 +985,7 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 			arm->calibrating=0;
 			arm->control_mode=YOUBOT_CMODE_MOTORSTOP;
 			DBG("calibration: completed!");
+			arm_set_calibrated();
 		}
 
 		/* when calibrating, control mode switches, etc are
