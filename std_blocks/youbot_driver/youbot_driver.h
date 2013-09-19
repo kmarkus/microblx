@@ -170,7 +170,12 @@ typedef struct __attribute__((__packed__)) {
 
 static const int YOUBOT_ARM_JOINT_GEAR_RATIOS[YOUBOT_NR_OF_JOINTS] = {156, 156, 100, 71, 71};
 static const double YOUBOT_ARM_JOINT_TORQUE_CONSTANTS[YOUBOT_NR_OF_JOINTS] = {0.0335, 0.0335, 0.0335, 0.051, 0.049}; // Nm/A
+
 static const double arm_calib_ref_pos[YOUBOT_NR_OF_JOINTS] = {2.8793, 1.1414, 2.50552, 1.76662, 2.8767};
+static const int32_t arm_calib_cur_high[YOUBOT_NR_OF_JOINTS] = {1000, 1500, 1000, 500, 400};
+
+static const int32_t arm_calib_move_in_vel[YOUBOT_NR_OF_JOINTS] = {0.005, 0.005, 0.005, 0.005, 0.005 };
+static const int32_t arm_calib_move_out_vel[YOUBOT_NR_OF_JOINTS] = {-0.02, -0.02, -0.02, -0.02, -0.02 };
 
 #define ARM_TICKS_TO_POS	(2 * M_PI / (YOUBOT_ARM_JOINT_GEAR_RATIOS[i] * YOUBOT_TICKS_PER_REVOLUTION))
 #define ARM_RPM_TO_VEL		(2 * M_PI / (60 * YOUBOT_ARM_JOINT_GEAR_RATIOS[i]))
@@ -234,12 +239,17 @@ struct youbot_motor_info {
 struct youbot_arm_info {
 	uint32_t detected;		/* has been detected and is in use */
 	uint32_t mod_init_stat;		/* bitfield, bit is set for each initialized slave */
-	uint8_t control_mode;		/* current used control mode */
+	int8_t control_mode;		/* currently used control mode */
 	struct youbot_motor_info jnt_inf[YOUBOT_NR_OF_JOINTS];
 
 	uint32_t max_cur[YOUBOT_NR_OF_JOINTS];
 
+	/* calibration stuff */
+	int calibrating;
+	int axis_at_limit[YOUBOT_NR_OF_JOINTS];
+
 	ubx_port_t *p_control_mode;
+	ubx_port_t *p_calibrate_cmd;
 	ubx_port_t *p_cmd_pos;
 	ubx_port_t *p_cmd_vel;
 	ubx_port_t *p_cmd_cur;
@@ -253,7 +263,7 @@ struct youbot_arm_info {
 struct youbot_base_info {
 	uint32_t detected;		/* did we detect a base? */
 	uint32_t mod_init_stat;		/* bitfield, bit is set for each initialized slave */
-	uint8_t control_mode;		/* current control mode */
+	int8_t control_mode;		/* currently used control mode */
 
 	struct youbot_motor_info wheel_inf[YOUBOT_NR_OF_WHEELS];
 

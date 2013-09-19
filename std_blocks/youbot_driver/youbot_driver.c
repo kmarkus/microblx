@@ -48,6 +48,7 @@ ubx_port_t youbot_ports[] = {
 
 	/* arm */
 	{ .name="arm1_control_mode", .attrs=PORT_DIR_INOUT, .in_type_name="int32_t", .out_type_name="int32_t" },
+	{ .name="arm1_calibrate_cmd", .attrs=PORT_DIR_IN, .in_type_name="int32_t" },
 	{ .name="arm1_cmd_pos", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
 	{ .name="arm1_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
 	{ .name="arm1_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
@@ -64,10 +65,14 @@ ubx_port_t youbot_ports[] = {
 
 #include "types/youbot_base_motorinfo.h"
 #include "types/youbot_base_motorinfo.h.hexarr"
-#include "types/youbot_arm_motorinfo.h"
-#include "types/youbot_arm_motorinfo.h.hexarr"
+
+/* high level: m, m/s, Nm */
 #include "types/youbot_arm_state.h"
 #include "types/youbot_arm_state.h.hexarr"
+
+/* low level: ticks, rpm, current */
+#include "types/youbot_arm_motorinfo.h"
+#include "types/youbot_arm_motorinfo.h.hexarr"
 
 #include "types/youbot_control_modes.h.hexarr"
 
@@ -866,6 +871,39 @@ static void arm_output_msr_data(struct youbot_arm_info* arm)
 	write_arm_state(arm->p_arm_state, &arm_state);
 }
 
+/**
+ * Move all arm joints into limits
+ *
+ * @param arm pointer to struct youbot_arm_info
+ *
+ * @return 0 when completed, non-zero otherwise.
+ */
+static int arm_move_to_lim(struct youbot_arm_info* arm)
+{
+	int i, ret=1;
+
+	arm->control_mode=YOUBOT_CMODE_VELOCITY;
+
+	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
+		if(arm->jnt_inf[i].msr_cur > arm_calib_cur_high[i]) { /* jnt completed? */
+			DBG("calibration: axis %d in limit", i);
+			arm->jnt_inf[i].cmd_val = 0;
+			arm->axis_at_limit[i]=1;
+		} else if(arm->axis_at_limit[i] != 1) { /* not finished yet */
+			arm->jnt_inf[i].cmd_val = arm_calib_move_in_vel[i] / ((double) ARM_RPM_TO_VEL);
+		}
+		ret = ret && arm->axis_at_limit[i];
+	}
+
+	/* are we in limits? */
+	if(ret==0) {
+		for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
+			arm->axis_at_limit[i]=0;
+	}
+
+	return ret;
+}
+
 static int arm_proc_update(struct youbot_arm_info* arm)
 {
 	int i, tmp, ret=-1;
@@ -901,6 +939,13 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 		write_int(arm->p_control_mode, &tmp);
 	}
 
+	/* calibration requested? */
+	if(read_int(arm->p_calibrate_cmd, &tmp) > 0) {
+		DBG("calibration: starting");
+		arm->calibrating=1;
+		goto handle_calib;
+	}
+
 	/* new control mode? */
 	if(read_int(arm->p_control_mode, &cm) > 0) {
 		if(cm<0 || cm>7) {
@@ -920,10 +965,27 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 			arm->jnt_inf[i].cmd_val=0;
 	}
 
+ handle_calib:
+	if(arm->calibrating) {
+		/* moving to limits */
+		if(arm->calibrating == 1) {
+			if(arm_move_to_lim(arm)==0) {
+				arm->calibrating=2;
+				arm->control_mode=YOUBOT_CMODE_SET_POSITION_TO_REFERENCE;
+				DBG("calibration: setting refpos");
+			}
+		} else if(arm->calibrating == 2) {
+			/* move to home? */
+			arm->calibrating=0;
+			arm->control_mode=YOUBOT_CMODE_MOTORSTOP;
+			DBG("calibration: completed!");
+		}
+	}
+
+	/* output this while calibrating? why not ... */
 	arm_output_msr_data(arm);
 
  handle_cm:
-
 	switch(arm->control_mode) {
 	case YOUBOT_CMODE_MOTORSTOP:
 		break;
@@ -1139,21 +1201,13 @@ static int youbot_start(ubx_block_t *b)
 	assert(inf->base.p_base_motorinfo = ubx_port_get(b, "base_motorinfo"));
 
 	assert(inf->arm1.p_control_mode = ubx_port_get(b, "arm1_control_mode"));
+	assert(inf->arm1.p_calibrate_cmd = ubx_port_get(b, "arm1_calibrate_cmd"));
 	assert(inf->arm1.p_cmd_pos = ubx_port_get(b, "arm1_cmd_pos"));
 	assert(inf->arm1.p_cmd_vel = ubx_port_get(b, "arm1_cmd_vel"));
 	assert(inf->arm1.p_cmd_cur = ubx_port_get(b, "arm1_cmd_cur"));
 	assert(inf->arm1.p_arm_state = ubx_port_get(b, "arm1_state"));
 	assert(inf->arm1.p_arm_motorinfo = ubx_port_get(b, "arm1_motorinfo"));
 	assert(inf->arm1.p_gripper = ubx_port_get(b, "arm1_gripper"));
-
-	assert(inf->arm2.p_control_mode = ubx_port_get(b, "arm2_control_mode"));
-	assert(inf->arm2.p_cmd_pos = ubx_port_get(b, "arm2_cmd_pos"));
-	assert(inf->arm2.p_cmd_vel = ubx_port_get(b, "arm2_cmd_vel"));
-	assert(inf->arm2.p_cmd_cur = ubx_port_get(b, "arm2_cmd_cur"));
-	assert(inf->arm2.p_arm_state = ubx_port_get(b, "arm2_state"));
-	assert(inf->arm2.p_gripper = ubx_port_get(b, "arm2_gripper"));
-
-
 
 	ret=0;
  out:
