@@ -371,7 +371,9 @@ static int base_prepare_start(struct youbot_base_info *base)
 	return ret;
 }
 
+#if 0
 static int32_t arm_is_calibrated();
+#endif
 
 /* set all commanded quantities to zero */
 static int arm_prepare_start(struct youbot_arm_info *arm)
@@ -392,7 +394,10 @@ static int arm_prepare_start(struct youbot_arm_info *arm)
 		DBG("limiting axis[%d] to max_current %d", i, val);
 	}
 #endif
+
+#if 0
 	DBG("arm calibrated: %d", arm_is_calibrated());
+#endif
 
 	/* reset EC_TIMEOUT */
 	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
@@ -877,6 +882,7 @@ static void arm_output_msr_data(struct youbot_arm_info* arm)
 	write_arm_state(arm->p_arm_state, &arm_state);
 }
 
+#if 0
 static int32_t arm_is_calibrated()
 {
 	int32_t res;
@@ -892,7 +898,7 @@ static void arm_set_calibrated()
 	if(send_mbx(0, SGP, 16, 1, 2, &val))
 		ERR("failed to set volatile calibrated state");
 }
-
+#endif
 
 /**
  * Move all arm joints into limits
@@ -909,7 +915,7 @@ static int arm_move_to_lim(struct youbot_arm_info* arm)
 
 	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
 		if(arm->jnt_inf[i].msr_cur > arm_calib_cur_high[i]) { /* jnt completed? */
-			DBG("calibration: axis %d in limit", i);
+			/* DBG("calibration: axis %d in limit", i); */
 			arm->jnt_inf[i].cmd_val = 0;
 			arm->axis_at_limit[i]=1;
 		} else if(arm->axis_at_limit[i] != 1) { /* not finished yet */
@@ -972,20 +978,22 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 		arm->calibrating=1;
 	}
 
+	/* calibration "FSM" */
 	if(arm->calibrating) {
 		/* moving to limits */
 		if(arm->calibrating == 1) {
 			if(arm_move_to_lim(arm)==1) {
 				arm->calibrating=2;
 				arm->control_mode=YOUBOT_CMODE_SET_POSITION_TO_REFERENCE;
-				DBG("calibration: setting refpos");
 			}
 		} else if(arm->calibrating == 2) {
 			/* move to home? */
 			arm->calibrating=0;
 			arm->control_mode=YOUBOT_CMODE_MOTORSTOP;
 			DBG("calibration: completed!");
+#if 0
 			arm_set_calibrated();
+#endif
 		}
 
 		/* when calibrating, control mode switches, etc are
@@ -1048,7 +1056,6 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 	case YOUBOT_CMODE_SET_POSITION_TO_REFERENCE:
 		for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
 			arm->jnt_inf[i].cmd_val = arm_calib_ref_pos[i] / ARM_TICKS_TO_POS;
-			DBG("setting ref pos on axis %d to %d", i, arm->jnt_inf[i].cmd_val);
 		}
 		break;
 	default:
