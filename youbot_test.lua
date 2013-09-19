@@ -34,7 +34,8 @@ print("creating instance of 'reporter/file_rep'")
 
 rep_conf=[[
 {
-   { blockname='youbot1', portname="base_motorinfo", buff_len=10, }
+   { blockname='youbot1', portname="base_motorinfo", buff_len=10, },
+   { blockname='youbot1', portname="arm_motorinfo", buff_len=10, }
 }
 ]]
 
@@ -43,13 +44,21 @@ file_rep1=ubx.block_create(ni, "reporter/file_rep", "file_rep1",
 			    separator=',',
 			    report_conf=rep_conf})
 
---- The following creates new ports that are automagically connected
---- to the specified peer port.
-print("cloning base_control_mode port")
-p_cmode = ubx.port_clone_conn(youbot1, "base_control_mode", 1, 1)
-p_cmd_twist = ubx.port_clone_conn(youbot1, "base_cmd_twist", 1, 1)
-p_cmd_vel = ubx.port_clone_conn(youbot1, "base_cmd_vel", 1, 1)
-p_cmd_cur = ubx.port_clone_conn(youbot1, "base_cmd_cur", 1, 1)
+--- Create a table of all inversely connected ports:
+local yb_pinv={}
+ubx.ports_map(b,
+	      function(p)
+		 local pname = ubx.safe_tostr(p.name)
+		 yb_ports[pname] = ubx.port_clone_conn(b, pname)
+	      end)
+
+-- --- The following creates new ports that are automagically connected
+-- --- to the specified peer port.
+-- print("cloning base_control_mode port")
+-- p_cmode = ubx.port_clone_conn(youbot1, "base_control_mode", 1, 1)
+-- p_cmd_twist = ubx.port_clone_conn(youbot1, "base_cmd_twist", 1, 1)
+-- p_cmd_vel = ubx.port_clone_conn(youbot1, "base_cmd_vel", 1, 1)
+-- p_cmd_cur = ubx.port_clone_conn(youbot1, "base_cmd_cur", 1, 1)
 
 cm_data=ubx.data_alloc(ni, "int32_t")
 
@@ -59,22 +68,21 @@ function gettime()
    return {sec=tonumber(__time.sec), nsec=tonumber(__time.nsec)}
 end
 
---- Configure the control mode.
+--- Configure the base control mode.
 -- @param mode control mode.
 -- @return true if mode was set, false otherwise.
-function set_control_mode(mode)
+function base_set_control_mode(mode)
    ubx.data_set(cm_data, mode)
-   ubx.port_write(p_cmode, cm_data)
-   local res = ubx.port_read_timed(p_cmode, cm_data, 3)
+   ubx.port_write(yb_pinv.base_control_mode, cm_data)
+   local res = ubx.port_read_timed(yb_pinv.base_control_mode, cm_data, 3)
    return ubx.data_tolua(cm_data)==mode
 end
 
 --- Return once the youbot is initialized or raise an error.
-function youbot_initialized()
-   local res=ubx.port_read_timed(p_cmode, cm_data, 5)
+function base_initialized()
+   local res=ubx.port_read_timed(yb_pinv.base_control_mode, cm_data, 5)
    return ubx.data_tolua(cm_data)==0 -- 0=MOTORSTOP
 end
-
 
 
 twist_data=ubx.data_alloc(ni, "struct kdl_twist")
@@ -83,7 +91,7 @@ null_twist_data=ubx.data_alloc(ni, "struct kdl_twist")
 --- Move with a given twist.
 -- @param twist table.
 -- @param dur duration in seconds
-function move_twist(twist_tab, dur)
+function base_move_twist(twist_tab, dur)
    set_control_mode(2) -- VELOCITY
    ubx.data_set(twist_data, twist_tab)
    local ts_start=ffi.new("struct ubx_timespec")
@@ -93,10 +101,10 @@ function move_twist(twist_tab, dur)
    ubx.clock_mono_gettime(ts_cur)
 
    while ts_cur.sec - ts_start.sec < dur do
-      ubx.port_write(p_cmd_twist, twist_data)
+      ubx.port_write(yb_pinv.base_cmd_twist, twist_data)
       ubx.clock_mono_gettime(ts_cur)
    end
-   ubx.port_write(p_cmd_twist, null_twist_data)
+   ubx.port_write(yb_pinv.base_cmd_twist, null_twist_data)
 end
 
 
@@ -117,18 +125,18 @@ function move_vel(vel_tab, dur)
    while true do
       diff.sec,diff.nsec=time.sub(ts_cur, ts_start)
       if time.cmp(diff, dur)==1 then break end
-      ubx.port_write(p_cmd_vel, vel_data)
+      ubx.port_write(yb_pinv.base_cmd_vel, vel_data)
       ts_cur=gettime()
    end
-   ubx.port_write(p_cmd_vel, null_vel_data)
+   ubx.port_write(yb_pinv.base_cmd_vel, null_vel_data)
 end
 
 cur_data=ubx.data_alloc(ni, "int32_t", 4)
 null_cur_data=ubx.data_alloc(ni, "int32_t", 4)
 
---- Move each wheel with an individual RPM value.
--- @param table of size for with wheel velocity
--- @param dur time in seconds to apply velocity
+--- Move each wheel with an individual current value.
+-- @param table of size 4 for with wheel current
+-- @param dur time in seconds to apply currents.
 function move_cur(cur_tab, dur)
    set_control_mode(6) -- CURRENT
    ubx.data_set(cur_data, cur_tab)
@@ -140,10 +148,10 @@ function move_cur(cur_tab, dur)
    ubx.clock_mono_gettime(ts_cur)
 
    while ts_cur.sec - ts_start.sec < dur do
-      ubx.port_write(p_cmd_cur, cur_data)
+      ubx.port_write(yb_pinv.base_cmd_cur, cur_data)
       ubx.clock_mono_gettime(ts_cur)
    end
-   ubx.port_write(p_cmd_cur, null_cur_data)
+   ubx.port_write(yb_pinv.base_cmd_cur, null_cur_data)
 end
 
 -- start and init webif and youbot
