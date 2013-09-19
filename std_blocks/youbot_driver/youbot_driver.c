@@ -839,6 +839,24 @@ static int arm_proc_errflg(struct youbot_arm_info* ainf)
 	return fatal_errs;
 }
 
+static int control_gripper(struct youbot_arm_info* arm, int32_t pos)
+{
+	int ret=-1;
+
+	if(send_mbx(1, MVP, 1, 11, 0, &pos)) {
+		ERR("finger1: failed to send gripper mbx command");
+		goto out;
+	}
+
+	if(send_mbx(1, MVP, 1, 11, 1, &pos)) {
+		ERR("finger2: failed to send gripper mbx command");
+		goto out;
+	}
+
+	ret=0;
+out:
+	return ret;
+}
 
 static int arm_is_configured(struct youbot_arm_info* arm)
 {
@@ -903,7 +921,7 @@ static int arm_move_to_lim(struct youbot_arm_info* arm)
 static int arm_proc_update(struct youbot_arm_info* arm)
 {
 	int i, tmp, ret=-1;
-	int32_t cm;
+	int32_t cm, gripper_cmd;
 	in_motor_t *motor_in;
 	out_motor_t *motor_out;
 	double cmd_pos[YOUBOT_NR_OF_JOINTS];
@@ -981,6 +999,12 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 		/* reset output quantity upon control_mode switch */
 		for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
 			arm->jnt_inf[i].cmd_val=0;
+	}
+
+	/* gripper */
+	if(read_int(arm->p_gripper, &gripper_cmd) > 0) {
+		gripper_cmd = (gripper_cmd > 0) ? -GRIPPER_ENC_WIDTH : GRIPPER_ENC_WIDTH;
+		control_gripper(arm, gripper_cmd);
 	}
 
  handle_cm:

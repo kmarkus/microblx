@@ -21,6 +21,7 @@ ubx.load_module(ni, "std_blocks/ptrig/ptrig.so")
 ubx.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
 ubx.load_module(ni, "std_blocks/reporter/file_rep.so")
 
+-- create necessary blocks
 print("creating instance of 'webif/webif'")
 webif1=ubx.block_create(ni, "webif/webif", "webif1", { port="8888" })
 
@@ -61,13 +62,6 @@ ubx.ports_map(youbot1,
 		 yb_pinv[pname] = ubx.port_clone_conn(youbot1, pname)
 	      end)
 
--- --- The following creates new ports that are automagically connected
--- --- to the specified peer port.
--- print("cloning base_control_mode port")
--- p_cmode = ubx.port_clone_conn(youbot1, "base_control_mode", 1, 1)
--- p_cmd_twist = ubx.port_clone_conn(youbot1, "base_cmd_twist", 1, 1)
--- p_cmd_vel = ubx.port_clone_conn(youbot1, "base_cmd_vel", 1, 1)
--- p_cmd_cur = ubx.port_clone_conn(youbot1, "base_cmd_cur", 1, 1)
 
 __time=ffi.new("struct ubx_timespec")
 function gettime()
@@ -85,6 +79,12 @@ function base_set_control_mode(mode)
    ubx.port_write(yb_pinv.base_control_mode, cm_data)
    local res = ubx.port_read_timed(yb_pinv.base_control_mode, cm_data, 3)
    return ubx.data_tolua(cm_data)==mode
+end
+
+grip_data=ubx.data_alloc(ni, "int32_t")
+function gripper(v)
+   ubx.data_set(grip_data, v)
+   ubx.port_write(yb_pinv.gripper_cmd, grip_data)
 end
 
 --- Configure the arm control mode.
