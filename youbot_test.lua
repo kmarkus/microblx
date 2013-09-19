@@ -84,7 +84,7 @@ end
 grip_data=ubx.data_alloc(ni, "int32_t")
 function gripper(v)
    ubx.data_set(grip_data, v)
-   ubx.port_write(yb_pinv.gripper_cmd, grip_data)
+   ubx.port_write(yb_pinv.arm1_gripper, grip_data)
 end
 
 --- Configure the arm control mode.

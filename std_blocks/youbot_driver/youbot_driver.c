@@ -214,13 +214,13 @@ int send_mbx(int gripper,
 	/* DBG("sending send mbx (gripper:%d, instr_nr=%d, param_nr=%d, slave_nr=%d, bank_nr=%d, value=%d", */
 	/*     gripper, instr_nr, param_nr, slave_nr, bank_nr, *value); */
 
-	if (ec_mbxsend(slave_nr, &mbx_out, EC_TIMEOUTSAFE) <= 0) {
+	if (ec_mbxsend(slave_nr, &mbx_out, EC_TIMEOUTTXM) <= 0) {
 		ERR("failed to send mbx (gripper:%d, instr_nr=%d, param_nr=%d, slave_nr=%d, bank_nr=%d, value=%d",
 		    gripper, instr_nr, param_nr, slave_nr, bank_nr, *value);
 		goto out;
 	}
 
-	if (ec_mbxreceive(slave_nr, &mbx_in, EC_TIMEOUTSAFE) <= 0) {
+	if (ec_mbxreceive(slave_nr, &mbx_in, EC_TIMEOUTRXM) <= 0) {
 		ERR("failed to receive mbx (gripper:%d, instr_nr=%d, param_nr=%d, slave_nr=%d, bank_nr=%d, value=%d",
 		    gripper, instr_nr, param_nr, slave_nr, bank_nr, *value);
 		goto out;
@@ -839,23 +839,13 @@ static int arm_proc_errflg(struct youbot_arm_info* ainf)
 	return fatal_errs;
 }
 
-static int control_gripper(struct youbot_arm_info* arm, int32_t pos)
+static int control_gripper(struct youbot_arm_info* arm, int32_t pos1, int32_t pos2)
 {
-	int ret=-1;
-
-	if(send_mbx(1, MVP, 1, 11, 0, &pos)) {
-		ERR("finger1: failed to send gripper mbx command");
-		goto out;
-	}
-
-	if(send_mbx(1, MVP, 1, 11, 1, &pos)) {
-		ERR("finger2: failed to send gripper mbx command");
-		goto out;
-	}
-
-	ret=0;
-out:
-	return ret;
+	if(send_mbx(1, MVP, 1, 11, 0, &pos1))
+		ERR("failed to move finger 1 to pos %d", pos1);
+	if(send_mbx(1, MVP, 1, 11, 1, &pos2))
+		ERR("failed to move finger 2 to pos %d", pos2);
+	return 0;
 }
 
 static int arm_is_configured(struct youbot_arm_info* arm)
@@ -1004,7 +994,7 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 	/* gripper */
 	if(read_int(arm->p_gripper, &gripper_cmd) > 0) {
 		gripper_cmd = (gripper_cmd > 0) ? -GRIPPER_ENC_WIDTH : GRIPPER_ENC_WIDTH;
-		control_gripper(arm, gripper_cmd);
+		control_gripper(arm, gripper_cmd, gripper_cmd);
 	}
 
  handle_cm:
