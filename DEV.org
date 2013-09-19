@@ -5,10 +5,13 @@
 * Next steps
   
 
+** TODO file_rep: output comma separated list
+** TODO add enum type
+** TODO test to confirm that attrs=IN_PORT etc, can be omitted
+   -> instead we only rely on [in|out]_type_name
 ** TODO store seqid in node specific structure
    Otherwise, loading the same type in multiple nodes will foobar
    maintaining the sequence. -> registered types are global!!!
-
 ** TODO add function ffi_basic_type_is_loaded(t)
    - such that reloading a char[50] will go ok too.
 
