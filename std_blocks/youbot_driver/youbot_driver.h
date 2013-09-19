@@ -167,11 +167,16 @@ typedef struct __attribute__((__packed__)) {
 #define EC_TIMEOUT         1<<16
 #define I2T_EXCEEDED       1<<17
 
+
 static const int YOUBOT_ARM_JOINT_GEAR_RATIOS[YOUBOT_NR_OF_JOINTS] = {156, 156, 100, 71, 71};
+static const double YOUBOT_ARM_JOINT_TORQUE_CONSTANTS[YOUBOT_NR_OF_JOINTS] = {0.0335, 0.0335, 0.0335, 0.051, 0.049}; // Nm/A
+static const double arm_calib_ref_pos[YOUBOT_NR_OF_JOINTS] = {2.8793, 1.1414, 2.50552, 1.76662, 2.8767};
 
-static const double YOUBOT_ARM_JOINT_TORQUE_CONSTANTS[YOUBOT_NR_OF_JOINTS] =
-	{0.0335, 0.0335, 0.0335, 0.051, 0.049}; //Nm/A
+#define ARM_TICKS_TO_POS	(2 * M_PI / (YOUBOT_ARM_JOINT_GEAR_RATIOS[i] * YOUBOT_TICKS_PER_REVOLUTION))
+#define ARM_RPM_TO_VEL		(2 * M_PI / (60 * YOUBOT_ARM_JOINT_GEAR_RATIOS[i]))
+#define ARM_CUR_TO_EFF		(YOUBOT_ARM_JOINT_TORQUE_CONSTANTS[i] * YOUBOT_ARM_JOINT_GEAR_RATIOS[i] / 1000)
 
+/* software safety for arm */
 static const double YOUBOT_ARM_SOFT_LIMIT = 0.8; // legal yb soft limit range (%)
 
 // the following tow values (in percent) define the scaling range
@@ -234,7 +239,13 @@ struct youbot_arm_info {
 
 	uint32_t max_cur[YOUBOT_NR_OF_JOINTS];
 
-	struct timespec last_cmd;
+	ubx_port_t *p_control_mode;
+	ubx_port_t *p_cmd_pos;
+	ubx_port_t *p_cmd_vel;
+	ubx_port_t *p_cmd_cur;
+	ubx_port_t *p_arm_state;
+	ubx_port_t *p_arm_motorinfo;
+	ubx_port_t *p_gripper;
 };
 
 

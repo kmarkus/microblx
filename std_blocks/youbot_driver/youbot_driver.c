@@ -33,8 +33,10 @@ ubx_config_t youbot_config[] = {
 };
 
 ubx_port_t youbot_ports[] = {
+	/* generic arm+base */
 	{ .name="events", .attrs=PORT_DIR_OUT, .in_type_name="unsigned int" },
 
+	/* base */
 	{ .name="base_control_mode", .attrs=PORT_DIR_INOUT, .in_type_name="int32_t", .out_type_name="int32_t" },
 	{ .name="base_cmd_twist", .attrs=PORT_DIR_IN, .in_type_name="struct kdl_twist" },
 	{ .name="base_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_WHEELS },
@@ -44,11 +46,15 @@ ubx_port_t youbot_ports[] = {
 	{ .name="base_msr_twist", .attrs=PORT_DIR_OUT, .out_type_name="struct kdl_twist" },
 	{ .name="base_motorinfo", .attrs=PORT_DIR_OUT, .out_type_name="struct youbot_base_motorinfo" },
 
-	{ .name="arm_control_mode", .attrs=PORT_DIR_INOUT, .in_type_name="int32_t", .out_type_name="int32_t" },
-	{ .name="arm_cmd_pos", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
-	{ .name="arm_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
-	{ .name="arm_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
-	{ .name="arm_motorinfo", .attrs=PORT_DIR_OUT, .out_type_name="struct youbot_arm_motorinfo" },
+	/* arm */
+	{ .name="arm1_control_mode", .attrs=PORT_DIR_INOUT, .in_type_name="int32_t", .out_type_name="int32_t" },
+	{ .name="arm1_cmd_pos", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
+	{ .name="arm1_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
+	{ .name="arm1_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
+
+	{ .name="arm1_motorinfo", .attrs=PORT_DIR_OUT, .out_type_name="struct youbot_arm_motorinfo" },
+	{ .name="arm1_state", .attrs=PORT_DIR_OUT, .out_type_name="struct youbot_arm_state" },
+	{ .name="arm1_gripper", .attrs=PORT_DIR_INOUT, .in_type_name="int32_t", .out_type_name="int32_t" },
 
 	{ NULL },
 };
@@ -60,14 +66,26 @@ ubx_port_t youbot_ports[] = {
 #include "types/youbot_base_motorinfo.h.hexarr"
 #include "types/youbot_arm_motorinfo.h"
 #include "types/youbot_arm_motorinfo.h.hexarr"
+#include "types/youbot_arm_state.h"
+#include "types/youbot_arm_state.h.hexarr"
 
 #include "types/youbot_control_modes.h.hexarr"
 
 ubx_type_t youbot_types[] = {
 	def_struct_type(struct youbot_base_motorinfo, &youbot_base_motorinfo_h),
+	def_struct_type(struct youbot_arm_motorinfo, &youbot_arm_motorinfo_h),
+	def_struct_type(struct youbot_arm_state, &youbot_arm_state_h),
 	/* def_struct_type("youbot", enum youbot_control_modes, &youbot_control_modes_h), */
 	{ NULL },
 };
+
+
+
+/*******************************************************************************
+ *									       *
+ *                         generic arm+base driver code			       *
+ *									       *
+ *******************************************************************************/
 
 
 /* convenience functions to read/write from the ports */
@@ -75,12 +93,16 @@ def_read_fun(read_int, int32_t)
 def_write_fun(write_int, int32_t)
 
 def_read_arr_fun(read_int4, int32_t, 4)
+def_read_arr_fun(read_int5, int32_t, 5)
 
 def_read_fun(read_kdl_twist, struct kdl_twist)
 def_write_fun(write_kdl_twist, struct kdl_twist)
 
 def_write_fun(write_kdl_frame, struct kdl_frame)
 def_write_fun(write_base_motorinfo, struct youbot_base_motorinfo)
+
+def_write_fun(write_arm_motorinfo, struct youbot_arm_motorinfo)
+def_write_fun(write_arm_state, struct youbot_arm_state)
 
 /**
  * validate_base_slaves - check whether a valid base was detected.
@@ -268,6 +290,13 @@ int set_param(uint32_t slave_nr, uint8_t param_nr, int32_t val)
 	return ret;
 }
 
+
+/*******************************************************************************
+ *									       *
+ *                            youbot base driver code			       *
+ *									       *
+ *******************************************************************************/
+
 static int base_config_params(struct youbot_base_info* binf)
 {
 #ifndef FIRMWARE_V2
@@ -374,9 +403,6 @@ static int arm_prepare_start(struct youbot_arm_info *arm)
  out:
 	return ret;
 }
-
-
-
 
 
 
@@ -723,22 +749,231 @@ static int base_proc_update(struct youbot_base_info* base)
 	return ret;
 }
 
+
+/*******************************************************************************
+ *									       *
+ *                            youbot arm driver code			       *
+ *									       *
+ *******************************************************************************/
+
+
+/**
+ * arm_proc_errflg - update statistics and return number of fatal
+ * errors.
+ *
+ * @param ainf
+ *
+ * @return number of fatal errors
+ */
+static int arm_proc_errflg(struct youbot_arm_info* ainf)
+{
+	int fatal_errs=0, i, dummy;
+
+	/* check and raise errors */
+	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
+		if(ainf->jnt_inf[i].error_flags & OVERCURRENT) {
+			ainf->jnt_inf[i].stats.overcurrent++;
+			ainf->control_mode=YOUBOT_CMODE_MOTORSTOP;
+			fatal_errs++;
+			DBG("OVERCURRENT on joint %i", i);
+		}
+		if(ainf->jnt_inf[i].error_flags & UNDERVOLTAGE) {
+			ainf->jnt_inf[i].stats.undervoltage++;
+			ainf->control_mode=YOUBOT_CMODE_MOTORSTOP;
+			fatal_errs++;
+			DBG("UNDERVOLTAGE on joint %i", i);
+		}
+		if(ainf->jnt_inf[i].error_flags & OVERTEMP) {
+			ainf->jnt_inf[i].stats.overtemp++;
+			ainf->control_mode=YOUBOT_CMODE_MOTORSTOP;
+			fatal_errs++;
+			DBG("OVERTEMP on joint %i", i);
+		}
+		if(ainf->jnt_inf[i].error_flags & HALL_ERR) {
+			ainf->jnt_inf[i].stats.hall_err++;
+			DBG("HALL_ERR on joint %i", i);
+		}
+		if(ainf->jnt_inf[i].error_flags & ENCODER_ERR) {
+			ainf->jnt_inf[i].stats.encoder_err++;
+			DBG("ENCODER_ERR on joint %i", i);
+		}
+		if(ainf->jnt_inf[i].error_flags & SINE_COMM_INIT_ERR) {
+			ainf->jnt_inf[i].stats.sine_comm_init_err++;
+			DBG("SINE_COMM_INIT_ERR on joint %i", i);
+		}
+		if(ainf->jnt_inf[i].error_flags & EMERGENCY_STOP) {
+			ainf->jnt_inf[i].stats.emergency_stop++;
+			DBG("EMERGENCY_STOP on joint %i", i);
+		}
+		if(ainf->jnt_inf[i].error_flags & MODULE_INIT) {
+			/* if (! (ainf->mod_init_stat & (1 << i))) DBG("MODULE_INIT set for joint %d", i); */
+			ainf->mod_init_stat |= 1<<i;
+		}
+		if(ainf->jnt_inf[i].error_flags & EC_TIMEOUT) {
+			ainf->jnt_inf[i].stats.ec_timeout++;
+			DBG("EC_TIMEOUT on joint %i", i);
+			if(send_mbx(0, SAP, CLR_EC_TIMEOUT, ainf->jnt_inf[i].slave_idx, 0, &dummy)) {
+				ERR("failed to clear EC_TIMEOUT flag");
+				fatal_errs++;
+			}
+		}
+
+		if(ainf->jnt_inf[i].error_flags & I2T_EXCEEDED && !ainf->jnt_inf[i].i2t_ex) {
+			/* i2t error rising edge */
+			ERR("I2T_EXCEEDED on joint %i setting arm to control_mode=MotorStop.", i);
+			ainf->jnt_inf[i].stats.i2t_exceeded++;
+			ainf->jnt_inf[i].i2t_ex=1;
+			ainf->control_mode=YOUBOT_CMODE_MOTORSTOP;
+			fatal_errs++;
+
+			if(send_mbx(0, SAP, CLEAR_I2T, ainf->jnt_inf[i].slave_idx, 0, &dummy))
+				ERR("joint %d, failed to clear I2T_EXCEEDED bit", i);
+
+		} else if (!(ainf->jnt_inf[i].error_flags & I2T_EXCEEDED) && ainf->jnt_inf[i].i2t_ex) {
+			/* i2t error falling edge */
+			DBG("I2T_EXCEEDED reset on joint %i", i);
+			ainf->jnt_inf[i].i2t_ex=0;
+		}
+	}
+
+	return fatal_errs;
+}
+
+
 static int arm_is_configured(struct youbot_arm_info* arm)
 {
 	return (arm->mod_init_stat == ((1 << YOUBOT_NR_OF_JOINTS)-1));
 }
 
+static void arm_output_msr_data(struct youbot_arm_info* arm)
+{
+	int i;
+	struct youbot_arm_motorinfo motorinf;
+	struct youbot_arm_state arm_state;
+
+	/* copy and write out the "raw" driver information */
+	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
+		motorinf.pos[i]=arm->jnt_inf[i].msr_pos;
+		motorinf.vel[i]=arm->jnt_inf[i].msr_vel;
+		motorinf.cur[i]=arm->jnt_inf[i].msr_cur;
+
+		arm_state.pos[i] = ARM_TICKS_TO_POS * arm->jnt_inf[i].msr_pos;
+		arm_state.vel[i] = ARM_RPM_TO_VEL * arm->jnt_inf[i].msr_vel;
+		arm_state.eff[i] = ARM_CUR_TO_EFF * arm->jnt_inf[i].msr_cur;
+	}
+
+	write_arm_motorinfo(arm->p_arm_motorinfo, &motorinf);
+	write_arm_state(arm->p_arm_state, &arm_state);
+}
+
 static int arm_proc_update(struct youbot_arm_info* arm)
 {
-	int ret=-1;
-	/* TODO: copy base proc_update code here and */
+	int i, tmp, ret=-1;
+	int32_t cm;
+	in_motor_t *motor_in;
+	out_motor_t *motor_out;
+	int32_t cmd_pos[YOUBOT_NR_OF_JOINTS];
+	int32_t cmd_vel[YOUBOT_NR_OF_JOINTS];
+	int32_t cmd_cur[YOUBOT_NR_OF_JOINTS];
+
+	/* copy data */
+	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
+		motor_in = (in_motor_t*) ec_slave[ arm->jnt_inf[i].slave_idx ].inputs;
+		arm->jnt_inf[i].msr_pos = motor_in->position;
+		arm->jnt_inf[i].msr_vel = motor_in->velocity;
+		arm->jnt_inf[i].msr_cur = motor_in->current;
+		arm->jnt_inf[i].error_flags = motor_in->error_flags;
+#ifdef FIRMWARE_V2
+		arm->jnt_inf[i].msr_pwm = motor_in->pwm;
+#endif
+	}
+
+	arm_proc_errflg(arm);
+
+	/* Force control_mode to INITIALIZE if unconfigured */
+	if(!arm_is_configured(arm)) {
+		arm->control_mode = YOUBOT_CMODE_INITIALIZE;
+		goto handle_cm;
+	} else if (arm_is_configured(arm) && arm->control_mode == YOUBOT_CMODE_INITIALIZE) {
+		DBG("init completed, switching to MOTORSTOP");
+		arm->control_mode = YOUBOT_CMODE_MOTORSTOP;
+		tmp=YOUBOT_CMODE_MOTORSTOP;
+		write_int(arm->p_control_mode, &tmp);
+	}
+
+	/* new control mode? */
+	if(read_int(arm->p_control_mode, &cm) > 0) {
+		if(cm<0 || cm>7) {
+			ERR("invalid control_mode %d", cm);
+			arm->control_mode=YOUBOT_CMODE_MOTORSTOP;
+			tmp=YOUBOT_CMODE_MOTORSTOP;
+		} else {
+			DBG("setting control_mode to %d", cm);
+			arm->control_mode=cm;
+			tmp=cm;
+		}
+
+		write_int(arm->p_control_mode, &tmp);
+
+		/* reset output quantity upon control_mode switch */
+		for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
+			arm->jnt_inf[i].cmd_val=0;
+	}
+
+	arm_output_msr_data(arm);
+
+ handle_cm:
+
+	switch(arm->control_mode) {
+	case YOUBOT_CMODE_MOTORSTOP:
+		break;
+	case YOUBOT_CMODE_POSITIONING:
+		if(read_int5(arm->p_cmd_pos, &cmd_pos) == YOUBOT_NR_OF_JOINTS) { /* raw velocity */
+			for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
+				arm->jnt_inf[i].cmd_val = cmd_pos[i] / ((double) ARM_TICKS_TO_POS);
+		}
+		break;
+	case YOUBOT_CMODE_VELOCITY:
+		if(read_int5(arm->p_cmd_vel, &cmd_vel) == YOUBOT_NR_OF_JOINTS) { /* raw velocity */
+			for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
+				arm->jnt_inf[i].cmd_val = cmd_vel[i] / ((double) ARM_RPM_TO_VEL);
+		}
+		break;
+	case YOUBOT_CMODE_CURRENT:
+		if(read_int5(arm->p_cmd_cur, &cmd_cur) == YOUBOT_NR_OF_JOINTS) { /* raw current */
+			for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
+				arm->jnt_inf[i].cmd_val = cmd_cur[i] / ((double) ARM_CUR_TO_EFF);
+		}
+		break;
+	case YOUBOT_CMODE_INITIALIZE:
+		break;
+	case YOUBOT_CMODE_SET_POSITION_TO_REFERENCE:
+		for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
+			arm->jnt_inf[i].cmd_val = arm_calib_ref_pos[i] / ((double) ARM_TICKS_TO_POS);
+		break;
+	default:
+		ERR("unexpected control_mode: %d, switching to MOTORSTOP", arm->control_mode);
+		arm->control_mode = YOUBOT_CMODE_MOTORSTOP;
+		break;
+	}
+
+
+	/* copy cmd_val to output buffer */
+	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
+		motor_out = (out_motor_t*) ec_slave[ arm->jnt_inf[i].slave_idx ].outputs;
+		motor_out->value = arm->jnt_inf[i].cmd_val;
+		motor_out->controller_mode = arm->control_mode;
+	}
+
+	ret=0;
 	return ret;
 }
 
-/*
- * Microblx driver wrapper starts here.
- */
-
+/*******************************************************************************
+ *									       *
+ *                            Microblx block code			       *
+ *									       *
+ *******************************************************************************/
 
 static int youbot_init(ubx_block_t *b)
 {
@@ -902,6 +1137,23 @@ static int youbot_start(ubx_block_t *b)
 	assert(inf->base.p_msr_odom = ubx_port_get(b, "base_msr_odom"));
 	assert(inf->base.p_msr_twist = ubx_port_get(b, "base_msr_twist"));
 	assert(inf->base.p_base_motorinfo = ubx_port_get(b, "base_motorinfo"));
+
+	assert(inf->arm1.p_control_mode = ubx_port_get(b, "arm1_control_mode"));
+	assert(inf->arm1.p_cmd_pos = ubx_port_get(b, "arm1_cmd_pos"));
+	assert(inf->arm1.p_cmd_vel = ubx_port_get(b, "arm1_cmd_vel"));
+	assert(inf->arm1.p_cmd_cur = ubx_port_get(b, "arm1_cmd_cur"));
+	assert(inf->arm1.p_arm_state = ubx_port_get(b, "arm1_state"));
+	assert(inf->arm1.p_arm_motorinfo = ubx_port_get(b, "arm1_motorinfo"));
+	assert(inf->arm1.p_gripper = ubx_port_get(b, "arm1_gripper"));
+
+	assert(inf->arm2.p_control_mode = ubx_port_get(b, "arm2_control_mode"));
+	assert(inf->arm2.p_cmd_pos = ubx_port_get(b, "arm2_cmd_pos"));
+	assert(inf->arm2.p_cmd_vel = ubx_port_get(b, "arm2_cmd_vel"));
+	assert(inf->arm2.p_cmd_cur = ubx_port_get(b, "arm2_cmd_cur"));
+	assert(inf->arm2.p_arm_state = ubx_port_get(b, "arm2_state"));
+	assert(inf->arm2.p_gripper = ubx_port_get(b, "arm2_gripper"));
+
+
 
 	ret=0;
  out:
