@@ -126,8 +126,14 @@ typedef struct ubx_config {
 	const char* name;
 	const char* meta_data;
 	const char* type_name;
+	uint32_t attrs;
 	ubx_data_t value;
 } ubx_config_t;
+
+enum {
+	CONFIG_ATTR_RDWR = 	0<<0,
+	CONFIG_ATTR_RDONLY =	1<<0,
+};
 
 /*
  * ubx block

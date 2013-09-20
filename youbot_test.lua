@@ -137,7 +137,6 @@ function base_move_twist(twist_tab, dur)
    ubx.port_write(yb_pinv.base_cmd_twist, base_null_twist_data)
 end
 
-
 base_vel_data=ubx.data_alloc(ni, "int32_t", 4)
 base_null_vel_data=ubx.data_alloc(ni, "int32_t", 4)
 
@@ -301,6 +300,8 @@ assert(ubx.block_init(file_rep1))
 assert(ubx.block_init(webif1)==0)
 assert(ubx.block_init(youbot1)==0)
 
+nr_arms=ubx.data_tolua(ubx.config_get_data(youbot1, "nr_arms"))
+
 assert(ubx.block_start(webif1)==0)
 assert(ubx.block_start(file_rep1)==0)
 assert(ubx.block_start(youbot1)==0)
@@ -308,7 +309,12 @@ assert(ubx.block_start(ptrig1)==0)
 
 -- make sure youbot is running ok.
 base_initialized()
-arm_initialized()
+
+if nr_arms==1 then
+   arm_initialized()
+elseif nr_arms==2 then
+   print("WARNING: this script does not yet support a two arm youbot (the driver does however)")
+end
 
 twst={vel={x=0.05,y=0,z=0},rot={x=0,y=0,z=0.1}}
 vel_tab={1,1,1,1}

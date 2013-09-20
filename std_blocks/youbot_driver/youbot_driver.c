@@ -29,6 +29,7 @@ char youbot_meta[] =
 
 ubx_config_t youbot_config[] = {
 	{ .name="ethernet_if", .type_name = "char" },
+	{ .name="nr_arms", .type_name = "char", .attrs=CONFIG_ATTR_RDONLY },
 	{ NULL },
 };
 
@@ -1137,13 +1138,15 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 static int youbot_init(ubx_block_t *b)
 {
 	int ret=-1, i, cur_slave;
-	unsigned int interface_len;
+	unsigned int len;
 	char* interface;
+	uint32_t *conf_nr_arms;
 	struct youbot_info *inf;
 
-	interface = (char *) ubx_config_get_data_ptr(b, "ethernet_if", &interface_len);
+	interface = (char *) ubx_config_get_data_ptr(b, "ethernet_if", &len);
+	conf_nr_arms = (uint32_t *) ubx_config_get_data_ptr(b, "nr_arms", &len);
 
-	if(strncmp(interface, "", interface_len)==0) {
+	if(strncmp(interface, "", len)==0) {
 		ERR("config ethernet_if unset");
 		goto out;
 	}
@@ -1187,6 +1190,7 @@ static int youbot_init(ubx_block_t *b)
 	   validate_arm_slaves(1+YOUBOT_NR_OF_BASE_SLAVES)==0) {
 		DBG("detected youbot arm #1 (first slave=%d)", cur_slave);
 		inf->arm1.detected=1;
+		*conf_nr_arms=1;
 		cur_slave++; /* skip the power board */
 
 		for(i=0; i<YOUBOT_NR_OF_JOINTS; i++, cur_slave++)
@@ -1198,6 +1202,7 @@ static int youbot_init(ubx_block_t *b)
 	   validate_arm_slaves(1+YOUBOT_NR_OF_BASE_SLAVES+YOUBOT_NR_OF_ARM_SLAVES)==0) {
 		DBG("detected youbot arm #2 (first slave=%d)", cur_slave);
 		inf->arm2.detected=1;
+		*conf_nr_arms=2;
 		cur_slave++; /* skip the power board */
 
 		for(i=0; i<YOUBOT_NR_OF_JOINTS; i++, cur_slave++)
