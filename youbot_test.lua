@@ -271,7 +271,8 @@ function arm_home() arm_move_pos{0,0,0,0,0} end
 
 
 function help()
-   print[[
+   local help_msg=
+      [[
 youbot test script.
  Base:
       base_set_control_mode(mode)	mode: mstop=0, pos=1, vel=2, cur=6
@@ -279,6 +280,10 @@ youbot test script.
       base_move_vel(vel_tab, dur)       move each wheel with individual vel [rpm] for dur seconds
       base_move_cur(cur_tab, dur)       move each wheel with individual current [mA] for dur seconds
 
+]]
+
+   if nr_arms>=1 then
+      help_msg=help_msg..[[
 
  Arm: run arm_calibrate() (after each power-down) _BEFORE_ using the other arm functions!!
 
@@ -290,7 +295,15 @@ youbot test script.
       arm_move_cur(cur_tab, dur)        move joints. cur_tab is Lua table of len=5 [mA]
       arm_tuck()                        move arm to "tuck" position
       arm_home()                        move arm to "candle" position
-   ]]
+]]
+   end
+   if nr_arms>=2 then
+      help_msg=help_msg..[[
+
+	    WARNING: this script does currently not support the second youbot arm!
+      ]]
+   end
+   print(help_msg)
 end
 
 -- start and init webif and youbot
