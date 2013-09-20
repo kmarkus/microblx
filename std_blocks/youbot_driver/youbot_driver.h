@@ -51,6 +51,7 @@
 
 /* types that are sent via ports are defined here */
 #include "types/youbot_control_modes.h"
+#include "types/motionctrl_jnt_state.h"
 #include "../std_types/kdl/types/kdl.h"
 
 static const uint8_t ROR			= 1;
@@ -169,7 +170,7 @@ typedef struct __attribute__((__packed__)) {
 
 
 static const int YOUBOT_ARM_JOINT_GEAR_RATIOS[YOUBOT_NR_OF_JOINTS] = {156, 156, 100, 71, 71};
-static const double YOUBOT_ARM_JOINT_TORQUE_CONSTANTS[YOUBOT_NR_OF_JOINTS] = {0.0335, 0.0335, 0.0335, 0.051, 0.049}; // Nm/A
+static const double YOUBOT_ARM_JOINT_TORQUE_CONSTANTS[YOUBOT_NR_OF_JOINTS] = {0.0335, 0.0335, 0.0335, 0.051, 0.049}; /* Nm/A */
 
 static const double arm_calib_ref_pos[YOUBOT_NR_OF_JOINTS] = {2.8793, 1.1414, 2.50552, 1.76662, 2.8767};
 static const int32_t arm_calib_cur_high[YOUBOT_NR_OF_JOINTS] = {1000, 1500, 1000, 500, 400};
@@ -182,16 +183,16 @@ static const double arm_calib_move_out_vel[YOUBOT_NR_OF_JOINTS] = {-0.02, -0.02,
 #define ARM_CUR_TO_EFF		(YOUBOT_ARM_JOINT_TORQUE_CONSTANTS[i] * YOUBOT_ARM_JOINT_GEAR_RATIOS[i] / 1000)
 
 /* software safety for arm */
-static const double YOUBOT_ARM_SOFT_LIMIT = 0.8; // legal yb soft limit range (%)
+#define YOUBOT_ARM_SOFT_LIMIT		0.8 /* legal yb soft limit range (%) */
 
-// the following tow values (in percent) define the scaling range
-// in which forces are scale from 100%->0
-static const double YOUBOT_ARM_SCALE_START = 0.8; // should be same as above
-static const double YOUBOT_ARM_SCALE_END = 0.85; // somewhere between START and 1
+/* the following tow values (in percent) define the scaling range in
+ * which forces are scale from 100%->0 */
+#define YOUBOT_ARM_SCALE_START		0.8  /* should be same as YOUBOT_ARM_SOFT_LIMIT */
+#define YOUBOT_ARM_SCALE_END		0.85 /* somewhere between START and 1 */
 
-// Joint limits in (deg) (from youBot manual v.82 pg. 7)
-static const double YOUBOT_ARM_LOWER_LIMIT[YOUBOT_NR_OF_JOINTS] = { -169, -90, -146, -102.5, -167.5 };
-static const double YOUBOT_ARM_UPPER_LIMIT[YOUBOT_NR_OF_JOINTS] = { 169, 65, 151, 102.5, 167.5 };
+/* Joint limits in (deg) (from youBot manual v.82 pg. 7) */
+static const double youbot_arm_lower_limits[YOUBOT_NR_OF_JOINTS] = { -169, -65, -151, -102.5, -167.5 };
+static const double youbot_arm_upper_limits[YOUBOT_NR_OF_JOINTS] = { 169, 90, 146, 102.5, 167.5 };
 
 
 /*
@@ -242,10 +243,15 @@ struct youbot_arm_info {
 	int8_t control_mode;		/* currently used control mode */
 	struct youbot_motor_info jnt_inf[YOUBOT_NR_OF_JOINTS];
 
+	struct motionctrl_jnt_state jnt_states;
+
 	/* calibration stuff */
 	int calibrating;
 	int axis_at_limit[YOUBOT_NR_OF_JOINTS];
 
+	int jntlim_safety_disabled;
+
+	ubx_port_t *p_events;
 	ubx_port_t *p_control_mode;
 	ubx_port_t *p_calibrate_cmd;
 	ubx_port_t *p_cmd_pos;

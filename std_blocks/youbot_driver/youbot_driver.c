@@ -68,8 +68,7 @@ ubx_port_t youbot_ports[] = {
 #include "types/youbot_base_motorinfo.h.hexarr"
 
 /* high level: m, m/s, Nm */
-#include "types/youbot_arm_state.h"
-#include "types/youbot_arm_state.h.hexarr"
+#include "types/motionctrl_jnt_state.h.hexarr"
 
 /* low level: ticks, rpm, current */
 #include "types/youbot_arm_motorinfo.h"
@@ -80,7 +79,7 @@ ubx_port_t youbot_ports[] = {
 ubx_type_t youbot_types[] = {
 	def_struct_type(struct youbot_base_motorinfo, &youbot_base_motorinfo_h),
 	def_struct_type(struct youbot_arm_motorinfo, &youbot_arm_motorinfo_h),
-	def_struct_type(struct youbot_arm_state, &youbot_arm_state_h),
+	def_struct_type(struct motionctrl_jnt_state, &motionctrl_jnt_state_h),
 	/* def_struct_type("youbot", enum youbot_control_modes, &youbot_control_modes_h), */
 	{ NULL },
 };
@@ -109,7 +108,7 @@ def_write_fun(write_kdl_frame, struct kdl_frame)
 def_write_fun(write_base_motorinfo, struct youbot_base_motorinfo)
 
 def_write_fun(write_arm_motorinfo, struct youbot_arm_motorinfo)
-def_write_fun(write_arm_state, struct youbot_arm_state)
+def_write_fun(write_arm_state, struct motionctrl_jnt_state)
 
 /**
  * validate_base_slaves - check whether a valid base was detected.
@@ -847,6 +846,58 @@ static int arm_proc_errflg(struct youbot_arm_info* ainf)
 	return fatal_errs;
 }
 
+
+/**
+ * Scale down the cmd output according to limits.
+ *
+ * More specifically, scale down proportionally when inside the
+ * soft-limits and moving _towards_ the hard-limit.
+ *
+ * @param arm arm_info struct.
+ * @param jnt_num (0-4) joint to scale down.
+ */
+static int32_t scale_down_cmd_val(struct youbot_arm_info* arm, int jnt_num)
+{
+	double jntpos, upper_start, upper_end, lower_start, lower_end, scale_val;
+	int32_t cmd_val;
+
+	cmd_val = arm->jnt_inf[jnt_num].cmd_val;
+
+        if(arm->jntlim_safety_disabled)
+		goto out;
+
+        jntpos = arm->jnt_states.pos[jnt_num];
+        upper_start = youbot_arm_upper_limits[jnt_num] * YOUBOT_ARM_SCALE_START * (M_PI/180);
+        upper_end = youbot_arm_upper_limits[jnt_num] * YOUBOT_ARM_SCALE_END * (M_PI/180);
+        lower_start = youbot_arm_lower_limits[jnt_num] * YOUBOT_ARM_SCALE_START * (M_PI/180);
+        lower_end = youbot_arm_lower_limits[jnt_num] * YOUBOT_ARM_SCALE_END * (M_PI/180);
+
+        scale_val=1;
+
+	/* outside of range */
+        if (jntpos < upper_start && jntpos > lower_start)
+		goto out;
+
+        /* inside upper range and moving towards limit. */
+        if (jntpos > upper_start && cmd_val > 0) {
+		scale_val = (upper_end - jntpos)/(upper_end - upper_start);
+		goto scale;
+        }
+
+        /* inside lower range and moving towards limit */
+        if (jntpos < lower_start && cmd_val < 0) {
+		scale_val = (lower_end - jntpos)/(lower_end - lower_start);
+		goto scale;
+        }
+	/* should never get here */
+        goto out;
+ scale:
+	cmd_val*=scale_val;
+ out:
+        return cmd_val;
+}
+
+
 static int control_gripper(struct youbot_arm_info* arm, int32_t pos1, int32_t pos2)
 {
 	if(send_mbx(1, MVP, 1, 11, 0, &pos1))
@@ -865,7 +916,7 @@ static void arm_output_msr_data(struct youbot_arm_info* arm)
 {
 	int i;
 	struct youbot_arm_motorinfo motorinf;
-	struct youbot_arm_state arm_state;
+	/* struct youbot_arm_state arm_state; */
 
 	/* copy and write out the "raw" driver information */
 	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
@@ -873,13 +924,13 @@ static void arm_output_msr_data(struct youbot_arm_info* arm)
 		motorinf.vel[i]=arm->jnt_inf[i].msr_vel;
 		motorinf.cur[i]=arm->jnt_inf[i].msr_cur;
 
-		arm_state.pos[i] = ARM_TICKS_TO_POS * arm->jnt_inf[i].msr_pos;
-		arm_state.vel[i] = ARM_RPM_TO_VEL * arm->jnt_inf[i].msr_vel;
-		arm_state.eff[i] = ARM_CUR_TO_EFF * arm->jnt_inf[i].msr_cur;
+		arm->jnt_states.pos[i] = ARM_TICKS_TO_POS * arm->jnt_inf[i].msr_pos;
+		arm->jnt_states.vel[i] = ARM_RPM_TO_VEL * arm->jnt_inf[i].msr_vel;
+		arm->jnt_states.eff[i] = ARM_CUR_TO_EFF * arm->jnt_inf[i].msr_cur;
 	}
 
 	write_arm_motorinfo(arm->p_arm_motorinfo, &motorinf);
-	write_arm_state(arm->p_arm_state, &arm_state);
+	write_arm_state(arm->p_arm_state, &arm->jnt_states);
 }
 
 #if 0
@@ -976,6 +1027,7 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 	if(read_int(arm->p_calibrate_cmd, &tmp) > 0) {
 		DBG("calibration: starting");
 		arm->calibrating=1;
+		arm->jntlim_safety_disabled=1;
 	}
 
 	/* calibration "FSM" */
@@ -989,6 +1041,7 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 		} else if(arm->calibrating == 2) {
 			/* move to home? */
 			arm->calibrating=0;
+			arm->jntlim_safety_disabled=0;
 			arm->control_mode=YOUBOT_CMODE_MOTORSTOP;
 			DBG("calibration: completed!");
 #if 0
@@ -1067,7 +1120,7 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 	/* copy cmd_val to output buffer */
 	for(i=0; i<YOUBOT_NR_OF_JOINTS; i++) {
 		motor_out = (out_motor_t*) ec_slave[ arm->jnt_inf[i].slave_idx ].outputs;
-		motor_out->value = arm->jnt_inf[i].cmd_val;
+		motor_out->value = scale_down_cmd_val(arm, i); /* active if jntlim_safety_disabled==0; */
 		motor_out->controller_mode = arm->control_mode;
 	}
 
