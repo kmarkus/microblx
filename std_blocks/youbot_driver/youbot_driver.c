@@ -863,7 +863,7 @@ static int32_t scale_down_cmd_val(struct youbot_arm_info* arm, int jnt_num)
 
 	cmd_val = arm->jnt_inf[jnt_num].cmd_val;
 
-        if(arm->jntlim_safety_disabled)
+        if(arm->jntlim_safety_disabled || arm->control_mode == YOUBOT_CMODE_POSITIONING)
 		goto out;
 
         jntpos = arm->jnt_states.pos[jnt_num];

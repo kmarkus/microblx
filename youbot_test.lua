@@ -39,7 +39,7 @@ rep_conf=[[
 {
    { blockname='youbot1', portname="base_motorinfo", buff_len=3, },
    { blockname='youbot1', portname="arm1_motorinfo", buff_len=3, },
-   { blockname='youbot1', portname="arm1_control_mode", buff_len=3 },
+   { blockname='youbot1', portname="arm1_state", buff_len=3 },
 }
 ]]
 
@@ -261,38 +261,36 @@ arm_pos_data=ubx.data_alloc(ni, "double", 5)
 --- Move each wheel with an individual RPM value.
 -- @param table of size for with wheel posocity
 -- @param dur time in seconds to apply posocity
-function arm_move_pos(pos_tab, dur)
+function arm_move_pos(pos_tab)
    arm_set_control_mode(1) -- POS
    ubx.data_set(arm_pos_data, pos_tab)
-   local dur = {sec=dur, nsec=0}
-   local ts_start=gettime()
-   local ts_cur=gettime()
-   local diff = {sec=0,nsec=0}
-
-   while true do
-      diff.sec,diff.nsec=time.sub(ts_cur, ts_start)
-      if time.cmp(diff, dur)==1 then break end
-      ubx.port_write(yb_pinv.arm1_cmd_pos, arm_pos_data)
-      ts_cur=gettime()
-   end
-   -- ubx.port_write(yb_pinv.arm1_cmd_pos, arm_null_pos_data)
+   ubx.port_write(yb_pinv.arm1_cmd_pos, arm_pos_data)
 end
+
+function arm_tuck() arm_move_pos{2.588, 1.022, 2.248, 1.580, 2.591 } end
+function arm_home() arm_move_pos{0,0,0,0,0} end
+
 
 function help()
    print[[
 youbot test script.
+ Base:
       base_set_control_mode(mode)	mode: mstop=0, pos=1, vel=2, cur=6
       base_move_twist(twist_tab, dur)  	move with twist (as Lua table) for dur seconds
       base_move_vel(vel_tab, dur)       move each wheel with individual vel [rpm] for dur seconds
       base_move_cur(cur_tab, dur)       move each wheel with individual current [mA] for dur seconds
 
 
-      arm_set_control_mode(mode)	see base.
+ Arm: run arm_calibrate() (after each power-down) _BEFORE_ using the other arm functions!!
+
       arm_calibrate()			calibrate the arm. !!! DO THIS FIRST !!!
+      arm_set_control_mode(mode)	see base.
       arm_move_pos(pos_tab, dur)	move to pos. pos_tab is Lua table of len=5 [rad]
       arm_move_vel(vel_tab, dur)	move joints. vel_tab is Lua table of len=5 [rad/s]
       arm_move_eff(eff_tab, dur)        move joints. eff_tab is Lua table of len=5 [Nm]
       arm_move_cur(cur_tab, dur)        move joints. cur_tab is Lua table of len=5 [mA]
+      arm_tuck()                        move arm to "tuck" position
+      arm_home()                        move arm to "candle" position
    ]]
 end
 
