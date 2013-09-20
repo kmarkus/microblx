@@ -34,29 +34,29 @@ ubx_config_t youbot_config[] = {
 
 ubx_port_t youbot_ports[] = {
 	/* generic arm+base */
-	{ .name="events", .attrs=PORT_DIR_OUT, .in_type_name="unsigned int" },
+	{ .name="events", .in_type_name="unsigned int" },
 
 	/* base */
-	{ .name="base_control_mode", .attrs=PORT_DIR_INOUT, .in_type_name="int32_t", .out_type_name="int32_t" },
-	{ .name="base_cmd_twist", .attrs=PORT_DIR_IN, .in_type_name="struct kdl_twist" },
-	{ .name="base_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_WHEELS },
-	{ .name="base_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_WHEELS },
+	{ .name="base_control_mode", .in_type_name="int32_t", .out_type_name="int32_t" },
+	{ .name="base_cmd_twist", .in_type_name="struct kdl_twist" },
+	{ .name="base_cmd_vel", .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_WHEELS },
+	{ .name="base_cmd_cur", .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_WHEELS },
 
 	{ .name="base_msr_odom", .attrs=PORT_DIR_OUT, .out_type_name="struct kdl_frame" },
 	{ .name="base_msr_twist", .attrs=PORT_DIR_OUT, .out_type_name="struct kdl_twist" },
 	{ .name="base_motorinfo", .attrs=PORT_DIR_OUT, .out_type_name="struct youbot_base_motorinfo" },
 
 	/* arm */
-	{ .name="arm1_control_mode", .attrs=PORT_DIR_INOUT, .in_type_name="int32_t", .out_type_name="int32_t" },
-	{ .name="arm1_calibrate_cmd", .attrs=PORT_DIR_IN, .in_type_name="int32_t" },
-	{ .name="arm1_cmd_pos", .attrs=PORT_DIR_IN, .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS },
-	{ .name="arm1_cmd_vel", .attrs=PORT_DIR_IN, .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS },
-	{ .name="arm1_cmd_eff", .attrs=PORT_DIR_IN, .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS },
-	{ .name="arm1_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
+	{ .name="arm1_control_mode", .in_type_name="int32_t", .out_type_name="int32_t" },
+	{ .name="arm1_calibrate_cmd", .in_type_name="int32_t" },
+	{ .name="arm1_cmd_pos", .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS },
+	{ .name="arm1_cmd_vel", .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS },
+	{ .name="arm1_cmd_eff", .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS },
+	{ .name="arm1_cmd_cur", .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
 
-	{ .name="arm1_motorinfo", .attrs=PORT_DIR_OUT, .out_type_name="struct youbot_arm_motorinfo" },
-	{ .name="arm1_state", .attrs=PORT_DIR_OUT, .out_type_name="struct motionctrl_jnt_state" },
-	{ .name="arm1_gripper", .attrs=PORT_DIR_INOUT, .in_type_name="int32_t", .out_type_name="int32_t" },
+	{ .name="arm1_motorinfo",  .out_type_name="struct youbot_arm_motorinfo" },
+	{ .name="arm1_state", .out_type_name="struct motionctrl_jnt_state" },
+	{ .name="arm1_gripper", .in_type_name="int32_t", .out_type_name="int32_t" },
 
 	{ NULL },
 };
