@@ -175,7 +175,7 @@ static const double YOUBOT_ARM_JOINT_TORQUE_CONSTANTS[YOUBOT_NR_OF_JOINTS] = {0.
 static const double arm_calib_ref_pos[YOUBOT_NR_OF_JOINTS] = {2.8793, 1.1414, 2.50552, 1.76662, 2.8767};
 static const int32_t arm_calib_cur_high[YOUBOT_NR_OF_JOINTS] = {1000, 1500, 1000, 500, 400};
 
-static const double_t arm_calib_move_in_vel[YOUBOT_NR_OF_JOINTS] = {0.05, 0.05, 0.05, 0.05, 0.05 };
+static const double_t arm_calib_move_in_vel[YOUBOT_NR_OF_JOINTS] = {0.1, 0.1, 0.1, 0.1, 0.1 };
 static const double arm_calib_move_out_vel[YOUBOT_NR_OF_JOINTS] = {-0.02, -0.02, -0.02, -0.02, -0.02 };
 
 #define ARM_TICKS_TO_POS	(2 * M_PI / (YOUBOT_ARM_JOINT_GEAR_RATIOS[i] * YOUBOT_TICKS_PER_REVOLUTION))
@@ -190,9 +190,16 @@ static const double arm_calib_move_out_vel[YOUBOT_NR_OF_JOINTS] = {-0.02, -0.02,
 #define YOUBOT_ARM_SCALE_START		0.8  /* should be same as YOUBOT_ARM_SOFT_LIMIT */
 #define YOUBOT_ARM_SCALE_END		0.85 /* somewhere between START and 1 */
 
-/* Joint limits in (deg) (from youBot manual v.82 pg. 7) */
-static const double youbot_arm_lower_limits[YOUBOT_NR_OF_JOINTS] = { -169, -65, -151, -102.5, -167.5 };
-static const double youbot_arm_upper_limits[YOUBOT_NR_OF_JOINTS] = { 169, 90, 146, 102.5, 167.5 };
+/* Joint limits in (deg) (from youBot manual v.82 pg. 7)
+ * static const double YOUBOT_ARM_LOWER_LIMIT[YOUBOT_NR_OF_JOINTS] = { -169, -90, -146, -102.5, -167.5 };
+ * static const double YOUBOT_ARM_UPPER_LIMIT[YOUBOT_NR_OF_JOINTS] = { 169, 65, 151, 102.5, 167.5 };
+ *
+ * The following values are determined manually by moving the arm into
+ * the limits:
+ */
+
+static const double youbot_arm_lower_limits[YOUBOT_NR_OF_JOINTS] = { -165.2, -86.2, -144.6, -99.8, -163.4 };
+static const double youbot_arm_upper_limits[YOUBOT_NR_OF_JOINTS] = { 164.8, 65.1, 143.1, 100.1, 165.0 };
 
 
 /*

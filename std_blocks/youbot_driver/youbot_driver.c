@@ -55,7 +55,7 @@ ubx_port_t youbot_ports[] = {
 	{ .name="arm1_cmd_cur", .attrs=PORT_DIR_IN, .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
 
 	{ .name="arm1_motorinfo", .attrs=PORT_DIR_OUT, .out_type_name="struct youbot_arm_motorinfo" },
-	{ .name="arm1_state", .attrs=PORT_DIR_OUT, .out_type_name="struct youbot_arm_state" },
+	{ .name="arm1_state", .attrs=PORT_DIR_OUT, .out_type_name="struct motionctrl_jnt_state" },
 	{ .name="arm1_gripper", .attrs=PORT_DIR_INOUT, .in_type_name="int32_t", .out_type_name="int32_t" },
 
 	{ NULL },
