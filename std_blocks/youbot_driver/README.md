@@ -30,7 +30,7 @@ $ ln -s /path/to/soem1.2.5 soem
 3. Compile the youbot driver block
 
 ```Shell
-    $ make
+$ make
 ```
 
 Running
