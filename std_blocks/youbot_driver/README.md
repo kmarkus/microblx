@@ -10,23 +10,21 @@ Compiling
 
    and compile it:
 
-```
-$ cd soem1.2.5/src/
-$ make
-```
+
+    $ cd soem1.2.5/src/
+    $ make
+
 
 2. In this (microblx) directory, create a softlink named `soem` to the
 soem1.2.5 directory:
 
-```
-$ cd microblx/std_blocks/youbot_driver/
-$ ln -s /path/to/soem1.2.5 soem
+
+    $ cd microblx/std_blocks/youbot_driver/
+    $ ln -s /path/to/soem1.2.5 soem
 
 3. run make
 
-```
-$ make
-```
+    $ make
 
 Running
 -------
@@ -42,10 +40,9 @@ advisable to run with real-time priorities (capability:
 `cap_sys_nice`). To add these, run the following `setcap` command on
 the luajit binary:
 
-```
-$ sudo setcap cap_sys_nice,cap_net_raw+ep /usr/local/bin/luajit-2.0.2
 
-```
+    $ sudo setcap cap_sys_nice,cap_net_raw+ep /usr/local/bin/luajit-2.0.2
+
 
 License
 -------

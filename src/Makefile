@@ -13,5 +13,8 @@ ubx.o: ubx.c ubx_proto.h ubx.h ubx_types.h uthash.h uthash_ffi.h
 clean:
 	rm -f *.o *.so *~ core
 
+check:
+	splint ubx.c ubx.h ubx_types.h ubx_proto.h
+
 mrproper:
 	rm -f *.o *.so *~ core ubx_proto.h
