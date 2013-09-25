@@ -1,5 +1,5 @@
-MICROBLX: light, fast, hard real-time function blocks
-=====================================================
+MICROBLX: real-time, embedded, reflective function blocks
+=========================================================
 
 What is it?
 -----------
@@ -8,8 +8,8 @@ Microblx is an lightweight, dynamic, reflective, hard real-time safe
 function block implementation:
 
  - Pure C, no external dependencies
- - Webinterface function block to introspect and control blocks
  - Lua scripting for system configuration and deployment
+ - Webinterface function block to introspect and control blocks
  - generic Lua scriptable function block
  - Dynamic type handling, no code-generation
  - Similar to IEC-61508 and IEC-61499 functions blocks.
