@@ -25,7 +25,9 @@ Dependencies
 Building
 --------
 
-	$ Just run "make".
+```
+$ Just run "make".
+```
 
 
 Documentation
@@ -42,7 +44,9 @@ FAQ
 To run with real-time priorities, give the luajit binary
 `cap_sys_nice` capabilities, e.g:
 
-	$ sudo setcap cap_sys_nice+ep /usr/local/bin/luajit-2.0.2
+```
+$ sudo setcap cap_sys_nice+ep /usr/local/bin/luajit-2.0.2
+```
 
 License
 -------
