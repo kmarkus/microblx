@@ -1,6 +1,32 @@
-/* 
- * micro-5c: a 5C compliant distributed function blocks framework in
- * pure C
+/*
+ * microblx: embedded, real-time safe, reflective function blocks.
+ * Copyright (C) 2013 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
+ *
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * As a special exception, if other files instantiate templates or use
+ * macros or inline functions from this file, or you compile this file
+ * and link it with other works to produce a work based on this file,
+ * this file does not by itself cause the resulting work to be covered
+ * by the GNU General Public License. However the source code for this
+ * file must still be made available in accordance with the GNU
+ * General Public License.
+ *
+ * This exception does not invalidate any other reasons why a work
+ * based on this file might be covered by the GNU General Public
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #define CONFIG_DUMPABLE		1
@@ -40,7 +66,7 @@ void __ubx_cleanup_module(ubx_node_info_t* ni) { exitfn(ni); }
 #define def_basic_ctype(typename) { .name=#typename, .type_class=TYPE_CLASS_BASIC, .size=sizeof(typename) }
 
 #define def_struct_type(typename, hexdata) \
-{ 					\
+{					\
 	.name=#typename, 		\
 	.type_class=TYPE_CLASS_STRUCT,	\
 	.size=sizeof(typename),		\
@@ -64,7 +90,7 @@ static void function_name(ubx_port_t* port, typename *outval) 	\
 } 							\
 
 /* generate a typed read function: arguments to the function are the
- * port and a pointer to the result value. 
+ * port and a pointer to the result value.
  */
 #define def_read_fun(function_name, typename)		 \
 static int32_t function_name(ubx_port_t* port, typename *inval) \
