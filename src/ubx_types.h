@@ -35,8 +35,13 @@
  * This file is luajit-ffi parsable, the rest goes into ubx.h
  */
 
+/* constants */
 enum {
-	CONFIG_BLOCK_NAME_MAXLEN = 100,
+	BLOCK_NAME_MAXLEN = 100,
+
+	TYPE_HASH_LEN = 16, 		/* md5 */
+	TYPE_HASH_LEN_UNIQUE = 10 	/* Number of characters of the
+					   type checksum to compare */
 };
 
 struct ubx_type;
@@ -75,6 +80,7 @@ typedef struct ubx_type {
 	uint32_t type_class;		/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
 	unsigned long size;		/* size in bytes */
 	void* private_data;		/* private data. */
+	unsigned char name_hash[TYPE_HASH_LEN];
 	ubx_serialization_t* serializations;
 	UT_hash_handle hh;
 } ubx_type_t;
@@ -90,14 +96,14 @@ typedef struct ubx_data {
 /* Port attributes */
 enum {
 	/* Directionality */
-	PORT_DIR_IN 	= 1 << 0,
-	PORT_DIR_OUT 	= 1 << 1,
+	PORT_DIR_IN	= 1 << 0,
+	PORT_DIR_OUT	= 1 << 1,
 	PORT_DIR_INOUT  = PORT_DIR_IN & PORT_DIR_OUT,
 };
 
 /* Port state */
 enum {
-	PORT_ACTIVE 	= 1 << 0,
+	PORT_ACTIVE	= 1 << 0,
 };
 
 enum {
@@ -109,14 +115,14 @@ enum {
 /* return values */
 enum {
 	/* ERROR conditions */
-	EPORT_INVALID	    	= -3,
-	EPORT_INVALID_TYPE  	= -4,
+	EPORT_INVALID		= -3,
+	EPORT_INVALID_TYPE	= -4,
 
 	/* Registration, etc */
-	EINVALID_BLOCK_TYPE 	= -5,
-	ENOSUCHBLOCK	    	= -6,
+	EINVALID_BLOCK_TYPE	= -5,
+	ENOSUCHBLOCK		= -6,
 	EALREADY_REGISTERED	= -7,
-	EOUTOFMEM 		= -8,
+	EOUTOFMEM		= -8,
 	EINVALID_CONFIG		= -9,
 };
 
@@ -134,7 +140,7 @@ typedef struct ubx_port {
 	const char* out_type_name;	/* string data type name */
 
 	ubx_type_t* in_type;		/* resolved in automatically */
-	ubx_type_t* out_type;	 	/* resolved in automatically */
+	ubx_type_t* out_type;		/* resolved in automatically */
 
 	unsigned long in_data_len;	/* max array size of in/out data */
 	unsigned long out_data_len;
@@ -162,7 +168,7 @@ typedef struct ubx_config {
 } ubx_config_t;
 
 enum {
-	CONFIG_ATTR_RDWR = 	0<<0,
+	CONFIG_ATTR_RDWR =	0<<0,
 	CONFIG_ATTR_RDONLY =	1<<0,
 };
 
