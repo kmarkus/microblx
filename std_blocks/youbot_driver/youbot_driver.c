@@ -77,9 +77,9 @@ ubx_port_t youbot_ports[] = {
 	{ .name="base_cmd_vel", .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_WHEELS },
 	{ .name="base_cmd_cur", .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_WHEELS },
 
-	{ .name="base_msr_odom", .attrs=PORT_DIR_OUT, .out_type_name="struct kdl_frame" },
-	{ .name="base_msr_twist", .attrs=PORT_DIR_OUT, .out_type_name="struct kdl_twist" },
-	{ .name="base_motorinfo", .attrs=PORT_DIR_OUT, .out_type_name="struct youbot_base_motorinfo" },
+	{ .name="base_msr_odom",  .out_type_name="struct kdl_frame" },
+	{ .name="base_msr_twist", .out_type_name="struct kdl_twist" },
+	{ .name="base_motorinfo", .out_type_name="struct youbot_base_motorinfo" },
 
 	/* arm */
 	{ .name="arm1_control_mode", .in_type_name="int32_t", .out_type_name="int32_t" },
