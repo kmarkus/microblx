@@ -49,12 +49,12 @@ otherwise?
 
 This can have several reasons:
 
-* You forgot the `-i` option to luajit: in that case, the script be
-  executed and once completed will exit. Running blocks may cause
-  havoc.
+* You forgot the `-i` option to `luajit`: in that case the script is
+  executed and once completed will immedately exit. The system will be
+  shut down / cleaned up rather rougly.
 
 * You ran the wrong Lua executable (e.g. a standard Lua instead of
-  luajit).
+  `luajit`).
 
 ### Real-time priorities
 
