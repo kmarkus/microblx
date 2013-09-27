@@ -29,7 +29,6 @@ Building
 $ Just run "make".
 ```
 
-
 Documentation
 -------------
 
@@ -40,6 +39,24 @@ Check for block specific README files.
 
 FAQ
 ---
+
+### I get module XZY not found
+
+Did you source the `env.sh` script or setup your environment
+otherwise?
+
+### My script immedately crashes/finishes
+
+This can have several reasons:
+
+* You forgot the `-i` option to luajit: in that case, the script be
+  executed and once completed will exit. Running blocks may cause
+  havoc.
+
+* You ran the wrong Lua executable (e.g. a standard Lua instead of
+  luajit).
+
+### Real-time priorities
 
 To run with real-time priorities, give the luajit binary
 `cap_sys_nice` capabilities, e.g:
