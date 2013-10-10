@@ -491,7 +491,7 @@ function M.data_set(d, val, resize)
       ffi.copy(d_cdata, val)
    elseif val_type=='number' then d_cdata[0]=val
    else
-      error("set_config: don't know how to assign "..
+      error("data_set: don't know how to assign "..
 	    tostring(val).." to ffi type "..tostring(d_cdata))
    end
    return d_cdata

@@ -5,7 +5,7 @@ local utils=require "utils"
 local safe_ts = ubx.safe_tostr
 
 -- Configuration
-num_type_cols=3
+num_type_cols=4
 
 --- define mongoose request info
 ffi.cdef[[
@@ -29,37 +29,32 @@ struct mg_request_info {
 ]]
 
 -- helper
-function split(str, pat)
-   local t = {}  -- NOTE: use {n = 0} in Lua-5.0
-   local fpat = "(.-)" .. pat
-   local last_end = 1
-   local s, e, cap = str:find(fpat, 1)
-   while s do
-      if s ~= 1 or cap ~= "" then table.insert(t,cap) end
-      last_end = e+1
-      s, e, cap = str:find(fpat, last_end)
-   end
-   if last_end <= #str then cap = str:sub(last_end); table.insert(t, cap) end
-   return t
-end
-
 function url_decode(str)
-   str = string.gsub (str, "+", " ")
-   str = string.gsub (str, "%%(%x%x)", 
-		      function(h) return string.char(tonumber(h,16)) end)
-   str = string.gsub (str, "\r\n", "\n")
+   str = string.gsub(str, "+", " ")
+   str = string.gsub(str, "%%(%x%x)",
+		     function(h) return string.char(tonumber(h,16)) end)
+   str = string.gsub(str, "\r\n", "\n")
    return str
 end
 
 function query_string_to_tab(qs)
    local res = {}
-   local keyvals=split(qs, "&")
+   local keyvals=utils.split(qs, "&")
    for _,kv in ipairs(keyvals) do
-      local k,v = string.match(url_decode(kv), "^(%w+)=(.+)$")
+      local k,v = string.match(url_decode(kv), "^([^=]+)=(.+)$")
       res[k]=v
    end
    return res
 end
+
+-- safely load a table from a string
+-- @param str table string to load
+function load_tabstr(str)
+   local tab, msg = load("return "..str, nil, 't', {})
+   if not tab then return false, msg end
+   return pcall(tab)
+end
+
 
 --- HTML generation helpers.
 function html(title, ...)
@@ -196,7 +191,13 @@ function typelist_tohtml(ni)
    return table.concat(output, "\n")
 end
 
-
+function colorize_state(t)
+   -- t.name=color("blue", t.name)
+   if t.state=='preinit' then t.state=color("blue", t.state)
+   elseif t.state=='inactive' then t.state=color("red", t.state)
+   elseif t.state=='active' then t.state=color("green", t.state) end
+   return t
+end
 
 --- Registered blocks
 function blocklist_tohtml(blklst, header, table_fields)
@@ -216,13 +217,6 @@ function blocklist_tohtml(blklst, header, table_fields)
 
    -- generate colors and state change links
    local function process_state(t)
-      local function colorize_state(t)
-	 -- t.name=color("blue", t.name)
-	 if t.state=='preinit' then t.state=color("blue", t.state)
-	 elseif t.state=='inactive' then t.state=color("red", t.state)
-	 elseif t.state=='active' then t.state=color("green", t.state) end
-	 return t
-      end
 
       local function button(blockname, action)
 	 return ('<input type="submit" name="%s" value="%s" class="%s">'):format(blockname, action, action..'button')
@@ -312,7 +306,7 @@ table {
 
 th { padding-right: 20px; }
 td { /* border: 0px solid #000000; */ }
-td{ padding-right:10px; }
+td { padding-right:10px; }
 
 .startbutton { background-color:green; color:#fff; }
 .stopbutton { background-color:yellow; color:#ffffffff; }
@@ -348,22 +342,52 @@ function handle_post(ni, pd)
    block_ops[op](b)
 end
 
---- Show information on a single block.
-function show_block(ri, ni)
-   local function gen_row_data(data, fields)
-      local res=""
-      for _,x in ipairs(data) do
-	 res=res..table_fill_row(x, fields).."\n"
-      end
-      return res
-   end
 
-   local function conf_data_value_tostr(c)
-      c.value=utils.tab2str(c.value)
-   end
+
+function show_block_JS()
+   return
+   [[
+       <script type="text/javascript">
+
+       function remove_readonly(button_name)
+       {
+	  document.getElementById("config_"+button_name).removeAttribute("readonly");
+	  document.getElementById("button_edit_"+button_name).style.display="none";
+	  document.getElementById("button_save_"+button_name).style.display="inline";
+       }
+
+       function save()
+       {
+	  var xxxx=document.getElementById("wert").value;
+	  document.getElementById("button-edit").style.display="inline";
+	  document.getElementById("button-save").style.display="none";
+	  alert('save ' + xxxx);
+	  document.getElementById("wert").setAttribute("readonly", "readonly");
+       }
+     </script>
+    ]]
+end
+
+--- Compute the dimensions of the
+function str_get_dim_2d(s)
+   local rows = utils.split(s, "\n")
+   local num_rows = #rows
+   local num_cols = 0
+   utils.foreach(function (l)
+		    if #l > num_cols then num_cols=#l end
+		 end, rows)
+   return num_cols, num_rows
+end
+
+
+--- Show information on a single block.
+-- @param ri request info
+-- @param ni node infp
+function show_block(ri, ni)
 
    local nodename = safe_ts(ni.name)
-   local qstab = query_string_to_tab(safe_ts(ri.query_string))
+   local query_string = safe_ts(ri.query_string)
+   local qstab = query_string_to_tab(query_string)
    local blockname = qstab.name or " "
    local b = ubx.block_get(ni, blockname)
 
@@ -374,14 +398,56 @@ function show_block(ri, ni)
 
    local bt=ubx.block_totab(b)
 
-   utils.foreach(conf_data_value_tostr, bt.configs)
+   -- gen_row_data
+   local function gen_row_data(data, fields)
+      local res=""
+      for _,x in ipairs(data) do
+	 res=res..table_fill_row(x, fields).."\n"
+      end
+      return res
+   end
+
+   -- conf_data_value_changeable_tostr
+   local function conf_data_value_changeable_tostr(c)
+      local val = utils.trim(utils.tab2str(c.value))
+      local cols, rows = str_get_dim_2d(val)
+
+      if cols==0 then cols=1 end
+      if rows==0 then rows=1 end
+      -- <input type="button" value="save" id="button-save" onclick="save();" style="display:none;">
+
+      c.value = utils.expand(
+	 [[
+	     <form method="POST" action="/block?$query_string">
+	       <input type="button" value="edit" id="button_edit_$confname" onclick='remove_readonly("$confname");'>
+	       <input type="submit" id="button_save_$confname" value="save" style="display:none;">
+	       <input type="hidden" name="blockname" value="$blockname" >
+	       <input type="hidden" name="confname" value="$confname" >
+	       <textarea id="config_$confname" name="confval" cols="$cols" rows="$rows" $readonly>$value</textarea>
+	     </form> ]],
+	 { blockname=blockname, confname=c.name, query_string=query_string, cols=cols, rows=rows, readonly='readonly', value=val}, true )
+   end
+
+   local function conf_data_value_tostr(c)
+      c.value=utils.trim(utils.tab2str(c.value))
+   end
+
+   if bt.state == 'active' then
+      utils.foreach(conf_data_value_tostr, bt.configs)
+   else
+      utils.foreach(conf_data_value_changeable_tostr, bt.configs)
+   end
 
    local port_fields={ 'name', 'attrs', 'in_type_name', 'in_data_len', 'out_type_name', 'out_data_len' }
    local conf_fields={ 'name', 'type_name', 'value' }
 
+   colorize_state(bt)
+
    return html(
       "ubx node: "..nodename,
+      show_block_JS(),
       h(1, "ubx_node: "..a("/", nodename)..":"..blockname),
+      "state: "..bt.state,
       h(2, "Ports"),
       "<table>",
       table_fill_headline(port_fields),
@@ -426,7 +492,19 @@ dispatch_table = {
 		 sysinfo(), "<br><br>",
 		 reqinf_tostr(ri))
 	   end,
-   ["/block"]=show_block,
+   ["/block"] = function(ri, ni, postdata)
+      if postdata then
+	 local t = query_string_to_tab(postdata)
+	 local res, conftab = load_tabstr(t.confval)
+	 if not res then
+	    return html("Error", h(1, "Config parse error"),
+			"Failed to parse config "..t.confname..", value: "..t.confval.."<br>"..conftab)
+	 end
+	 -- when t.confval is a string, then load_tabstr will return nil
+	 ubx.set_config(ubx.block_get(ni, t.blockname), t.confname, conftab or t.confval)
+      end
+      return show_block(ri, ni)
+   end,
 
    ["/style.css"]=function() return stylesheet_str, "text/css" end,
 

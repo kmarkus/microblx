@@ -4,7 +4,7 @@
 
 #undef DEBUG
 #define WEBIF_RELOAD			 1
-#define COMPILE_IN_WEBIF_LUA_FILE	 1
+/* #define COMPILE_IN_WEBIF_LUA_FILE	 1 */
 
 #define MONGOOSE_NR_THREADS		 "1"	/* don't change. */
 
