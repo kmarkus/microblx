@@ -116,30 +116,14 @@ function M.safe_tostr(charptr)
    return ffi.string(charptr)
 end
 
---- Is protoype block predicate.
-function M.is_proto(b) return b.prototype==nil end
-
---- Is instance block predicate.
-function M.is_instance(b) return b.prototype~=nil end
-
---- Is computational block predicate.
-function M.is_cblock(b) return b.type==ffi.C.BLOCK_TYPE_COMPUTATION end
-
---- Is interaction block predicate.
-function M.is_iblock(b) return b.type==ffi.C.BLOCK_TYPE_INTERACTION end
-
---- Is computational block instance predicate.
-function M.is_cblock_instance(b) return M.is_cblock(b) and not M.is_proto(b) end
-
---- Is interaction block instance predicate.
-function M.is_iblock_instance(b) return M.is_iblock(b) and not M.is_proto(b) end
-
---- Is computational block prototype predicate.
-function M.is_cblock_proto(b) return M.is_cblock(b) and M.is_proto(b) end
-
---- Is interaction block prototype predicate.
-function M.is_iblock_proto(b) return M.is_iblock(b) and M.is_proto(b) end
-
+function M.is_proto(b) return b.prototype==nil end	 --- Is protoype block predicate.
+function M.is_instance(b) return b.prototype~=nil end	 --- Is instance block predicate.
+function M.is_cblock(b) return b.type==ffi.C.BLOCK_TYPE_COMPUTATION end  --- Is computational block predicate.
+function M.is_iblock(b) return b.type==ffi.C.BLOCK_TYPE_INTERACTION end  --- Is interaction block predicate.
+function M.is_cblock_instance(b) return M.is_cblock(b) and not M.is_proto(b) end  --- Is computational block instance predicate.
+function M.is_iblock_instance(b) return M.is_iblock(b) and not M.is_proto(b) end  --- Is interaction block instance predicate.
+function M.is_cblock_proto(b) return M.is_cblock(b) and M.is_proto(b) end --- Is computational block prototype predicate.
+function M.is_iblock_proto(b) return M.is_iblock(b) and M.is_proto(b) end --- Is interaction block prototype predicate.
 
 -- Port predicates
 function M.is_outport(p) return p.out_type_name ~= nil end
@@ -578,6 +562,30 @@ function M.type_tostr(t, verb)
    return res
 end
 
+
+function M.port_conns_totab(p)
+   local res = { incoming={}, outgoing={} }
+   local i
+
+   i = 0
+   if p.in_interaction ~= nil then
+      while p.in_interaction[i] ~= nil do
+	 res.incoming[i+1] = M.safe_tostr(p.in_interaction[i].name)
+	 i=i+1
+      end
+   end
+
+   i = 0
+   if p.out_interaction ~= nil then
+      while p.out_interaction[i] ~= nil do
+	 res.outgoing[i+1] = M.safe_tostr(p.out_interaction[i].name)
+	 i=i+1
+      end
+   end
+   return res
+end
+
+
 function M.port_totab(p)
    local ptab = {}
    ptab.name = M.safe_tostr(p.name)
@@ -588,7 +596,7 @@ function M.port_totab(p)
    ptab.out_type_name = M.safe_tostr(p.out_type_name)
    ptab.in_data_len = tonumber(p.in_data_len)
    ptab.out_data_len = tonumber(p.out_data_len)
-   -- TODO (?) interactions
+   ptab.connections = M.port_conns_totab(p)
    return ptab
 end
 
@@ -622,7 +630,6 @@ function M.block_totab(b)
 
    return res
 end
-
 
 --- Pretty print a port
 -- @param p port to convert to string
@@ -677,7 +684,22 @@ function M.ports_map(b, fun, pred)
    pred = pred or function() return true end
    local port_ptr=b.ports
    while port_ptr~=nil and port_ptr.name~= nil do
-      if pred(port_ptr) then res[#res+1]=fun(port_ptr)  end
+      if pred(port_ptr) then res[#res+1]=fun(port_ptr) end
+      port_ptr=port_ptr+1
+   end
+   return res
+end
+
+--- Call function on all ports of a block and return the result in a table.
+-- @param b block
+-- @param fun function to call on port
+-- @param pred optional predicate function. fun is only called if pred is true.
+-- @return result table.
+function M.ports_foreach(b, fun, pred)
+   pred = pred or function() return true end
+   local port_ptr=b.ports
+   while port_ptr~=nil and port_ptr.name~= nil do
+      if pred(port_ptr) then fun(port_ptr) end
       port_ptr=port_ptr+1
    end
    return res
@@ -769,6 +791,60 @@ function M.ni_stat(ni)
 	 tostring(num_ib).." iblocks, ",
 	 tostring(ubx.ubx_num_types(ni)).." types")
    print(string.rep('-',78))
+end
+
+--- Convert the current system to a dot-file
+-- @param ni
+-- @return graphviz dot string
+function M.node_todot(ni)
+
+   --- Generate a list of block nodes in graphviz dot syntax
+   function gen_dot_nodes(blocks)
+      local res = {}
+      local shape=nil
+      for _,b in ipairs(blocks) do
+	 if b.block_type=='cblock' then shape="box" else shape="oval" end
+	 res[#res+1] = utils.expand('    "$name" [ shape=$shape ];', { name=b.name, shape=shape })
+      end
+      return table.concat(res, '\n')
+   end
+
+   --- Generate edges
+   function gen_dot_edges(blocks)
+      local res = {}
+      for _,b in ipairs(blocks) do
+	 for _,p in ipairs(b.ports) do
+	    for _,iblock_out in ipairs(p.connections.outgoing) do
+	       res[#res+1]=utils.expand('    $from -> $to [taillabel="$taillabel"];',
+					{from=b.name, to=iblock_out, taillabel=p.name})
+	    end
+	    for _,iblock_in in ipairs(p.connections.incoming) do
+	       res[#res+1]=utils.expand('    $from -> $to [taillabel="$headlabel"];',
+					{from=iblock_in, to=b.name, headlabel=p.name})
+	    end
+	 end
+      end
+      return table.concat(res, '\n')
+   end
+
+   local btab = M.blocks_map(ni, M.block_totab,
+			     function(b)
+				return not M.is_proto(b)
+			     end)
+   return utils.expand(
+[[
+digraph $node {
+$blocks
+$conns
+}
+]], {
+   node=M.safe_tostr(ni.name),
+   blocks=gen_dot_nodes(btab),
+   conns=gen_dot_edges(btab),
+    })
+
+
+
 end
 
 

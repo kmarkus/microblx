@@ -90,6 +90,21 @@ end
 function color(color, text) return span(text, { color=color }) end
 function bold(text) return span(text, { ['font-weight']='bold' }) end
 
+-- script
+function script(body, attrs)
+   attrs = attrs or {}
+   local attr_tab = utils.map(function (v,k)
+				 return tostring(k)..'="'..tostring(v)..'"'
+			      end, attrs)
+   local res = utils.expand(
+[[
+<script $attrs>
+$body
+</script>
+]], {body=body, attrs = table.concat(attr_tab, " ")})
+   return res
+end
+
 -- hyperlink
 function a(link, text, query_str_tab)
    local del = ""
@@ -504,6 +519,26 @@ dispatch_table = {
 	 ubx.set_config(ubx.block_get(ni, t.blockname), t.confname, conftab or t.confval)
       end
       return show_block(ri, ni)
+   end,
+
+   ["/node"] = function(ri, ni, postdata)
+      local nodename = safe_ts(ni.name)
+      local dotstr=ubx.node_todot(ni)
+      local scrpt = [[
+function src(id) {
+   return document.getElementById(id).innerHTML;
+}
+
+document.body.innerHTML += Viz(src("dotstr"), "svg")
+]]
+
+      return html(
+	 "System overview - ubx node: "..nodename,
+	 h(1, "System overview ubx_node: "..a("/", nodename)),
+	 script("", {src="https://raw.github.com/mdaines/viz.js/master/viz.js"}),
+	 script(dotstr, { type="text/vnd.graphviz", id="dotstr" }),
+	 script(scrpt, { language="javascript", type="text/javascript"})
+		 )
    end,
 
    ["/style.css"]=function() return stylesheet_str, "text/css" end,

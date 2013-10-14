@@ -55,8 +55,6 @@ ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1",
 
 ubx.ni_stat(ni)
 
-io.read()
-
 print("running webif init", ubx.block_init(webif1))
 print("running ptrig1 init", ubx.block_init(ptrig1))
 print("running random1 init", ubx.block_init(random1))
@@ -73,6 +71,10 @@ ubx.connect_one(rand_port, fifo1)
 ubx.block_start(fifo1)
 ubx.block_start(random1)
 ubx.block_start(hexdump1)
+
+print(utils.tab2str(ubx.block_totab(random1)))
+print("---")
+--print(ubx.node_todot(ni))
 
 -- local res, dat
 -- --while true do
