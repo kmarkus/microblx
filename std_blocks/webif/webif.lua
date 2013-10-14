@@ -55,6 +55,17 @@ function load_tabstr(str)
    return pcall(tab)
 end
 
+function load_confstr(str)
+   str=utils.trim(str)
+   if str[1] == '{' and str[#str]== '}' then
+      return load_tabstr(str)
+   else
+      local x = tonumber(str)
+      if type(x)=='number' then return true, x end
+   end
+   return true, str
+end
+
 
 --- HTML generation helpers.
 function html(title, ...)
@@ -510,7 +521,7 @@ dispatch_table = {
    ["/block"] = function(ri, ni, postdata)
       if postdata then
 	 local t = query_string_to_tab(postdata)
-	 local res, conftab = load_tabstr(t.confval)
+	 local res, conftab = load_confstr(t.confval)
 	 if not res then
 	    return html("Error", h(1, "Config parse error"),
 			"Failed to parse config "..t.confname..", value: "..t.confval.."<br>"..conftab)
