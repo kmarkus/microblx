@@ -7,7 +7,8 @@
 
 ** TODO file_rep: output comma separated list
 ** TODO add enum type
-** TODO test to confirm that attrs=IN_PORT etc, can be omitted
+** DONE test to confirm that attrs=IN_PORT etc, can be omitted
+   CLOSED: [2013-10-15 Di 14:58]
    -> instead we only rely on [in|out]_type_name
 ** TODO store seqid in node specific structure
    Otherwise, loading the same type in multiple nodes will foobar
@@ -38,8 +39,8 @@
 
 ** TODO [#C] webif: ubx_load_types is called upon every request.
    - Find a way to only call if a new type was added.
-   
-
+** DONE data_tolua: start table converted from arrays with index 1
+   CLOSED: [2013-10-15 Di 14:59]
 ** CANCELED locking
    CLOSED: [2013-08-27 Tue 16:46]
 

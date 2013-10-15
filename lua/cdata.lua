@@ -74,7 +74,7 @@ function M.tolua(cd, refct)
 
    if refct.what=='int' or refct.what=='float' then res=do_number(cd)
    elseif refct.what=='struct' then
-      local fun =M.struct2tab['struct '..refct.name]
+      local fun = M.struct2tab['struct '..refct.name]
       if fun then res=fun(cd)
       else res=do_struct(cd, refct) end
    elseif refct.what=='array' then res=do_array(cd, refct)

@@ -398,25 +398,12 @@ end
 -- Only works for TYPE_CLASS_BASIC and TYPE_CLASS_STRUCT
 -- @param ubx_type_t
 -- @return luajit FFI ctype
-local function __type_to_ctype_str(t, ptr)
+local function type_to_ctype_str(t, ptr)
    if ptr then ptr='*' else ptr="" end
    if t.type_class==ffi.C.TYPE_CLASS_BASIC or t.type_class==ffi.C.TYPE_CLASS_STRUCT then
       return ffi.string(t.name)..ptr
    end
    error("__type_to_ctype_str: unknown type_class")
-end
-
---- No NS variant:
--- Only works for TYPE_CLASS_BASIC and TYPE_CLASS_STRUCT
--- @param ubx_type_t
--- @return luajit FFI ctype
-local function type_to_ctype_str(t, ptr)
-   if ptr then ptr='*' else ptr="" end
-   if t.type_class==ffi.C.TYPE_CLASS_BASIC then
-      return ffi.string(t.name)..ptr
-   elseif t.type_class==ffi.C.TYPE_CLASS_STRUCT then
-      return ffi.string(t.name)..ptr
-   end
 end
 
 -- memoize?
