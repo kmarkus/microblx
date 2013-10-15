@@ -49,6 +49,8 @@ pers1 = ffi.new("struct person", { name='joe miller', age=22.3 })
 arr1=ffi.new("int[10]", {0,1,2,3,4,5,6,7,8,9})
 charr1=ffi.new("unsigned char[10]", "hullo")
 
+str_arr=ffi.new("struct point[10]", {{1,1},{2,2},{3,3},{4,4},{5,5},{6,6},{7,7},{8,8},{9,9}, {10,10}})
+
 --- Pointer to prim
 i33=ffi.new("unsigned int[1]", { 9876 })
 i33ptr=ffi.cast("unsigned int*", i33)
@@ -56,7 +58,6 @@ i33ptr=ffi.cast("unsigned int*", i33)
 print("i33:", tonumber(i33[0]))
 print("tonumber(i33ptr[0])", tonumber(i33ptr[0]))
 print("cd2lua(i33ptr):", cd2lua(i33ptr))
-
 
 
 print("number:", utils.tab2str(cd2lua(ffi.new("int", -33))))
@@ -72,6 +73,8 @@ print("path1:", utils.tab2str(cd2lua(path1)))
 print("pers1:", utils.tab2str(cd2lua(pers1)))
 
 print("arr1:", utils.tab2str(cd2lua(arr1)))
+
+print("str_arr:", utils.tab2str(cd2lua(str_arr)))
 
 print("charr1:", utils.tab2str(cd2lua(charr1)))
 
