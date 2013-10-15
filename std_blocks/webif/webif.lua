@@ -450,7 +450,7 @@ function show_block(ri, ni)
       c.value=utils.trim(utils.tab2str(c.value))
    end
 
-   if bt.state == 'active' then
+   if bt.state == 'active' or bt.prototype=="<prototype>" then
       utils.foreach(conf_data_value_tostr, bt.configs)
    else
       utils.foreach(conf_data_value_changeable_tostr, bt.configs)
