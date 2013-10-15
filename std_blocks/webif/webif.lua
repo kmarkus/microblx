@@ -28,15 +28,23 @@ struct mg_request_info {
 };
 ]]
 
--- helper
+-- 
+-- Generic helpers
+--
+
+-- Decode an encode url or query string.
+-- @param string encoded string
+-- @return decoded plain Lua string
 function url_decode(str)
    str = string.gsub(str, "+", " ")
-   str = string.gsub(str, "%%(%x%x)",
-		     function(h) return string.char(tonumber(h,16)) end)
+   str = string.gsub(str, "%%(%x%x)", function(h) return string.char(tonumber(h,16)) end)
    str = string.gsub(str, "\r\n", "\n")
    return str
 end
 
+--- Convert a query string to a Lua table.
+-- @param qs encoded query string
+-- @return Lua table
 function query_string_to_tab(qs)
    local res = {}
    local keyvals=utils.split(qs, "&")
@@ -49,12 +57,19 @@ end
 
 -- safely load a table from a string
 -- @param str table string to load
+-- @return true or false
+-- @return table or error message
 function load_tabstr(str)
    local tab, msg = load("return "..str, nil, 't', {})
    if not tab then return false, msg end
    return pcall(tab)
 end
 
+--- Load a configuration string.
+-- This could be a table, a number or just a string.
+-- @param str config string
+-- @return true or false
+-- @return value or error message
 function load_confstr(str)
    str=utils.trim(str)
    if str[1] == '{' and str[#str]== '}' then
@@ -67,7 +82,10 @@ function load_confstr(str)
 end
 
 
+---
 --- HTML generation helpers.
+---
+
 function html(title, ...)
    return ([[
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
@@ -153,7 +171,7 @@ function table_fill_headline(selected_rows)
    return table_row(table.concat(out, "\n    "))
 end
 
-
+--- Convert http request info to a string.
 function reqinf_tostr(ri)
    return ([[
 request method: %s, uri: %s, http_version: %s, query_string: %s, remote_user: %s, generated on %s]]):format(
@@ -343,7 +361,7 @@ td { padding-right:10px; }
 
 ]]
 
-
+--- These block operations can be invoked via the webinterface.
 local block_ops = {
    init=ubx.block_init,
    start=ubx.block_start,
@@ -510,6 +528,7 @@ dispatch_table = {
 
 	      return html(
 		 "ubx node: "..nodename,
+		 a("/node", "node graph"),
 		 h(1, "ubx_node: "..a("/", nodename)),
 		 blocklist_tohtml(cinst, "Computational Blocks", cblock_table_fields),
 		 blocklist_tohtml(iinst, "Interaction Blocks", iblock_table_fields),
@@ -544,7 +563,7 @@ document.body.innerHTML += Viz(src("dotstr"), "svg")
 ]]
 
       return html(
-	 "System overview - ubx node: "..nodename,
+	 "Node graph: "..nodename,
 	 h(1, "System overview ubx_node: "..a("/", nodename)),
 	 script("", {src="https://raw.github.com/mdaines/viz.js/master/viz.js"}),
 	 script(dotstr, { type="text/vnd.graphviz", id="dotstr" }),

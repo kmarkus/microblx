@@ -815,11 +815,11 @@ function M.node_todot(ni)
       for _,b in ipairs(blocks) do
 	 for _,p in ipairs(b.ports) do
 	    for _,iblock_out in ipairs(p.connections.outgoing) do
-	       res[#res+1]=utils.expand('    $from -> $to [taillabel="$taillabel"];',
+	       res[#res+1]=utils.expand('    "$from" -> "$to" [taillabel="$taillabel"];',
 					{from=b.name, to=iblock_out, taillabel=p.name})
 	    end
 	    for _,iblock_in in ipairs(p.connections.incoming) do
-	       res[#res+1]=utils.expand('    $from -> $to [taillabel="$headlabel"];',
+	       res[#res+1]=utils.expand('    "$from" -> "$to" [taillabel="$headlabel"];',
 					{from=iblock_in, to=b.name, headlabel=p.name})
 	    end
 	 end
