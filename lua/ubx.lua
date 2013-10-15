@@ -381,7 +381,7 @@ function M.data_tolua(d)
 
       if len>1 then
 	 res = {}
-	 for i=0,len-1 do res[i]=cdata.tolua(dptr[i]) end
+	 for i=0,len-1 do res[i+1]=cdata.tolua(dptr[i]) end
       else res=cdata.tolua(dptr) end
    end
    return res
