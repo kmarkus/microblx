@@ -846,11 +846,18 @@ function M.node_todot(ni)
 
    --- Generate a list of block nodes in graphviz dot syntax
    function gen_dot_nodes(blocks)
+      local function block2color(b)
+	 if b.state == 'preinit' then return "blue"
+	 elseif b.state == 'inactive' then return "red"
+	 elseif b.state == 'active' then return "green"
+	 else return "pink" end
+      end
       local res = {}
       local shape=nil
       for _,b in ipairs(blocks) do
 	 if b.block_type=='cblock' then shape="box" else shape="oval" end
-	 res[#res+1] = utils.expand('    "$name" [ shape=$shape ];', { name=b.name, shape=shape })
+	 res[#res+1] = utils.expand('    "$name" [ shape=$shape, color=$color ];',
+				    { name=b.name, shape=shape, color=block2color(b) })
       end
       return table.concat(res, '\n')
    end

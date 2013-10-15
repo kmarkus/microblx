@@ -354,7 +354,7 @@ local block_ops = {
 }
 
 function handle_post(ni, pd)
-   local name, op = string.match(pd, "(.+)=(%w+)")
+   local name, op = string.match(url_decode(pd), "([^=]+)=(.+)")
    local b = ubx.block_get(ni, name)
    if b==nil then error("handle_post: unknown block "..safe_ts(b)) end
    block_ops[op](b)
