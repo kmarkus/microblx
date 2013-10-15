@@ -434,7 +434,7 @@ function M.data_to_cdata(d)
 end
 
 function M.data_resize(d, newlen)
-   -- print("changing len from", tonumber(d.len), " to ", newlen)
+   print("changing len from", tonumber(d.len), " to ", newlen)
    if ubx.ubx_data_resize(d, newlen) == 0 then return true
    else return false end
 end
@@ -483,7 +483,7 @@ end
 
 --- Set a configuration value
 -- @param block
--- @param conf_name name of configuration value
+-- @param name name of configuration value
 -- @param confval value to assign (must follow luajit FFI initialization rules)
 function M.set_config(b, name, val)
    local d = ubx.ubx_config_get_data(b, name)
@@ -495,6 +495,52 @@ end
 function M.set_config_tab(b, ctab)
    for n,v in pairs(ctab) do M.set_config(b, n, v) end
 end
+
+-- safely load a table from a string
+-- @param str table string to load
+-- @return true or false
+-- @return table or error message
+function load_tabstr(str)
+   local tab, msg = load("return "..str, nil, 't', {})
+   if not tab then return false, msg end
+   return tab()
+end
+
+--- Load a configuration string.
+-- This could be a table, a number or just a string.
+-- @param str config string
+-- @return true or false
+-- @return value or error message
+function load_confstr(str)
+   local function getchr(s, i) return string.char(string.byte(s,i)) end
+
+   str=utils.trim(str)
+
+   if getchr(str,1) == '{' and getchr(str, #str)== '}' then
+      return load_tabstr(str)
+   end
+
+   local x = tonumber(str)
+   if type(x)=='number' then return x end
+
+   -- last resort: just return the string:
+   return str
+end
+
+--- Set a configuration value from a string.
+-- @param block block pointer
+-- @param name name of configuration
+-- @param strval string value
+function M.set_config_str(b, name, strval)
+   local c = ubx.ubx_config_get(b, name)
+   if c == nil then error("set_config_str: unknown config '"..name.."'") end
+
+   if c.value.type.type_class==ubx.TYPE_CLASS_BASIC and M.safe_tostr(c.value.type.name)=='char' then
+      return M.set_config(b, name, strval)
+   end
+   return M.set_config(b, name, load_confstr(strval))
+end
+
 
 ------------------------------------------------------------------------------
 --                              Interactions

@@ -55,32 +55,6 @@ function query_string_to_tab(qs)
    return res
 end
 
--- safely load a table from a string
--- @param str table string to load
--- @return true or false
--- @return table or error message
-function load_tabstr(str)
-   local tab, msg = load("return "..str, nil, 't', {})
-   if not tab then return false, msg end
-   return pcall(tab)
-end
-
---- Load a configuration string.
--- This could be a table, a number or just a string.
--- @param str config string
--- @return true or false
--- @return value or error message
-function load_confstr(str)
-   str=utils.trim(str)
-   if str[1] == '{' and str[#str]== '}' then
-      return load_tabstr(str)
-   else
-      local x = tonumber(str)
-      if type(x)=='number' then return true, x end
-   end
-   return true, str
-end
-
 
 ---
 --- HTML generation helpers.
@@ -515,6 +489,7 @@ local iblock_table_fields = { 'name', 'state', 'prototype', 'stat_num_reads', 's
 
 --- master dispatch table.
 dispatch_table = {
+   -- Root node overview
    ["/"] = function(ri, ni, postdata)
 	      if postdata then handle_post(ni, postdata) end
 	      local nodename = safe_ts(ni.name)
@@ -537,16 +512,18 @@ dispatch_table = {
 		 sysinfo(), "<br><br>",
 		 reqinf_tostr(ri))
 	   end,
+   -- Block overview
    ["/block"] = function(ri, ni, postdata)
       if postdata then
 	 local t = query_string_to_tab(postdata)
-	 local res, conftab = load_confstr(t.confval)
+
+	 local res, msg = pcall(ubx.set_config_str, ubx.block_get(ni, t.blockname), t.confname, t.confval)
+
 	 if not res then
-	    return html("Error", h(1, "Config parse error"),
-			"Failed to parse config "..t.confname..", value: "..t.confval.."<br>"..conftab)
+	    return html("Error",
+			h(1, "Configuration error"),
+			"Failed to apply config "..t.confname..", value: "..t.confval.."<br>"..msg)
 	 end
-	 -- when t.confval is a string, then load_tabstr will return nil
-	 ubx.set_config(ubx.block_get(ni, t.blockname), t.confname, conftab or t.confval)
       end
       return show_block(ri, ni)
    end,
@@ -564,7 +541,7 @@ document.body.innerHTML += Viz(src("dotstr"), "svg")
 
       return html(
 	 "Node graph: "..nodename,
-	 h(1, "System overview ubx_node: "..a("/", nodename)),
+	 h(1, "Node graph: "..a("/", nodename)),
 	 script("", {src="https://raw.github.com/mdaines/viz.js/master/viz.js"}),
 	 script(dotstr, { type="text/vnd.graphviz", id="dotstr" }),
 	 script(scrpt, { language="javascript", type="text/javascript"})
