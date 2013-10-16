@@ -1,6 +1,7 @@
 local ubx=require("ubx")
 local ubx_utils = require("ubx_utils")
 local utils = require("utils")
+local cdata = require("cdata")
 local ffi = require("ffi")
 local time = require("time")
 local ts = tostring
@@ -71,6 +72,7 @@ local function report_conf_to_portlist(rc, ni)
 	 local pinv = ubx.port_clone_conn(b, pname, conf.buff_len)
 	 conf.pinv=pinv
 	 conf.sample=create_read_sample(p, ni)
+	 conf.serfun=cdata.gen_fast_ser(ffi.typeof(conf.sample))
       else
 	 print("file_rep: refusing to report in-port ", bname.."."..pname)
       end
@@ -96,6 +98,10 @@ end
 function start(b)
    b=ffi.cast("ubx_block_t*", b)
    ubx.ffi_load_types(b.ni)
+   for _,c in ipairs(rconf) do
+      fd:write(c.serfun("header"))
+   end
+   fd:write("\n")
    return true
 end
 
@@ -104,18 +110,18 @@ function step(b)
    local cur_t = get_time()
    local wtab = {}
 
-   wtab[#wtab+1] = ("time=%f"):format(cur_t)
+   -- wtab[#wtab+1] = ("time=%f"):format(cur_t)
 
    for _,c in ipairs(rconf) do
       local bpn=c.blockname.."."..c.portname
-      -- print("reading ", bpn)
       if ubx.port_read(c.pinv, c.sample) < 0 then
 	 print("file_rep error: failed to read "..c.blockname.."."..c.portname)
       else
-	 wtab[#wtab+1] = ('["%s"]=%s'):format(bpn, ubx.data_tostr(c.sample))
+	 -- wtab[#wtab+1] = ('["%s"]=%s'):format(bpn, ubx.data_tostr(c.sample))
+	 fd:write(c.serfun(ubx.data_to_cdata(c)))
       end
    end
-   fd:write("{ "..table.concat(wtab, ', ').." }\n")
+   fd:write("\n")
 end
 
 function cleanup(b)

@@ -201,7 +201,6 @@ return function(x, fd)
 	  fd:write("$(separator)")
     #   end
     # end
-      fd:write("\n")
       return
     end
 
@@ -213,7 +212,6 @@ return function(x, fd)
 	  fd:write("$(separator)")
     #   end
     # end
-      fd:write("\n")
 end
 ]], { io=io, table=table, ipairs=ipairs, flattab=flattab, tostring=tostring, ctype=ctype, separator=', ' })
 
