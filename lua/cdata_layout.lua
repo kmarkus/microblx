@@ -38,6 +38,10 @@ point=ffi.typeof("struct point")
 line=ffi.typeof("struct line")
 path=ffi.typeof("struct path")
 path2=ffi.typeof("struct path2")
+int=ffi.typeof("int")
+char_arr=ffi.typeof("char[20]")
+
+print(utils.tab2str(reflect.typeof(char_arr)))
 
 p1 = ffi.new("struct point", { x=33, y=55 })
 l1 = ffi.new("struct line", { p1= { x=3, y=5 }, p2={ x=4, y=7 }})
@@ -54,11 +58,15 @@ path2_inst = ffi.new("struct path2", {
 			len = { 11,22,33} }
 		    )
 
+int_inst = ffi.new(int)
+char_arr_inst = ffi.new(char_arr, "frubagatschi")
 
-point_ser=cdata.gen_fast_ser(point)
-line_ser=cdata.gen_fast_ser(line)
-path_ser=cdata.gen_fast_ser(path)
-path2_ser=cdata.gen_fast_ser(path2)
+point_ser=cdata.gen_logfun(point)
+line_ser=cdata.gen_logfun(line)
+path_ser=cdata.gen_logfun(path)
+path2_ser=cdata.gen_logfun(path2)
+int_ser=cdata.gen_logfun(int)
+char_arr_ser=cdata.gen_logfun(char_arr)
 
 point_ser("header", io.stdout); io.stdout:write("\n")
 point_ser(p1, io.stdout); io.stdout:write("\n")
@@ -74,3 +82,10 @@ path_ser(path1, io.stdout); io.stdout:write("\n")
 
 path2_ser("header", io.stdout); io.stdout:write("\n")
 path2_ser(path2_inst, io.stdout); io.stdout:write("\n")
+
+int_ser("header", io.stdout); io.stdout:write("\n")
+int_ser(int_inst, io.stdout); io.stdout:write("\n")
+
+char_arr_ser("header", io.stdout); io.stdout:write("\n")
+char_arr_ser(char_arr_inst, io.stdout); io.stdout:write("\n")
+

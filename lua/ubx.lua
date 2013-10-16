@@ -407,16 +407,20 @@ local function type_to_ctype_str(t, ptr)
 end
 
 -- memoize?
-local function type_to_ctype(t, ptr)
+function M.type_to_ctype(t, ptr)
    local ctstr=type_to_ctype_str(t, ptr)
    return ffi.typeof(ctstr)
+end
+
+function M.data_to_ctype(d)
+   return M.type_to_ctype(d.type, true)
 end
 
 --- Transform the value of a ubx_data_t* to a lua FFI cdata.
 -- @param d ubx_data_t pointer
 -- @return ffi cdata
 function M.data_to_cdata(d)
-   local ctp = type_to_ctype(d.type, true)
+   local ctp = M.type_to_ctype(d.type, true)
    return ffi.cast(ctp, d.data)
 end
 

@@ -147,7 +147,7 @@ end
 --- Flatten table and subtable keys.
 -- @param t table to flatten
 -- @return table of {key="x.y.z", value="number|string"}
-function M.flatten_keys(t)
+function M.flatten_keys(t, prefix)
    local function __flatten_keys(t, res, prefix)
       for k,v in pairs(t) do
 	 if type(v)=='table' then
@@ -173,13 +173,45 @@ function M.flatten_keys(t)
       end
       return res
    end
-   return __flatten_keys(t, {}, "")
+   return __flatten_keys(t, {}, prefix or "")
+end
+
+-- helpers
+function is_prim_num(ctype)
+   local refct = reflect.typeof(ctype)
+   if refct.what=='int' or refct.what=='float' then return true end
+   return false
+end
+
+-- TODO: how to detect a single string cdata properly?
+function is_string(ctype)
+   local refct = reflect.typeof(ctype)
+   if refct.what=='array'  then
+      if refct.element_type.what=='int' and refct.element_type.size==1 then return true end
+   end
+   return false
 end
 
 --- Generate a fast logging function for the given ctype
 -- @param ctype ffi ctype (ffi.typeof) for which the function shall be generated.
+-- @param prefix prefix to prepend to each field of the header (optional)
 -- @return function(x, fd), x is cdata and fd is filedescriptor to write to
-function M.gen_fast_ser(ctype)
+function M.gen_logfun(ctype, prefix)
+
+   if is_string(ctype) then
+      return
+      function (x, fd)
+	 if x=='header' then fd:write(prefix or "<string>"); return end
+	 fd:write(ffi.string(x))
+      end
+   elseif is_prim_num(ctype) then
+      return
+      function (x, fd)
+	 if x=='header' then fd:write(prefix or "<number>"); return end
+	 fd:write(tonumber(x[0]))
+      end
+   end
+
    local flattab = M.flatten_keys(M.ctype_destruct(ctype))
    table.sort(flattab, function(t1,t2) return t1.key < t2.key end)
 

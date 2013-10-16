@@ -68,11 +68,12 @@ local function report_conf_to_portlist(rc, ni)
       end
 
       if p.out_type~=nil then
-	 print("file_rep: reporting ", bname.."."..pname)
+	 local blockport = bname.."."..pname
+	 print("file_rep: reporting ", blockport)
 	 local pinv = ubx.port_clone_conn(b, pname, conf.buff_len)
 	 conf.pinv=pinv
 	 conf.sample=create_read_sample(p, ni)
-	 conf.serfun=cdata.gen_fast_ser(ffi.typeof(conf.sample))
+	 conf.serfun=cdata.gen_logfun(ubx.type_to_ctype(conf.sample.type), blockport)
       else
 	 print("file_rep: refusing to report in-port ", bname.."."..pname)
       end
@@ -99,7 +100,7 @@ function start(b)
    b=ffi.cast("ubx_block_t*", b)
    ubx.ffi_load_types(b.ni)
    for _,c in ipairs(rconf) do
-      fd:write(c.serfun("header"))
+      c.serfun("header", fd)
    end
    fd:write("\n")
    return true
@@ -118,7 +119,7 @@ function step(b)
 	 print("file_rep error: failed to read "..c.blockname.."."..c.portname)
       else
 	 -- wtab[#wtab+1] = ('["%s"]=%s'):format(bpn, ubx.data_tostr(c.sample))
-	 fd:write(c.serfun(ubx.data_to_cdata(c)))
+	 c.serfun(ubx.data_to_cdata(c.sample), fd)
       end
    end
    fd:write("\n")
