@@ -68,28 +68,31 @@ end
 -- @param env environment for sandbox (default {})
 -- @return preprocessed result.
 function preproc(str, env)
-   local chunk = {}
+   local chunk = {"__res={}\n" }
    local lines = utils.split(str, "\n")
-   
+
    for _,line in ipairs(lines) do
-      local line = utils.trim(line)
+      line = utils.trim(line)
       if string.find(line, "^#") then
 	 chunk[#chunk+1] = string.sub(line, 2) .. "\n"
       else
 	 local last = 1
-	 for text, expr, index in string.gmatch(line, "(.-)$(%b())()") do 
+	 for text, expr, index in string.gmatch(line, "(.-)$(%b())()") do
 	    last = index
 	    if text ~= "" then
-	       chunk[#chunk+1] = string.format('io.write %q ', text)
+	       -- write part before expression
+	       chunk[#chunk+1] = string.format('__res[#__res+1] = %q\n ', text)
 	    end
-	    chunk[#chunk+1] = string.format('io.write %s ', expr)
+	    -- write expression
+	    chunk[#chunk+1] = string.format('__res[#__res+1] = %s\n', expr)
 	 end
-	 chunk[#chunk+1] = string.format('io.write %q\n', string.sub(line, last).."\n")
+	 -- write remainder of line (without further $()
+	 chunk[#chunk+1] = string.format('__res[#__res+1] = %q\n', string.sub(line, last).."\n")
       end
    end
+   chunk[#chunk+1] = "return table.concat(__res, '')\n"
    return eval_sandbox(table.concat(chunk), env)
 end
-
 
 --- Create a Lua version of a ctype
 function refct_destruct(refct)
@@ -147,7 +150,7 @@ function flatten_keys(t)
       for k,v in pairs(t) do
 	 if type(v)=='table' then
 	    if prefix=="" then __flatten_keys(v, res, k)
-	    else 
+	    else
 	       if type(k)=='number' then
 		  __flatten_keys(v, res, prefix..'['..k..']')
 	       else
@@ -158,7 +161,11 @@ function flatten_keys(t)
 	    if type(k)=='number' then
 	       res[#res+1] = { key=prefix..'['..k..']', value=v }
 	    else
-	       res[#res+1] = { key=prefix..'.'..k, value=v }
+	       if prefix=="" then
+		  res[#res+1] = { key=k, value=v }
+	       else
+		  res[#res+1] = { key=prefix.."."..k, value=v }
+	       end
 	    end
 	 end
       end
@@ -175,7 +182,7 @@ function gen_fast_ser(ctype)
    -- add 'serfun' field holding serialization function
    utils.foreach(function(e)
 		    if e.value == 'number' then e.serfun = "tonumber"
-		    elseif e.value == 'string' then e.serfun = "ffi.tostring"
+		    elseif e.value == 'string' then e.serfun = "ffi.string"
 		    else
 		       error("unkown value "..e.value.." for key "..e.key)
 		    end
@@ -185,30 +192,35 @@ function gen_fast_ser(ctype)
 return function(x, fd)
     if x=='header' then
     # for i=1,#flattab do
-        fd:write("$(flattab[i].key)")
+	fd:write("$(flattab[i].key)")
     #   if i<#flattab then
-          fd:write("$(separator)")
+	  fd:write("$(separator)")
     #   end
     # end
+      fd:write("\n")
       return
     end
-    assert(ffi.typeof(x)=='$(tostring(ctype)',
-          "serializer: argument not a ".."$(tostring(ctype))".." but a "..tostring(ffi.typeof(x)))
+
+    assert(tostring(ffi.typeof(x))=='$(tostring(ctype))',
+	  "serializer: argument not a $(tostring(ctype)) but a "..tostring(ffi.typeof(x)))
     # for i=1,#flattab do
-        fd:write($(flattab[i].serfun)(x$("."..flattab[i].key)))
+	fd:write($(flattab[i].serfun)(x$("."..flattab[i].key)))
     #   if i<#flattab then
-          fd:write("$(separator)")
+	  fd:write("$(separator)")
     #   end
     # end
+      fd:write("\n")
 end
-]], { io=io, ipairs=ipairs, flattab=flattab, tostring=tostring, ctype=ctype, separator=', ' })
+]], { io=io, table=table, ipairs=ipairs, flattab=flattab, tostring=tostring, ctype=ctype, separator=', ' })
 
    assert(ok, res)
-   print("ok", ok, "res", res)
-
-   return eval_sandbox(res, { io=io, assert=assert })
+   print(res)
+   ok, res = eval_sandbox(res, { print=print, ffi=ffi, io=io, assert=assert,
+				 tostring=tostring, tonumber=tonumber })
+   assert(ok, res)
+   return res
 end
-      
+
 --    return loadstring([[
 -- return function(x)
 
@@ -223,7 +235,7 @@ end
 --    local function __struct_table(rct)
 --       if rct.what == 'int' then return 'int'
 --       elseif rct.what == 'struct' then
-	 
+
 --       end
 --    end
 
@@ -276,5 +288,14 @@ point_ser=gen_fast_ser(point)
 line_ser=gen_fast_ser(line)
 path_ser=gen_fast_ser(path)
 
+point_ser("header", io.stdout)
+point_ser(p1, io.stdout)
 
+line_ser("header", io.stdout)
+line_ser(l1, io.stdout)
+line_ser(l1, io.stdout)
+line_ser(l1, io.stdout)
+line_ser(l1, io.stdout)
 
+path_ser("header", io.stdout)
+path_ser(path1, io.stdout)
