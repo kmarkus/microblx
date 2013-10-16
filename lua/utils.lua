@@ -3,14 +3,16 @@
 -- some own ones, some collected from the lua wiki
 --
 
-local type, pairs, ipairs, setmetatable, getmetatable, assert, table, print, tostring, string, io, unpack, error =
-   type, pairs, ipairs, setmetatable, getmetatable, assert, table, print, tostring, string, io, unpack, error
+local type, pairs, ipairs, setmetatable, getmetatable, assert, table,
+   print, tostring, string, io, unpack, error, load, pcall = type,
+   pairs, ipairs, setmetatable, getmetatable, assert, table, print,
+   tostring, string, io, unpack, error, load, pcall
 
 module('utils')
 
 -- increment major on API breaks
 -- increment minor on non breaking changes
-VERSION=0.992
+VERSION=0.993
 
 function append(car, ...)
    assert(type(car) == 'table')
@@ -457,4 +459,62 @@ function expand(tpl, params, warn)
    end
 
    return tpl, unexp
+end
+
+--- Evaluate a chunk of code in a constrained environment.
+-- @param unsafe_code code string
+-- @param optional environment table.
+-- @return true or false depending on success
+-- @return function or error message
+function eval_sandbox(unsafe_code, env)
+   env = env or {}
+   local unsafe_fun, msg = load(unsafe_code, nil, 't', env)
+   if not unsafe_fun then return false, msg end
+   return pcall(unsafe_fun)
+end
+
+--- Preprocess the given string.
+-- Lines starting with # are executed as Lua code
+-- Other lines are passed through verbatim, expect those contained in
+-- $(...) which are executed as Lua too.
+--
+-- @param str string to preprocess
+-- @param env environment for sandbox (default {})
+-- @return preprocessed result.
+function preproc(str, env)
+   local chunk = {"__res={}\n" }
+   local lines = split(str, "\n")
+
+   for _,line in ipairs(lines) do
+      line = trim(line)
+      if string.find(line, "^#") then
+	 chunk[#chunk+1] = string.sub(line, 2) .. "\n"
+      else
+	 local last = 1
+	 for text, expr, index in string.gmatch(line, "(.-)$(%b())()") do
+	    last = index
+	    if text ~= "" then
+	       -- write part before expression
+	       chunk[#chunk+1] = string.format('__res[#__res+1] = %q\n ', text)
+	    end
+	    -- write expression
+	    chunk[#chunk+1] = string.format('__res[#__res+1] = %s\n', expr)
+	 end
+	 -- write remainder of line (without further $()
+	 chunk[#chunk+1] = string.format('__res[#__res+1] = %q\n', string.sub(line, last).."\n")
+      end
+   end
+   chunk[#chunk+1] = "return table.concat(__res, '')\n"
+   return eval_sandbox(table.concat(chunk), env)
+end
+
+--- Convert a string to a hex representation of a string.
+-- @param str string to convert
+-- @param space space between values (default: "")
+-- @return hex string
+function str_to_hexstr(str,spacer)
+   return (string.gsub(str,"(.)",
+		       function (c)
+			  return string.format("%02X%s",string.byte(c), spacer or "")
+		       end ) )
 end

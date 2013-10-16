@@ -45,54 +45,16 @@ path1 = ffi.new("struct path", { l1={ p1= { x=3, y=5 }, p2={ x=4, y=7 }},
 				 l2={ p1= { x=2222, y=5555 }, p2={ x=44444, y=7777 }},
 				 foo="foobar" })
 
+path2_inst = ffi.new("struct path2", {
+			l={
+			   { p1={ x=3, y=5 }, p2={ x=4, y=7 }},
+			   { p1={ x=33, y=55 }, p2={ x=44, y=77 }},
+			   { p1={ x=333, y=555 }, p2={ x=444, y=777 }}
+			},
+			len = { 11,22,33} }
+		    )
 
 
---- Evaluate a chunk of code in a constrained environment.
--- @param unsafe_code code string
--- @param optional environment table.
--- @return true or false depending on success
--- @return function or error message
-local function eval_sandbox(unsafe_code, env)
-   env = env or {}
-   local unsafe_fun, msg = load(unsafe_code, nil, 't', env)
-   if not unsafe_fun then return false, msg end
-   return pcall(unsafe_fun)
-end
-
---- Preprocess the given string.
--- Lines starting with # are executed as Lua code
--- Other lines are passed through verbatim, expect those contained in
--- $(...) which are executed as Lua too.
---
--- @param str string to preprocess
--- @param env environment for sandbox (default {})
--- @return preprocessed result.
-function preproc(str, env)
-   local chunk = {"__res={}\n" }
-   local lines = utils.split(str, "\n")
-
-   for _,line in ipairs(lines) do
-      line = utils.trim(line)
-      if string.find(line, "^#") then
-	 chunk[#chunk+1] = string.sub(line, 2) .. "\n"
-      else
-	 local last = 1
-	 for text, expr, index in string.gmatch(line, "(.-)$(%b())()") do
-	    last = index
-	    if text ~= "" then
-	       -- write part before expression
-	       chunk[#chunk+1] = string.format('__res[#__res+1] = %q\n ', text)
-	    end
-	    -- write expression
-	    chunk[#chunk+1] = string.format('__res[#__res+1] = %s\n', expr)
-	 end
-	 -- write remainder of line (without further $()
-	 chunk[#chunk+1] = string.format('__res[#__res+1] = %q\n', string.sub(line, last).."\n")
-      end
-   end
-   chunk[#chunk+1] = "return table.concat(__res, '')\n"
-   return eval_sandbox(table.concat(chunk), env)
-end
 
 --- Create a Lua version of a ctype
 function refct_destruct(refct)
@@ -187,7 +149,7 @@ function gen_fast_ser(ctype)
 		       error("unkown value "..e.value.." for key "..e.key)
 		    end
 		 end, flattab)
-   local ok, res = preproc(
+   local ok, res = utils.preproc(
 [[
 return function(x, fd)
     if x=='header' then
@@ -215,8 +177,8 @@ end
 
    assert(ok, res)
    print(res)
-   ok, res = eval_sandbox(res, { print=print, ffi=ffi, io=io, assert=assert,
-				 tostring=tostring, tonumber=tonumber })
+   ok, res = utils.eval_sandbox(res, { print=print, ffi=ffi, io=io, assert=assert,
+				       tostring=tostring, tonumber=tonumber })
    assert(ok, res)
    return res
 end
@@ -287,6 +249,7 @@ print("------------")
 point_ser=gen_fast_ser(point)
 line_ser=gen_fast_ser(line)
 path_ser=gen_fast_ser(path)
+path2_ser=gen_fast_ser(path2)
 
 point_ser("header", io.stdout)
 point_ser(p1, io.stdout)
@@ -299,3 +262,6 @@ line_ser(l1, io.stdout)
 
 path_ser("header", io.stdout)
 path_ser(path1, io.stdout)
+
+path2_ser("header", io.stdout)
+path2_ser(path2_inst, io.stdout)
