@@ -28,6 +28,12 @@ ubx_config_t cyclic_config[] = {
 	{ NULL },
 };
 
+ubx_port_t cyclic_ports[] = {
+	/* generic arm+base */
+	{ .name="overruns", .out_type_name="unsigned long" },
+	{ NULL },
+};
+
 /* interaction private data */
 struct cyclic_block_info {
 	unsigned long num;		/* number of elements */
@@ -36,6 +42,7 @@ struct cyclic_block_info {
 	struct lfds611_ringbuffer_state *rbs;
 
 	unsigned long overruns;		/* stats */
+	ubx_port_t* p_overruns;
 };
 
 struct cyclic_elem_header {
@@ -43,6 +50,7 @@ struct cyclic_elem_header {
 	uint8_t data[0];
 };
 
+def_write_fun(write_ulong, unsigned long)
 
 int cyclic_data_elem_init(void **user_data, void *user_state)
 {
@@ -55,6 +63,7 @@ void cyclic_data_elem_del(void *user_data, void *user_state)
 {
 	free(user_data);
 }
+
 
 /* init */
 static int cyclic_init(ubx_block_t *i)
@@ -92,6 +101,10 @@ static int cyclic_init(ubx_block_t *i)
 		ret = EOUTOFMEM;
 		goto out_free_priv_data;
 	}
+
+	/* cache port ptrs */
+	assert(bbi->p_overruns = ubx_port_get(i, "overruns"));
+
 	ret=0;
 	goto out;
 
@@ -138,6 +151,7 @@ static void cyclic_write(ubx_block_t *i, ubx_data_t* msg)
 
 	if(ret) {
 		bbi->overruns++;
+		write_ulong(bbi->p_overruns, &bbi->overruns);
 		DBG("%s: buffer overrun (#%ld), overwriting old data.", i->name, bbi->overruns);
 	};
 
@@ -193,6 +207,7 @@ ubx_block_t cyclic_comp = {
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = cyclic_meta,
 	.configs = cyclic_config,
+	.ports = cyclic_ports,
 
 	.init=cyclic_init,
 	.cleanup=cyclic_cleanup,

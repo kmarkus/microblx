@@ -5,6 +5,7 @@ local cdata = require("cdata")
 local ffi = require("ffi")
 local time = require("time")
 local ts = tostring
+local strict = require"strict"
 
 -- global state
 filename=nil
@@ -99,7 +100,11 @@ function start(b)
       fd:write(("time, "):format(get_time()))
    end
 
-   for _,c in ipairs(rconf) do c.serfun("header", fd) end
+   for i=1,#rconf do
+      rconf[i].serfun("header", fd)
+      if i<#rconf then fd:write(", ") end
+   end
+
    fd:write("\n")
    return true
 end
@@ -107,17 +112,16 @@ end
 function step(b)
    b=ffi.cast("ubx_block_t*", b)
 
-   local cur_t = get_time()
-
    if timestamp~=0 then
-      fd:write(("%f,"):format(get_time()))
+      fd:write(("%f, "):format(get_time()))
    end
 
-   for _,c in ipairs(rconf) do
-      if ubx.port_read(c.pinv, c.sample) < 0 then
-	 print("file_rep error: failed to read "..c.blockname.."."..c.portname)
+   for i=1,#rconf do
+      if ubx.port_read(rconf[i].pinv, rconf[i].sample) < 0 then
+	 print("file_rep error: failed to read "..rconf.blockname.."."..rconf.portname)
       else
-	 c.serfun(c.sample_cdata, fd)
+	 rconf[i].serfun(rconf[i].sample_cdata, fd)
+	 if i<#rconf then fd:write(", ") end
       end
    end
    fd:write("\n")

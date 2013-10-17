@@ -35,7 +35,8 @@ print("creating instance of 'reporter/file_rep'")
 
 rep_conf=[[
 {
-   { blockname='random1', portname="rnd", buff_len=1, }
+   { blockname='random1', portname="rnd", buff_len=1, },
+   { blockname='fifo1', portname="overruns", buff_len=5, }
 }
 ]]
 
