@@ -179,6 +179,12 @@ function is_prim_num(ctype)
    return false
 end
 
+function is_prim_num_ptr(ctype)
+   local refct = reflect.typeof(ctype)
+   if refct.what=='ptr' and refct.element_type.what=='int' then return true end
+   return false
+end
+
 -- TODO: how to detect a single string cdata properly?
 function is_string(ctype)
    local refct = reflect.typeof(ctype)
@@ -188,27 +194,44 @@ function is_string(ctype)
    return false
 end
 
+function is_composite(ctype)
+      local refct = reflect.typeof(ctype)
+      return refct.what=='struct' or refct.what=='array'
+end
+
 --- Generate a fast logging function for the given ctype
 -- @param ctype ffi ctype (ffi.typeof) for which the function shall be generated.
 -- @param prefix prefix to prepend to each field of the header (optional)
 -- @return function(x, fd), x is cdata and fd is filedescriptor to write to
 function M.gen_logfun(ctype, prefix)
+   prefix = prefix or tostring(ctype)
+   print("ctype: ", ctype)
+   print("refct: ", utils.tab2str(reflect.typeof(ctype)))
 
    if is_string(ctype) then
       return
       function (x, fd)
-	 if x=='header' then fd:write(prefix or "<string>"); return end
+	 if x=='header' then fd:write(prefix); return end
 	 fd:write(ffi.string(x))
       end
    elseif is_prim_num(ctype) then
       return
       function (x, fd)
-	 if x=='header' then fd:write(prefix or "<number>"); return end
+	 if x=='header' then fd:write(prefix); return end
+	 print("is_prim_num:", utils.tab2str(reflect.typeof(ffi.typeof(x))))
 	 fd:write(tonumber(x))
       end
+   elseif is_prim_num_ptr(ctype) then
+      return
+      function (x, fd)
+	 if x=='header' then fd:write(prefix); return end
+	 fd:write(tonumber(x[0]))
+      end
+   elseif not is_composite(ctype) then
+      error("unknown ctype "..tostring(ctype))
    end
 
-   prefix = prefix or ""
+   -- if we get here, it is either a struct or an array:
    local flattab = M.flatten_keys(M.ctype_destruct(ctype))
    table.sort(flattab, function(t1,t2) return t1.key < t2.key end)
 
@@ -227,6 +250,7 @@ function M.gen_logfun(ctype, prefix)
 		    if string.char(string.byte(e.key, 1))~='[' then e.presep="." else e.presep="" end
 		 end, flattab)
 
+   -- generate a fast serialization function:
    local ok, res = utils.preproc(
 [[
 return function(x, fd)

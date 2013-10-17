@@ -73,7 +73,7 @@ local function report_conf_to_portlist(rc, ni)
 	 local pinv = ubx.port_clone_conn(b, pname, conf.buff_len)
 	 conf.pinv=pinv
 	 conf.sample=create_read_sample(p, ni)
-	 conf.serfun=cdata.gen_logfun(ubx.type_to_ctype(conf.sample.type), blockport)
+	 conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample), blockport)
       else
 	 print("file_rep: refusing to report in-port ", bname.."."..pname)
       end
