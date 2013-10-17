@@ -51,6 +51,8 @@ charr1=ffi.new("unsigned char[10]", "hullo")
 
 str_arr=ffi.new("struct point[10]", {{1,1},{2,2},{3,3},{4,4},{5,5},{6,6},{7,7},{8,8},{9,9}, {10,10}})
 
+multi_arr=ffi.new("int[3][3]", {{1,2,3},{4,5,6},{7,8,9}})
+
 --- Pointer to prim
 i33=ffi.new("unsigned int[1]", { 9876 })
 i33ptr=ffi.cast("unsigned int*", i33)
@@ -81,3 +83,6 @@ print("charr1:", utils.tab2str(cd2lua(charr1)))
 print("p2:", utils.tab2str(cd2lua(p2)))
 print("p3:", utils.tab2str(cd2lua(p3)))
 print("pptr2", utils.tab2str(cd2lua(pptr2)))
+
+
+print("multi_arr", utils.tab2str(cd2lua(multi_arr)))

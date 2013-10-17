@@ -148,16 +148,23 @@ end
 -- @param t table to flatten
 -- @return table of {key="x.y.z", value="number|string"}
 function M.flatten_keys(t, prefix)
+   --- Add key to prefix.
+   -- depending whether key is a number use array or string syntax.
+   local function extend_prefix_with_key(k, prefix,nodot)
+      local sep='.'
+      if nodot then sep='' end
+      if type(k)=='number' then return ("%s[%d]"):format(prefix, k)
+      else return ("%s%s%s"):format(prefix, sep, tostring(k)) end
+   end
+
    local function __flatten_keys(t, res, prefix)
+      print("here:", utils.tab2str(t))
       for k,v in pairs(t) do
 	 if type(v)=='table' then
-	    if prefix=="" then __flatten_keys(v, res, k)
+	    if prefix=="" then
+	       __flatten_keys(v, res, extend_prefix_with_key(k, "", true))
 	    else
-	       if type(k)=='number' then
-		  __flatten_keys(v, res, prefix..'['..k..']')
-	       else
-		  __flatten_keys(v, res, prefix..'.'..k)
-	       end
+	       __flatten_keys(v, res, extend_prefix_with_key(k, prefix))
 	    end
 	 else
 	    if type(k)=='number' then
@@ -208,7 +215,7 @@ function M.gen_logfun(ctype, prefix)
       return
       function (x, fd)
 	 if x=='header' then fd:write(prefix or "<number>"); return end
-	 fd:write(tonumber(x[0]))
+	 fd:write(tonumber(x))
       end
    end
 
