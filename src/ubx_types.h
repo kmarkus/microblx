@@ -97,18 +97,18 @@ enum {
 	/* Directionality */
 	PORT_DIR_IN	= 1 << 0,
 	PORT_DIR_OUT	= 1 << 1,
-	PORT_DIR_INOUT  = PORT_DIR_IN & PORT_DIR_OUT,
+	PORT_DIR_INOUT  = PORT_DIR_IN & PORT_DIR_OUT
 };
 
 /* Port state */
 enum {
-	PORT_ACTIVE	= 1 << 0,
+	PORT_ACTIVE	= 1 << 0
 };
 
 enum {
 	PORT_READ_NODATA		= 0,
 	PORT_READ_BUFF_TOO_SMALL	= -1,
-	PORT_READ_DROPPED		= -2,
+	PORT_READ_DROPPED		= -2
 };
 
 /* return values */
@@ -122,7 +122,7 @@ enum {
 	ENOSUCHBLOCK		= -6,
 	EALREADY_REGISTERED	= -7,
 	EOUTOFMEM		= -8,
-	EINVALID_CONFIG		= -9,
+	EINVALID_CONFIG		= -9
 };
 
 /* Port
@@ -168,7 +168,7 @@ typedef struct ubx_config {
 
 enum {
 	CONFIG_ATTR_RDWR =	0<<0,
-	CONFIG_ATTR_RDONLY =	1<<0,
+	CONFIG_ATTR_RDONLY =	1<<0
 };
 
 /*
@@ -178,13 +178,13 @@ enum {
 /* Block types */
 enum {
 	BLOCK_TYPE_COMPUTATION=1,
-	BLOCK_TYPE_INTERACTION,
+	BLOCK_TYPE_INTERACTION
 };
 
 enum {
 	BLOCK_STATE_PREINIT,
 	BLOCK_STATE_INACTIVE,
-	BLOCK_STATE_ACTIVE,
+	BLOCK_STATE_ACTIVE
 };
 
 /* block definition */
