@@ -11,6 +11,7 @@ filename=nil
 rconf=nil
 separator=nil
 fd=nil
+timestamp=nil
 
 -- sample_conf={
 --    { blockname='blockA', portname="port1", buff_len=10, },
@@ -25,15 +26,6 @@ function get_time()
    return tonumber(ts1.sec) + tonumber(ts1.nsec) / ns_per_s
 end
 
---- safely convert a Lua configuration table string to a table.
--- @param str
--- @return lua table or false, msg
-function load_conf(str)
-   local tab, msg = load("return "..str, nil, 't', {})
-   if not tab then return false, msg end
-   return pcall(tab)
-end
-
 --- For the given port, create a ubx_data to hold the result of a read.
 -- @param port
 -- @return ubx_data_t sample
@@ -46,7 +38,7 @@ end
 -- @param ni node_info
 -- @return rconf table with inv. conn. ports
 local function report_conf_to_portlist(rc, ni)
-   local succ, res = load_conf(rc)
+   local succ, res = utils.eval_sandbox("return "..rc)
    if not succ then error("file_rep: failed to load report_conf: "..res) end
 
    for _,conf in ipairs(res) do
@@ -73,6 +65,7 @@ local function report_conf_to_portlist(rc, ni)
 	 local pinv = ubx.port_clone_conn(b, pname, conf.buff_len)
 	 conf.pinv=pinv
 	 conf.sample=create_read_sample(p, ni)
+	 conf.sample_cdata = ubx.data_to_cdata(conf.sample)
 	 conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample), blockport)
       else
 	 print("file_rep: refusing to report in-port ", bname.."."..pname)
@@ -87,6 +80,8 @@ function init(b)
    local rconf_str = ubx.data_tolua(ubx.config_get_data(b, "report_conf"))
    filename = ubx.data_tolua(ubx.config_get_data(b, "filename"))
    separator = ubx.data_tolua(ubx.config_get_data(b, "separator"))
+   timestamp = ubx.data_tolua(ubx.config_get_data(b, "timestamp"))
+
    print(('file_reporter.init: reporting to file="%s", sep="%s", conf=%s'):format(filename, separator, rconf_str))
 
    rconf = report_conf_to_portlist(rconf_str, b.ni)
@@ -99,27 +94,30 @@ end
 function start(b)
    b=ffi.cast("ubx_block_t*", b)
    ubx.ffi_load_types(b.ni)
-   for _,c in ipairs(rconf) do
-      c.serfun("header", fd)
+
+   if timestamp~=0 then
+      fd:write(("time, "):format(get_time()))
    end
+
+   for _,c in ipairs(rconf) do c.serfun("header", fd) end
    fd:write("\n")
    return true
 end
 
 function step(b)
    b=ffi.cast("ubx_block_t*", b)
-   local cur_t = get_time()
-   local wtab = {}
 
-   -- wtab[#wtab+1] = ("time=%f"):format(cur_t)
+   local cur_t = get_time()
+
+   if timestamp~=0 then
+      fd:write(("%f,"):format(get_time()))
+   end
 
    for _,c in ipairs(rconf) do
-      local bpn=c.blockname.."."..c.portname
       if ubx.port_read(c.pinv, c.sample) < 0 then
 	 print("file_rep error: failed to read "..c.blockname.."."..c.portname)
       else
-	 -- wtab[#wtab+1] = ('["%s"]=%s'):format(bpn, ubx.data_tostr(c.sample))
-	 c.serfun(ubx.data_to_cdata(c.sample), fd)
+	 c.serfun(c.sample_cdata, fd)
       end
    end
    fd:write("\n")

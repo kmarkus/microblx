@@ -30,6 +30,7 @@ ubx_config_t file_rep_conf[] = {
 	{ .name="report_conf", .type_name="char" },
 	{ .name="filename", .type_name="char" },
 	{ .name="separator", .type_name="char"},
+	{ .name="timestamp", .type_name="int"},
 	{ NULL }
 };
 

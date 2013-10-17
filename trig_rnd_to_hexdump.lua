@@ -42,6 +42,7 @@ rep_conf=[[
 file_rep1=ubx.block_create(ni, "reporter/file_rep", "file_rep1",
 			   {filename=os.date("%Y%m%d_%H%M%S")..'_report.dat',
 			    separator=',',
+			    timestamp=1,
 			    report_conf=rep_conf})
 
 print("creating instance of 'std_triggers/ptrig'")
