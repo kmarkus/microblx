@@ -60,7 +60,6 @@ path2_inst = ffi.new("struct path2", {
 
 int_inst = ffi.new(int)
 char_arr_inst = ffi.new(char_arr, "frubagatschi")
-
 multi_arr_inst=multi_arr({{1,2,3},{4,5,6},{7,8,9}})
 
 point_ser=cdata.gen_logfun(point)
@@ -69,6 +68,7 @@ path_ser=cdata.gen_logfun(path)
 path2_ser=cdata.gen_logfun(path2)
 int_ser=cdata.gen_logfun(int)
 char_arr_ser=cdata.gen_logfun(char_arr)
+multi_arr_ser=cdata.gen_logfun(multi_arr)
 
 point_ser("header", io.stdout); io.stdout:write("\n")
 point_ser(p1, io.stdout); io.stdout:write("\n")
@@ -94,3 +94,6 @@ char_arr_ser(char_arr_inst, io.stdout); io.stdout:write("\n")
 print(string.rep("-", 80))
 print(utils.tab2str(cdata.ctype_destruct(multi_arr)))
 print(utils.tab2str(cdata.flatten_keys(cdata.ctype_destruct(multi_arr))))
+
+multi_arr_ser("header", io.stdout); io.stdout:write("\n")
+multi_arr_ser(multi_arr_inst, io.stdout); io.stdout:write("\n")

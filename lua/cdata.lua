@@ -150,32 +150,21 @@ end
 function M.flatten_keys(t, prefix)
    --- Add key to prefix.
    -- depending whether key is a number use array or string syntax.
-   local function extend_prefix_with_key(k, prefix,nodot)
-      local sep='.'
-      if nodot then sep='' end
-      if type(k)=='number' then return ("%s[%d]"):format(prefix, k)
-      else return ("%s%s%s"):format(prefix, sep, tostring(k)) end
+   -- if prefix is the empty string, no dot is prepended
+   local function extend_prefix_with_key(k, prefix)
+      local sep
+      if type(k)=='number' then return ("%s[%d]"):format(prefix, k) end
+      if prefix=="" then sep="" else sep="." end
+      return ("%s%s%s"):format(prefix, sep, tostring(k))
    end
 
    local function __flatten_keys(t, res, prefix)
       print("here:", utils.tab2str(t))
       for k,v in pairs(t) do
 	 if type(v)=='table' then
-	    if prefix=="" then
-	       __flatten_keys(v, res, extend_prefix_with_key(k, "", true))
-	    else
-	       __flatten_keys(v, res, extend_prefix_with_key(k, prefix))
-	    end
+	    __flatten_keys(v, res, extend_prefix_with_key(k, prefix))
 	 else
-	    if type(k)=='number' then
-	       res[#res+1] = { key=prefix..'['..k..']', value=v }
-	    else
-	       if prefix=="" then
-		  res[#res+1] = { key=k, value=v }
-	       else
-		  res[#res+1] = { key=prefix.."."..k, value=v }
-	       end
-	    end
+	    res[#res+1] = { key=extend_prefix_with_key(k, prefix), value=v }
 	 end
       end
       return res
@@ -219,6 +208,7 @@ function M.gen_logfun(ctype, prefix)
       end
    end
 
+   prefix = prefix or ""
    local flattab = M.flatten_keys(M.ctype_destruct(ctype))
    table.sort(flattab, function(t1,t2) return t1.key < t2.key end)
 
@@ -230,12 +220,19 @@ function M.gen_logfun(ctype, prefix)
 		       error("unkown value "..e.value.." for key "..e.key)
 		    end
 		 end, flattab)
+
+   -- add a pre-separator 'presep' field: empty string if key starts
+   -- with array, else a "."
+   utils.foreach(function(e)
+		    if string.char(string.byte(e.key, 1))~='[' then e.presep="." else e.presep="" end
+		 end, flattab)
+
    local ok, res = utils.preproc(
 [[
 return function(x, fd)
     if x=='header' then
     # for i=1,#flattab do
-	fd:write("$(flattab[i].key)")
+	fd:write("$(prefix..flattab[i].presep..flattab[i].key)")
     #   if i<#flattab then
 	  fd:write("$(separator)")
     #   end
@@ -246,13 +243,14 @@ return function(x, fd)
     assert(tostring(ffi.typeof(x))=='$(tostring(ctype))',
 	  "serializer: argument not a $(tostring(ctype)) but a "..tostring(ffi.typeof(x)))
     # for i=1,#flattab do
-	fd:write($(flattab[i].serfun)(x$("."..flattab[i].key)))
+	fd:write($(flattab[i].serfun)(x$(flattab[i].presep..flattab[i].key)))
     #   if i<#flattab then
 	  fd:write("$(separator)")
     #   end
     # end
 end
-]], { io=io, table=table, ipairs=ipairs, flattab=flattab, tostring=tostring, ctype=ctype, separator=', ' })
+]], { io=io, table=table, ipairs=ipairs, flattab=flattab, 
+      tostring=tostring, ctype=ctype, separator=', ', prefix=prefix })
 
    assert(ok, res)
    print(res)
