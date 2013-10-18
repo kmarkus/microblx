@@ -32,6 +32,9 @@
 #define CONFIG_DUMPABLE		1
 /* #define CONFIG_MLOCK_ALL	1 */
 
+/* constants */
+#define NSEC_PER_SEC		1000000000
+
 #ifdef __cplusplus
 extern "C"
 {

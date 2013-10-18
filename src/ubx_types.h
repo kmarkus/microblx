@@ -249,6 +249,6 @@ typedef struct ubx_node_info {
 
 /* OS stuff */
 struct ubx_timespec {
-  long int sec;
-  long nsec;
+	long int sec;
+	long int nsec;
 };

@@ -1814,3 +1814,79 @@ int ubx_clock_mono_gettime(struct ubx_timespec* uts)
 out:
 	return ret;
 }
+
+/**
+ * Compare two ubx_timespecs
+ *
+ * @param ts1
+ * @param ts2
+ *
+ * @return return 1 if t1 is greater than t2, -1 if t1 is less than t2 and 0 if t1 and t2 are equal.
+ */
+int ubx_ts_cmp(struct ubx_timespec *ts1, struct ubx_timespec *ts2)
+{
+	if (ts1->sec > ts2->sec) return 1;
+	else if (ts1->sec < ts2->sec) return -1;
+	else if (ts1->nsec > ts2->nsec) return 1;
+	else if (ts1->nsec < ts2->nsec) return -1;
+	else return 0;
+}
+
+/**
+ * Normalize a timespec.
+ *
+ * @param ts
+ */
+void ubx_ts_norm(struct ubx_timespec *ts)
+{
+
+	if(ts->nsec >= NSEC_PER_SEC) {
+		ts->sec+=ts->nsec / NSEC_PER_SEC;
+		ts->nsec=ts->nsec % NSEC_PER_SEC;
+	}
+
+	/* normalize negative nsec */
+	if(ts->nsec <= -NSEC_PER_SEC) {
+		ts->sec += ts->nsec / NSEC_PER_SEC;
+		ts->nsec=ts->nsec % -NSEC_PER_SEC;
+	}
+
+	if(ts->sec>0 && ts->nsec<0) {
+		ts->sec-=1;
+		ts->nsec+=NSEC_PER_SEC;
+	}
+
+	if(ts->sec<0 && ts->nsec>0) {
+		ts->sec++;
+		ts->nsec-=NSEC_PER_SEC;
+	}
+}
+
+/* out = ts1 - ts2 */
+void ubx_ts_sub(struct ubx_timespec *ts1, struct ubx_timespec *ts2, struct ubx_timespec *out)
+{
+
+	out->sec = ts1->sec - ts2->sec;
+	out->nsec = ts1->nsec - ts2->nsec;
+	ubx_ts_norm(out);
+}
+
+/**
+ * Compute the sum of two timespecs
+ *
+ * @param ts1
+ * @param ts2
+ * @param out
+ */
+void ubx_ts_add(struct ubx_timespec *ts1, struct ubx_timespec *ts2, struct ubx_timespec *out)
+{
+	out->sec = ts1->sec + ts2->sec;
+	out->nsec = ts1->nsec + ts2->nsec;
+	ubx_ts_norm(out);
+}
+
+void ubx_ts_div(struct ubx_timespec *ts, long div, struct ubx_timespec *out)
+{
+	out->sec = ts->sec/div;
+	out->nsec = ts->sec/div;
+}
