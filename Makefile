@@ -33,8 +33,8 @@ $(TESTDIRS):
 clean: $(CLEANDIRS)
 $(CLEANDIRS):
 	$(MAKE) -C $(@:clean-%=%) clean
-	rm -f core vgcore*
-	rm -rf doc
+	@rm -f core vgcore*
+	@rm -rf doc
 
 doc:
 	mkdir -p doc/lua
