@@ -40,7 +40,9 @@ local ts=tostring
 local safe_ts=ubx_utils.safe_tostr
 local ac=require "ansicolors"
 -- require "strict"
+
 local M={}
+
 local setup_enums
 
 ------------------------------------------------------------------------------
@@ -97,6 +99,9 @@ ffi.cdef(read_file("src/uthash_ffi.h"))
 ffi.cdef(read_file("src/ubx_types.h"))
 ffi.cdef(read_file("src/ubx_proto.h"))
 local ubx=ffi.load("src/libubx.so")
+
+setmetatable(M, { __index=function(t,k) return ubx["ubx_"..k] end })
+
 
 ffi.cdef [[
 void *malloc(size_t size);
@@ -224,49 +229,6 @@ function M.block_create(ni, type, name, conf)
    return b
 end
 
-M.block_rm = ubx.ubx_block_rm
-M.block_get = ubx.ubx_block_get
-
---- Life cycle handling
-M.block_init = ubx.ubx_block_init
-M.block_start = ubx.ubx_block_start
-M.block_stop = ubx.ubx_block_stop
-M.block_cleanup = ubx.ubx_block_cleanup
-
-M.cblock_step = ubx.ubx_cblock_step
-
---- Port and Connections handling
-M.port_get = ubx.ubx_port_get
-M.port_add = ubx.ubx_port_add
-M.port_rm = ubx.ubx_port_rm
-M.connect_one = ubx.ubx_connect_one -- deprecated
-M.clone_port_data = ubx.ubx_clone_port_data
-M.port_free_data = ubx.ubx_port_free_data
-
-M.port_connect_in=ubx.ubx_port_connect_in
-M.port_connect_out=ubx.ubx_port_connect_out
-M.ports_connect_uni=ubx.ubx_ports_connect_uni
-
-M.port_disconnect_in=ubx.ubx_port_disconnect_in
-M.port_disconnect_out=ubx.ubx_port_disconnect_out
-M.ports_disconnect_uni=ubx.ubx_ports_disconnect_uni
-
-
-
---- Configuration
-
---- Add a ubx_config to a block.
--- @param b block
--- @param name name of configuration
--- @param meta configuration metadata
--- @param type_name desired type of configuration
--- @param len desired array multiplicity of contained data.
--- @return 0 in case of success, -1 otherwise.
-M.config_add = ubx.ubx_config_add
-
-M.config_rm = ubx.ubx_config_rm
-M.config_get = ubx.ubx_config_get
-M.config_get_data = ubx.ubx_config_get_data
 
 -- OS stuff
 M.clock_mono_gettime = ubx.ubx_clock_mono_gettime
