@@ -252,3 +252,4 @@ struct ubx_timespec {
 	long int sec;
 	long int nsec;
 };
+

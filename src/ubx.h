@@ -34,6 +34,7 @@
 
 /* constants */
 #define NSEC_PER_SEC		1000000000
+#define NSEC_PER_USEC           1000
 
 #ifdef __cplusplus
 extern "C"

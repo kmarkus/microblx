@@ -17,14 +17,12 @@
 
 #include "ubx.h"
 
-#define NSEC_PER_SEC            1000000000
-#define NSEC_PER_USEC           1000
-
 #include "types/ptrig_config.h"
 #include "types/ptrig_config.h.hexarr"
-
 #include "types/ptrig_period.h"
 #include "types/ptrig_period.h.hexarr"
+#include "types/ptrig_tstat.h"
+#include "types/ptrig_tstat.h.hexarr"
 
 /* ptrig metadata */
 char ptrig_meta[] =
@@ -33,10 +31,16 @@ char ptrig_meta[] =
 	"  real-time=false,"
 	"}";
 
+ubx_port_t ptrig_ports[] = {
+	{ .name="tstats", .out_type_name="struct ptrig_tstat" },
+	{ NULL },
+};
+
 /* types defined by ptrig block */
 ubx_type_t ptrig_types[] = {
 	def_struct_type(struct ptrig_config, &ptrig_config_h),
 	def_struct_type(struct ptrig_period, &ptrig_period_h),
+	def_struct_type(struct ptrig_tstat, &ptrig_tstat_h),
 	{ NULL },
 };
 
@@ -48,6 +52,7 @@ ubx_config_t ptrig_config[] = {
 	{ .name="sched_policy", .type_name = "char", .value = { .len=12 } },
 	{ .name="thread_name", .type_name = "char", .value = { .len=12 } },
 	{ .name="trig_blocks", .type_name = "struct ptrig_config" },
+	{ .name="time_stats_enabled", .type_name = "int" },
 	{ NULL },
 };
 
@@ -62,15 +67,18 @@ struct ptrig_inf {
 	unsigned int trig_list_len;
 
 	struct ptrig_period period;
+	struct ptrig_tstat tstats;
+
+	ubx_port_t *p_tstats;
 };
 
-/* the following function is borrowed from rt-tests/cyclictest,
-   GPLv2 */
+def_write_fun(write_tstat, struct ptrig_tstat)
+
 static inline void tsnorm(struct timespec *ts)
 {
-	while (ts->tv_nsec >= NSEC_PER_SEC) {
-		ts->tv_nsec -= NSEC_PER_SEC;
-		ts->tv_sec++;
+	if(ts->tv_nsec >= NSEC_PER_SEC) {
+		ts->tv_sec+=ts->tv_nsec / NSEC_PER_SEC;
+		ts->tv_nsec=ts->tv_nsec % NSEC_PER_SEC;
 	}
 }
 
@@ -78,6 +86,9 @@ static inline void tsnorm(struct timespec *ts)
 static int trigger_steps(struct ptrig_inf *inf)
 {
 	int i, steps, ret=-1;
+	struct ubx_timespec ts_start, ts_end, ts_dur;
+
+	ubx_clock_mono_gettime(&ts_start);
 
 	for(i=0; i<inf->trig_list_len; i++) {
 		for(steps=0; steps<inf->trig_list[i].num_steps; steps++) {
@@ -85,6 +96,20 @@ static int trigger_steps(struct ptrig_inf *inf)
 				goto out;
 		}
 	}
+
+	/* compute tstats */
+	ubx_clock_mono_gettime(&ts_end);
+	ubx_ts_sub(&ts_end, &ts_start, &ts_dur);
+
+	if(ubx_ts_cmp(&ts_dur, &inf->tstats.min) == -1)
+		inf->tstats.min=ts_dur;
+
+	if(ubx_ts_cmp(&ts_dur, &inf->tstats.max) == 1)
+		inf->tstats.max=ts_dur;
+
+	ubx_ts_add(&inf->tstats.total, &ts_dur, &inf->tstats.total);
+	inf->tstats.cnt++;
+	write_tstat(inf->p_tstats, &inf->tstats);
 
 	ret=0;
  out:
@@ -229,6 +254,15 @@ static int ptrig_init(ubx_block_t *b)
 		ERR("failed to set thread_name to %s", threadname);
 #endif
 
+	inf->tstats.min.sec=999999999;
+	inf->tstats.min.nsec=999999999;
+
+	inf->tstats.max.sec=0;
+	inf->tstats.max.nsec=0;
+
+	inf->tstats.total.sec=0;
+	inf->tstats.total.nsec=0;
+
 	/* OK */
 	ret=0;
 	goto out;
@@ -258,6 +292,8 @@ static int ptrig_start(ubx_block_t *b)
 	inf->state=BLOCK_STATE_ACTIVE;
 	pthread_cond_signal(&inf->active_cond);
 	pthread_mutex_unlock(&inf->mutex);
+
+	assert(inf->p_tstats = ubx_port_get(b, "tstats"));
 	return 0;
 }
 
@@ -297,6 +333,7 @@ ubx_block_t ptrig_comp = {
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = ptrig_meta,
 	.configs = ptrig_config,
+	.ports = ptrig_ports,
 
 	.init = ptrig_init,
 	.start = ptrig_start,

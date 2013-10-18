@@ -130,10 +130,7 @@ function M.refct_destruct(refct)
    elseif refct.what=='array' then res=do_array(refct)
    elseif refct.what=='ref' then res=M.refct_destruct(refct.element_type)
    elseif  refct.what=='ptr' then
-      -- Don't touch any char*, because we don't know if they are zero
-      -- terminated or not
-      if cd==nil then res='NULL'
-      elseif is_prim_num(refct.element_type) then res='number'
+      if is_prim_num(refct.element_type) then res='number'
       else res=M.refct_destruct(refct.element_type) end
    else print("can't handle "..refct.what..", ignoring.") end
 
@@ -195,8 +192,13 @@ function is_string(ctype)
 end
 
 function is_composite(ctype)
-      local refct = reflect.typeof(ctype)
-      return refct.what=='struct' or refct.what=='array'
+   local refct = reflect.typeof(ctype)
+   return refct.what=='struct' or refct.what=='array'
+end
+
+function is_composite_ptr(ctype)
+   local refct = reflect.typeof(ctype)
+   return refct.what=='ptr' and (refct.element_type.what=='struct' or refct.element_type.what=='array')
 end
 
 --- Generate a fast logging function for the given ctype
@@ -227,7 +229,7 @@ function M.gen_logfun(ctype, prefix)
 	 if x=='header' then fd:write(prefix); return end
 	 fd:write(tonumber(x[0]))
       end
-   elseif not is_composite(ctype) then
+   elseif not (is_composite(ctype) or is_composite_ptr(ctype)) then
       error("unknown ctype "..tostring(ctype))
    end
 

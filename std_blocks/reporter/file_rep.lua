@@ -40,7 +40,7 @@ end
 -- @return rconf table with inv. conn. ports
 local function report_conf_to_portlist(rc, ni)
    local succ, res = utils.eval_sandbox("return "..rc)
-   if not succ then error("file_rep: failed to load report_conf: "..res) end
+   if not succ then error("file_rep: failed to load report_conf:\n"..res) end
 
    for _,conf in ipairs(res) do
       local bname, pname = ts(conf.blockname), ts(conf.portname)
@@ -77,6 +77,7 @@ end
 
 function init(b)
    b=ffi.cast("ubx_block_t*", b)
+   ubx.ffi_load_types(b.ni)
 
    local rconf_str = ubx.data_tolua(ubx.config_get_data(b, "report_conf"))
    filename = ubx.data_tolua(ubx.config_get_data(b, "filename"))
