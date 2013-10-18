@@ -5,7 +5,8 @@
 * Next steps
   
 
-** TODO file_rep: output comma separated list
+** DONE file_rep: output comma separated list
+   CLOSED: [2013-10-18 Fri 08:11]
 ** TODO add enum type
 ** DONE test to confirm that attrs=IN_PORT etc, can be omitted
    CLOSED: [2013-10-15 Di 14:58]
@@ -37,6 +38,7 @@
    - full name: package/struct foo or package/foo_t or
    - partial hash of name: 0a407a4f51ff2bb1f92a6ae611cb63fb
 
+** TODO [#C] find workaround for [[http://gcc.gnu.org/bugzilla/show_bug.cgi?id%3D10676][gcc issue 10676]]
 ** TODO [#C] webif: ubx_load_types is called upon every request.
    - Find a way to only call if a new type was added.
 ** DONE data_tolua: start table converted from arrays with index 1
