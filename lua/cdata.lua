@@ -156,7 +156,6 @@ function M.flatten_keys(t, prefix)
    end
 
    local function __flatten_keys(t, res, prefix)
-      print("here:", utils.tab2str(t))
       for k,v in pairs(t) do
 	 if type(v)=='table' then
 	    __flatten_keys(v, res, extend_prefix_with_key(k, prefix))
@@ -207,8 +206,8 @@ end
 -- @return function(x, fd), x is cdata and fd is filedescriptor to write to
 function M.gen_logfun(ctype, prefix)
    prefix = prefix or tostring(ctype)
-   print("ctype: ", ctype)
-   print("refct: ", utils.tab2str(reflect.typeof(ctype)))
+   -- print("ctype: ", ctype)
+   -- print("refct: ", utils.tab2str(reflect.typeof(ctype)))
 
    if is_string(ctype) then
       return
@@ -257,29 +256,28 @@ function M.gen_logfun(ctype, prefix)
 [[
 return function(x, fd)
     if x=='header' then
-    # for i=1,#flattab do
-	fd:write("$(prefix..flattab[i].presep..flattab[i].key)")
-    #   if i<#flattab then
-	  fd:write("$(separator)")
-    #   end
-    # end
+    @ for i=1,#flattab do
+        fd:write("$(prefix..flattab[i].presep..flattab[i].key)")
+    @   if i<#flattab then
+        fd:write("$(separator)")
+    @   end
+    @ end
       return
     end
 
     assert(tostring(ffi.typeof(x))=='$(tostring(ctype))',
-	  "serializer: argument not a $(tostring(ctype)) but a "..tostring(ffi.typeof(x)))
-    # for i=1,#flattab do
+           "serializer: argument not a $(tostring(ctype)) but a "..tostring(ffi.typeof(x)))
+    @ for i=1,#flattab do
 	fd:write($(flattab[i].serfun)(x$(flattab[i].presep..flattab[i].key)))
-    #   if i<#flattab then
+    @   if i<#flattab then
 	  fd:write("$(separator)")
-    #   end
-    # end
+    @   end
+    @ end
 end
 ]], { io=io, table=table, ipairs=ipairs, flattab=flattab, 
       tostring=tostring, ctype=ctype, separator=', ', prefix=prefix })
 
    assert(ok, res)
-   print(res)
    ok, res = utils.eval_sandbox(res, { print=print, ffi=ffi, io=io, assert=assert,
 				       tostring=tostring, tonumber=tonumber })
    assert(ok, res)
