@@ -4,15 +4,15 @@
 --
 
 local type, pairs, ipairs, setmetatable, getmetatable, assert, table,
-   print, tostring, string, io, unpack, error, load, pcall = type,
+   print, tostring, string, io, unpack, error, load, pcall, debug, xpcall = type,
    pairs, ipairs, setmetatable, getmetatable, assert, table, print,
-   tostring, string, io, unpack, error, load, pcall
+   tostring, string, io, unpack, error, load, pcall, debug, xpcall
 
 module('utils')
 
 -- increment major on API breaks
 -- increment minor on non breaking changes
-VERSION=0.993
+VERSION=0.995
 
 function append(car, ...)
    assert(type(car) == 'table')
@@ -312,6 +312,11 @@ function eval(str)
    return assert(loadstring(str))()
 end
 
+function unrequire(m)
+   package.loaded[m] = nil
+   _G[m] = nil
+end
+
 -- Compare two values (potentially recursively).
 -- @param t1 value 1
 -- @param t2 value 2
@@ -461,6 +466,10 @@ function expand(tpl, params, warn)
    return tpl, unexp
 end
 
+local function pcall_bt(func, ...)
+   return xpcall(func, debug.traceback, ...)
+end
+
 --- Evaluate a chunk of code in a constrained environment.
 -- @param unsafe_code code string
 -- @param optional environment table.
@@ -470,8 +479,9 @@ function eval_sandbox(unsafe_code, env)
    env = env or {}
    local unsafe_fun, msg = load(unsafe_code, nil, 't', env)
    if not unsafe_fun then return false, msg end
-   return pcall(unsafe_fun)
+   return pcall_bt(unsafe_fun)
 end
+
 
 --- Preprocess the given string.
 -- Lines starting with # are executed as Lua code
@@ -480,15 +490,17 @@ end
 --
 -- @param str string to preprocess
 -- @param env environment for sandbox (default {})
+-- @param verbose print verbose error message in case of failure
 -- @return preprocessed result.
-function preproc(str, env)
+function preproc(str, env, verbose)
    local chunk = {"__res={}\n" }
    local lines = split(str, "\n")
 
    for _,line in ipairs(lines) do
-      line = trim(line)
-      if string.find(line, "^#") then
-	 chunk[#chunk+1] = string.sub(line, 2) .. "\n"
+      -- line = trim(line)
+      local s,e = string.find(line, "^%s*@")
+      if s then
+	 chunk[#chunk+1] = string.sub(line, e+1) .. "\n"
       else
 	 local last = 1
 	 for text, expr, index in string.gmatch(line, "(.-)$(%b())()") do
@@ -505,7 +517,14 @@ function preproc(str, env)
       end
    end
    chunk[#chunk+1] = "return table.concat(__res, '')\n"
-   return eval_sandbox(table.concat(chunk), env)
+   local ret, str = eval_sandbox(table.concat(chunk), env)
+   if not ret and verbose then
+      print("preproc failed: start of error report")
+      local code_dump = table.concat(chunk)
+      for i,l in ipairs(split(code_dump, "\n")) do print(tostring(i)..":\t"..string.format("%q", l)) end
+      print(str.."\npreproc failed: end of error message")
+   end
+   return ret, str
 end
 
 --- Convert a string to a hex representation of a string.
