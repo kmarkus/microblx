@@ -21,6 +21,7 @@ Dependencies
  - `luajit`, `libluajit-5.1-dev` (>=2.0.0-beta11, for scripting (optional, but recommended)
  - `clang` (only necessary for compiling C++ blocks)
  - only for development: `cproto` to generate C prototype header file
+ - gcc (v4.6 or newer)
 
 Building
 --------
@@ -28,6 +29,9 @@ Building
 ```
 $ Just run "make".
 ```
+
+Some blocks have external dependencies and may fail.
+
 
 Documentation
 -------------
