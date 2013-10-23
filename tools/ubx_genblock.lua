@@ -241,20 +241,22 @@ end
 
 data.block_name = opttab['-n'][1]
 
-data.outdir="."
-if opttab['-d'] then
-   data.outdir=opttab['-d'][1]
-   if not utils.file_exists(data.outdir) then
-      if os.execute("mkdir -p "..data.outdir) ~= 0 then
-	 print("creating dir "..data.outdir.." failed")
-	 os.exit(1)
-      end
+if not (opttab['-d'] and opttab['-d'][1]) then
+   print("missing output directory (-d)"); os.exit(1)
+end
+
+data.outdir=opttab['-d'][1]
+if not utils.file_exists(data.outdir) then
+   if os.execute("mkdir -p "..data.outdir) ~= 0 then
+      print("creating dir "..data.outdir.." failed")
+      os.exit(1)
    end
-   if not utils.file_exists(data.outdir.."/types") then
-      if os.execute("mkdir -p "..data.outdir.."/types") ~= 0 then
-	 print("creating dir "..data.outdir.."/types ".." failed")
-	 os.exit(1)
-      end
+end
+
+if not utils.file_exists(data.outdir.."/types") then
+   if os.execute("mkdir -p "..data.outdir.."/types") ~= 0 then
+      print("creating dir "..data.outdir.."/types ".." failed")
+      os.exit(1)
    end
 end
 
