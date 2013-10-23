@@ -1,10 +1,12 @@
+#!/usr/bin/env luajit
+
 utils=require "utils"
 
 function usage()
    print( [=[
-genblock: generate the code for an empty microblx block.
+ubx_genblock: generate the code for an empty microblx block.
 
-usage genblock OPTIONS <conf file>
+Usage: genblock [OPTIONS]
    -n           name of block
    -d		output directory (will be created)
    -h           show this.
