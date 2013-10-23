@@ -111,7 +111,7 @@
     #define LFDS611_BARRIER_PROCESSOR_FULL   __sync_synchronize()
   #endif
 
-  #if (defined __unix__ && defined __i686__ && __GNUC__)
+  #if (defined __unix__ && (defined __i386__ || defined __i486__ || defined __i586__ || defined __i686__) && __GNUC__)
     // TRD : any UNIX with GCC on x86
     #include <assert.h>
     #include <stdio.h>
