@@ -6,7 +6,7 @@ genblock: generate the code for an empty microblx block.
 
 usage genblock OPTIONS <conf file>
    -n           name of block
-   -d		output directory (must exist)
+   -d		output directory (will be created)
    -h           show this.
 ]=])
 end
