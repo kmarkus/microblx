@@ -1,4 +1,4 @@
-#!/usr/bin/env lua
+#!/usr/bin/env luajit
 
 ---
 --- Convert the contents of a file to a C-struct representation. The
