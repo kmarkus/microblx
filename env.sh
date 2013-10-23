@@ -10,4 +10,4 @@ fi
 
 UBX_LUA_PATH="$DIR/lua/?.lua"
 
-export LUA_PATH="$LUA_PATH;$UBX_LUA_PATH"
+export LUA_PATH="$UBX_LUA_PATH;$LUA_PATH"
