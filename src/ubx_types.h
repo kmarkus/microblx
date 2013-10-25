@@ -39,7 +39,7 @@
 enum {
 	BLOCK_NAME_MAXLEN = 100,
 	TYPE_HASH_LEN = 16, 		/* md5 */
-	TYPE_HASH_LEN_UNIQUE = 10 	/* Number of characters of the
+	TYPE_HASH_LEN_UNIQUE = 8 	/* Number of characters of the
 					   type checksum to compare */
 };
 
@@ -79,7 +79,7 @@ typedef struct ubx_type {
 	uint32_t type_class;		/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
 	unsigned long size;		/* size in bytes */
 	void* private_data;		/* private data. */
-	unsigned char name_hash[TYPE_HASH_LEN];
+	unsigned char hash[TYPE_HASH_LEN]; /* unique type hash id */
 	ubx_serialization_t* serializations;
 	UT_hash_handle hh;
 } ubx_type_t;
