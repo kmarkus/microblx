@@ -34,7 +34,7 @@ clean: $(CLEANDIRS)
 $(CLEANDIRS):
 	$(MAKE) -C $(@:clean-%=%) clean
 	@rm -f core vgcore*
-	@rm -rf doc
+	@rm -rf doc/lua
 
 doc:
 	mkdir -p doc/lua

@@ -36,9 +36,7 @@ Some blocks have external dependencies and may fail.
 Documentation
 -------------
 
-Non-existant at the moment.
-
-Check for block specific README files.
+ - [User manual](/doc/manual.md)
 
 
 FAQ
