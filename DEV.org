@@ -33,6 +33,15 @@
      Advantage: would be easier to use for configuring trigger blocks,
      etc. -> easier for communicating block_id's via ports.
 
+** TODO improve type safety of gen_[read/write] generated functions
+
+   =/* assert(strcmp(#typename, port->out_type_name)==0); */= 
+
+   This doesn't work because of type aliasing. Solution is to compare
+   ubx_type_t ptrs. This ultimately requries access to
+   node_info. Could be via: port->block-node_info.
+   
+
 ** TODO type id comparison: remote use SHA1 (parts) and local type-ptr
 ** TODO introduce typeid's: (like git commitish)
    - full name: package/struct foo or package/foo_t or
