@@ -119,7 +119,7 @@ def_read_fun(read_uint, unsigned int)
 def_write_fun(write_int, int)
 
 /* init */
-static int $(block_name)_init(ubx_block_t *b)
+int $(block_name)_init(ubx_block_t *b)
 {
 	int ret = -1;
 
@@ -135,25 +135,25 @@ out:
 }
 
 /* start */
-static int $(block_name)_start(ubx_block_t *b)
+int $(block_name)_start(ubx_block_t *b)
 {
 	int ret = 0;
 	return ret;
 }
 
 /* stop */
-static void $(block_name)_stop(ubx_block_t *b)
+void $(block_name)_stop(ubx_block_t *b)
 {
 }
 
 /* cleanup */
-static void $(block_name)_cleanup(ubx_block_t *b)
+void $(block_name)_cleanup(ubx_block_t *b)
 {
 	free(b->private_data);
 }
 
 /* step */
-static void $(block_name)_step(ubx_block_t *b)
+void $(block_name)_step(ubx_block_t *b)
 {
 	unsigned int x;
 	int y;
@@ -186,7 +186,7 @@ ubx_block_t $(block_name)_block = {
 
 
 /* $(block_name) module init and cleanup functions */
-static int $(block_name)_mod_init(ubx_node_info_t* ni)
+int $(block_name)_mod_init(ubx_node_info_t* ni)
 {
 	DBG(" ");
 	int ret = -1;
@@ -206,7 +206,7 @@ out:
 	return ret;
 }
 
-static void $(block_name)_mod_cleanup(ubx_node_info_t *ni)
+void $(block_name)_mod_cleanup(ubx_node_info_t *ni)
 {
 	DBG(" ");
 	const ubx_type_t *tptr;

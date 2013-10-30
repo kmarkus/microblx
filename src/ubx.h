@@ -58,13 +58,12 @@ extern "C"
 #include "ubx_types.h"
 #include "ubx_proto.h"
 
-
 /* module init, cleanup */
 #define UBX_MODULE_INIT(initfn) \
-int __ubx_initialize_module(ubx_node_info_t* ni) { return initfn(ni); }
+__attribute__ ((visibility("default"))) int __ubx_initialize_module(ubx_node_info_t* ni) { return initfn(ni); }
 
-#define UBX_MODULE_CLEANUP(exitfn)				\
-void __ubx_cleanup_module(ubx_node_info_t* ni) { exitfn(ni); }
+#define UBX_MODULE_CLEANUP(exitfn) \
+__attribute__ ((visibility("default"))) void __ubx_cleanup_module(ubx_node_info_t* ni) { exitfn(ni); }
 
 /* type definition helpers */
 #define def_basic_ctype(typename) { .name=#typename, .type_class=TYPE_CLASS_BASIC, .size=sizeof(typename) }

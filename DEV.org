@@ -218,6 +218,9 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
 
 * Usefull stuff:
 
+** check exported symbols:
+   =$ nm -C -D file.so=
+
 ** valgrind
    - supressing false positive in luajit [[http://thread.gmane.org/gmane.comp.lang.lua.luajit/2266/focus%3D2273][luajit ML gmane]]
    - =valgrind --leak-check=full --track-origins=yes luajit rnd_to_hexdump.lua 2>&1 | less=
