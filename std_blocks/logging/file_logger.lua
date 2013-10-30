@@ -40,19 +40,19 @@ end
 -- @return rconf table with inv. conn. ports
 local function report_conf_to_portlist(rc, ni)
    local succ, res = utils.eval_sandbox("return "..rc)
-   if not succ then error("file_rep: failed to load report_conf:\n"..res) end
+   if not succ then error("file_logger: failed to load report_conf:\n"..res) end
 
    for _,conf in ipairs(res) do
       local bname, pname = ts(conf.blockname), ts(conf.portname)
 
       local b = ubx.block_get(ni, bname)
       if b==nil then
-	 print("file_rep error: no block "..bname.." found")
+	 print("file_logger error: no block "..bname.." found")
 	 return false
       end
       local p = ubx.port_get(b, pname)
       if p==nil then
-	 print("file_rep error: block "..bname.." has no port "..pname)
+	 print("file_logger error: block "..bname.." has no port "..pname)
 	 return false
       end
 
@@ -62,14 +62,14 @@ local function report_conf_to_portlist(rc, ni)
 
       if p.out_type~=nil then
 	 local blockport = bname.."."..pname
-	 print("file_rep: reporting ", blockport)
+	 print("file_logger: reporting ", blockport)
 	 local pinv = ubx.port_clone_conn(b, pname, conf.buff_len)
 	 conf.pinv=pinv
 	 conf.sample=create_read_sample(p, ni)
 	 conf.sample_cdata = ubx.data_to_cdata(conf.sample)
 	 conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample), blockport)
       else
-	 print("file_rep: refusing to report in-port ", bname.."."..pname)
+	 print("file_logger: refusing to report in-port ", bname.."."..pname)
       end
    end
    return res
@@ -84,7 +84,7 @@ function init(b)
    separator = ubx.data_tolua(ubx.config_get_data(b, "separator"))
    timestamp = ubx.data_tolua(ubx.config_get_data(b, "timestamp"))
 
-   print(('file_reporter.init: reporting to file="%s", sep="%s", conf=%s'):format(filename, separator, rconf_str))
+   print(('file_loggerorter.init: reporting to file="%s", sep="%s", conf=%s'):format(filename, separator, rconf_str))
 
    rconf = report_conf_to_portlist(rconf_str, b.ni)
 
@@ -119,7 +119,7 @@ function step(b)
 
    for i=1,#rconf do
       if ubx.port_read(rconf[i].pinv, rconf[i].sample) < 0 then
-	 print("file_rep error: failed to read "..rconf.blockname.."."..rconf.portname)
+	 print("file_logger error: failed to read "..rconf.blockname.."."..rconf.portname)
       else
 	 rconf[i].serfun(rconf[i].sample_cdata, fd)
 	 if i<#rconf then fd:write(", ") end

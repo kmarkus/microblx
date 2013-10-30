@@ -3,7 +3,7 @@
  */
 
 #define DEBUG
-#define COMPILE_IN_REP_LUA_FILE
+#define COMPILE_IN_LOG_LUA_FILE
 
 #include <luajit-2.0/lauxlib.h>
 #include <luajit-2.0/lualib.h>
@@ -14,19 +14,19 @@
 
 #include "ubx.h"
 
-#ifdef COMPILE_IN_REP_LUA_FILE
-#include "file_rep.lua.hexarr"
+#ifdef COMPILE_IN_LOG_LUA_FILE
+#include "file_logger.lua.hexarr"
 #else
-#define FILE_REP_FILE "/home/mk/prog/c/microblx/std_blocks/reporter/file_rep.lua"
+#define FILE_LOG_FILE "/home/mk/prog/c/microblx/std_blocks/reporter/file_logger.lua"
 #endif
 
-char file_rep_meta[] =
+char file_logger_meta[] =
 	"{ doc='A reporting block that writes to a file',"
 	"  license='MIT',"
 	"  real-time=false,"
 	"}";
 
-ubx_config_t file_rep_conf[] = {
+ubx_config_t file_logger_conf[] = {
 	{ .name="report_conf", .type_name="char" },
 	{ .name="filename", .type_name="char" },
 	{ .name="separator", .type_name="char"},
@@ -34,7 +34,7 @@ ubx_config_t file_rep_conf[] = {
 	{ NULL }
 };
 
-struct file_rep_info {
+struct file_logger_info {
 	struct ubx_node_info* ni;
 	struct lua_State* L;
 };
@@ -52,7 +52,7 @@ struct file_rep_info {
 int call_hook(ubx_block_t* b, const char *fname, int require_fun, int require_res)
 {
 	int ret = 0;
-	struct file_rep_info* inf = (struct file_rep_info*) b->private_data;
+	struct file_logger_info* inf = (struct file_logger_info*) b->private_data;
 	int num_res = (require_res != 0) ? 1 : 0;
 
 	lua_getglobal(inf->L, fname);
@@ -95,7 +95,7 @@ int call_hook(ubx_block_t* b, const char *fname, int require_fun, int require_re
  *
  * @return 0 if Ok, -1 otherwise.
  */
-static int init_lua_state(struct file_rep_info* inf)
+static int init_lua_state(struct file_logger_info* inf)
 {
 	int ret=-1;
 
@@ -106,14 +106,14 @@ static int init_lua_state(struct file_rep_info* inf)
 
 	luaL_openlibs(inf->L);
 
-#ifdef COMPILE_IN_REP_LUA_FILE
-	ret = luaL_dostring(inf->L, (const char*) &file_rep_lua);
+#ifdef COMPILE_IN_LOG_LUA_FILE
+	ret = luaL_dostring(inf->L, (const char*) &file_logger_lua);
 #else
-	ret = luaL_dofile(inf->L, FILE_REP_FILE);
+	ret = luaL_dofile(inf->L, FILE_LOG_FILE);
 #endif
 	
 	if (ret) {
-		ERR("Failed to load file_rep.lua: %s\n", lua_tostring(inf->L, -1));
+		ERR("Failed to load file_logger.lua: %s\n", lua_tostring(inf->L, -1));
 		goto out;
 	}
 	ret=0;
@@ -123,13 +123,13 @@ static int init_lua_state(struct file_rep_info* inf)
 }
 
 
-static int file_rep_init(ubx_block_t *b)
+static int file_logger_init(ubx_block_t *b)
 {
 	DBG(" ");
 	int ret = -EOUTOFMEM;
-	struct file_rep_info* inf;
+	struct file_logger_info* inf;
 
-	if((inf = calloc(1, sizeof(struct file_rep_info)))==NULL)
+	if((inf = calloc(1, sizeof(struct file_logger_info)))==NULL)
 		goto out;
 
 	b->private_data = inf;
@@ -150,31 +150,31 @@ static int file_rep_init(ubx_block_t *b)
 	return ret;
 }
 
-static int file_rep_start(ubx_block_t *b)
+static int file_logger_start(ubx_block_t *b)
 {
 	DBG(" ");
 	return call_hook(b, "start", 0, 1);
 }
 
 /**
- * file_rep_step - execute lua string and call step hook
+ * file_logger_step - execute lua string and call step hook
  *
  * @param b
  */
-static void file_rep_step(ubx_block_t *b)
+static void file_logger_step(ubx_block_t *b)
 {
 	call_hook(b, "step", 0, 0);
 	return;
 }
 
-static void file_rep_stop(ubx_block_t *b)
+static void file_logger_stop(ubx_block_t *b)
 {
 	call_hook(b, "stop", 0, 0);
 }
 
-static void file_rep_cleanup(ubx_block_t *b)
+static void file_logger_cleanup(ubx_block_t *b)
 {
-	struct file_rep_info* inf = (struct file_rep_info*) b->private_data;
+	struct file_logger_info* inf = (struct file_logger_info*) b->private_data;
 	call_hook(b, "cleanup", 0, 0);
 	lua_close(inf->L);
 	free(b->private_data);
@@ -183,29 +183,29 @@ static void file_rep_cleanup(ubx_block_t *b)
 
 /* put everything together */
 ubx_block_t lua_comp = {
-	.name = "reporter/file_rep",
+	.name = "logging/file_logger",
 	.type = BLOCK_TYPE_COMPUTATION,
-	.meta_data = file_rep_meta,
-	.configs = file_rep_conf,
+	.meta_data = file_logger_meta,
+	.configs = file_logger_conf,
 	/* .ports = lua_ports, */
 
 	/* ops */
-	.init = file_rep_init,
-	.start = file_rep_start,
-	.step = file_rep_step,
-	.stop = file_rep_stop,
-	.cleanup = file_rep_cleanup,
+	.init = file_logger_init,
+	.start = file_logger_start,
+	.step = file_logger_step,
+	.stop = file_logger_stop,
+	.cleanup = file_logger_cleanup,
 };
 
-static int file_rep_mod_init(ubx_node_info_t* ni)
+static int file_logger_mod_init(ubx_node_info_t* ni)
 {
 	return ubx_block_register(ni, &lua_comp);
 }
 
-static void file_rep_mod_cleanup(ubx_node_info_t *ni)
+static void file_logger_mod_cleanup(ubx_node_info_t *ni)
 {
-	ubx_block_unregister(ni, "reporter/file_rep");
+	ubx_block_unregister(ni, "reporter/file_logger");
 }
 
-UBX_MODULE_INIT(file_rep_mod_init)
-UBX_MODULE_CLEANUP(file_rep_mod_cleanup)
+UBX_MODULE_INIT(file_logger_mod_init)
+UBX_MODULE_CLEANUP(file_logger_mod_cleanup)

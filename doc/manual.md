@@ -5,7 +5,7 @@ This manual describes microblx in a cookbook style:
 
  1. Key concepts
  1. How to build a microblx block
- 1. How to assemble blocks into a system and how to use std_blocks like the webinterface (`webif` block) or the logger (`file_rep`))
+ 1. How to assemble blocks into a system and how to use std_blocks like the webinterface (`webif` block) or the logger (`file_logger`))
 
 
 Key concepts
@@ -104,6 +104,6 @@ Assembling blocks
 Tips and Tricks
 ---------------
 
- - Remember to make all functions that `static`
+ - cRemember to make all functions that `static`
  - 
  

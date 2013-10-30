@@ -7,6 +7,7 @@
 
 ** DONE file_rep: output comma separated list
    CLOSED: [2013-10-18 Fri 08:11]
+** TODO rename reporter->logging
 ** TODO add enum type
 ** DONE test to confirm that attrs=IN_PORT etc, can be omitted
    CLOSED: [2013-10-15 Di 14:58]
