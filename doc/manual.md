@@ -13,23 +13,24 @@ This manual describes microblx in a cookbook style:
 Key concepts
 ------------
 
-- block: the main building block. Is defined by filling in a
+- **_block_**: the main building block. Is defined by filling in a
   `ubx_block_t` type and registering it with a microblx
-  `ubx_node_t`. Blocks can be of type computation
-  (`BLOCK_TYPE_COMPUTATION`) or type interaction
-  (`BLOCK_TYPE_INTERACTION`). The former encapsulate "functionality"
-  such as drivers and controllers. The latter implement the
-  communication or interaction between blocks.
+  `ubx_node_t`. Blocks _have_ configuration, ports and operations.
+  
+  There are two types of blocks: **_computation blocks_** ("cblocks",
+  `BLOCK_TYPE_COMPUTATION`) encapsulate "functionality" such as
+  drivers and controllers. **_interaction blocks_** ("iblocks",
+  `BLOCK_TYPE_INTERACTION`) are used to implement communication or
+  interaction between blocks. This manual focusses on how to build
+  cblocks, since this is what most application builders need to do.
 
-  blocks consist of configuration, ports and implemented operations.
-
-- configuration (`ubx_config_t`): used to define static properties of
+- **_configuration_** (`ubx_config_t`): used to define static properties of
   blocks, such as control parameters, device file names etc.
 
-- port (`ubx_port_t`): used to define which data flows in and out of
+- **_port_** (`ubx_port_t`): used to define which data flows in and out of
   blocks.
 
-- node (`ubx_node_t`): a bookkeeping entity which keeps track of
+- **_node_** (`ubx_node_t`): a bookkeeping entity which keeps track of
   blocks and types. Typically one per process, but there's no
   constraints whatsoever.
 
@@ -69,7 +70,7 @@ ubx_config_t rnd_config[] = {
 The above defines a single configuration called "min_max_config" of
 the type "struct random_config".
 
-**__Note:__**: custom types like `struct random_config` must be
+**_Note:_**: custom types like `struct random_config` must be
   registered with the system. (see section "declaring types")
 
 
@@ -118,7 +119,7 @@ The following block operations can be implemented to realize the
 blocks behavior. All are optional.
 
 ```C
-int rnd_init(ubx_block_t *b)
+int rnd_init(ubx_block_t *b);
 int rnd_start(ubx_block_t *b);
 void rnd_stop(ubx_block_t *b);
 void rnd_cleanup(ubx_block_t *b);
