@@ -16,7 +16,10 @@ Key concepts
 - **block**: the main building block. Is defined by filling in a
   `ubx_block_t` type and registering it with a microblx
   `ubx_node_t`. Blocks _have_ configuration, ports and operations.
-  
+
+  Each block is part of a module and becomes available once the module
+  is loaded in a node.
+
   There are two types of blocks: **computation blocks** ("cblocks",
   `BLOCK_TYPE_COMPUTATION`) encapsulate "functionality" such as
   drivers and controllers. **interaction blocks** ("iblocks",
@@ -24,14 +27,21 @@ Key concepts
   interaction between blocks. This manual focusses on how to build
   cblocks, since this is what most application builders need to do.
 
-- **configuration**: defines static properties of blocks, such as
-  control parameters, device file names etc.
+        - **configuration**: defines static properties of blocks, such
+		  as control parameters, device file names etc.
 
-- **port**: define which data flows in and out of blocks.
+        - **port**: define which data flows in and out of blocks.
+		
+- **type**: types of data sent through ports or of configuration must
+    be registed with microblx. 
 
 - **node**: an adminstrative entity which keeps track of blocks and
   types. Typically one per process is used, but there's no constraint
   whatsoever.
+  
+- **module**: a module contains one or more blocks or types that are
+  registered/deregistered with a node when the module is
+  loaded/unloaded.
 
 
 Building microblx blocks
@@ -51,10 +61,9 @@ Building a block entails the following:
     1. reading and writing from ports: how to read and write from ports
 1. declaring the block: how to put everything together
 1. registration of blocks and types: make block prototypes and types known to the system
-1. autogeneration of blocks: helper tools
 
 
-### declaring configuration
+### Declaring configuration
 
 Configuration is described with a `NULL` terminated array of
 `ubx_config_t` types:
@@ -73,7 +82,7 @@ the type "struct random_config".
   registered with the system. (see section "declaring types")
 
 
-### declaring ports
+### Declaring ports
 
 Like configurations, ports are described with a `NULL` terminated
 array of ubx_config_t types:
@@ -90,7 +99,7 @@ Depending on whether an `in_type_name`, an `out_type_name` or both are
 defined, the port will be an in-, out- or a bidirectional port.
 
 
-### declaring block meta-data
+### Declaring block meta-data
 
 ```C
 char rnd_meta[] =
@@ -112,7 +121,7 @@ keys are supported so far:
   memory allocation / deallocation and other non deterministic
   function calls in the `step` function.
 
-### declaring/implementing operations
+### Declaring/implementing block hook functions
 
 The following block operations can be implemented to realize the
 blocks behavior. All are optional.
@@ -125,10 +134,59 @@ void rnd_cleanup(ubx_block_t *b);
 void rnd_step(ubx_block_t *b);
 ```
 
+These functions can be called according to the microblx block
+life-cycle finite state machine:
+
 ![Block lifecycle FSM](./figures/life_cycle.png?raw=true)
 
 
-### declaring the block
+**How to store the current state of the block in a thread-safe way?**
+
+Because multiple instances of a block may exists, **NO** global
+variables may be used to store the state of a block. Instead, the
+`ubx_block_t` defines a `void*` pointer which can be used to store
+that information. For example, the random block can store
+
+
+**What to do in these functions?**
+
+In most cases:
+
+- `init`: initialize the block, allocate memory, drivers: check if the
+   device is there and return non-zero if not.
+   
+- `start`: become operational, open device, last checks. Cache
+   pointers to ports, read configuration.
+ 
+- `step`: read from ports, compute, write to ports
+ 
+- `stop`: stop/close device. (often not used).
+
+- `cleanup`: free all memory, release all resources.
+
+
+**Shall I read configuration values in init or start?**
+
+It depends: if needed for initalization (e.g. a char array describing
+which device file to open), then read in `init`. If it's not needed in
+`init` (e.g. like the random min-max values in the random block
+example), then read it in start.
+
+This choice affects reconfiguration: in the first case the block has
+to be reconfigured by a `stop`, `cleanup`, `init`, `start` sequence,
+while in the latter case only a `stop`, `start` sequence is necessary.
+
+**How to read and write from ports?**
+
+```C
+def_read_fun(read_uint, unsigned int)
+def_write_fun(write_uint, unsigned int)
+```
+
+### Declaring the block
+
+The block aggregates all of the previous declarations into a single
+data-structure that can then be registered in a microblx module:
 
 ```C
 ubx_block_t random_comp = {
@@ -146,7 +204,7 @@ ubx_block_t random_comp = {
 };
 ```
 
-### declaring types
+### Declaring types
 
 All types used in configurations and ports must be declared and
 registered. This is necessary because microblx needs to know the size
@@ -171,14 +229,15 @@ It can be declared as follows:
 ubx_type_t random_config_type = def_struct_type(struct random_config, &random_config_h);
 ```
 
-This fills in a `ubx_type_t random_config_type`, which stores the
-information on a type. This type can then be registered with a node
-(see "Block and type registration" below).
+This fills in a `ubx_type_t` data structure called
+`random_config_type`, which stores information on types. Using this
+type declaration the `struct random_config` can then be registered
+with a node (see "Block and type registration" below).
 
 **What is this .hexarr file?**
 
-`types/random_config.h.hexarr` is the contents of
-`types/random_config.h` converted to an array `const char
+The file `types/random_config.h.hexarr` contains the contents of the
+file `types/random_config.h` converted to an array `const char
 random_config_h []` using the script `tools/file2carr.lua`. This char
 array is stored in the `ubx_type_t private_data` field (the third
 argument to the `def_struct_type` macro). At runtime, this type model
@@ -195,22 +254,36 @@ include the `.hexarr` file and pass `NULL` as a third argument to
 ### Block and type registration
 
 So far we have _declared_ blocks and types. To make them known to the
-system, these need to be registered a microblx node. This is done in
-the module init function, which is called when a module is loaded:
+system, these need to be _registered_ when the respective _module_ is
+loaded in a microblx node. This is done in the module init function,
+which is called when a module is loaded:
 
 ```C
 1: static int rnd_module_init(ubx_node_info_t* ni)
 2: {
-3:	ubx_type_register(ni, &random_config_type);
-4: 	return ubx_block_register(ni, &random_comp);
+3:        ubx_type_register(ni, &random_config_type);
+4:        return ubx_block_register(ni, &random_comp);
 5: }
 6: UBX_MODULE_INIT(rnd_module_init)
 ```
 
+Line 3 and 4 register the type and block respectively. Line 6 tells
+microblx that `rnd_module_init` is the module's init function.
 
-### assembling blocks
+Likewise, the module's cleanup function should deregister all types
+and blocks registered in init:
 
-### block autogeneration
+```C
+static void rnd_module_cleanup(ubx_node_info_t *ni)
+{
+	ubx_type_unregister(ni, "struct random_config");
+	ubx_block_unregister(ni, "random/random");
+}
+UBX_MODULE_CLEANUP(rnd_module_cleanup)
+```
+
+
+### Block code-generation
 
 The script `tools/ubx_genblock.lua` generates a dummy microblx block
 including makefile.
@@ -228,13 +301,29 @@ Assembling blocks
 Tips and Tricks
 ---------------
 
-### Compiling C++
+### Using C++
 
-Currently only works with `clang`, because g++ does not support
-designated initializers (yet).
+See `std_blocks/cppdemo`. If the designated initalizers (the struct
+initalization used in this manual) are used, the block must be
+compiled with `clang`, because g++ does not support designated
+initializers (yet).
 
 ### speeding up port writing
 
+### What the difference between block types and instances?
+
+First: to create a block instance, it is cloned from an existing block
+and the `block->prototype` char ponter set to a newly allocated string
+holding the protoblocks name.
+
+There's very little difference between prototypes and instances:
+
+- a block type's `prototype` (char) ptr is `NULL`, while an instance's
+  points to a (copy) of the prototype's name.
+  
+- Only block instances can be deregistered and freed (`ubx_block_rm`),
+  prototypes must be deregistered (and freed if necessary) by the
+  module's cleanup function.
 
 ### Module visibility
 
