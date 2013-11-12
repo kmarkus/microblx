@@ -27,10 +27,10 @@ Key concepts
   interaction between blocks. This manual focusses on how to build
   cblocks, since this is what most application builders need to do.
 
-        - **configuration**: defines static properties of blocks, such
+     - **configuration**: defines static properties of blocks, such
 		  as control parameters, device file names etc.
 
-        - **port**: define which data flows in and out of blocks.
+     - **port**: define which data flows in and out of blocks.
 		
 - **type**: types of data sent through ports or of configuration must
     be registed with microblx. 
