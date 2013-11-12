@@ -126,7 +126,7 @@ void rnd_cleanup(ubx_block_t *b);
 void rnd_step(ubx_block_t *b);
 ```
 
-![Block lifecycle FSM](/doc/figures/life_cycle.png)
+![Block lifecycle FSM](./figures/life_cycle.png?raw=true)
 
 
 ### declaring the block
