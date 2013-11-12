@@ -34,11 +34,14 @@ clean: $(CLEANDIRS)
 $(CLEANDIRS):
 	$(MAKE) -C $(@:clean-%=%) clean
 	@rm -f core vgcore*
-	@rm -rf doc/lua
+	@rm -rf doc/lua doc/manual.html
 
-doc:
-	mkdir -p doc/lua
-	luadoc -d doc/lua lua/ubx.lua
+doc: lua/ubx.lua doc/manual.md
+	@mkdir -p doc/lua
+	@echo "generating luadoc in doc/lua"
+	@luadoc -d doc/lua lua/ubx.lua
+	@echo "generating doc/manual.html"
+	@markdown doc/manual.md > doc/manual.html
 
 .PHONY: subdirs $(DIRS)
 .PHONY: subdirs $(BUILDDIRS)

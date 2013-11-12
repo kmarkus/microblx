@@ -1,6 +1,8 @@
 Microblx User Manual
 ====================
 
+Microblx is a lightweight function block model and implementation.
+
 This manual describes microblx in a cookbook style:
 
  1. Key concepts
@@ -12,13 +14,20 @@ Key concepts
 ------------
 
 - block: the main building block. Is defined by filling in a
-  `ubx_block_t` type and registering it with a microblx `node`. Blocks
-  can be of type computation (`BLOCK_TYPE_COMPUTATION`) or type
-  interaction (`BLOCK_TYPE_INTERACTION`). The former encapsulate the
-  blocks of functionality and are what most people want. The latter
-  implement the communication or interaction between blocks.
+  `ubx_block_t` type and registering it with a microblx
+  `ubx_node_t`. Blocks can be of type computation
+  (`BLOCK_TYPE_COMPUTATION`) or type interaction
+  (`BLOCK_TYPE_INTERACTION`). The former encapsulate "functionality"
+  such as drivers and controllers. The latter implement the
+  communication or interaction between blocks.
 
   blocks consist of configuration, ports and implemented operations.
+
+- configuration (`ubx_config_t`): used to define static properties of
+  blocks, such as control parameters, device file names etc.
+
+- port (`ubx_port_t`): used to define which data flows in and out of
+  blocks.
 
 - node (`ubx_node_t`): a bookkeeping entity which keeps track of
   blocks and types. Typically one per process, but there's no
@@ -33,19 +42,22 @@ generator block (`std_blocks/random/`).
 
 Building a block entails the following:
 
-1. declaring configuration
-1. declaring ports
-1. declaring types
-1. declaring block meta-data
-1. declaring/implementing operations
-.1. reading configuration values
-.1. reading and writing from ports
-1. declaring the block
-1. registration of blocks and types
-1. autogeneration of blocks
+1. declaring configuration: what is the static configuration of a block
+1. declaring ports: what is the input/output of a block
+1. declaring types: which data types are communicated
+1. declaring block meta-data: provide further information about a block
+1. declaring/implementing hook functions: how is the block initialized, started, run, stopped and cleanup'ed?
+.1. reading configuration values: how to access configuration from inside the block
+.1. reading and writing from ports: how to read and write from ports
+1. declaring the block: how to put everything together
+1. registration of blocks and types: make block prototypes and types known to the system
+1. autogeneration of blocks: helper tools
 
 
 ### declaring configuration
+
+Configuration is described with a `NULL` terminated array of
+`ubx_config_t` types:
 
 ```C
 ubx_config_t rnd_config[] = {
@@ -54,15 +66,30 @@ ubx_config_t rnd_config[] = {
 };
 ```
 
+The above defines a single configuration called "min_max_config" of
+the type "struct random_config".
+
+**__Note:__**: custom types like `struct random_config` must be
+  registered with the system. (see section "declaring types")
+
+
 ### declaring ports
+
+Like configurations, ports are described with a `NULL` terminated
+array of ubx_config_t types:
 
 ```C
 ubx_port_t rnd_ports[] = {
-	{ .name="seed", .attrs=PORT_DIR_IN, .in_type_name="unsigned int" },
-	{ .name="rnd", .attrs=PORT_DIR_OUT, .out_type_name="unsigned int" },
+	{ .name="seed", .in_type_name="unsigned int" },
+	{ .name="rnd", .out_type_name="unsigned int" },
 	{ NULL },
 };
 ```
+
+Depending on whether an `in_type_name`, an `out_type_name` or both are
+defined, the port will be an in-, out- or a bidirectional port.
+
+
 ### declaring block meta-data
 
 ```C
@@ -73,9 +100,23 @@ char rnd_meta[] =
 	"}";
 ```
 
+Additional meta-data can be defined as shown above. The following
+keys are supported so far:
+
+- `doc:` short descriptive documentation of the block
+
+- `license`: license of the block. This will be used by deployment
+  tools to validate whether the resulting license are compatible.
+  
+- `real-time`: is the block real-time safe, i.e. there are is no
+  memory allocation / deallocation and other non deterministic
+  function calls in the `step` function.
+
 ### declaring/implementing operations
 
-The following block operations
+The following block operations can be implemented to realize the
+blocks behavior. All are optional.
+
 ```C
 int rnd_init(ubx_block_t *b)
 int rnd_start(ubx_block_t *b);
@@ -83,6 +124,9 @@ void rnd_stop(ubx_block_t *b);
 void rnd_cleanup(ubx_block_t *b);
 void rnd_step(ubx_block_t *b);
 ```
+
+![Block lifecycle FSM](/doc/figures/life_cycle.png)
+
 
 ### declaring the block
 
@@ -107,7 +151,7 @@ ubx_block_t random_comp = {
 
 ### block autogeneration
 
-The script `tools/ubx_genblock.lua` generates an empty microblx block
+The script `tools/ubx_genblock.lua` generates a dummy microblx block
 including makefile.
 
 Example: generate stubs for a `mul` block:
@@ -115,8 +159,6 @@ Example: generate stubs for a `mul` block:
 ```bash
 $ tools/ubx_genblock.lua -n mul -d std_blocks/math
 ```
-
-This script currently does not generate
 
 Assembling blocks
 -----------------

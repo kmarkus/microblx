@@ -51,8 +51,8 @@ ubx_config_t rnd_config[] = {
 /* Ports
  */
 ubx_port_t rnd_ports[] = {
-	{ .name="seed", .attrs=PORT_DIR_IN, .in_type_name="unsigned int" },
-	{ .name="rnd", .attrs=PORT_DIR_OUT, .out_type_name="unsigned int" },
+	{ .name="seed", .in_type_name="unsigned int" },
+	{ .name="rnd", .out_type_name="unsigned int" },
 	{ NULL },
 };
 
