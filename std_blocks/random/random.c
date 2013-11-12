@@ -194,7 +194,7 @@ ubx_block_t random_comp = {
 static int rnd_module_init(ubx_node_info_t* ni)
 {
 	DBG(" ");
-	ubx_type_register(ni, &random_config_type);
+	if(ubx_type_register(ni, &random_config_type))
 	return ubx_block_register(ni, &random_comp);
 }
 

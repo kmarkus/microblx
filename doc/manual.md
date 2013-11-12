@@ -24,15 +24,14 @@ Key concepts
   interaction between blocks. This manual focusses on how to build
   cblocks, since this is what most application builders need to do.
 
-- **_configuration_** (`ubx_config_t`): used to define static properties of
-  blocks, such as control parameters, device file names etc.
+- **_configuration_**: defines static properties of blocks, such as
+  control parameters, device file names etc.
 
-- **_port_** (`ubx_port_t`): used to define which data flows in and out of
-  blocks.
+- **_port_**: define which data flows in and out of blocks.
 
-- **_node_** (`ubx_node_t`): a bookkeeping entity which keeps track of
-  blocks and types. Typically one per process, but there's no
-  constraints whatsoever.
+- **_node_**: an adminstrative entity which keeps track of blocks and
+  types. Typically one per process is used, but there's no constraint
+  whatsoever.
 
 
 Building microblx blocks
@@ -146,9 +145,70 @@ ubx_block_t random_comp = {
 	.cleanup = rnd_cleanup,
 };
 ```
+
 ### declaring types
 
-### registration of blocks and types assembling blocks
+All types used in configurations and ports must be declared and
+registered. This is necessary because microblx needs to know the size
+of the transported data. Moreoever, it enables type reflection which
+is used by logging or the webinterface.
+
+In the random block example, we used a `struct
+random_config`, that is defined in `types/random_config.h`:
+
+```C
+struct random_config {
+	int min;
+	int max;
+};
+```
+
+It can be declared as follows:
+
+```C
+#include "types/random_config.h"
+#include "types/random_config.h.hexarr"
+ubx_type_t random_config_type = def_struct_type(struct random_config, &random_config_h);
+```
+
+This fills in a `ubx_type_t random_config_type`, which stores the
+information on a type. This type can then be registered with a node
+(see "Block and type registration" below).
+
+**What is this .hexarr file?**
+
+`types/random_config.h.hexarr` is the contents of
+`types/random_config.h` converted to an array `const char
+random_config_h []` using the script `tools/file2carr.lua`. This char
+array is stored in the `ubx_type_t private_data` field (the third
+argument to the `def_struct_type` macro). At runtime, this type model
+is loaded into the luajit ffi, thereby enabling type reflection
+features such as logging or changing configuration values via the
+webinterface. The conversion from `.h` to `.hexarray` is done via a
+simple makefile rule.
+
+This feature is optional. If no type reflection is needed, don't
+include the `.hexarr` file and pass `NULL` as a third argument to
+`def_struct_type`.
+
+
+### Block and type registration
+
+So far we have _declared_ blocks and types. To make them known to the
+system, these need to be registered a microblx node. This is done in
+the module init function, which is called when a module is loaded:
+
+```C
+1: static int rnd_module_init(ubx_node_info_t* ni)
+2: {
+3:	ubx_type_register(ni, &random_config_type);
+4: 	return ubx_block_register(ni, &random_comp);
+5: }
+6: UBX_MODULE_INIT(rnd_module_init)
+```
+
+
+### assembling blocks
 
 ### block autogeneration
 
