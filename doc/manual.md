@@ -13,23 +13,23 @@ This manual describes microblx in a cookbook style:
 Key concepts
 ------------
 
-- **_block_**: the main building block. Is defined by filling in a
+- **block**: the main building block. Is defined by filling in a
   `ubx_block_t` type and registering it with a microblx
   `ubx_node_t`. Blocks _have_ configuration, ports and operations.
   
-  There are two types of blocks: **_computation blocks_** ("cblocks",
+  There are two types of blocks: **computation blocks** ("cblocks",
   `BLOCK_TYPE_COMPUTATION`) encapsulate "functionality" such as
-  drivers and controllers. **_interaction blocks_** ("iblocks",
+  drivers and controllers. **interaction blocks** ("iblocks",
   `BLOCK_TYPE_INTERACTION`) are used to implement communication or
   interaction between blocks. This manual focusses on how to build
   cblocks, since this is what most application builders need to do.
 
-- **_configuration_**: defines static properties of blocks, such as
+- **configuration**: defines static properties of blocks, such as
   control parameters, device file names etc.
 
-- **_port_**: define which data flows in and out of blocks.
+- **port**: define which data flows in and out of blocks.
 
-- **_node_**: an adminstrative entity which keeps track of blocks and
+- **node**: an adminstrative entity which keeps track of blocks and
   types. Typically one per process is used, but there's no constraint
   whatsoever.
 
@@ -47,8 +47,8 @@ Building a block entails the following:
 1. declaring types: which data types are communicated
 1. declaring block meta-data: provide further information about a block
 1. declaring/implementing hook functions: how is the block initialized, started, run, stopped and cleanup'ed?
-.1. reading configuration values: how to access configuration from inside the block
-.1. reading and writing from ports: how to read and write from ports
+    1. reading configuration values: how to access configuration from inside the block
+    1. reading and writing from ports: how to read and write from ports
 1. declaring the block: how to put everything together
 1. registration of blocks and types: make block prototypes and types known to the system
 1. autogeneration of blocks: helper tools
