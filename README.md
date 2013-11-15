@@ -71,7 +71,7 @@ $ sudo setcap cap_sys_nice+ep /usr/local/bin/luajit-2.0.2
 License
 -------
 
-See COPYING. The license is GPLv3 with a linking exception. It boils
+See COPYING. The license is GPLv2 with a linking exception. It boils
 down to the following. Use microblx as you wish in free and
 proprietary applications. You can distribute binary function blocks
 modules. Only if you make changes to the core (the microblx library),
