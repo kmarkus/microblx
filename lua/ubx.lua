@@ -435,9 +435,9 @@ function M.data_set(d, val, resize)
 end
 
 --- Set a configuration value
--- @param block
+-- @param b block
 -- @param name name of configuration value
--- @param confval value to assign (must follow luajit FFI initialization rules)
+-- @param val value to assign (must follow luajit FFI initialization rules)
 function M.set_config(b, name, val)
    local d = ubx.ubx_config_get_data(b, name)
    if d == nil then error("set_config: unknown config '"..name.."'") end
@@ -445,6 +445,9 @@ function M.set_config(b, name, val)
    return M.data_set(d, val, true)
 end
 
+--- Configure a block with a table of configuration values.
+-- @param b block
+-- @param ctab table of configuration values
 function M.set_config_tab(b, ctab)
    for n,v in pairs(ctab) do M.set_config(b, n, v) end
 end
@@ -838,7 +841,7 @@ function M.node_todot(ni)
 				return not M.is_proto(b)
 			     end)
    return utils.expand(
-[[
+      [[
 digraph $node {
 $blocks
 $conns
@@ -847,13 +850,8 @@ $conns
    node=M.safe_tostr(ni.name),
    blocks=gen_dot_nodes(btab),
    conns=gen_dot_edges(btab),
-    })
-
-
-
+    }) 
 end
-
-
 
 
 --- Create an inversly connected port

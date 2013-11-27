@@ -1,4 +1,4 @@
-#!/usr/bin/env luajit
+#!/usr/bin/env luajit -i
 
 local ffi = require("ffi")
 local ubx = require "ubx"
@@ -43,7 +43,7 @@ if not suc then
 end
 
 if opttab['-nodename'] then
-   if opttab['-nodename'][1] then
+   if not opttab['-nodename'][1] then
       print("-nodename option requires a node name argument)")
       os.exit(1)
    else
@@ -51,10 +51,18 @@ if opttab['-nodename'] then
    end
 end
 
-
 if opttab['-validate'] then
    model:validate(true)
    os.exit(1)
 end
 
-model:launch(nodename)
+ni = model:launch{nodename=nodename, verbose=true}
+
+if opttab['-webif'] then
+   local port = opttab['-webif'][1] or 8888
+   print("starting up webinterface block (port: "..ts(port)..")")
+   ubx.load_module(ni, "std_blocks/webif/webif.so")
+   local webif1=ubx.block_create(ni, "webif/webif", "webif1", { port=ts(port) })
+   assert(ubx.block_init(webif1)==0)
+   assert(ubx.block_start(webif1)==0)
+end
