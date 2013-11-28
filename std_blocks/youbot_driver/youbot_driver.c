@@ -1412,7 +1412,6 @@ ubx_block_t youbot_comp = {
 /* module init and cleanup */
 static int youbot_mod_init(ubx_node_info_t* ni)
 {
-	DBG(" ");
 	ubx_type_t *tptr;
 	for(tptr=youbot_types; tptr->name!=NULL; tptr++)
 		ubx_type_register(ni, tptr);
@@ -1422,7 +1421,6 @@ static int youbot_mod_init(ubx_node_info_t* ni)
 
 static void youbot_mod_cleanup(ubx_node_info_t *ni)
 {
-	DBG(" ");
 	const ubx_type_t *tptr;
 
 	for(tptr=youbot_types; tptr->name!=NULL; tptr++)

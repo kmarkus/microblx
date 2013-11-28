@@ -2,9 +2,19 @@ local ubx = require "ubx"
 local umf = require "umf"
 local strict = require "strict"
 local utils = require "utils"
+local ac = require "ansicolors"
 local ts = tostring
-
 local M={}
+
+-- happy colors
+color = true
+local function red(str, bright) if color then str = ac.red(str); if bright then str=ac.bright(str) end end return str end
+local function blue(str, bright) if color then str = ac.blue(str); if bright then str=ac.bright(str) end end return str end
+local function cyan(str, bright) if color then str = ac.cyan(str); if bright then str=ac.bright(str) end end return str end
+local function white(str, bright) if color then str = ac.white(str); if bright then str=ac.bright(str) end end return str end
+local function green(str, bright) if color then str = ac.green(str); if bright then str=ac.bright(str) end end return str end
+local function yellow(str, bright) if color then str = ac.yellow(str); if bright then str=ac.bright(str) end end return str end
+local function magenta(str, bright) if color then str = ac.magenta(str); if bright then str=ac.bright(str) end end return str end
 
 AnySpec=umf.AnySpec
 NumberSpec=umf.NumberSpec
@@ -116,7 +126,7 @@ function system:launch(t)
 
    log("importing "..ts(#self.imports).." modules... ")
    utils.foreach(function(m)
-		    log("    "..m) 
+		    log("    "..magenta(m) )
 		    ubx.load_module(ni, m)
 		 end, self.imports or {})
    log("importing modules completed")
@@ -124,7 +134,7 @@ function system:launch(t)
    log("instantiating "..ts(#self.blocks).." blocks... ")
    local btab = {}
    utils.foreach(function(b)
-		    log("    "..b.name.." ["..b.type.."]")
+		    log("    "..green(b.name).." ["..blue(b.type).."]")
 		    btab[b.name] = ubx.block_create(ni, b.type, b.name)
 		 end, self.blocks or {})
    log("instantiating blocks completed")
@@ -136,9 +146,9 @@ function system:launch(t)
 		    else
 
 		       if type(c.config)=='string' then
-			  log("    "..c.name.." (from file"..c.config..")")
+			  log("    "..green(c.name).." (from file"..yellow(c.config)..")")
 		       else
-			  log("    "..c.name.." with "..utils.tab2str(c.config)..")")
+			  log("    "..green(c.name).." with "..yellow(utils.tab2str(c.config))..")")
 			  ubx.set_config_tab(btab[c.name], c.config)
 		       end
 		    end
@@ -151,7 +161,8 @@ function system:launch(t)
 		    local bnamesrc,pnamesrc = unpack(utils.split(c.src, "%."))
 		    local bnametgt,pnametgt = unpack(utils.split(c.tgt, "%."))
 		    local bufflen = c.buffer_length or 1
-		    log("    "..ts(bnamesrc)..'.'..ts(pnamesrc).." -["..ts(bufflen).."]".."-> "..ts(bnametgt).."."..ts(pnametgt))
+		    log("    "..green(ts(bnamesrc))..'.'..cyan(ts(pnamesrc)).." -["..yellow(ts(bufflen), true).."]"..
+			"-> "..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
 		    local bsrc = ubx.block_get(ni, bnamesrc)
 		    local btgt = ubx.block_get(ni, bnametgt)
 		    ubx.conn_lfds_cyclic(bsrc, pnamesrc, btgt, pnametgt, bufflen)
