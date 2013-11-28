@@ -5,10 +5,11 @@
 #include "ubx.h"
 
 #define YOUBOT_NR_OF_JOINTS	5
+#define IK_WDLS_LAMBDA		0.5
 
 /* Register a dummy type "struct youbot_kin" */
-#include "types/youbot_kin.h"
-#include "types/youbot_kin.h.hexarr"
+// #include "types/youbot_kin.h"
+// #include "types/youbot_kin.h.hexarr"
 
 #include <kdl/chain.hpp>
 #include <kdl/frames.hpp>
@@ -18,10 +19,17 @@
 
 using namespace KDL;
 
-ubx_type_t types[] = {
-	def_struct_type(struct youbot_kin, &youbot_kin_h),
-	{ NULL },
-};
+/* from youbot_driver */
+#include <motionctrl_jnt_state.h>
+
+/* from std_types/kdl */
+#include <kdl.h>
+
+
+// ubx_type_t types[] = {
+//	def_struct_type(struct youbot_kin, &youbot_kin_h),
+//	{ NULL },
+// };
 
 /* block meta information */
 char youbot_kin_meta[] =
@@ -38,10 +46,14 @@ ubx_config_t youbot_kin_config[] = {
 
 /* declaration port block ports */
 ubx_port_t youbot_kin_ports[] = {
-	{ .name="arm_state", .in_type_name="struct motionctrl_jnt_state" },
-	{ .name="arm_jnt_vel", .out_type_name="double", .out_data_len=YOUBOT_NR_OF_JOINTS },
-	{ .name="arm_msr_twist", .out_type_name="struct kdl_twist" },
-	{ .name="arm_cmd_twist", .out_type_name="struct kdl_twist" },
+	/* FK */
+	{ .name="arm_in_jntstate", .in_type_name="struct motionctrl_jnt_state" },
+	{ .name="arm_out_msr_ee_pose", .out_type_name="struct kdl_frame" },
+	{ .name="arm_out_msr_ee_twist", .out_type_name="struct kdl_twist" },
+
+	/* IK */
+	{ .name="arm_in_cmd_ee_twist", .in_type_name="struct kdl_twist" },
+	{ .name="arm_out_cmd_jnt_vel", .out_type_name="double", .out_data_len=YOUBOT_NR_OF_JOINTS },
 	{ NULL },
 };
 
@@ -54,11 +66,24 @@ struct youbot_kin_info
 	Chain* chain;
 	ChainFkSolverVel_recursive* fpk;	// forward position and velocity kinematics
 	ChainIkSolverVel_wdls* ivk;		// Inverse velocity kinematic
+
+	FrameVel *frame_vel;
+	JntArrayVel *jnt_array;
+
+	ubx_port_t *p_arm_in_jntstate;
+	ubx_port_t *p_arm_in_cmd_ee_twist;
+	ubx_port_t *p_arm_out_cmd_jnt_vel;
+	ubx_port_t *p_arm_out_msr_ee_pose;
+	ubx_port_t *p_arm_out_msr_ee_twist;
+
 };
 
 /* declare convenience functions to read/write from the ports */
-def_read_fun(read_uint, unsigned int)
-def_write_fun(write_int, int)
+def_read_fun(read_jntstate, struct motionctrl_jnt_state)
+def_read_fun(read_kdl_twist, struct kdl_twist)
+def_write_arr_fun(write_jnt_arr, double, YOUBOT_NR_OF_JOINTS)
+def_write_fun(write_kdl_frame, struct kdl_frame)
+def_write_fun(write_kdl_twist, struct kdl_twist)
 
 /* init */
 static int youbot_kin_init(ubx_block_t *b)
@@ -72,7 +97,7 @@ static int youbot_kin_init(ubx_block_t *b)
 		ret=EOUTOFMEM;
 		goto out;
 	}
-	
+
 	inf = (struct youbot_kin_info*) b->private_data;
 
 	inf->chain = new Chain();
@@ -84,11 +109,23 @@ static int youbot_kin_init(ubx_block_t *b)
 	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.000, 0.0, 0.135))));
 	inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Vector(-0.002, 0.0, 0.130))));
 
-	/* create solvers */
+	/* create and configure solvers */
 	inf->fpk = new ChainFkSolverVel_recursive(*inf->chain);
 	inf->ivk = new ChainIkSolverVel_wdls(*inf->chain, 1.0);
-	
-	
+
+	inf->ivk->setLambda(IK_WDLS_LAMBDA);
+
+	/* extra data */
+	inf->frame_vel = new FrameVel();
+	inf->jnt_array = new JntArrayVel(YOUBOT_NR_OF_JOINTS);
+
+	/* cache port ptrs */
+	assert(inf->p_arm_in_jntstate = ubx_port_get(b, "arm_in_jntstate"));
+	assert(inf->p_arm_in_cmd_ee_twist = ubx_port_get(b, "arm_in_cmd_ee_twist"));
+	assert(inf->p_arm_out_cmd_jnt_vel = ubx_port_get(b, "arm_out_cmd_jnt_vel"));
+	assert(inf->p_arm_out_msr_ee_pose = ubx_port_get(b, "arm_out_msr_ee_pose"));
+	assert(inf->p_arm_out_msr_ee_twist = ubx_port_get(b, "arm_out_msr_ee_twist"));
+
 	ret=0;
 out:
 	return ret;
@@ -98,33 +135,90 @@ out:
 static int youbot_kin_start(ubx_block_t *b)
 {
 	int ret = 0;
+	struct motionctrl_jnt_state jnt_state;
+
+	struct youbot_kin_info* inf;
+	inf = (struct youbot_kin_info*) b->private_data;
+
+	/* compute and write forward kinematics */
+	if(read_jntstate(inf->p_arm_in_jntstate, &jnt_state) != 1) {
+		ERR("No data on port arm_in_jntstate, refusing to start");
+		ret=-1;
+		goto out;
+	}
+ out:
 	return ret;
 }
 
 /* stop */
 static void youbot_kin_stop(ubx_block_t *b)
 {
+
 }
 
 /* cleanup */
 static void youbot_kin_cleanup(ubx_block_t *b)
 {
+	struct youbot_kin_info* inf;
+	inf = (struct youbot_kin_info*) b->private_data;
+
+	delete inf->frame_vel;
+	delete inf->jnt_array;
+	delete inf->fpk;
+	delete inf->ivk;
+	delete inf->chain;
 	free(b->private_data);
 }
 
 /* step */
 static void youbot_kin_step(ubx_block_t *b)
 {
-	unsigned int x;
-	int y;
+	int ret;
+	struct motionctrl_jnt_state jnt_state;
+	struct kdl_twist ee_twist;
+	double jnt_vel[YOUBOT_NR_OF_JOINTS] = { 0, 0, 0, 0, 0};
 
-	ubx_port_t* foo = ubx_port_get(b, "foo");
-	ubx_port_t* bar = ubx_port_get(b, "bar");
+	Twist const *KDLTwistPtr;
+	Frame KDLPose;
+	Twist KDLTwist;
 
-	/* read from a port */
-	read_uint(foo, &x);
-	y = x * -2;
-	write_int(bar, &y);
+	struct youbot_kin_info* inf;
+	inf = (struct youbot_kin_info*) b->private_data;
+
+	/* read jnt state and  compute forward kinematics */
+	if(read_jntstate(inf->p_arm_in_jntstate, &jnt_state) == 1) {
+		for(int i=0;i<YOUBOT_NR_OF_JOINTS;i++){
+			inf->jnt_array->q(i) = jnt_state.pos[i];
+			inf->jnt_array->qdot(i) = jnt_state.vel[i];
+		}
+
+		/* compute and write out current EE Pose and Twist */
+		inf->fpk->JntToCart(*inf->jnt_array, *inf->frame_vel);
+
+		KDLPose = inf->frame_vel->GetFrame();
+		KDLTwist = inf->frame_vel->GetTwist();
+
+		write_kdl_frame(inf->p_arm_out_msr_ee_pose, (struct kdl_frame*) &KDLPose);
+		write_kdl_twist(inf->p_arm_out_msr_ee_twist, (struct kdl_twist*) &KDLPose);
+
+	}
+
+	/* read cmd_ee_twist and compute inverse kinematics */
+	if(read_kdl_twist(inf->p_arm_in_cmd_ee_twist, &ee_twist) == 1) {
+		KDLTwistPtr = (Twist*) &ee_twist; /* uh */
+		// kdl_twist = reinterpret_cast<Twist*>(&ee_twist);
+		ret = inf->ivk->CartToJnt(inf->jnt_array->q, *KDLTwistPtr, inf->jnt_array->qdot);
+
+		if(ret >= 0) {
+			for(int i=0;i<YOUBOT_NR_OF_JOINTS;i++)
+				jnt_vel[i] = inf->jnt_array->qdot(i);
+		} else {
+			ERR("%s: Failed to compute inverse velocity kinematics", b->name);
+			/* set jnt_vel to zero (jnt_vel is initialized to zero) */
+		}
+		/* write out desired jnt velocities */
+		write_jnt_arr(inf->p_arm_out_cmd_jnt_vel, &jnt_vel);
+	}
 }
 
 
@@ -150,13 +244,13 @@ static int youbot_kin_mod_init(ubx_node_info_t* ni)
 {
 	DBG(" ");
 	int ret = -1;
-	ubx_type_t *tptr;
+	// ubx_type_t *tptr;
 
-	for(tptr=types; tptr->name!=NULL; tptr++) {
-		if(ubx_type_register(ni, tptr) != 0) {
-			goto out;
-		}
-	}
+	// for(tptr=types; tptr->name!=NULL; tptr++) {
+	//	if(ubx_type_register(ni, tptr) != 0) {
+	//		goto out;
+	//	}
+	// }
 
 	if(ubx_block_register(ni, &youbot_kin_block) != 0)
 		goto out;
@@ -169,10 +263,10 @@ out:
 static void youbot_kin_mod_cleanup(ubx_node_info_t *ni)
 {
 	DBG(" ");
-	const ubx_type_t *tptr;
+	// const ubx_type_t *tptr;
 
-	for(tptr=types; tptr->name!=NULL; tptr++)
-		ubx_type_unregister(ni, tptr->name);
+	// for(tptr=types; tptr->name!=NULL; tptr++)
+	//	ubx_type_unregister(ni, tptr->name);
 
 	ubx_block_unregister(ni, "youbot_kin");
 }

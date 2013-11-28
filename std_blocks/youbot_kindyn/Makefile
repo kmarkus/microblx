@@ -3,8 +3,10 @@ include $(ROOT_DIR)/make.conf
 
 UBX_DIR=$(ROOT_DIR)/src/
 EIGEN_DIR=/usr/include/eigen3/
+YOUBOT_DRIVER_DIR=$(ROOT_DIR)/std_blocks/youbot_driver/types/
+KDL_TYPES=$(ROOT_DIR)/std_types/kdl/types/
 
-INCLUDES= -I$(UBX_DIR) -I$(EIGEN_DIR)
+INCLUDES= -I$(UBX_DIR) -I$(EIGEN_DIR) -I$(YOUBOT_DRIVER_DIR) -I$(KDL_TYPES)
 
 TYPES:=$(wildcard types/*.h)
 HEXARRS:=$(TYPES:%=%.hexarr)
