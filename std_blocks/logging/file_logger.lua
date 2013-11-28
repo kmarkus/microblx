@@ -80,6 +80,12 @@ function init(b)
    ubx.ffi_load_types(b.ni)
 
    local rconf_str = ubx.data_tolua(ubx.config_get_data(b, "report_conf"))
+
+   if rconf_str == 0 then
+      print(ubx.safe_tostr(b.name)..": invalid/nonexisting report_conf")
+      return false
+   end
+
    filename = ubx.data_tolua(ubx.config_get_data(b, "filename"))
    separator = ubx.data_tolua(ubx.config_get_data(b, "separator"))
    timestamp = ubx.data_tolua(ubx.config_get_data(b, "timestamp"))

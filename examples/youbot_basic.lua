@@ -18,6 +18,7 @@ return bd.system
       { name="ybdrv", type="youbot/youbot_driver" },
       { name="kin", type="youbot_kin" },
       { name="ptrig1", type="std_triggers/ptrig" },
+      { name="logger1", type="logging/file_logger" },
    },
    
    connections = {
@@ -25,6 +26,7 @@ return bd.system
       { src="kin.arm_out_cmd_jnt_vel", tgt="ybdrv.arm1_cmd_vel", buffer_length=1 },
    },
    configurations = {
-      { name="ybdrv", config={ ethernet_if="eth0" } },
+      { name="ybdrv", config = { ethernet_if="eth0" } },
+      -- { name="ptrig", config = {
    },
 }
