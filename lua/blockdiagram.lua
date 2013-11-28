@@ -151,10 +151,10 @@ function system:launch(t)
 		    local bnamesrc,pnamesrc = unpack(utils.split(c.src, "%."))
 		    local bnametgt,pnametgt = unpack(utils.split(c.tgt, "%."))
 		    local bufflen = c.buffer_length or 1
-		    log("    "..c.src.." -["..ts(bufflen).."]".."-> "..c.tgt)
+		    log("    "..ts(bnamesrc)..'.'..ts(pnamesrc).." -["..ts(bufflen).."]".."-> "..ts(bnametgt).."."..ts(pnametgt))
 		    local bsrc = ubx.block_get(ni, bnamesrc)
 		    local btgt = ubx.block_get(ni, bnametgt)
-		    ubx.conn_lfds_cyclic(bsrc, pnamesrc, btgt, bnametgt, bufflen)
+		    ubx.conn_lfds_cyclic(bsrc, pnamesrc, btgt, pnametgt, bufflen)
 		 end, self.connections or {})
 
    log("creating connections completed")

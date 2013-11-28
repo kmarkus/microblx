@@ -15,17 +15,16 @@ return bd.system
    },
    
    blocks = {
-      { name="yb1", type="youbot/youbot_driver" },
+      { name="ybdrv", type="youbot/youbot_driver" },
       { name="kin", type="youbot_kin" },
       { name="ptrig1", type="std_triggers/ptrig" },
    },
    
    connections = {
-      -- { src="yb1.jnt_pos_msr", tgt="ctrl1.pos_msr", buffer_length=1 },
-      -- { src="ctrl1.vel_des", tgt="yb1.jnt_vel_cmd", buffer_length=33 },
+      { src="ybdrv.arm1_state", tgt="kin.arm_in_jntstate", buffer_length=1 },
+      { src="kin.arm_out_cmd_jnt_vel", tgt="ybdrv.arm1_cmd_vel", buffer_length=1 },
    },
    configurations = {
-      { name="yb1", config={ ethernet_if="eth0" } },
-      -- { name="ctrl1", config="controller.conf" },
+      { name="ybdrv", config={ ethernet_if="eth0" } },
    },
 }

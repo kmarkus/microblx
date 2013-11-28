@@ -850,7 +850,7 @@ $conns
    node=M.safe_tostr(ni.name),
    blocks=gen_dot_nodes(btab),
    conns=gen_dot_edges(btab),
-    }) 
+    })
 end
 
 
@@ -995,9 +995,8 @@ function M.conn_uni(b1, pname1, b2, pname2, iblock_type, iblock_config, dont_sta
    -- get time stamp
    M.clock_mono_gettime(ts)
 
-   local iblock_name = string.format("I_%s.%s->%s.%s_%x:%x",
-				     bname1, pname1, bname2, pname2,
-				     tonumber(ts.sec), tonumber(ts.nsec))
+   -- local iblock_name = string.format("i_%s.%s->%s.%s_%x:%x", bname1, pname1, bname2, pname2, tonumber(ts.sec), tonumber(ts.nsec))
+   local iblock_name = string.format("i_%x:%x", tonumber(ts.sec), tonumber(ts.nsec))
 
    -- create iblock, configure
    local ib=M.block_create(ni, iblock_type, iblock_name, iblock_config)
@@ -1026,15 +1025,17 @@ function M.port_in_size(p)
 end
 
 function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
-   local function max(x1, x2) if x1>x2 then return x1; else return x2; end end
+   local function max(x1, x2)
+      if x1>x2 then return x1; else return x2; end
+   end
 
-   local p1, p2, len
+   local p1, p2, size
 
    p1 = M.port_get(b1, pname1)
    p2 = M.port_get(b2, pname2)
 
-   if p1==nil then error("block "..bname1.." has no port '"..M.safe_tostr(pname1).."'") end
-   if p2==nil then error("block "..bname2.." has no port '"..M.safe_tostr(pname2).."'") end
+   if p1==nil then error("block "..M.safe_tostr(b1.name).." has no port '"..M.safe_tostr(pname1).."'") end
+   if p2==nil then error("block "..M.safe_tostr(b2.name).." has no port '"..M.safe_tostr(pname2).."'") end
 
    if not M.is_outport(p1) then error("conn_uni: block "..bname1.."'s port "..pname1.." is not an outport") end
    if not M.is_inport(p2) then error("conn_uni: block "..bname2.."'s port "..pname2.." is not an inport") end

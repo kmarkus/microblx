@@ -134,26 +134,12 @@ out:
 /* start */
 static int youbot_kin_start(ubx_block_t *b)
 {
-	int ret = 0;
-	struct motionctrl_jnt_state jnt_state;
-
-	struct youbot_kin_info* inf;
-	inf = (struct youbot_kin_info*) b->private_data;
-
-	/* compute and write forward kinematics */
-	if(read_jntstate(inf->p_arm_in_jntstate, &jnt_state) != 1) {
-		ERR("No data on port arm_in_jntstate, refusing to start");
-		ret=-1;
-		goto out;
-	}
- out:
-	return ret;
+	return 0;
 }
 
 /* stop */
 static void youbot_kin_stop(ubx_block_t *b)
 {
-
 }
 
 /* cleanup */
