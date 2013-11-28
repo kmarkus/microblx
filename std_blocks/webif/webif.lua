@@ -28,7 +28,7 @@ struct mg_request_info {
 };
 ]]
 
--- 
+--
 -- Generic helpers
 --
 
@@ -446,11 +446,18 @@ function show_block(ri, ni)
 	 { blockname=blockname, confname=c.name, query_string=query_string, cols=cols, rows=rows, readonly='readonly', value=val}, true )
    end
 
+   -- convert port in and out attrs to strings
    local function attrs_to_str(p)
       local res = {}
       if bit.band(p.attrs, ffi.C.PORT_DIR_IN) > 0 then res[#res+1]=ubx.port_attrs_tostr[ffi.C.PORT_DIR_IN] end
       if bit.band(p.attrs, ffi.C.PORT_DIR_OUT) > 0 then res[#res+1]=ubx.port_attrs_tostr[ffi.C.PORT_DIR_OUT] end
       p.attrs=table.concat(res, ", ")
+   end
+
+   -- unset
+   local function rm_unused_data_len(p)
+      if p.in_type_name=="" then p.in_data_len="" end
+      if p.out_type_name=="" then p.out_data_len="" end
    end
 
    local function conf_data_value_tostr(c)
@@ -464,6 +471,7 @@ function show_block(ri, ni)
    end
 
    utils.foreach(attrs_to_str, bt.ports)
+   utils.foreach(rm_unused_data_len, bt.ports)
 
    local port_fields={ 'name', 'attrs', 'in_type_name', 'in_data_len', 'out_type_name', 'out_data_len' }
    local conf_fields={ 'name', 'type_name', 'value' }
