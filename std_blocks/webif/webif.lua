@@ -446,6 +446,13 @@ function show_block(ri, ni)
 	 { blockname=blockname, confname=c.name, query_string=query_string, cols=cols, rows=rows, readonly='readonly', value=val}, true )
    end
 
+   local function attrs_to_str(p)
+      local res = {}
+      if bit.band(p.attrs, ffi.C.PORT_DIR_IN) > 0 then res[#res+1]=ubx.port_attrs_tostr[ffi.C.PORT_DIR_IN] end
+      if bit.band(p.attrs, ffi.C.PORT_DIR_OUT) > 0 then res[#res+1]=ubx.port_attrs_tostr[ffi.C.PORT_DIR_OUT] end
+      p.attrs=table.concat(res, ", ")
+   end
+
    local function conf_data_value_tostr(c)
       c.value=utils.trim(utils.tab2str(c.value))
    end
@@ -455,6 +462,8 @@ function show_block(ri, ni)
    else
       utils.foreach(conf_data_value_changeable_tostr, bt.configs)
    end
+
+   utils.foreach(attrs_to_str, bt.ports)
 
    local port_fields={ 'name', 'attrs', 'in_type_name', 'in_data_len', 'out_type_name', 'out_data_len' }
    local conf_fields={ 'name', 'type_name', 'value' }

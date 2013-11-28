@@ -87,6 +87,11 @@ local function setup_enums()
       [ffi.C.TYPE_CLASS_CUSTOM]='custom'
    }
 
+   M.port_attrs_tostr={
+      [ffi.C.PORT_DIR_IN]='in',
+      [ffi.C.PORT_DIR_OUT]='out',
+   }
+
    M.block_state_tostr={
       [ffi.C.BLOCK_STATE_PREINIT]='preinit',
       [ffi.C.BLOCK_STATE_INACTIVE]='inactive',
