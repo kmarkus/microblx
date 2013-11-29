@@ -1,0 +1,14 @@
+local bd = require("blockdiagram")
+
+return bd.system
+{
+   imports = {
+      "std_types/stdtypes/stdtypes.so",
+      "std_blocks/webif/webif.so",
+      "std_blocks/cppdemo/cppdemo.so",
+   },
+
+   blocks = {
+      { name="cppdemo1", type="cppdemo/cppdemo" },
+   },
+}
