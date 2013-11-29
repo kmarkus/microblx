@@ -99,6 +99,7 @@ system_spec = ObjectSpec
       connections=connections_spec,
       configurations=configs_spec,
    },
+   optional={'imports', 'blocks', 'connections', 'configurations' },
 }
 
 --- Validate a blockdiagram model.
@@ -116,6 +117,11 @@ function system:launch(t)
       os.exit(1)
    end
 
+   self.imports = self.imports or {}
+   self.blocks = self.blocks or {}
+   self.configurations = self.configurations or {}
+   self.connections = self.connections or {}
+
    local ni = ubx.node_create(t.nodename)
 
    local log
@@ -128,7 +134,7 @@ function system:launch(t)
    utils.foreach(function(m)
 		    log("    "..magenta(m) )
 		    ubx.load_module(ni, m)
-		 end, self.imports or {})
+		 end, self.imports)
    log("importing modules completed")
 
    log("instantiating "..ts(#self.blocks).." blocks... ")
@@ -136,7 +142,7 @@ function system:launch(t)
    utils.foreach(function(b)
 		    log("    "..green(b.name).." ["..blue(b.type).."]")
 		    btab[b.name] = ubx.block_create(ni, b.type, b.name)
-		 end, self.blocks or {})
+		 end, self.blocks)
    log("instantiating blocks completed")
 
    log("configuring "..ts(#self.configurations).." blocks... ")
@@ -152,7 +158,7 @@ function system:launch(t)
 			  ubx.set_config_tab(btab[c.name], c.config)
 		       end
 		    end
-		 end, self.configurations or {})
+		 end, self.configurations)
    
    log("configuring blocks completed")
    
@@ -166,7 +172,7 @@ function system:launch(t)
 		    local bsrc = ubx.block_get(ni, bnamesrc)
 		    local btgt = ubx.block_get(ni, bnametgt)
 		    ubx.conn_lfds_cyclic(bsrc, pnamesrc, btgt, pnametgt, bufflen)
-		 end, self.connections or {})
+		 end, self.connections)
 
    log("creating connections completed")
 
