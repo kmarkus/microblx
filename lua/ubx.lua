@@ -392,7 +392,7 @@ function M.data_to_cdata(d)
 end
 
 function M.data_resize(d, newlen)
-   print("changing len from", tonumber(d.len), " to ", newlen)
+   -- print("changing len from", tonumber(d.len), " to ", newlen)
    if ubx.ubx_data_resize(d, newlen) == 0 then return true
    else return false end
 end
