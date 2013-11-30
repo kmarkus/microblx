@@ -141,18 +141,19 @@ static void mqueue_write(ubx_block_t *i, ubx_data_t* data)
 {
 	int ret, size;
 	struct mqueue_info* mqi;
-	mqi = (struct mqueue_info*) i->private_data;
 
+	mqi = (struct mqueue_info*) i->private_data;
 	size = data_size(data);
 
-	/* TODO: prio config or/and port */
 	ret = mq_send(mqi->mqd, (const char*) data->data, size, 1);
 
-	if(ret != 0) {
-		ERR2(errno, "%s: sending message failed", i->name);
+	if(ret != 0 ) {
 		mqi->cnt_send_err++;
-		goto out;
-	};
+		if (ret != EAGAIN) {
+			ERR2(errno, "%s: sending message failed", i->name);
+			goto out;
+		}
+	}
 
  out:
 	return;
