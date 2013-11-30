@@ -193,7 +193,6 @@ ubx_block_t random_comp = {
  */
 static int rnd_module_init(ubx_node_info_t* ni)
 {
-	DBG(" ");
 	ubx_type_register(ni, &random_config_type);
 	return ubx_block_register(ni, &random_comp);
 }
@@ -207,7 +206,6 @@ static int rnd_module_init(ubx_node_info_t* ni)
  */
 static void rnd_module_cleanup(ubx_node_info_t *ni)
 {
-	DBG(" ");
 	ubx_type_unregister(ni, "struct random_config");
 	ubx_block_unregister(ni, "random/random");
 }
