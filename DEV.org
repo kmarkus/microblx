@@ -5,6 +5,8 @@
 * Next steps
   
 
+** TODO logger: allow connection to interaction
+** TODO logger: add ports to block IF to improve viz
 ** TODO add enum type
 ** TODO store seqid in node specific structure
    Otherwise, loading the same type in multiple nodes will foobar
