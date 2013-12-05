@@ -8,7 +8,8 @@
 ** TODO logger: allow connection to interaction
 ** TODO logger: add ports to block IF to improve viz
 ** TODO add enum type
-** TODO store seqid in node specific structure
+** DONE store seqid in node specific structure
+   CLOSED: [2013-12-05 Do 15:09]
    Otherwise, loading the same type in multiple nodes will foobar
    maintaining the sequence. -> registered types are global!!!
 ** TODO add function ffi_basic_type_is_loaded(t)
