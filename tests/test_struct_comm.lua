@@ -5,7 +5,8 @@ local lunit=require"lunit"
 local ubx=require"ubx"
 local utils=require"utils"
 local cdata=require"cdata"
---require"trace"
+-- require"trace"
+-- require"strict"
 
 local code_str_len = 16*1024*1024
 
@@ -65,21 +66,13 @@ end
 
 
 lb1=ubx.block_create(ni, "lua/luablock", "lb1", { lua_str=lua_testcomp } )
-fifo1=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, element_size=code_str_len})
-
 assert(ubx.block_init(lb1)==0)
-assert(ubx.block_init(fifo1)==0)
 
-p_exec_str=ubx.port_get(lb1, "exec_str")
-ubx.connect_one(p_exec_str, fifo1)
-
-ubx.conn_lfds_cyclic(lb1, "pos_out", lb1, "pos_in", 4)
+local p_pos_out = ubx.port_clone_conn(lb1, "pos_in", 4)
+local p_pos_in = ubx.port_clone_conn(lb1, "pos_out", 4)
 
 assert(ubx.block_start(lb1)==0)
-assert(ubx.block_start(fifo1)==0)
 
-local d1=ubx.data_alloc(ni, "char")
-local d2=ubx.data_alloc(ni, "int")
 local _vin=ubx.data_alloc(ni, "struct kdl_vector")
 local _vout=ubx.data_alloc(ni, "struct kdl_vector")
 vcdin = ubx.data_to_cdata(_vin)
@@ -87,22 +80,12 @@ vcdout = ubx.data_to_cdata(_vout)
 
 ubx.data_set(_vin, {x=1,y=2,z=3})
 
---- call helper
-function exec_str(str)
-   ubx.data_set(d1, str, true) -- resize if necessary!
-   ubx.interaction_write(fifo1, d1)
-   ubx.cblock_step(lb1)
-   local res=ubx.interaction_read(fifo1, d2)
-   if res<=0 then error("no response from exec_str") end
-   return ubx.data_tolua(d2)
-end
-
 function test_comm()
    for i=1,10 do
       vcdin.x=vcdin.x*i; vcdin.y=vcdin.y*i; vcdin.z=vcdin.z*i;
-      ubx.interaction_write(fifo_in, _vin)
+      ubx.port_write(p_pos_out, _vin)
       ubx.cblock_step(lb1)
-      assert_true(ubx.interaction_read(fifo_out, _vout) > 0, "test block produced no output")
+      assert_true(ubx.port_read(p_pos_in, _vout) > 0, "test block produced no output")
       assert_equal(vcdin.x*2, vcdout.x)
       assert_equal(vcdin.y*2, vcdout.y)
       assert_equal(vcdin.z*2, vcdout.z)

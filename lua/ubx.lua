@@ -39,7 +39,7 @@ local utils= require "utils"
 local ts=tostring
 local safe_ts=ubx_utils.safe_tostr
 local ac=require "ansicolors"
--- require "strict"
+--require "strict"
 
 local M={}
 
@@ -295,7 +295,8 @@ function M.ffi_load_types(ni)
       return pcall(ffi.typeof, ffi.string(t.name))
    end
 
-   local function ffi_load_no_ns(t)
+   local function ffi_load_no_ns(typref)
+      local t = typref.type_ptr
       if t.type_class==ubx.TYPE_CLASS_STRUCT and t.private_data~=nil then
 	 local struct_str = ffi.string(t.private_data)
 	 local ret, err = pcall(ffi.cdef, struct_str)
@@ -305,13 +306,16 @@ function M.ffi_load_types(ni)
       end
    end
 
-   local type_list = {}
-   M.types_foreach(ni, function (t) type_list[#type_list+1] = t end,
-		   function(t)
-		      return t.type_class==ffi.C.TYPE_CLASS_STRUCT and (not ffi_struct_type_is_loaded(t)) end
-		)
-   table.sort(type_list, function (t1,t2) return t1.seqid<t2.seqid end)
-   utils.foreach(ffi_load_no_ns, type_list)
+   local typref_list = {}
+   M.types_foreach(ni,
+		   function (typ, typref) typref_list[#typref_list+1] = typref end,
+		   function(t) return
+		      t.type_class==ffi.C.TYPE_CLASS_STRUCT and
+			 (not ffi_struct_type_is_loaded(t))
+		   end)
+
+   table.sort(typref_list, function (tr1,tr2) return tr1.seqid<tr2.seqid end)
+   utils.foreach(ffi_load_no_ns, typref_list)
 end
 
 
@@ -672,11 +676,11 @@ function M.types_foreach(ni, fun, pred)
    if not fun then error("types_foreach: missing/invalid fun argument") end
    if ni.types==nil then return end
    pred = pred or function() return true end
-   local ubx_type_t_ptr = ffi.typeof("ubx_type_t*")
+   local ubx_type_ref_t_ptr = ffi.typeof("ubx_type_ref_t*")
    local typ=ni.types
    while typ ~= nil do
-      if pred(typ) then fun(typ) end
-      typ=ffi.cast(ubx_type_t_ptr, typ.hh.next)
+      if pred(typ.type_ptr, typ) then fun(typ.type_ptr, typ) end
+      typ=ffi.cast(ubx_type_ref_t_ptr, typ.hh.next)
    end
 end
 
@@ -862,8 +866,8 @@ end
 --- Create an inversly connected port
 -- @param bname block
 -- @param pname name of port
--- @param buff_len1 desired buffer length (if in_out port: length of out->in buffer)
--- @param buff_len2 if in_out port: length of in->out buffer
+-- @param buff_len1 desired buffer length (if port is in/out: length of out->in buffer)
+-- @param buff_len2 only if port is in/out port: length of in->out buffer
 function M.port_clone_conn(block, pname, buff_len1, buff_len2)
    local prot = M.port_get(block, pname)
    local p=ffi.new("ubx_port_t")

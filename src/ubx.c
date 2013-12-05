@@ -221,7 +221,7 @@ int ubx_type_register(ubx_node_info_t* ni, ubx_type_t* type)
 	/* DBG(" node=%s, type registered=%s", ni->name, type->name); */
 
 	int ret = -1;
-	ubx_type_t* typ;
+	ubx_type_ref_t* typref;
 
 	if(type==NULL) {
 		ERR("given type is NULL");
@@ -229,16 +229,23 @@ int ubx_type_register(ubx_node_info_t* ni, ubx_type_t* type)
 	}
 
 	/* TODO consistency checkm type->name must exists,... */
-	HASH_FIND_STR(ni->types, type->name, typ);
+	HASH_FIND_STR(ni->types, type->name, typref);
 
-	if(typ!=NULL) {
+	if(typref!=NULL) {
 		/* check if types are the same, if yes no error */
 		ERR("type '%s' already registered.", type->name);
 		goto out;
 	};
 
-	HASH_ADD_KEYPTR(hh, ni->types, type->name, strlen(type->name), type);
-	type->seqid=ni->cur_seqid++;
+	if((typref=malloc(sizeof(ubx_type_ref_t)))==NULL) {
+		ERR("failed to alloc struct type_ref");
+		goto out;
+	}
+
+	typref->type_ptr=type;
+	typref->seqid=ni->cur_seqid++;
+
+	HASH_ADD_KEYPTR(hh, ni->types, type->name, strlen(type->name), typref);
 	ret = 0;
  out:
 	return ret;
@@ -256,17 +263,19 @@ int ubx_type_register(ubx_node_info_t* ni, ubx_type_t* type)
  */
 ubx_type_t* ubx_type_unregister(ubx_node_info_t* ni, const char* name)
 {
-	/* DBG(" node=%s, type unregistered=%s", ni->name, name); */
 	ubx_type_t* ret = NULL;
+	ubx_type_ref_t* typref = NULL;
 
-	HASH_FIND_STR(ni->types, name, ret);
+	HASH_FIND_STR(ni->types, name, typref);
 
-	if(ret==NULL) {
+	if(typref==NULL) {
 		ERR("no type '%s' registered.", name);
 		goto out;
 	};
 
-	HASH_DEL(ni->types, ret);
+	HASH_DEL(ni->types, typref);
+	ret=typref->type_ptr;
+	free(typref);
  out:
 	return ret;
 }
@@ -281,9 +290,9 @@ ubx_type_t* ubx_type_unregister(ubx_node_info_t* ni, const char* name)
  */
 ubx_type_t* ubx_type_get(ubx_node_info_t* ni, const char* name)
 {
-	ubx_type_t* ret=NULL;
-	HASH_FIND_STR(ni->types, name, ret);
-	return ret;
+	ubx_type_ref_t* typref=NULL;
+	HASH_FIND_STR(ni->types, name, typref);
+	return typref->type_ptr;
 }
 
 /**

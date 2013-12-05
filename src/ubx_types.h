@@ -54,16 +54,6 @@ struct ubx_node_info;
 int __ubx_initialize_module(struct ubx_node_info *ni);
 void __ubx_cleanup_module(struct ubx_node_info *ni);
 
-/* serialization */
-typedef struct ubx_serialization {
-	const char* name;		/* serialization name */
-	const char* type;		/* serialization type */\
-
-	int(*serialize)(struct ubx_data*, char* buffer, uint32_t max_size);
-	int(*deserialize)(void*, struct ubx_data*);
-	UT_hash_handle hh;
-} ubx_serialization_t;
-
 
 /* type and value (data) */
 
@@ -73,19 +63,28 @@ enum {
 	TYPE_CLASS_CUSTOM	/* requires custom serialization */
 };
 
-typedef struct ubx_type {
+typedef struct ubx_type
+{
 	const char* name;		/* name: dir/header.h/struct foo*/
-	unsigned long seqid;		/* remember registration order for ffi parsing */
 	uint32_t type_class;		/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
 	unsigned long size;		/* size in bytes */
 	void* private_data;		/* private data. */
 	uint8_t hash[TYPE_HASH_LEN];
-	ubx_serialization_t* serializations;
-	UT_hash_handle hh;
 } ubx_type_t;
 
+/* This struct is used to store a reference to the type and contains
+   mutable, node specific fields. Since unlike blocks, types are
+   mostly immutable, there is no need to take a copy.
+ */
+typedef struct ubx_type_ref
+{
+	ubx_type_t *type_ptr;
+	unsigned long seqid;		/* remember registration order for ffi parsing */
+	UT_hash_handle hh;
+} ubx_type_ref_t;
 
-typedef struct ubx_data {
+typedef struct ubx_data
+{
 	const ubx_type_t* type;	/* link to ubx_type */
 	unsigned long len;	/* if length> 1 then length of array, else ignored */
 	void* data;		/* buffer with size (type->size * length) */
@@ -128,7 +127,8 @@ enum {
 /* Port
  * no distinction between type and value
  */
-typedef struct ubx_port {
+typedef struct ubx_port
+{
 	const char* name;		/* name of port */
 	const char* meta_data;		/* doc, etc. */
 
@@ -158,7 +158,8 @@ typedef struct ubx_port {
 /*
  * ubx configuration
  */
-typedef struct ubx_config {
+typedef struct ubx_config
+{
 	const char* name;
 	const char* meta_data;
 	const char* type_name;
@@ -188,7 +189,8 @@ enum {
 };
 
 /* block definition */
-typedef struct ubx_block {
+typedef struct ubx_block
+{
 	const char* name;	/* type name */
 	const char* meta_data;	/* doc, etc. */
 	uint32_t type;		/* type, (computation, interaction) */
@@ -239,16 +241,18 @@ typedef struct ubx_block {
 /* node information
  * holds references to all known blocks and types
  */
-typedef struct ubx_node_info {
+typedef struct ubx_node_info
+{
 	const char *name;
 	ubx_block_t *blocks; /* instances, only one list */
-	ubx_type_t *types; /* known types */
+	ubx_type_ref_t *types; /* known types */
 	unsigned long cur_seqid;
 } ubx_node_info_t;
 
 
 /* OS stuff */
-struct ubx_timespec {
+struct ubx_timespec
+{
 	long int sec;
 	long int nsec;
 };
