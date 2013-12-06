@@ -60,7 +60,8 @@ function step(b)
 end
 
 function cleanup(b)
-   ubx.port_rm(b, "pos")
+   ubx.port_rm(b, "pos_out")
+   ubx.port_rm(b, "pos_in")
 end
 ]]
 
