@@ -845,13 +845,10 @@ function M.node_todot(ni)
       return table.concat(res, '\n')
    end
 
-   local btab = M.blocks_map(ni, M.block_totab,
-			     function(b)
-				return not M.is_proto(b)
-			     end)
+   local btab = M.blocks_map(ni, M.block_totab, function(b) return not M.is_proto(b) end)
    return utils.expand(
       [[
-digraph $node {
+digraph "$node" {
 $blocks
 $conns
 }
