@@ -5,7 +5,10 @@
 * Next steps
 
 
-** TODO [#A] improve type safety of gen_[read/write] generated functions
+** TODO [#A] blockdiagram: support for hierarchical composition
+** TODO [#A] ubx_gen_block: add support for ports, configs, types
+
+** TODO improve type safety of gen_[read/write] generated functions
 
    =/* assert(strcmp(#typename, port->out_type_name)==0); */=
 
@@ -13,9 +16,7 @@
    ubx_type_t ptrs. This ultimately requries access to
    node_info. Could be via: port->block-node_info.
 
-** TODO [#A] blockdiagram: support for hierarchical composition
 ** TODO blockdiagram: figure out how to add behavior aka apps
-** TODO
 ** TODO tools: add ubx_info <module>
    pretty print contents of a module
 ** TODO embeddeding microblx: prepare C only example
