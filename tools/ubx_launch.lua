@@ -1,11 +1,10 @@
 #!/usr/bin/env luajit -i
 
-local ffi = require("ffi")
-local ubx = require "ubx"
-local ubx_utils = require("ubx_utils")
-
-local bd = require("blockdiagram")
-local ts = tostring
+ffi = require("ffi")
+ubx = require "ubx"
+ubx_utils = require("ubx_utils")
+bd = require("blockdiagram")
+ts = tostring
 
 function usage()
    print( [=[
