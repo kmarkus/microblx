@@ -1,7 +1,7 @@
-#!/usr/bin/luajit
+#!/usr/bin/env luajit
 
 local ffi = require("ffi")
-local ubx = require "ubx"
+local ubx = require("ubx")
 local ubx_utils = require("ubx_utils")
 local ts = tostring
 
@@ -24,8 +24,8 @@ print("creating instance of 'std_triggers/ptrig'")
 ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1")
 
 print("creating instance of 'lua/luablock'")
-lb1=ubx.block_create(ni, "lua/luablock", "luablock1", 
-		     { lua_file="/home/mk/prog/c/microblx/std_blocks/luablock/luablock.lua"})
+lb1=ubx.block_create(ni, "lua/luablock", "luablock1",
+		     { lua_file="std_blocks/luablock/luablock.lua"})
 
 fifo1=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, element_size=code_str_len})
 
@@ -38,7 +38,8 @@ print("running luablock init", ubx.block_init(lb1))
 print("running fifo1 init", ubx.block_init(fifo1))
 print("running fifo1 start", ubx.block_start(fifo1))
 
-ubx.connect_one(p_exec_str, fifo1);
+ubx.port_connect_out(p_exec_str, fifo1)
+ubx.port_connect_in(p_exec_str, fifo1)
 
 print("ni:", ni)
 d1=ubx.data_alloc(ni, "char")
@@ -53,11 +54,4 @@ for i=1,1000 do
    print("read fifo1, len=", ubx.interaction_read(fifo1, d2), "val=", ubx.data_tostr(d2))
 end
 
--- print("running ptrig1 unload", ubx.block_unload(ni, "ptrig1"))
--- print("running webif1 unload", ubx.block_unload(ni, "webif1"))
--- print("running luablock unload", ubx.block_unload(ni, "luablock1"))
-
-
--- ubx.unload_modules(ni)
--- ubx.ubx.ubx_node_cleanup(ni)
 ubx.node_cleanup(ni)
