@@ -291,8 +291,13 @@ ubx_type_t* ubx_type_unregister(ubx_node_info_t* ni, const char* name)
 ubx_type_t* ubx_type_get(ubx_node_info_t* ni, const char* name)
 {
 	ubx_type_ref_t* typref=NULL;
+
 	HASH_FIND_STR(ni->types, name, typref);
-	return typref->type_ptr;
+
+	if(typref)
+		return typref->type_ptr;
+
+	return NULL;
 }
 
 /**

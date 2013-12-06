@@ -68,8 +68,8 @@ print("running webif start", ubx.block_start(webif1))
 
 rand_port=ubx.port_get(random1, "rnd")
 
-ubx.connect_one(rand_port, hexdump1)
-ubx.connect_one(rand_port, fifo1)
+ubx.port_connect_out(rand_port, hexdump1)
+ubx.port_connect_out(rand_port, fifo1)
 
 ubx.block_start(fifo1)
 ubx.block_start(random1)

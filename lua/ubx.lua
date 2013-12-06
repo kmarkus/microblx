@@ -863,11 +863,12 @@ $conns
 end
 
 
---- Create an inversly connected port
+--- Create a new port connected to an existing port via an interaction.
 -- @param bname block
 -- @param pname name of port
 -- @param buff_len1 desired buffer length (if port is in/out: length of out->in buffer)
 -- @param buff_len2 only if port is in/out port: length of in->out buffer
+-- @return the new port
 function M.port_clone_conn(block, pname, buff_len1, buff_len2)
    local prot = M.port_get(block, pname)
    local p=ffi.new("ubx_port_t")
@@ -878,8 +879,8 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
    M.clock_mono_gettime(ts)
 
    if M.clone_port_data(p, M.safe_tostr(prot.name)..'_inv', prot.meta_data,
-			  prot.out_type, prot.out_data_len,
-			  prot.in_type, prot.in_data_len, 0) ~= 0 then
+			prot.out_type, prot.out_data_len,
+			prot.in_type, prot.in_data_len, 0) ~= 0 then
       error("port_clone_conn: cloning port data failed")
    end
 
@@ -908,14 +909,12 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
       M.block_start(i_p_to_prot)
    end
 
-   -- New port is (also) an in-port?
-   local i_prot_to_p=nil
-   if p.in_type ~= nil then
+   local i_prot_to_p = nil
+
+   if p.in_type ~= nil then -- new port is an in-port?
       local iname = string.format("PCC<-%s.%s_%x:%x",
 				  M.safe_tostr(block.name), pname,
 				  tonumber(ts.sec), tonumber(ts.nsec))
-
-      -- print("creating interaction", iname, buff_len2, tonumber(p.in_type.size * p.in_data_len))
 
       i_prot_to_p = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
 				     { element_num=buff_len2,
@@ -1033,6 +1032,14 @@ function M.port_in_size(p)
    return tonumber(p.in_type.size * p.in_data_len)
 end
 
+
+--- Connect two ports with an interaction.
+-- @param b1 block owning port1
+-- @param pname1 name of port1
+-- @param b2 block owning port2
+-- @param pname2 name of port2
+-- @param element_num number of elements
+-- @param dont start if true, interaction will not be started
 function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
    local function max(x1, x2)
       if x1>x2 then return x1; else return x2; end

@@ -38,11 +38,13 @@ end
 -- @param report_conf str
 -- @param ni node_info
 -- @return rconf table with inv. conn. ports
-local function report_conf_to_portlist(rc, ni)
+local function report_conf_to_portlist(rc, this)
+   local ni = this.ni
+
    local succ, res = utils.eval_sandbox("return "..rc)
    if not succ then error("file_logger: failed to load report_conf:\n"..res) end
 
-   for _,conf in ipairs(res) do
+   for i,conf in ipairs(res) do
       local bname, pname = ts(conf.blockname), ts(conf.portname)
 
       local b = ubx.block_get(ni, bname)
@@ -62,16 +64,23 @@ local function report_conf_to_portlist(rc, ni)
 
       if p.out_type~=nil then
 	 local blockport = bname.."."..pname
-	 print("file_logger: reporting ", blockport)
-	 local pinv = ubx.port_clone_conn(b, pname, conf.buff_len)
-	 conf.pinv=pinv
+	 local p_rep_name=ts(i)
+	 print("file_logger: reporting "..blockport.." as "..p_rep_name)
+	 ubx.port_add(this, p_rep_name, nil, p.out_type_name, p.out_data_len, nil, 0, 0)
+	 ubx.conn_lfds_cyclic(b, pname, this, p_rep_name, conf.buff_len)
+
+	 conf.pname = p_rep_name
 	 conf.sample=create_read_sample(p, ni)
 	 conf.sample_cdata = ubx.data_to_cdata(conf.sample)
 	 conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample), blockport)
       else
-	 print("file_logger: refusing to report in-port ", bname.."."..pname)
+	 print("ERR: file_logger: refusing to report in-port ", bname.."."..pname)
       end
    end
+
+   -- cache port ptr's (only *after* adding has finished (realloc!)
+   for _,conf in ipairs(res) do conf.pinv=ubx.port_get(this, conf.pname) end
+
    return res
 end
 
@@ -92,7 +101,7 @@ function init(b)
 
    print(('file_loggerorter.init: reporting to file="%s", sep="%s", conf=%s'):format(filename, separator, rconf_str))
 
-   rconf = report_conf_to_portlist(rconf_str, b.ni)
+   rconf = report_conf_to_portlist(rconf_str, b)
 
    fd=io.open(filename, 'w+') -- trunc
    fd:setvbuf("line")
