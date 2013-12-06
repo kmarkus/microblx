@@ -879,7 +879,7 @@ int ubx_block_rm(ubx_node_info_t *ni, const char* name)
  * @param arr
  * @param newblock
  *
- * @return
+ * @return < 0 in case of error, 0 otherwise.
  */
 static int array_block_add(ubx_block_t ***arr, ubx_block_t *newblock)
 {
@@ -940,72 +940,13 @@ out:
 }
 
 /**
- * ubx_connect - connect a port with an interaction. DEPRECATED.
+ * ubx_port_connect_out - connect a port out channel to an iblock.
  *
- * @param p1
+ * @param p
  * @param iblock
  *
- * @return
- *
- * This should be made real-time safe by adding an operation
- * ubx_interaction_set_max_conn[in|out]
- * __attribute__ ((deprecated))
+ * @return  < 0 in case of error, 0 otherwise.
  */
-int ubx_connect_one(ubx_port_t* p, ubx_block_t* iblock)
-{
-	int ret;
-
-	if(p->attrs & PORT_DIR_IN)
-		if((ret=array_block_add(&p->in_interaction, iblock))!=0)
-			goto out_err;
-	if(p->attrs & PORT_DIR_OUT)
-		if((ret=array_block_add(&p->out_interaction, iblock))!=0)
-			goto out_err;
-
-	/* all ok */
-	goto out;
-
- out_err:
-	ERR("failed to connect port");
- out:
-	return ret;
-}
-
-
-/**
- * ubx_connect - connect to ports with a given interaction. DEPRECATED!
- *
- * @param p1
- * @param p2
- * @param iblock
- *
- * @return
- *
- * This should be made real-time safe by adding an operation
- * ubx_interaction_set_max_conn[in|out]
- */
-int ubx_connect(ubx_port_t* p1, ubx_port_t* p2, ubx_block_t* iblock)
-{
-	int ret;
-	if(iblock->type != BLOCK_TYPE_INTERACTION) {
-		ERR("block not of type interaction");
-		ret=-1;
-		goto out;
-	}
-
-
-	if((ret=ubx_connect_one(p1, iblock))!=0) goto out_err;
-	if((ret=ubx_connect_one(p2, iblock))!=0) goto out_err;
-
-	/* all ok */
-	goto out;
-
- out_err:
-	ERR("failed to connect ports");
- out:
-	return ret;
-}
-
 int ubx_port_connect_out(ubx_port_t* p, ubx_block_t* iblock)
 {
 	int ret=-1;
@@ -1025,6 +966,15 @@ int ubx_port_connect_out(ubx_port_t* p, ubx_block_t* iblock)
 out:
 	return ret;
 }
+
+/**
+ * ubx_port_connect_in - connect a port in channel to an iblock.
+ *
+ * @param p
+ * @param iblock
+ *
+ * @return < 0 in case of error, 0 otherwise.
+ */
 
 int ubx_port_connect_in(ubx_port_t* p, ubx_block_t* iblock)
 {
@@ -1047,8 +997,13 @@ out:
 }
 
 /**
- * ubx_ports_connect_uni - connect out_port to in_port using interaction iblock
+ * ubx_ports_connect_uni - connect a port out- to a port in-channel using an interaction iblock.
  *
+ * @param out_port
+ * @param in_port
+ * @param iblock
+ *
+ * @return < 0  in case of error, 0 otherwise.
  */
 int ubx_ports_connect_uni(ubx_port_t* out_port, ubx_port_t* in_port, ubx_block_t* iblock)
 {
@@ -1083,6 +1038,14 @@ out:
 }
 
 
+/**
+ * ubx_port_disconnect_out - disconnect port out channel from interaction.
+ *
+ * @param out_port
+ * @param iblock
+ *
+ * @return < 0 in case of error, 0 otherwise.
+ */
 int ubx_port_disconnect_out(ubx_port_t* out_port, ubx_block_t* iblock)
 {
 	int ret=-1;
@@ -1098,6 +1061,14 @@ out:
 	return ret;
 }
 
+/**
+ * ubx_port_disconnect_in - disconnect port in channel from interaction.
+ *
+ * @param out_port
+ * @param iblock
+ *
+ * @return < 0 in case of error, 0 otherwise.
+ */
 int ubx_port_disconnect_in(ubx_port_t* in_port, ubx_block_t* iblock)
 {
 	int ret=-1;
@@ -1113,6 +1084,16 @@ out:
 	return ret;
 }
 
+
+/**
+ * ubx_ports_disconnect_uni - disconnect two ports.
+ *
+ * @param out_port
+ * @param in_port
+ * @param iblock
+ *
+ * @return < 0 in case of error, 0 otherwise.
+ */
 int ubx_ports_disconnect_uni(ubx_port_t* out_port, ubx_port_t* in_port, ubx_block_t* iblock)
 {
 	int ret=-1;
@@ -1223,7 +1204,7 @@ ubx_data_t* ubx_config_get_data(ubx_block_t* b, const char *name)
  * @param name name of the requested configuration value
  * @param *len outvalue, the length of the region pointed to (in bytes)
  *
- * @return the lenght in bytes of the pointer
+ * @return the length in bytes of the pointer
  */
 void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *len)
 {
@@ -1299,6 +1280,14 @@ int ubx_config_add(ubx_block_t* b, const char* name, const char* meta, const cha
 	return ret;
 }
 
+/**
+ * ubx_config_rm - remove a config from a block and free it.
+ *
+ * @param b
+ * @param name
+ *
+ * @return < 0 in case of error, 0 otherwise.
+ */
 int ubx_config_rm(ubx_block_t* b, const char* name)
 {
 	int ret=-1, i, num_configs;
@@ -1359,13 +1348,22 @@ static unsigned int get_num_ports(ubx_block_t* b)
 }
 
 /**
- * @brief ubx_port_add - a port to a block instance and resolve types.
- *
- *
- */
+  * ubx_port_add - a port to a block instance and resolve types.
+  *
+  * @param b
+  * @param name
+  * @param meta_data
+  * @param in_type_name
+  * @param in_data_len
+  * @param out_type_name
+  * @param out_data_len
+  * @param state
+  *
+  * @return < 0 in case of error, 0 otherwise.
+  */
 int ubx_port_add(ubx_block_t* b, const char* name, const char* meta_data,
-		 const char* in_type_name, unsigned long in_data_len,
-		 const char* out_type_name, unsigned long out_data_len, uint32_t state)
+	     const char* in_type_name, unsigned long in_data_len,
+	     const char* out_type_name, unsigned long out_data_len, uint32_t state)
 {
 	int i, ret=-1;
 	ubx_port_t* parr;
@@ -1802,7 +1800,13 @@ void __port_write(ubx_port_t* port, ubx_data_t* data)
 
 /* OS stuff, for scripting layer */
 
-
+/**
+ * ubx_clock_mono_gettime - get current time using clock_gettime(CLOCK_MONOTONIC).
+ *
+ * @param uts
+ *
+ * @return < 0 in case of error, 0 otherwise.
+ */
 int ubx_clock_mono_gettime(struct ubx_timespec* uts)
 {
 	int ret=-1;
@@ -1871,7 +1875,14 @@ void ubx_ts_norm(struct ubx_timespec *ts)
 	}
 }
 
-/* out = ts1 - ts2 */
+
+/**
+ * ubx_ts_sub - substract ts2 from ts1 and store the result in out
+ *
+ * @param ts1
+ * @param ts2
+ * @param out
+ */
 void ubx_ts_sub(struct ubx_timespec *ts1, struct ubx_timespec *ts2, struct ubx_timespec *out)
 {
 
@@ -1881,7 +1892,7 @@ void ubx_ts_sub(struct ubx_timespec *ts1, struct ubx_timespec *ts2, struct ubx_t
 }
 
 /**
- * Compute the sum of two timespecs
+ * ubx_ts_add - compute the sum of two timespecs and store the result in out
  *
  * @param ts1
  * @param ts2
@@ -1894,6 +1905,13 @@ void ubx_ts_add(struct ubx_timespec *ts1, struct ubx_timespec *ts2, struct ubx_t
 	ubx_ts_norm(out);
 }
 
+/**
+ * ubx_ts_div - divide the value of ts by div and store the result in out
+ *
+ * @param ts
+ * @param div
+ * @param out
+ */
 void ubx_ts_div(struct ubx_timespec *ts, long div, struct ubx_timespec *out)
 {
 	out->sec = ts->sec/div;

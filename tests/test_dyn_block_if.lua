@@ -23,7 +23,8 @@ lb1=ubx.block_create(ni, "lua/luablock", "lb1")
 p_exec_str=ubx.port_get(lb1, "exec_str")
 fifo1=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, element_size=code_str_len})
 
-ubx.connect_one(p_exec_str, fifo1);
+ubx.port_connect_out(p_exec_str, fifo1);
+ubx.port_connect_in(p_exec_str, fifo1);
 
 assert(ubx.block_init(lb1)==0)
 assert(ubx.block_init(fifo1)==0)

@@ -22,8 +22,6 @@ int ubx_clone_port_data(ubx_port_t *p, const char *name, const char *meta_data, 
 void ubx_block_free(ubx_block_t *b);
 ubx_block_t *ubx_block_create(ubx_node_info_t *ni, const char *type, const char *name);
 int ubx_block_rm(ubx_node_info_t *ni, const char *name);
-int ubx_connect_one(ubx_port_t *p, ubx_block_t *iblock);
-int ubx_connect(ubx_port_t *p1, ubx_port_t *p2, ubx_block_t *iblock);
 int ubx_port_connect_out(ubx_port_t *p, ubx_block_t *iblock);
 int ubx_port_connect_in(ubx_port_t *p, ubx_block_t *iblock);
 int ubx_ports_connect_uni(ubx_port_t *out_port, ubx_port_t *in_port, ubx_block_t *iblock);
