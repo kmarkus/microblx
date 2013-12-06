@@ -38,6 +38,7 @@ Documentation
 -------------
 
  - [User manual](/doc/manual.md)
+ - [API Changes](/API_Changes.md)
 
 
 FAQ
