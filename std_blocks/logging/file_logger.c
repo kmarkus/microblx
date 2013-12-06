@@ -204,7 +204,7 @@ static int file_logger_mod_init(ubx_node_info_t* ni)
 
 static void file_logger_mod_cleanup(ubx_node_info_t *ni)
 {
-	ubx_block_unregister(ni, "reporter/file_logger");
+	ubx_block_unregister(ni, "logging/file_logger");
 }
 
 UBX_MODULE_INIT(file_logger_mod_init)

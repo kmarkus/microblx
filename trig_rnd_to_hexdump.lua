@@ -1,11 +1,10 @@
-#!/usr/local/bin/luajit
+#!/usr/bin/env luajit
 
 local ffi = require("ffi")
 local ubx = require "ubx"
 local ubx_utils = require("ubx_utils")
 local ts = tostring
 
--- prog starts here.
 ni=ubx.node_create("testnode")
 
 ubx.load_module(ni, "std_types/stdtypes/stdtypes.so")
@@ -56,13 +55,14 @@ ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1",
 					 { b=file_log1, num_steps=1, measure=0 }
 			   } } )
 
-ubx.ni_stat(ni)
+-- ubx.ni_stat(ni)
 
 print("running webif init", ubx.block_init(webif1))
 print("running ptrig1 init", ubx.block_init(ptrig1))
 print("running random1 init", ubx.block_init(random1))
 print("running hexdump1 init", ubx.block_init(hexdump1))
 print("running fifo1 init", ubx.block_init(fifo1))
+print("running file_log1 init", ubx.block_init(file_log1))
 
 print("running webif start", ubx.block_start(webif1))
 
@@ -75,25 +75,8 @@ ubx.block_start(fifo1)
 ubx.block_start(random1)
 ubx.block_start(hexdump1)
 
-print(utils.tab2str(ubx.block_totab(random1)))
-print("---")
---print(ubx.node_todot(ni))
-
--- local res, dat
--- --while true do
--- for i=1,8 do
---    ubx.cblock_step(random1)
---    --res, dat = interaction_read(fifo1)
---    --print("fifo1 read", res, data2str(dat))
---    -- os.execute("sleep 0.3")
--- end
-
--- for i=1,8 do
---    res, dat = ubx.interaction_read(ni, fifo1)
---    print("fifo1 read", res, ubx.data2str(dat))
---    -- os.execute("sleep 0.3")
--- end
--- --end
+--print(utils.tab2str(ubx.block_totab(random1)))
+print("--- demo app launched, browse to http://localhost:8888 and start ptrig1 block to start up")
 io.read()
 
 print("stopping and cleaning up blocks --------------------------------------------------------")
@@ -102,12 +85,12 @@ print("running webif1 unload", ubx.block_unload(ni, "webif1"))
 print("running random1 unload", ubx.block_unload(ni, "random1"))
 print("running fifo1 unload", ubx.block_unload(ni, "fifo1"))
 print("running hexdump unload", ubx.block_unload(ni, "hexdump1"))
+print("running file_log1 unload", ubx.block_unload(ni, "file_log1"))
 
-ubx.ni_stat(ni)
-
+-- ubx.ni_stat(ni)
 -- l1=ubx.ubx_alloc_data(ni, "unsigned long", 1)
 -- if l1~=nil then print_data(l1) end
 
 ubx.unload_modules(ni)
-ubx.ni_stat(ni)
+-- ubx.ni_stat(ni)
 os.exit(1)

@@ -84,6 +84,7 @@ local function report_conf_to_portlist(rc, this)
    return res
 end
 
+--- init: parse config and create port and connections.
 function init(b)
    b=ffi.cast("ubx_block_t*", b)
    ubx.ffi_load_types(b.ni)
@@ -99,7 +100,8 @@ function init(b)
    separator = ubx.data_tolua(ubx.config_get_data(b, "separator"))
    timestamp = ubx.data_tolua(ubx.config_get_data(b, "timestamp"))
 
-   print(('file_loggerorter.init: reporting to file="%s", sep="%s", conf=%s'):format(filename, separator, rconf_str))
+   -- print(('file_logger.init: reporting to file="%s", sep="%s", conf=%s'):format(filename, separator, rconf_str))
+   print(('file_logger: reporting to file="%s", sep="%s"'):format(filename, separator))
 
    rconf = report_conf_to_portlist(rconf_str, b)
 
@@ -108,6 +110,7 @@ function init(b)
    return true
 end
 
+--- start: write header
 function start(b)
    b=ffi.cast("ubx_block_t*", b)
    ubx.ffi_load_types(b.ni)
@@ -125,6 +128,7 @@ function start(b)
    return true
 end
 
+--- step: read ports and write values
 function step(b)
    b=ffi.cast("ubx_block_t*", b)
 
@@ -143,11 +147,11 @@ function step(b)
    fd:write("\n")
 end
 
+--- cleanup
 function cleanup(b)
    io.close(fd)
    fd=nil
    filename=nil
-   report_conf=nil
+   rconf=nil
    separator=nil
-   plist=nil
 end
