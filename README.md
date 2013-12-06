@@ -9,10 +9,12 @@ function block implementation:
 
  - Pure C, no external dependencies
  - Lua scripting for system configuration and deployment
+ - Standard block and type library
  - Webinterface function block to introspect and control blocks
- - generic Lua scriptable function block
+ - Automatic block stub code generation
+ - Generic Lua scriptable function block
  - Dynamic type handling, no code-generation
- - Similar to IEC-61508 and IEC-61499 functions blocks.
+ - Similar to IEC-61508 and IEC-61499 functions blocks
 
 
 Dependencies
@@ -20,8 +22,8 @@ Dependencies
 
  - `luajit`, `libluajit-5.1-dev` (>=2.0.0-beta11, for scripting (optional, but recommended)
  - `clang` (only necessary for compiling C++ blocks)
- - only for development: `cproto` to generate C prototype header file
  - gcc (v4.6 or newer)
+ - only for development: `cproto` to generate C prototype header file
 
 
 Building
@@ -31,7 +33,8 @@ Building
 $ Just run "make".
 ```
 
-Some blocks have external dependencies and may fail.
+Some blocks have external dependencies and may fail. Check for a
+README in the respective subdirectory.
 
 
 Documentation
@@ -86,3 +89,7 @@ Acknowledgement
 Microblx is considerably inspired by the OROCOS Real-Time
 Toolkit. Other influences are the IEC standards covering function
 block IEC-61131 and IEC-61499.
+
+This work was supported by the European FP7 projects RoboHow
+(FP7-ICT-288533), BRICS (FP7- ICT-231940), Rosetta (FP7-ICT-230902),
+Pick-n-Pack (FP7-NMP-311987) and euRobotics (FP7-ICT-248552).
