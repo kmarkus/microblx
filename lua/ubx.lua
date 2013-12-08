@@ -821,7 +821,7 @@ function M.node_todot(ni)
       local shape=nil
       for _,b in ipairs(blocks) do
 	 if b.block_type=='cblock' then shape="box" else shape="oval" end
-	 res[#res+1] = utils.expand('    "$name" [ shape=$shape, color=$color ];',
+	 res[#res+1] = utils.expand('    "$name" [ shape=$shape, color=$color, penwidth=3 ];',
 				    { name=b.name, shape=shape, color=block2color(b) })
       end
       return table.concat(res, '\n')
