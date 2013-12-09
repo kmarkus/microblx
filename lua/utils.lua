@@ -484,9 +484,9 @@ end
 
 
 --- Preprocess the given string.
--- Lines starting with # are executed as Lua code
+-- Lines starting with @ are executed as Lua code
 -- Other lines are passed through verbatim, expect those contained in
--- $(...) which are executed as Lua too.
+-- $(...) which are evaluated and the result inserted.
 --
 -- @param str string to preprocess
 -- @param env environment for sandbox (default {})
