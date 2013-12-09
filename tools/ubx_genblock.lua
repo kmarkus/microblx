@@ -111,7 +111,6 @@ Usage: genblock [OPTIONS]
 ]])
 end
 
-
 ---
 --- Code generation functions and templates
 ---
@@ -132,6 +131,51 @@ struct $(type_name) {
 
    if not res then error(str) end
    fd:write(str)
+end
+
+--- Generate type read/write helpers
+-- @param block_model
+-- @return string
+function generate_rd_wr_helpers(bm)
+   -- extract a suitable name from the type
+   local function find_name(n)
+      local nm = string.match(n, "%s*struct%s+([%w_]+)")
+      if nm then return nm end
+      return utils.trim(n)
+   end
+
+   -- remove duplicates
+   local function filter_dupes(lst)
+      local res = {}
+      local track = {}
+      for _,v in ipairs(lst) do
+	 if not track[v] then res[#res+1] = v; track[v]=true; end
+      end
+      return res
+   end
+
+   local res = {}
+   for _,p in ipairs(bm.ports or {}) do
+      if p.in_type_name then
+	 if not p.in_data_len or p.in_data_len == 1 then
+	    res[#res+1] = utils.expand("def_read_fun(read_$name, $type_name)",
+				       { name=find_name(p.name), type_name=p.in_type_name })
+	 else -- in_data_len > 1
+	    res[#res+1] = utils.expand("def_read_arr_fun(read_$name_$len, $type_name, $len)",
+				       { name=find_name(p.name), type_name=p.in_type_name, len=p.in_data_len })
+	 end
+      elseif p.out_type_name then
+	 if not p.out_data_len or p.out_data_len == 1 then
+	    res[#res+1] = utils.expand("def_read_fun(read_$name, $type_name)",
+				       { name=find_name(p.name), type_name=p.out_type_name })
+	 else -- ou_data_len > 1
+	    res[#res+1] = utils.expand("def_read_arr_fun(read_$name_$len, $type_name, $len)",
+				       { name=find_name(p.name), type_name=p.out_type_name, len=p.out_data_len })
+	 end
+      end
+   end
+
+   return table.concat(filter_dupes(res), "\n")
 end
 
 
@@ -247,10 +291,8 @@ static void update_port_cache(ubx_block_t *b, struct $(bm.name)_port_cache *pc)
 }
 
 
-/* for each port type, declare convenience functions to read/write from ports
- * def_read_fun(read_uint, unsigned int)
- * def_write_fun(write_int, int)
- */
+/* for each port type, declare convenience functions to read/write from ports */
+$(generate_rd_wr_helpers(bm))
 
 /* block operation forward declarations */
 int $(bm.name)_init(ubx_block_t *b);
@@ -325,7 +367,8 @@ void $(bm.name)_mod_cleanup(ubx_node_info_t *ni)
  * find these when the module is loaded/unloaded */
 UBX_MODULE_INIT($(bm.name)_mod_init)
 UBX_MODULE_CLEANUP($(bm.name)_mod_cleanup)
-]], { gen_port_decl=gen_port_decl, ipairs=ipairs, table=table, bm=bm } )
+]], { gen_port_decl=gen_port_decl, ipairs=ipairs, table=table,
+      bm=bm, generate_rd_wr_helpers=generate_rd_wr_helpers } )
 
    if not res then error(str) end
    fd:write(str)
