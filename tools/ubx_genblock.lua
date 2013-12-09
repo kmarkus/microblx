@@ -190,6 +190,9 @@ ROOT_DIR=$(CURDIR)/../..
 include $(ROOT_DIR)/make.conf
 INCLUDE_DIR=$(ROOT_DIR)/src/
 
+# silence warnings due to unused rd/write helpers: remove once used!
+CFLAGS:=$(CFLAGS) -Wno-unused-function
+
 TYPES:=$(wildcard types/*.h)
 HEXARRS:=$(TYPES:%=%.hexarr)
 
