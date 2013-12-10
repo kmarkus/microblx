@@ -511,7 +511,7 @@ function generate(cgt, outdir, force_overwrite)
 		    local file = outdir.."/"..e.file
 		    local fd = file_open(file, e.overwrite or force_overwrite)
 		    if fd then
-		       print("    generating", file)
+		       print("    generating ".. file)
 		       e.fun(fd, unpack(e.funargs))
 		       fd:close()
 		    else
