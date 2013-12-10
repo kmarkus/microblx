@@ -29,7 +29,7 @@ Dependencies
 Building and setting up
 ------------------------
 
-1. Building
+### Building
 
 ```
 $ Just run "make".
@@ -38,17 +38,20 @@ $ Just run "make".
 Some blocks have external dependencies and may fail. Check for a
 README in the respective subdirectory.
 
-Note: currently blocks are not installed yet, but used from the
-location where they are built. This will change soon.
+Note: currently blocks are not installed yet, but instead used from
+the location where they are built. This will change soon.
 
-1. Source the env.sh script to setup Lua module paths:
+### Source the env.sh script to setup Lua module paths
 
 ```sh
 $ . env.sh
 ```
 
+That's it.
+
 Documentation
 -------------
+
  - [Quickstart](/doc/quickstart.md)
  - [User manual](/doc/manual.md)
  - [API Changes](/API_Changes.md)
