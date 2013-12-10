@@ -26,7 +26,8 @@ Explore:
 Create your first block
 -----------------------
 
-1. Generate it
+### Generate block
+
 ```sh
 $ tools/ubx_genblock.lua -d std_blocks/myblock -c examples/block_model_example.lua
      generating ...
@@ -34,7 +35,8 @@ $ tools/ubx_genblock.lua -d std_blocks/myblock -c examples/block_model_example.l
 
 Run `ubx_genblock -h` for full options.
 
-1. compile it
+### Compile the block
+
 ```sh
 $ make    # could also be run inside std_blocks/myblock
 ```
@@ -47,7 +49,7 @@ take a look at the generated code:
  - `types/vector.h` sample type (edit and fill in struct)
  - `robot_data.h` sample type (edit and fill in struct)
 
-1. launch it using ubx_launch
+### Launch block using ubx_launch
 
 ```sh
 $ tools/ubx_launch -webif -c std_blocks/myblock/myblock.usc
