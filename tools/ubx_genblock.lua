@@ -79,14 +79,12 @@ block_spec = ObjectSpec {
       operations=TableSpec{
 	 name='operations',
 	 dict={
-	    init=BoolSpec{},
 	    start=BoolSpec{},
 	    stop=BoolSpec{},
-	    cleanup=BoolSpec{},
 	    step=BoolSpec{},
 	 },
 	 sealed='both',
-	 optional={ "init", "start", "stop", "cleanup", "step" },
+	 optional={ "start", "stop", "step" },
       },
    },
    optional={ 'meta_data', 'types', 'configurations', 'ports' },
@@ -388,9 +386,9 @@ function generate_block_body(fd, bm)
 
 #include "$(bm.name).h"
 
-/* define a structure that contains the block state. By assigning an
- * instance of this struct to the block private_data pointer, this
- * struct is available the hook functions. (see init)
+/* define a structure for holding the block local state. By assigning an
+ * instance of this struct to the block private_data pointer (see init), this
+ * information becomes accessible within the hook functions.
  */
 struct $(bm.name)_info
 {

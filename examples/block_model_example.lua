@@ -19,5 +19,5 @@ return block
 	 { name="ctrl_mode", in_type_name="int32_t", out_type_name="int32_t" },
       },
       
-      operations = { init=true, start=true, stop=true, step=true, cleanup=true }
+      operations = { start=true, stop=true, step=true }
 }
