@@ -102,7 +102,7 @@ ubx_genblock: generate the code for an empty microblx block.
 Usage: genblock [OPTIONS]
    -c           block specification file
    -check       only check block specification, don't generate
-   -force       force regeneration of all files, including block.c, Makefile
+   -force       force regeneration of all files
 		and the type header files
    -d		output directory (will be created)
    -h           show this.
@@ -585,7 +585,7 @@ end
 
 -- static part
 local codegen_tab = {
-   { fun=generate_makefile, funargs={ block_model }, file="Makefile", overwrite=true },
+   { fun=generate_makefile, funargs={ block_model }, file="Makefile", overwrite=false },
    { fun=generate_block_if, funargs={ block_model } , file=block_model.name..".h", overwrite=true },
    { fun=generate_block_body, funargs={ block_model }, file=block_model.name..".c", overwrite=false },
    { fun=generate_bd_system, funargs={ block_model, outdir }, file=block_model.name..".usc", overwrite=false },
