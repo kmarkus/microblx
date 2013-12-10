@@ -35,19 +35,21 @@ $ tools/ubx_genblock.lua -d std_blocks/myblock -c examples/block_model_example.l
 
 Run `ubx_genblock -h` for full options.
 
+The following files are generated:
+
+ - `Makefile` standard makefile (you can edit this file)
+ - `myblock.h` block interface and module registration code (don't edit)
+ - `myblock.c` module body (edit and implement functions)
+ - `myblock.usc` simple microblx system composition file, see below (can be extended)
+ - `types/vector.h` sample type (edit and fill in struct body)
+ - `robot_data.h` sample type (edit and fill in struct body)
+
+
 ### Compile the block
 
 ```sh
 $ make    # could also be run inside std_blocks/myblock
 ```
-
-take a look at the generated code:
- - `Makefile` standard makefile (edit)
- - `myblock.h` block interface and module registration code (don't edit)
- - `myblock.c` module body (edit and implement functions)
- - `myblock.usc` simple microblx system composition file, see below (can be extended)
- - `types/vector.h` sample type (edit and fill in struct)
- - `robot_data.h` sample type (edit and fill in struct)
 
 ### Launch block using ubx_launch
 
