@@ -173,7 +173,7 @@ function typelist_tohtml(ni)
 <table border="0" style="float:left; position:relative;" cellspacing="0" cellpadding="0">
   <tr>
    <th>name</th>
-   <th>size (bytes)</th>
+   <th>size [B]</th>
   </tr> ]]
 
    table_footer = '</table>'

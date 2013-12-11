@@ -827,6 +827,24 @@ function M.node_todot(ni)
       return table.concat(res, '\n')
    end
 
+   --- Add trigger edges
+   function gen_dot_trigger_edges(b, res)
+
+      if b.prototype~="std_triggers/ptrig" then return end
+      local trig_blocks_cfg
+
+      for i,c in ipairs(b.configs) do
+	 if c.name=='trig_blocks' then trig_blocks_cfg=c.value end
+      end
+      assert(trig_blocks_cfg~=nil, "gen_dot_trigger_edges: failed to find trig_blocks config")
+
+      for i,trig in ipairs(trig_blocks_cfg or {}) do
+	 res[#res+1]=utils.expand('    "$from" -> "$to" [taillabel="$taillabel",style=dashed,color=orange1 ];',
+				  {from=b.name, to=trig.b, taillabel=ts(i)})
+	 print(res[#res])
+      end
+   end
+
    --- Generate edges
    function gen_dot_edges(blocks)
       local res = {}
@@ -837,10 +855,11 @@ function M.node_todot(ni)
 					{from=b.name, to=iblock_out, taillabel=p.name})
 	    end
 	    for _,iblock_in in ipairs(p.connections.incoming) do
-	       res[#res+1]=utils.expand('    "$from" -> "$to" [taillabel="$headlabel"];',
+	       res[#res+1]=utils.expand('    "$from" -> "$to" [headlabel="$headlabel"];',
 					{from=iblock_in, to=b.name, headlabel=p.name})
 	    end
 	 end
+	 gen_dot_trigger_edges(b, res)
       end
       return table.concat(res, '\n')
    end
