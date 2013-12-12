@@ -818,11 +818,12 @@ function M.node_todot(ni)
 	 else return "pink" end
       end
       local res = {}
-      local shape=nil
+      local shape="box"
+      local style=""
       for _,b in ipairs(blocks) do
-	 if b.block_type=='cblock' then shape="box" else shape="oval" end
-	 res[#res+1] = utils.expand('    "$name" [ shape=$shape, color=$color, penwidth=3 ];',
-				    { name=b.name, shape=shape, color=block2color(b) })
+	 if b.block_type=='cblock' then style="solid" else style="rounded,dashed" end
+	 res[#res+1] = utils.expand('    "$name" [ shape=$shape, style="$style", color=$color, penwidth=3 ];',
+				    { name=b.name, style=style, shape=shape, color=block2color(b) })
       end
       return table.concat(res, '\n')
    end
@@ -839,9 +840,8 @@ function M.node_todot(ni)
       assert(trig_blocks_cfg~=nil, "gen_dot_trigger_edges: failed to find trig_blocks config")
 
       for i,trig in ipairs(trig_blocks_cfg or {}) do
-	 res[#res+1]=utils.expand('    "$from" -> "$to" [taillabel="$taillabel",style=dashed,color=orange1 ];',
-				  {from=b.name, to=trig.b, taillabel=ts(i)})
-	 print(res[#res])
+	 res[#res+1]=utils.expand('    "$from" -> "$to" [label="$label",style=dashed,color=orange1 ];',
+				  {from=b.name, to=trig.b, label=ts(i)})
       end
    end
 
@@ -851,11 +851,11 @@ function M.node_todot(ni)
       for _,b in ipairs(blocks) do
 	 for _,p in ipairs(b.ports) do
 	    for _,iblock_out in ipairs(p.connections.outgoing) do
-	       res[#res+1]=utils.expand('    "$from" -> "$to" [taillabel="$taillabel"];',
+	       res[#res+1]=utils.expand('    "$from" -> "$to" [taillabel="$taillabel", labeldistance=2];',
 					{from=b.name, to=iblock_out, taillabel=p.name})
 	    end
 	    for _,iblock_in in ipairs(p.connections.incoming) do
-	       res[#res+1]=utils.expand('    "$from" -> "$to" [headlabel="$headlabel"];',
+	       res[#res+1]=utils.expand('    "$from" -> "$to" [headlabel="$headlabel", labeldistance=2];',
 					{from=iblock_in, to=b.name, headlabel=p.name})
 	    end
 	 end
@@ -868,7 +868,13 @@ function M.node_todot(ni)
    return utils.expand(
       [[
 digraph "$node" {
+    // global attributes
+    graph [ rankdir=TD ];
+
+    // nodes
 $blocks
+
+    // edges
 $conns
 }
 ]], {
