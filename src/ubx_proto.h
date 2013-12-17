@@ -1,3 +1,5 @@
+/* md5.c */
+void md5(const unsigned char *input, int len, unsigned char output[16]);
 /* ubx.c */
 const char *block_state_tostr(int state);
 const char *get_typename(ubx_data_t *data);

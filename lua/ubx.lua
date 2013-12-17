@@ -34,10 +34,8 @@
 
 local ffi=require "ffi"
 local cdata = require "cdata"
-local ubx_utils = require "ubx_utils"
 local utils= require "utils"
 local ts=tostring
-local safe_ts=ubx_utils.safe_tostr
 local ac=require "ansicolors"
 --require "strict"
 
@@ -57,6 +55,12 @@ local function read_file(file)
    local data = f:read("*all")
    f:close()
    return data
+end
+
+function M.md5(str)
+   local res = ffi.new("unsigned char[16]")
+   M.ubx.md5(str, #str, res)
+   return utils.str_to_hexstr(ffi.string(res, 16))
 end
 
 --- Setup Enums

@@ -532,8 +532,9 @@ end
 -- @param space space between values (default: "")
 -- @return hex string
 function str_to_hexstr(str,spacer)
-   return (string.gsub(str,"(.)",
-		       function (c)
-			  return string.format("%02X%s",string.byte(c), spacer or "")
-		       end ) )
+   return string.lower(
+      (string.gsub(str,"(.)",
+		   function (c)
+		      return string.format("%02X%s",string.byte(c), spacer or "")
+		   end ) ) )
 end
