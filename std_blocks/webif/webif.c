@@ -198,7 +198,9 @@ static int wi_start(ubx_block_t *c)
 
 	/* read port config and set default if undefined */
 	port_num = (char *) ubx_config_get_data_ptr(c, "port", &port_num_len);
-	port_num = (port_num_len==0) ?  "8080" : port_num;
+
+	if(port_num_len == 0 || strlen(port_num)==0)
+		port_num = "8080";
 
 	DBG("starting mongoose on port %s using %s thread(s)", port_num, MONGOOSE_NR_THREADS);
 
