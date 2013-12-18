@@ -1,4 +1,3 @@
-
 /* This simple example shows how to build a C-only system without
  * using the scripting layer. */
 
@@ -28,9 +27,12 @@ int main(int argc, char **argv)
 	if((webif = ubx_block_create(&ni, "webif/webif", "webif1"))==NULL)
 		goto out;
 
-	/* Configure port of webserver block  */
+	/* Configure port of webserver block
+	 * this gets the ubx_data_t pointer */
 	d = ubx_config_get_data(webif, "port");
 	len = strlen(WEBIF_PORT)+1;
+
+	/* resize the char array as necessary and copy the port string */
 	ubx_data_resize(d, len);
 	strncpy(d->data, WEBIF_PORT, len);
 
@@ -50,6 +52,7 @@ int main(int argc, char **argv)
 
 	ret=EXIT_SUCCESS;
  out:
+	/* this cleans up all blocks and unloads all modules */
 	ubx_node_cleanup(&ni);
 	exit(ret);
 }
