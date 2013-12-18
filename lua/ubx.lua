@@ -959,7 +959,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
 
    -- cleanup interaction and port once the reference is lost
    ffi.gc(p, function (p)
-		print("cleaning up port PCC port "..M.safe_tostr(p.name))
+	        -- print("cleaning up port PCC port "..M.safe_tostr(p.name))
 
 		if i_p_to_prot then
 		   M.block_stop(i_p_to_prot)
