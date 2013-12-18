@@ -3,7 +3,6 @@
 ffi = require("ffi")
 ubx = require("ubx")
 time = require("time")
-ubx_utils = require("ubx_utils")
 ts = tostring
 
 require"strict"

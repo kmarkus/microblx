@@ -2,7 +2,6 @@
 
 local ffi = require("ffi")
 local ubx = require "ubx"
-local ubx_utils = require("ubx_utils")
 local ts = tostring
 
 ni=ubx.node_create("testnode")

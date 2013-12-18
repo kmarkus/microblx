@@ -1,5 +1,4 @@
 local ubx=require("ubx")
-local ubx_utils = require("ubx_utils")
 local utils = require("utils")
 local cdata = require("cdata")
 local ffi = require("ffi")
