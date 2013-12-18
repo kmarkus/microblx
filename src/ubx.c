@@ -70,6 +70,108 @@ const char* get_typename(ubx_data_t *data)
 }
 
 /**
+ * ubx_module_load - load a module in a node.
+ *
+ * @param ni
+ * @param lib
+ *
+ * @return 0 if Ok, non-zero otherwise.
+ */
+int ubx_module_load(ubx_node_info_t* ni, const char *lib)
+{
+	int ret = -1;
+	char* err;
+	ubx_module_t* mod;
+
+	HASH_FIND_STR(ni->modules, lib, mod);
+
+	if(mod != NULL) {
+		ERR("module '%s' already loaded in node %s.", lib, ni->name);
+		goto out;
+	};
+
+	/* allocate data */
+	if((mod = calloc(sizeof(ubx_module_t), 1)) == NULL) {
+		ERR("failed to alloc module data");
+		goto out;
+	}
+
+	if((mod->id = strdup(lib))==NULL) {
+		ERR("failed to clone module name");
+		goto out_err_free_mod;
+	}
+
+	if((mod->handle = dlopen(lib, RTLD_NOW)) == NULL) {
+		fprintf(stderr, "%s\n", dlerror());
+		goto out_err_free_id;
+	}
+
+	dlerror();
+
+	mod->init = dlsym(mod->handle, "__ubx_initialize_module");
+	if ((err = dlerror()) != NULL)  {
+		ERR("failed to lookup __ubx_initialize_module for module %s: %s", lib, err);
+		goto out_err_close;
+	}
+
+	dlerror();
+
+	mod->cleanup = dlsym(mod->handle, "__ubx_cleanup_module");
+	if ((err = dlerror()) != NULL)  {
+		ERR("failed to lookup __ubx_cleanup_module for module %s: %s", lib, err);
+		goto out_err_close;
+	}
+
+	/* execute module init */
+	if(mod->init(ni) != 0)
+		goto out_err_close;
+
+	/* register with node */
+	HASH_ADD_KEYPTR(hh, ni->modules, mod->id, strlen(mod->id), mod);
+
+	ret=0;
+	goto out;
+
+
+ out_err_close:
+	dlclose(mod->handle);
+ out_err_free_id:
+	free((char*) mod->id);
+ out_err_free_mod:
+	free(mod);
+ out:
+	return ret;
+}
+
+
+/**
+ * ubx_module_unload - unload a module from a node.
+ *
+ * @param ni node_info
+ * @param lib name of module library to unload
+ */
+void ubx_module_unload(ubx_node_info_t* ni, const char *lib)
+{
+	ubx_module_t *mod;
+
+	HASH_FIND_STR(ni->modules, lib, mod);
+
+	if(mod==NULL) {
+		ERR("module '%s' not registered.", lib);
+		goto out;
+	}
+
+	HASH_DEL(ni->modules, mod);
+
+	dlclose(mod->handle);
+	free((char*) mod->id);
+	free(mod);
+ out:
+	return;
+}
+
+
+/**
  * initalize node_info
  *
  * @param ni
@@ -106,6 +208,7 @@ int ubx_node_init(ubx_node_info_t* ni, const char *name)
 
 	ni->blocks=NULL;
 	ni->types=NULL;
+	ni->modules=NULL;
 	ni->cur_seqid=0;
 	ret=0;
  out:

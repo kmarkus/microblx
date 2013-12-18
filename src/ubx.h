@@ -44,6 +44,8 @@ extern "C"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <dlfcn.h>
+#include <unistd.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <errno.h>

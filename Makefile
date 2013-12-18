@@ -1,7 +1,7 @@
 include make.conf
 
 INCLUDE_DIR=$(CURDIR)/src/
-DIRS=src $(wildcard std_blocks/* std_types/*)
+DIRS=src $(wildcard std_blocks/* std_types/* examples)
 
 SHELL = /bin/sh
 INSTALL = /usr/bin/install

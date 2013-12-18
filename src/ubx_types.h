@@ -238,6 +238,17 @@ typedef struct ubx_block
 } ubx_block_t;
 
 
+/* ubx_module - information to maintain a module */
+typedef struct ubx_module
+{
+	const char* id; /* name or path/name */
+	void *handle;
+	int(*init)(struct ubx_node_info* ni);
+	void(*cleanup)(struct ubx_node_info* ni);
+	UT_hash_handle hh;
+} ubx_module_t;
+
+
 /* node information
  * holds references to all known blocks and types
  */
@@ -246,6 +257,7 @@ typedef struct ubx_node_info
 	const char *name;
 	ubx_block_t *blocks; /* instances, only one list */
 	ubx_type_ref_t *types; /* known types */
+	ubx_module_t *modules;
 	unsigned long cur_seqid;
 } ubx_node_info_t;
 

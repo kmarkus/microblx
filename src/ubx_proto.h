@@ -3,6 +3,8 @@ void md5(const unsigned char *input, int len, unsigned char output[16]);
 /* ubx.c */
 const char *block_state_tostr(int state);
 const char *get_typename(ubx_data_t *data);
+int ubx_module_load(ubx_node_info_t *ni, const char *lib);
+void ubx_module_unload(ubx_node_info_t *ni, const char *lib);
 int ubx_node_init(ubx_node_info_t *ni, const char *name);
 void ubx_node_cleanup(ubx_node_info_t *ni);
 int ubx_block_register(ubx_node_info_t *ni, ubx_block_t *block);
