@@ -163,6 +163,8 @@ void ubx_module_unload(ubx_node_info_t* ni, const char *lib)
 
 	HASH_DEL(ni->modules, mod);
 
+	mod->cleanup(ni);
+
 	dlclose(mod->handle);
 	free((char*) mod->id);
 	free(mod);
@@ -217,7 +219,44 @@ int ubx_node_init(ubx_node_info_t* ni, const char *name)
 
 void ubx_node_cleanup(ubx_node_info_t* ni)
 {
-	/* clean up all entities */
+	int cnt;
+	ubx_module_t *m, *mtmp;
+	ubx_block_t *b, *btmp;
+
+	/* stop all blocks */
+	HASH_ITER(hh, ni->blocks, b, btmp) {
+		if (b->block_state == BLOCK_STATE_ACTIVE) {
+			DBG("stopping block %s", b->name);
+			if(ubx_block_stop(b)!=0) ERR("%s: failed to stop block %s", ni->name, b->name);
+		}
+	}
+
+	/* cleanup all blocks */
+	HASH_ITER(hh, ni->blocks, b, btmp) {
+		if (b->block_state == BLOCK_STATE_INACTIVE) {
+			DBG("cleaning up block %s", b->name);
+			if(ubx_block_cleanup(b)!=0) ERR("%s: failed to cleanup block %s", ni->name, b->name);
+		}
+	}
+
+	/* rm all non prototype blocks */
+	HASH_ITER(hh, ni->blocks, b, btmp) {
+		if (b->block_state == BLOCK_STATE_PREINIT && b->prototype!=NULL) {
+			DBG("removing block %s", b->name);
+			if(ubx_block_rm(ni, b->name)!=0) ERR("%s: failed to rm block %s", ni->name, b->name);
+		}
+	}
+
+	/* unload all modules. */
+	HASH_ITER(hh, ni->modules, m, mtmp) {
+		DBG("unloading module %s", m->id);
+		ubx_module_unload(ni, m->id);
+	}
+
+	if((cnt = ubx_num_types(ni)) > 0) ERR("node %s: %d types after cleanup", ni->name, cnt);
+	if((cnt = ubx_num_modules(ni)) > 0) ERR("node %s: %d modules after cleanup", ni->name, cnt);
+	if((cnt = ubx_num_blocks(ni)) > 0) ERR("node %s: %d blocks after cleanup", ni->name, cnt);
+
 	free((char*) ni->name);
 	ni->name=NULL;
 }
@@ -610,6 +649,7 @@ unsigned int data_size(ubx_data_t* d)
 
 int ubx_num_blocks(ubx_node_info_t* ni) { return HASH_COUNT(ni->blocks); }
 int ubx_num_types(ubx_node_info_t* ni) { return HASH_COUNT(ni->types); }
+int ubx_num_modules(ubx_node_info_t* ni) { return HASH_COUNT(ni->modules); }
 
 /**
  * ubx_port_free_data - free additional memory used by port.

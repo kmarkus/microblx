@@ -21,6 +21,7 @@ int ubx_data_assign(ubx_data_t *tgt, ubx_data_t *src);
 unsigned int data_size(ubx_data_t *d);
 int ubx_num_blocks(ubx_node_info_t *ni);
 int ubx_num_types(ubx_node_info_t *ni);
+int ubx_num_modules(ubx_node_info_t *ni);
 void ubx_port_free_data(ubx_port_t *p);
 int ubx_clone_port_data(ubx_port_t *p, const char *name, const char *meta_data, ubx_type_t *in_type, unsigned long in_data_len, ubx_type_t *out_type, unsigned long out_data_len, uint32_t state);
 void ubx_block_free(ubx_block_t *b);

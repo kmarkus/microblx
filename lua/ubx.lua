@@ -57,6 +57,9 @@ local function read_file(file)
    return data
 end
 
+--- Compute the MD5 checksum of the given string
+-- @param str string to hash
+-- @return hex md5
 function M.md5(str)
    local res = ffi.new("unsigned char[16]")
    M.ubx.md5(str, #str, res)
@@ -777,6 +780,21 @@ function M.iblocks_foreach(ni, fun, pred)
 				if not M.is_iblock(b) then return end
 				return pred(b)
 			     end)
+end
+
+--- Apply a function to each module of a node.
+-- @param ni node
+-- @param fun function to apply to each module
+-- @param pred predicate filter
+function M.modules_foreach(ni, fun, pred)
+   if ni==nil then return end
+   pred = pred or function() return true end
+   local ubx_module_t_ptr = ffi.typeof("ubx_module_t*")
+   local m=ni.modules
+   while m ~= nil do
+      if pred(m) then fun(m) end
+      m=ffi.cast(ubx_module_t_ptr, m.hh.next)
+   end
 end
 
 --- Pretty print helpers
