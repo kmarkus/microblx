@@ -151,50 +151,12 @@ function M.is_inoutport(p) return M.is_outport(p) and M.is_inport(p) end
 --                           Node and block API
 ------------------------------------------------------------------------------
 
---- Dealing with modules. This could be moved to C.
-ubx_modules = {}
-
 --- Load and initialize a ubx module.
 -- @param ni node_info pointer into which to load module
 -- @param libfile module file to load
 function M.load_module(ni, libfile)
-   local nodename=M.safe_tostr(ni.name)
-
-   if not utils.file_exists(libfile) then error("non-existing file "..tostring(libfile)) end
-
-   if ubx_modules[nodename] and ubx_modules[nodename].loaded[libfile] then
-      -- print(nodename..": library "..tostring(libfile).." already loaded, ignoring")
-      goto out
-   end
-
-
-   local mod=ffi.load(libfile)
-   if mod.__ubx_initialize_module(ni) ~= 0 then
-      error("failed to init module "..libfile)
-   end
-
-   -- print(nodename..": library "..tostring(libfile).." successfully loaded")
-
-   if not ubx_modules[nodename] then ubx_modules[nodename]={ loaded={}} end
-
-   local mods = ubx_modules[nodename]
-   mods[#mods+1]={ module=mod, libfile=libfile }
-   mods.loaded[libfile]=true
+   assert(ubx.ubx_module_load(ni, libfile), "loading module "..ts(libfile).." failed")
    M.ffi_load_types(ni)
-
-   ::out::
-end
-
---- Unload all loaded modules
-function M.unload_modules(ni)
-   local nodename=M.safe_tostr(ni.name)
-
-   local mods = ubx_modules[nodename] or {}
-   for _,mod in ipairs(mods) do
-      print(nodename..": unloading "..mod.libfile)
-      mod.module.__ubx_cleanup_module(ni)
-   end
-   ubx_modules[nodename]={ loaded={}}
 end
 
 
@@ -202,10 +164,7 @@ end
 -- @param name name of node
 -- @return ubx_node_info_t
 function M.node_create(name)
-   if ubx_modules[name] then error("a node named "..tostring(name).." already exists") end
    local ni=ffi.new("ubx_node_info_t")
-   -- the following is bad, because nodes are shared among different Lua instances.
-   -- ffi.gc(ni, M.node_cleanup)
    assert(ubx.ubx_node_init(ni, name)==0, "node_create failed")
    return ni
 end
@@ -213,18 +172,6 @@ end
 --- Cleanup a node: cleanup and remove instances and unload modules.
 -- @param ni node info
 function M.node_cleanup(ni)
-   local nname = M.safe_tostr(ni.name)
-   print(nname..": cleaning up node")
-   print(nname..": unloading block instances:")
-   M.blocks_foreach(ni, function (b)
-			   local n=M.safe_tostr(b.name)
-			   print("    unloading "..n)
-			   M.block_unload(ni, n)
-			end,
-		    M.is_instance)
-   print(nname..": unloading modules:")
-   M.unload_modules(ni)
-   print(nname..": cleaning up node info")
    ubx.ubx_node_cleanup(ni)
    collectgarbage("collect")
 end
