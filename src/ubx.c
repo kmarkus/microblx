@@ -387,6 +387,9 @@ int ubx_type_register(ubx_node_info_t* ni, ubx_type_t* type)
 	typref->type_ptr=type;
 	typref->seqid=ni->cur_seqid++;
 
+	/* compute md5 fingerprint for type */
+	md5((const unsigned char*) type->name, strlen(type->name), type->hash);
+
 	HASH_ADD_KEYPTR(hh, ni->types, type->name, strlen(type->name), typref);
 	ret = 0;
  out:

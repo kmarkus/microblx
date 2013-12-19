@@ -174,6 +174,7 @@ function typelist_tohtml(ni)
   <tr>
    <th>name</th>
    <th>size [B]</th>
+   <th>md5</th>
   </tr> ]]
 
    table_footer = '</table>'
@@ -181,7 +182,7 @@ function typelist_tohtml(ni)
    -- generate a single table entry and append it to entries
    local function gen_type_entry(t)
       entries[#entries+1]=
-	 "<tr><td><tt>"..ffi.string(t.name).."</tt></td><td>"..tonumber(t.size).."</td></tr>"
+	 "<tr><td><tt>"..ffi.string(t.name).."</tt></td><td>"..tonumber(t.size).."</td><td>"..utils.str_to_hexstr(ffi.string(t.hash, 4)).."</td></tr>"
    end
 
    -- generate list of entries
