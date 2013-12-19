@@ -3,10 +3,11 @@
  */
 
 #undef DEBUG
-#define WEBIF_RELOAD			 1
-#define COMPILE_IN_WEBIF_LUA_FILE	 1
+#define WEBIF_RELOAD			1
+#define COMPILE_IN_WEBIF_LUA_FILE	1
 
-#define MONGOOSE_NR_THREADS		 "1"	/* don't change. */
+#define MONGOOSE_NR_THREADS		"1"	/* don't change. */
+#define WEBIF_DEFAULT_PORT		"8080"
 
 #include <luajit-2.0/lauxlib.h>
 #include <luajit-2.0/lualib.h>
@@ -201,7 +202,7 @@ static int wi_start(ubx_block_t *c)
 	port_num = (char *) ubx_config_get_data_ptr(c, "port", &port_num_len);
 
 	if(port_num_len == 0 || strlen(port_num)==0)
-		port_num = "8080";
+		port_num = WEBIF_DEFAULT_PORT;
 
 	DBG("starting mongoose on port %s using %s thread(s)", port_num, MONGOOSE_NR_THREADS);
 

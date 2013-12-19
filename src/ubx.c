@@ -1639,6 +1639,11 @@ ubx_port_t* ubx_port_get(ubx_block_t* b, const char *name)
 		goto out;
 	}
 
+	if(name==NULL) {
+		ERR("name is NULL");
+		goto out;
+	}
+
 	if(b->ports==NULL)
 		goto out_notfound;
 

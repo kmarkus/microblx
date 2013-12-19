@@ -21,15 +21,10 @@ ubx.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
 
 lb1=ubx.block_create(ni, "lua/luablock", "lb1")
 p_exec_str=ubx.port_get(lb1, "exec_str")
-fifo1=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, element_size=code_str_len})
-
-ubx.port_connect_out(p_exec_str, fifo1);
-ubx.port_connect_in(p_exec_str, fifo1);
+p_exec_str = ubx.port_clone_conn(lb1, "exec_str", 4, 4, code_str_len, 1)
 
 assert(ubx.block_init(lb1)==0)
-assert(ubx.block_init(fifo1)==0)
 assert(ubx.block_start(lb1)==0)
-assert(ubx.block_start(fifo1)==0)
 
 local d1=ubx.data_alloc(ni, "char")
 local d2=ubx.data_alloc(ni, "int")
@@ -38,9 +33,9 @@ local d2=ubx.data_alloc(ni, "int")
 --- helper
 function exec_str(str)
    ubx.data_set(d1, str, true) -- resize if necessary!
-   ubx.interaction_write(fifo1, d1)
+   ubx.port_write(p_exec_str, d1)
    ubx.cblock_step(lb1)
-   local res=ubx.interaction_read(fifo1, d2)
+   local res=ubx.port_read(p_exec_str, d2)
    if res<=0 then error("no response from exec_str") end
    return ubx.data_tolua(d2)
 end

@@ -861,8 +861,10 @@ end
 -- @param pname name of port
 -- @param buff_len1 desired buffer length (if port is in/out: length of out->in buffer)
 -- @param buff_len2 only if port is in/out port: length of in->out buffer
+-- @param data_len1 array multiplier for out->in buffer
+-- @param data_len2 array multiplier for in->out buffer
 -- @return the new port
-function M.port_clone_conn(block, pname, buff_len1, buff_len2)
+function M.port_clone_conn(block, pname, buff_len1, buff_len2, data_len1, data_len2)
    local prot = M.port_get(block, pname)
    local p=ffi.new("ubx_port_t")
    local ts = ffi.new("struct ubx_timespec")
@@ -877,8 +879,11 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
       error("port_clone_conn: cloning port data failed")
    end
 
-   buff_len1=buff_len1 or 1
+   buff_len1 = buff_len1 or 1
    if p.in_type and p.out_type then buff_len2 = buff_len2 or buff_len1 end
+
+   data_len1 = data_len1 or 1
+   if p.in_type and p.out_type then data_len2 = data_len2 or data_len1 end
 
    -- New port is an out-port?
    local i_p_to_prot=nil
@@ -890,9 +895,9 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
       -- print("creating interaction", iname, buff_len1, tonumber(p.out_type.size * p.out_data_len))
 
       i_p_to_prot = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
-				     { element_num=buff_len1,
-				       element_size=tonumber(p.out_type.size * p.out_data_len) })
-
+				     { buffer_len=buff_len1,
+				       type_name=ffi.string(p.out_type_name),
+				       data_len=data_len1 })
       M.block_init(i_p_to_prot)
 
       if M.ports_connect_uni(p, prot, i_p_to_prot)~=0 then
@@ -910,8 +915,9 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
 				  tonumber(ts.sec), tonumber(ts.nsec))
 
       i_prot_to_p = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
-				     { element_num=buff_len2,
-				       element_size=tonumber(p.in_type.size * p.in_data_len) })
+				     { buffer_len=buff_len2,
+				       type_name=ffi.string(p.in_type_name),
+				       data_len=data_len2 })
 
       M.block_init(i_prot_to_p)
 
@@ -926,19 +932,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
 
    -- cleanup interaction and port once the reference is lost
    ffi.gc(p, function (p)
-	        -- print("cleaning up port PCC port "..M.safe_tostr(p.name))
-
-		if i_p_to_prot then
-		   M.block_stop(i_p_to_prot)
-		   M.ports_disconnect_uni(p, prot, i_p_to_prot)
-		   M.block_unload(block.ni, i_p_to_prot.name)
-		end
-
-		if i_prot_to_p then
-		   M.block_stop(i_prot_to_p)
-		   M.ports_disconnect_uni(prot, p, i_prot_to_p)
-		   M.block_unload(block.ni, i_prot_to_p.name)
-		end
+		-- print("cleaning up port PCC port "..M.safe_tostr(p.name))
 		M.port_free_data(p)
 	     end)
    return p
@@ -1052,7 +1046,9 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
    size = max(M.port_out_size(p1), M.port_in_size(p2))
 
    return M.conn_uni(b1, pname1, b2, pname2, "lfds_buffers/cyclic",
-		     {element_num=element_num, element_size=size}, dont_start)
+		     { buffer_len=element_num,
+		       type_name=M.safe_tostr(p1.out_type_name),
+		       data_len=tonumber(p1.out_data_len) }, dont_start)
 end
 
 return M
