@@ -1034,6 +1034,9 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
 
    local p1, p2, size
 
+   if b1==nil then error("conn_lfds_cyclic: block (arg 1) is nil") end
+   if b2==nil then error("conn_lfds_cyclic: block (arg 3) is nil") end
+
    p1 = M.port_get(b1, pname1)
    p2 = M.port_get(b2, pname2)
 

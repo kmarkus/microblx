@@ -15,7 +15,8 @@ timestamp=nil
 
 -- sample_conf={
 --    { blockname='blockA', portname="port1", buff_len=10, },
---    { blockname='blockB', portname=true, buff_len=10 }, -- report all
+--    { blockname='blockB', portname=true, buff_len=10 }, -- report all (not supported yet)␘
+--    { blockname='iblock' }, -- will connect directly to the out channel of the given iblock.
 --}
 
 local ts1=ffi.new("struct ubx_timespec")
@@ -44,36 +45,54 @@ local function report_conf_to_portlist(rc, this)
    if not succ then error("file_logger: failed to load report_conf:\n"..res) end
 
    for i,conf in ipairs(res) do
-      local bname, pname = ts(conf.blockname), ts(conf.portname)
+      local bname, pname = conf.blockname, conf.portname
 
       local b = ubx.block_get(ni, bname)
+
       if b==nil then
 	 print("file_logger error: no block "..bname.." found")
 	 return false
       end
-      local p = ubx.port_get(b, pname)
-      if p==nil then
-	 print("file_logger error: block "..bname.." has no port "..pname)
-	 return false
-      end
 
-      if conf.buff_len==nil or conf.buff_len <=0 then
-	 conf.buff_len=1
-      end
+      -- are we directly connecting to an iblock??
+      if pname==nil and ubx.is_iblock(b) then
+	 print("file_logger: reporting iblock ".. ubx.safe_tostr(b.name))
+	 local p_rep_name='r'..ts(i)
+	 local type_name = ubx.data_tolua(ubx.config_get_data(b, "type_name"))
+	 local data_len = ubx.data_tolua(ubx.config_get_data(b, "data_len"))
 
-      if p.out_type~=nil then
-	 local blockport = bname.."."..pname
-	 local p_rep_name=ts(i)
-	 print("file_logger: reporting "..blockport.." as "..p_rep_name)
-	 ubx.port_add(this, p_rep_name, nil, p.out_type_name, p.out_data_len, nil, 0, 0)
-	 ubx.conn_lfds_cyclic(b, pname, this, p_rep_name, conf.buff_len)
+	 ubx.port_add(this, p_rep_name, "reporting iblock "..bname, type_name, data_len, nil, 0, 0)
+	 local p = ubx.port_get(this, p_rep_name)
+	 ubx.port_connect_in(p, b)
 
 	 conf.pname = p_rep_name
-	 conf.sample=create_read_sample(p, ni)
+	 conf.sample = ubx.data_alloc(ni, p.in_type_name, p.in_data_len)
 	 conf.sample_cdata = ubx.data_to_cdata(conf.sample)
-	 conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample), blockport)
-      else
-	 print("ERR: file_logger: refusing to report in-port ", bname.."."..pname)
+	 conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample), bname)
+
+      else -- normal connection to cblock
+	 local p = ubx.port_get(b, pname)
+	 if p==nil then
+	    print("file_logger error: block "..bname.." has no port "..pname)
+	    return false
+	 end
+
+	 if conf.buff_len==nil or conf.buff_len <=0 then conf.buff_len=1 end
+
+	 if p.out_type~=nil then
+	    local blockport = bname.."."..pname
+	    local p_rep_name='r'..ts(i)
+	    print("file_logger: reporting "..blockport.." as "..p_rep_name)
+	    ubx.port_add(this, p_rep_name, "reporting "..blockport, p.out_type_name, p.out_data_len, nil, 0, 0)
+	    ubx.conn_lfds_cyclic(b, pname, this, p_rep_name, conf.buff_len)
+
+	    conf.pname = p_rep_name
+	    conf.sample=create_read_sample(p, ni)
+	    conf.sample_cdata = ubx.data_to_cdata(conf.sample)
+	    conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample), blockport)
+	 else
+	    print("ERR: file_logger: refusing to report in-port ", bname.."."..pname)
+	 end
       end
    end
 
