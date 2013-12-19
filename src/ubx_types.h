@@ -66,6 +66,7 @@ enum {
 typedef struct ubx_type
 {
 	const char* name;		/* name: dir/header.h/struct foo*/
+	const char* doc;		/* short documentation string */
 	uint32_t type_class;		/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
 	unsigned long size;		/* size in bytes */
 	void* private_data;		/* private data. */
@@ -130,7 +131,7 @@ enum {
 typedef struct ubx_port
 {
 	const char* name;		/* name of port */
-	const char* meta_data;		/* doc, etc. */
+	const char* doc;		/* documentation string. */
 
 	uint32_t attrs;			/* FP_DIR_IN or FP_DIR_OUT */
 	uint32_t state;			/* active/inactive */
@@ -161,7 +162,7 @@ typedef struct ubx_port
 typedef struct ubx_config
 {
 	const char* name;
-	const char* meta_data;
+	const char* doc;
 	const char* type_name;
 	uint32_t attrs;
 	ubx_data_t value;

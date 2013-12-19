@@ -664,7 +664,7 @@ void ubx_port_free_data(ubx_port_t* p)
 	if(p->in_interaction) free((char*) p->in_interaction);
 	if(p->out_interaction) free((char*) p->out_interaction);
 
-	if(p->meta_data) free((char*) p->meta_data);
+	if(p->doc) free((char*) p->doc);
 	if(p->name) free((char*) p->name);
 
 	memset(p, 0x0, sizeof(ubx_port_t));
@@ -675,7 +675,7 @@ void ubx_port_free_data(ubx_port_t* p)
  *
  * @param p pointer to (allocated) target port.
  * @param name name of port
- * @param meta_data port meta_data
+ * @param doc port documentation string
  *
  * @param in_type_name string name of in-port data
  * @param in_type_len max array size of transported data
@@ -689,7 +689,7 @@ void ubx_port_free_data(ubx_port_t* p)
  *
  * This function allocates memory.
  */
-int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta_data,
+int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* doc,
 			ubx_type_t* in_type, unsigned long in_data_len,
 			ubx_type_t* out_type, unsigned long out_data_len, uint32_t state)
 {
@@ -705,8 +705,8 @@ int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta_data,
 	if((p->name=strdup(name))==NULL)
 		goto out_err;
 
-	if(meta_data)
-		if((p->meta_data=strdup(meta_data))==NULL)
+	if(doc)
+		if((p->doc=strdup(doc))==NULL)
 			goto out_err_free;
 
 	if(in_type!=NULL) {
@@ -748,7 +748,7 @@ int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta_data,
 static void ubx_config_free_data(ubx_config_t *c)
 {
 	if(c->name) free((char*) c->name);
-	if(c->meta_data) free((char*) c->meta_data);
+	if(c->doc) free((char*) c->doc);
 	if(c->type_name) free((char*) c->type_name);
 	if(c->value.data) free(c->value.data);
 	memset(c, 0x0, sizeof(ubx_config_t));
@@ -768,7 +768,7 @@ static void ubx_config_free_data(ubx_config_t *c)
  */
 static int ubx_clone_config_data(ubx_config_t *cnew,
 				 const char* name,
-				 const char* meta_data,
+				 const char* doc,
 				 const ubx_type_t* type,
 				 unsigned long len)
 {
@@ -777,8 +777,8 @@ static int ubx_clone_config_data(ubx_config_t *cnew,
 	if((cnew->name=strdup(name))==NULL)
 		goto out_err;
 
-	if(meta_data)
-		if((cnew->meta_data=strdup(meta_data))==NULL)
+	if(doc)
+		if((cnew->doc=strdup(doc))==NULL)
 			goto out_err;
 
 	if((cnew->type_name=strdup(type->name))==NULL)
@@ -871,7 +871,7 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 			goto out_free;
 
 		for(srcconf=prot->configs, tgtconf=newb->configs; srcconf->name!=NULL; srcconf++,tgtconf++) {
-			if(ubx_clone_config_data(tgtconf, srcconf->name, srcconf->meta_data,
+			if(ubx_clone_config_data(tgtconf, srcconf->name, srcconf->doc,
 						 srcconf->value.type, srcconf->value.len) != 0)
 				goto out_free;
 		}
@@ -886,7 +886,7 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 			goto out_free;
 
 		for(srcport=prot->ports, tgtport=newb->ports; srcport->name!=NULL; srcport++,tgtport++) {
-			if(ubx_clone_port_data(tgtport, srcport->name, srcport->meta_data,
+			if(ubx_clone_port_data(tgtport, srcport->name, srcport->doc,
 					       srcport->in_type, srcport->in_data_len,
 					       srcport->out_type, srcport->out_data_len,
 					       srcport->state) != 0)
@@ -1500,7 +1500,7 @@ static unsigned int get_num_ports(ubx_block_t* b)
   *
   * @param b
   * @param name
-  * @param meta_data
+  * @param doc
   * @param in_type_name
   * @param in_data_len
   * @param out_type_name
@@ -1509,7 +1509,7 @@ static unsigned int get_num_ports(ubx_block_t* b)
   *
   * @return < 0 in case of error, 0 otherwise.
   */
-int ubx_port_add(ubx_block_t* b, const char* name, const char* meta_data,
+int ubx_port_add(ubx_block_t* b, const char* name, const char* doc,
 	     const char* in_type_name, unsigned long in_data_len,
 	     const char* out_type_name, unsigned long out_data_len, uint32_t state)
 {
@@ -1552,7 +1552,7 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* meta_data,
 
 	b->ports=parr;
 
-	ret=ubx_clone_port_data(&b->ports[i], name, meta_data,
+	ret=ubx_clone_port_data(&b->ports[i], name, doc,
 				in_type, in_data_len,
 				out_type, out_data_len, state);
 

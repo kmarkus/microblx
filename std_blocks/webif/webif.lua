@@ -473,8 +473,8 @@ function show_block(ri, ni)
    utils.foreach(attrs_to_str, bt.ports)
    utils.foreach(rm_unused_data_len, bt.ports)
 
-   local port_fields={ 'name', 'attrs', 'in_type_name', 'in_data_len', 'out_type_name', 'out_data_len' }
-   local conf_fields={ 'name', 'type_name', 'value' }
+   local port_fields={ 'name', 'attrs', 'in_type_name', 'in_data_len', 'out_type_name', 'out_data_len', 'doc' }
+   local conf_fields={ 'name', 'type_name', 'value', 'doc' }
 
    colorize_state(bt)
 

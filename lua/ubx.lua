@@ -554,7 +554,7 @@ end
 function M.port_totab(p)
    local ptab = {}
    ptab.name = M.safe_tostr(p.name)
-   ptab.meta_data = M.safe_tostr(p.meta_data)
+   ptab.doc = M.safe_tostr(p.doc)
    ptab.attrs = tonumber(p.attrs)
    ptab.state = tonumber(p.state)
    ptab.in_type_name = M.safe_tostr(p.in_type_name)
@@ -569,6 +569,7 @@ function M.config_totab(c)
    if c==nil then return "NULL config" end
    local res = {}
    res.name = M.safe_tostr(c.name)
+   res.doc = M.safe_tostr(c.doc)
    res.type_name = M.safe_tostr(c.type_name)
    res.value = M.data_tolua(c.value)
    return res
@@ -579,6 +580,7 @@ function M.block_totab(b)
    if b==nil then error("NULL block") end
    local res = {}
    res.name=M.safe_tostr(b.name)
+   res.meta_data=M.safe_tostr(b.meta_data)
    res.block_type=M.block_type_tostr[b.type]
    res.state=M.block_state_tostr[b.block_state]
    if b.prototype~=nil then res.prototype=M.safe_tostr(b.prototype) else res.prototype="<prototype>" end
@@ -869,7 +871,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
 
    M.clock_mono_gettime(ts)
 
-   if M.clone_port_data(p, M.safe_tostr(prot.name)..'_inv', prot.meta_data,
+   if M.clone_port_data(p, M.safe_tostr(prot.name)..'_inv', prot.doc,
 			prot.out_type, prot.out_data_len,
 			prot.in_type, prot.in_data_len, 0) ~= 0 then
       error("port_clone_conn: cloning port data failed")

@@ -29,7 +29,8 @@
 static struct ubx_node_info *global_ni;
 
 ubx_config_t webif_conf[] = {
-	{ .name="port", .type_name="char", .value = { .len=10 } }, /* char[10] */
+	{ .name="port", .type_name="char", .value = { .len=10 },
+	  .doc="Port to listen on (default: " WEBIF_DEFAULT_PORT ")" },
 	{ NULL }
 };
 
