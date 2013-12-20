@@ -2,7 +2,7 @@
  * A generic luajit based block.
  */
 
-#define DEBUG
+/* #define DEBUG	1 */
 #define COMPILE_IN_LOG_LUA_FILE
 
 #include <luajit-2.0/lauxlib.h>
@@ -60,14 +60,14 @@ int call_hook(ubx_block_t* b, const char *fname, int require_fun, int require_re
 		lua_pop(inf->L, 1);
 		if(require_fun)
 			ERR("%s: no (required) Lua function %s", b->name, fname);
-		else
-			goto out;
+		goto out;
 	}
 
 	lua_pushlightuserdata(inf->L, (void*) b);
 
 	if (lua_pcall(inf->L, 1, num_res, 0) != 0) {
 		ERR("%s: error calling function %s: %s", b->name, fname, lua_tostring(inf->L, -1));
+		lua_pop(inf->L, 1); /* pop result */
 		ret = -1;
 		goto out;
 	}
