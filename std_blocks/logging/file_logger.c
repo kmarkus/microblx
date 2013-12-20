@@ -35,7 +35,6 @@ ubx_config_t file_logger_conf[] = {
 };
 
 struct file_logger_info {
-	struct ubx_node_info* ni;
 	struct lua_State* L;
 };
 

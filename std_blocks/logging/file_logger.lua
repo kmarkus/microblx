@@ -4,7 +4,6 @@ local cdata = require("cdata")
 local ffi = require("ffi")
 local time = require("time")
 local ts = tostring
-local strict = require"strict"
 
 -- global state
 filename=nil
