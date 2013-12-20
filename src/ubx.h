@@ -29,8 +29,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#define CONFIG_DUMPABLE		1
+#define CONFIG_DUMPABLE		1	/* enable for dumps even when running with priviledges */
 /* #define CONFIG_MLOCK_ALL	1 */
+#define CONFIG_PARANOIA		1	/* enable extra checks */
 
 /* constants */
 #define NSEC_PER_SEC		1000000000

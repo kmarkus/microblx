@@ -589,6 +589,43 @@ void ubx_data_free(ubx_node_info_t *ni, ubx_data_t* d)
 }
 
 /**
+ * Copy the size bytes of src into the dest data's buffer.
+ *
+ * @param dest destination ubx_data_t pointer
+ * @param src src data pointer
+ * @param size size in bytes to copy intop des
+ *
+ * @return actual copied data in array units
+ */
+int data_copy(ubx_data_t *dest, void *src, size_t size)
+{
+	int ret=0;
+	unsigned int dest_len = data_size(dest);
+
+	if(dest_len < size) {
+		ERR("provided data buffer too small (is %d, required: %ld)", dest_len, size);
+		goto out;
+	}
+
+#ifdef CONFIG_PARANOIA
+	/* paranoid check */
+	if(size % dest->type->size != 0) {
+		ERR("size not a multiple of destination type size");
+		goto out;
+	}
+#endif
+
+	memcpy(dest->data, src, size);
+
+	/* compute the actual new array length */
+	ret = size / dest->type->size;
+
+ out:
+	return ret;
+}
+
+
+/**
  * Assign a ubx_data_t value to an second.
  *
  * @param tgt
@@ -1838,6 +1875,7 @@ int ubx_cblock_step(ubx_block_t* b)
  out:
 	return ret;
 }
+
 
 /**
  * @brief

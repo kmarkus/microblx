@@ -17,6 +17,7 @@ int ubx_resolve_types(ubx_block_t *b);
 ubx_data_t *ubx_data_alloc(ubx_node_info_t *ni, const char *typname, unsigned long array_len);
 int ubx_data_resize(ubx_data_t *d, unsigned int newlen);
 void ubx_data_free(ubx_node_info_t *ni, ubx_data_t *d);
+int data_copy(ubx_data_t *dest, void *src, size_t size);
 int ubx_data_assign(ubx_data_t *tgt, ubx_data_t *src);
 unsigned int data_size(ubx_data_t *d);
 int ubx_num_blocks(ubx_node_info_t *ni);

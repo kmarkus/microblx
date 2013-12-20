@@ -271,6 +271,7 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
    - https://github.com/anvaka/VivaGraphJS
    - http://js-graph-it.sourceforge.net/index.html (nice!)
    - http://jsplumbtoolkit.com/doc/home (allows editing, flowcharts, FSM, but not layout :-( )
+   - http://jointjs.com/demos/fsa
    - http://labs.unwieldy.net/moowheel/
    - http://cytoscapeweb.cytoscape.org/
 
