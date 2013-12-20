@@ -91,9 +91,9 @@ static int begin_request_handler(struct mg_connection *conn)
 	else
 		lua_pushnil(inf->L);
 
-
 	if(lua_pcall(inf->L, 3, 2, 0)!=0) {
-		ERR("Lua: %s", lua_tostring(inf->L, -1));
+		ERR("%s, calling Lua request_handler failed: %s",
+		    "webif", lua_tostring(inf->L, -1));
 		goto out_unlock;
 	}
 
