@@ -1,0 +1,16 @@
+-- -*- mode: lua; -*-
+
+return bd.system
+{
+   imports = {
+      "std_types/stdtypes/stdtypes.so",
+      "std_blocks/random/random.so",
+   },
+
+   blocks = {
+      { name="rnd1", type="random/random" },
+   },
+}
+
+
+
