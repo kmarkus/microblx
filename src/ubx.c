@@ -996,6 +996,7 @@ ubx_block_t* ubx_block_create(ubx_node_info_t *ni, const char *type, const char*
 
 	if(newb!=NULL) {
 		ERR("existing block named '%s'", name);
+		newb=NULL;
 		goto out;
 	}
 
