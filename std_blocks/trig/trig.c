@@ -29,7 +29,7 @@ char trig_meta[] =
 	"}";
 
 ubx_port_t trig_ports[] = {
-	{ .name="tstats", .out_type_name="struct trig_tstat" },
+	{ .name="tstats", .out_type_name="struct trig_tstat", .doc="timing statistics (if enabled)"},
 	{ NULL },
 };
 
@@ -42,8 +42,8 @@ ubx_type_t trig_types[] = {
 
 /* configuration */
 ubx_config_t trig_config[] = {
-	{ .name="trig_blocks", .type_name = "struct trig_config" },
-	{ .name="time_stats_enabled", .type_name = "int" },
+	{ .name="trig_blocks", .type_name = "struct trig_config", .doc="describes which blocks to trigger" },
+	{ .name="time_stats_enabled", .type_name = "int", .doc="set to 1 to enable min/max/avg trigger execution measurements" },
 	{ NULL },
 };
 

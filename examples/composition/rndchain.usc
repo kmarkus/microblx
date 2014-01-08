@@ -27,26 +27,24 @@ return bd.system
    },
 
    blocks = {
-      { name='trig', type="std_triggers/ptrig" },
+      { name='ptrig', type="std_triggers/ptrig" },
       { name="rnd0", type="random/random" },
       { name="logger", type="logging/file_logger" },
    },
 
    configurations = {
-      { name="trig", config = { period = {sec=1, usec=0 }, 
-				trig_blocks={ { b="#rnd0", num_steps=1, measure=0 },
-					      { b="#rnd1", num_steps=1, measure=0 },
-					      { b="#logger", num_steps=1, measure=0 } } } },
+      { name="ptrig", config = { period = {sec=1, usec=0 },
+				 trig_blocks={ { b="#rnd0", num_steps=1, measure=0 },
+					       -- trigger the included subsystems trigger:
+					       { b="#trig", num_steps=1, measure=0 },
+					       { b="#logger", num_steps=1, measure=0 } } } },
 
       { name="logger", config = { filename="rndchain.log",
-				  separator=",", 
+				  separator=",",
 				  report_conf = logger_report_conf, } },
    },
-   
+
    connections = {
       { src="rnd0.rnd", tgt="rnd1.seed" },
    },
 }
-
-
-
