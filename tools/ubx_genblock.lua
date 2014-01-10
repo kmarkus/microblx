@@ -592,7 +592,7 @@ local codegen_tab = {
 }
 
 -- add types
-for i,t in ipairs(block_model.types) do
+for i,t in ipairs(block_model.types or {}) do
    if t.class=='struct' then
       codegen_tab[#codegen_tab+1] =
 	 { fun=generate_struct_type, funargs={ t }, file="types/"..t.name..".h", overwrite=false }
