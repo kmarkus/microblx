@@ -1,7 +1,7 @@
 meta_data = [[
 {
 	doc="velocity based trajectory generator using reflexxes library",
-	license="LGPL",
+	license="LGPLv3",
 }
 ]]
 
