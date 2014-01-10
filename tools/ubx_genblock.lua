@@ -197,7 +197,7 @@ HEXARRS:=$(TYPES:%=%.hexarr)
 $block_name.so: $block_name.o $(INCLUDE_DIR)/libubx.so
 	${CC} $(CFLAGS_SHARED) -o $block_name.so $block_name.o $(INCLUDE_DIR)/libubx.so
 
-$block_name.o: $block_name.c $(INCLUDE_DIR)/ubx.h $(INCLUDE_DIR)/ubx_types.h $(INCLUDE_DIR)/ubx.c $(HEXARRS)
+$block_name.o: $block_name.h $block_name.c $(INCLUDE_DIR)/ubx.h $(INCLUDE_DIR)/ubx_types.h $(INCLUDE_DIR)/ubx.c $(HEXARRS)
 	${CC} -fPIC -I$(INCLUDE_DIR) -c $(CFLAGS) $block_name.c
 
 clean:
@@ -213,13 +213,14 @@ end
 function gen_port_decl(t)
    t.in_data_len = t.in_data_len or 1
    t.out_data_len = t.out_data_len or 1
+   t.doc = t.doc or ''
 
    if t.in_type_name and t.out_type_name then
-      return utils.expand('{ .name="$name", .out_type_name="$out_type_name", .out_data_len=$out_data_len, .in_type_name="$in_type_name", .in_data_len=$in_data_len  },', t)
+      return utils.expand('{ .name="$name", .out_type_name="$out_type_name", .out_data_len=$out_data_len, .in_type_name="$in_type_name", .in_data_len=$in_data_len, .doc="$doc" },', t)
    elseif t.in_type_name then
-      return utils.expand('{ .name="$name", .in_type_name="$in_type_name", .in_data_len=$in_data_len  },', t)
+      return utils.expand('{ .name="$name", .in_type_name="$in_type_name", .in_data_len=$in_data_len, .doc="$doc"  },', t)
    elseif t.out_type_name then
-      return utils.expand('{ .name="$name", .out_type_name="$out_type_name", .out_data_len=$out_data_len  },', t)
+      return utils.expand('{ .name="$name", .out_type_name="$out_type_name", .out_data_len=$out_data_len, .doc="$doc"  },', t)
    end
 end
 
@@ -259,7 +260,8 @@ char $(bm.name)_meta[] =
 /* declaration of block configuration */
 ubx_config_t $(bm.name)_config[] = {
 @ for _,c in ipairs(bm.configurations or {}) do
-	{ .name="$(c.name)", .type_name = "$(c.type_name)" },
+@       c.doc=c.doc or ""
+	{ .name="$(c.name)", .type_name = "$(c.type_name)", .doc="$(c.doc)" },
 @ end
 	{ NULL },
 };
