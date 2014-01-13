@@ -1,4 +1,9 @@
-#include "rml_vel.h"
+#include "rml_vel.hpp"
+
+#include <ReflexxesAPI.h>
+#include <RMLPositionFlags.h>
+#include <RMLPositionInputParameters.h>
+#include <RMLPositionOutputParameters.h>
 
 /* define a structure for holding the block local state. By assigning an
  * instance of this struct to the block private_data pointer (see init), this
@@ -6,7 +11,10 @@
  */
 struct rml_vel_info
 {
-	/* add custom block local data here */
+	ReflexxesAPI *RML;
+	RMLPositionInputParameters *IP;
+	RMLPositionOutputParameters *OP;
+	RMLPositionFlags Flags;
 
 	/* this is to have fast access to ports for reading and writing, without
 	 * needing a hash table lookup */
@@ -20,7 +28,7 @@ int rml_vel_init(ubx_block_t *b)
 	struct rml_vel_info *inf;
 
 	/* allocate memory for the block local state */
-	if ((inf = calloc(1, sizeof(struct rml_vel_info)))==NULL) {
+	if ((inf = (rml_vel_info*) calloc(1, sizeof(struct rml_vel_info)))==NULL) {
 		ERR("rml_vel: failed to alloc memory");
 		ret=EOUTOFMEM;
 		goto out;
