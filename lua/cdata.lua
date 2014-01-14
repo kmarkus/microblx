@@ -177,7 +177,7 @@ end
 
 function is_prim_num_ptr(ctype)
    local refct = reflect.typeof(ctype)
-   if refct.what=='ptr' and refct.element_type.what=='int' then return true end
+   if refct.what=='ptr' and (refct.element_type.what=='int' or refct.element_type.what=='float')  then return true end
    return false
 end
 
