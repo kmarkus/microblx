@@ -65,19 +65,18 @@ int rml_vel_init(ubx_block_t *b)
 int rml_vel_start(ubx_block_t *b)
 {
 	int ret = -1;
-	unsigned int len;
-	double *max_vel;
+	ubx_data_t *max_vel_data;
 
 	struct rml_vel_info *inf = (struct rml_vel_info*) b->private_data;
 
-	max_vel = (double*)ubx_config_get_data_ptr(b, "max_vel", &len);
+	max_vel_data = ubx_config_get_data(b, "max_vel");
 
-	if(len != 5) {
-		ERR("invalid array dimensions of config max_vel. is %d but should be %d", len, 5);
+	if(max_vel_data->len != 5) {
+		ERR("invalid array dimensions of config max_vel. is %lu but should be %d", max_vel_data->len, 5);
 		goto out;
 	}
 
-	memcpy(inf->IP->MaxVelocityVector->VecData, max_vel, 5);
+	memcpy(inf->IP->MaxVelocityVector->VecData, max_vel_data->data, data_size(max_vel_data));
 	ret = 0;
  out:
 	return ret;

@@ -482,6 +482,9 @@ return bd.system
    imports = {
       "std_types/stdtypes/stdtypes.so",
       "std_blocks/webif/webif.so",
+      "std_blocks/ptrig/ptrig.so",
+      "std_blocks/lfds_buffers/lfds_cyclic.so",
+      "std_blocks/logging/file_logger.so",
       "$(outdir)/$(bm.name).so",
    },
 
