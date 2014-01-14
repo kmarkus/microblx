@@ -20,6 +20,7 @@ char rml_vel_meta[] =
 /* declaration of block configuration */
 ubx_config_t rml_vel_config[] = {
 	{ .name="max_vel", .type_name = "double", .doc="maximum velocity" },
+	{ .name="cycle_time", .type_name = "double", .doc="cycle time [s]" },
 	{ NULL },
 };
 
@@ -28,9 +29,11 @@ ubx_port_t rml_vel_ports[] = {
 	{ .name="msr_pos", .in_type_name="double", .in_data_len=5, .doc="current measured position"  },
 	{ .name="msr_vel", .in_type_name="double", .in_data_len=5, .doc="current measured velocity"  },
 	{ .name="des_pos", .in_type_name="double", .in_data_len=5, .doc="desired target position"  },
+	{ .name="des_vel", .in_type_name="double", .in_data_len=5, .doc="desired target velocity"  },
 	{ .name="cmd_pos", .out_type_name="double", .out_data_len=5, .doc="new position (controller input)"  },
 	{ .name="cmd_vel", .out_type_name="double", .out_data_len=5, .doc="new velocity (controller input)"  },
 	{ .name="cmd_acc", .out_type_name="double", .out_data_len=5, .doc="new acceleration (controller input)"  },
+	{ .name="reached", .out_type_name="int", .out_data_len=1, .doc="the final state has been reached"  },
 	{ NULL },
 };
 
@@ -39,9 +42,11 @@ struct rml_vel_port_cache {
 	ubx_port_t* msr_pos;
 	ubx_port_t* msr_vel;
 	ubx_port_t* des_pos;
+	ubx_port_t* des_vel;
 	ubx_port_t* cmd_pos;
 	ubx_port_t* cmd_vel;
 	ubx_port_t* cmd_acc;
+	ubx_port_t* reached;
 };
 
 /* declare a helper function to update the port cache this is necessary
@@ -54,9 +59,11 @@ static void update_port_cache(ubx_block_t *b, struct rml_vel_port_cache *pc)
 	pc->msr_pos = ubx_port_get(b, "msr_pos");
 	pc->msr_vel = ubx_port_get(b, "msr_vel");
 	pc->des_pos = ubx_port_get(b, "des_pos");
+	pc->des_vel = ubx_port_get(b, "des_vel");
 	pc->cmd_pos = ubx_port_get(b, "cmd_pos");
 	pc->cmd_vel = ubx_port_get(b, "cmd_vel");
 	pc->cmd_acc = ubx_port_get(b, "cmd_acc");
+	pc->reached = ubx_port_get(b, "reached");
 }
 
 
@@ -64,9 +71,11 @@ static void update_port_cache(ubx_block_t *b, struct rml_vel_port_cache *pc)
 def_read_arr_fun(read_msr_pos_5, double, 5)
 def_read_arr_fun(read_msr_vel_5, double, 5)
 def_read_arr_fun(read_des_pos_5, double, 5)
-def_read_arr_fun(read_cmd_pos_5, double, 5)
-def_read_arr_fun(read_cmd_vel_5, double, 5)
-def_read_arr_fun(read_cmd_acc_5, double, 5)
+def_read_arr_fun(read_des_vel_5, double, 5)
+def_write_arr_fun(write_cmd_pos_5, double, 5)
+def_write_arr_fun(write_cmd_vel_5, double, 5)
+def_write_arr_fun(write_cmd_acc_5, double, 5)
+def_write_fun(write_reached, int)
 
 /* block operation forward declarations */
 int rml_vel_init(ubx_block_t *b);
