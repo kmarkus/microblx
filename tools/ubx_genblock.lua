@@ -72,6 +72,7 @@ block_spec = ObjectSpec {
    dict={
       name=StringSpec{},
       meta_data=StringSpec{},
+      cpp=BoolSpec{},
       port_cache=BoolSpec{},
       types=types_spec,
       configurations=configurations_spec,
@@ -87,7 +88,7 @@ block_spec = ObjectSpec {
 	 optional={ "start", "stop", "step" },
       },
    },
-   optional={ 'meta_data', 'types', 'configurations', 'ports' },
+   optional={ 'meta_data', 'cpp', 'types', 'configurations', 'ports' },
 }
 
 --- Validate a block model.
@@ -164,10 +165,10 @@ function generate_rd_wr_helpers(bm)
 	 end
       elseif p.out_type_name then
 	 if not p.out_data_len or p.out_data_len == 1 then
-	    res[#res+1] = utils.expand("def_read_fun(read_$name, $type_name)",
+	    res[#res+1] = utils.expand("def_write_fun(write_$name, $type_name)",
 				       { name=find_name(p.name), type_name=p.out_type_name })
 	 else -- ou_data_len > 1
-	    res[#res+1] = utils.expand("def_read_arr_fun(read_$name_$len, $type_name, $len)",
+	    res[#res+1] = utils.expand("def_write_arr_fun(write_$name_$len, $type_name, $len)",
 				       { name=find_name(p.name), type_name=p.out_type_name, len=p.out_data_len })
 	 end
       end
@@ -426,7 +427,7 @@ out:
 /* start */
 int $(bm.name)_start(ubx_block_t *b)
 {
-	/* struct $(bm_name)_info *inf = (struct $(bm_name)_info*) b->private_data; */
+	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
 	int ret = 0;
 	return ret;
 }
@@ -436,7 +437,7 @@ int $(bm.name)_start(ubx_block_t *b)
 /* stop */
 void $(bm.name)_stop(ubx_block_t *b)
 {
-	/* struct $(bm_name)_info *inf = (struct $(bm_name)_info*) b->private_data; */
+	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
 }
 @ end
 
@@ -531,6 +532,8 @@ local opttab=utils.proc_args(arg)
 
 local block_model_file
 local force_overwrite
+local c_ext = '.c'
+local h_ext = '.h'
 
 if #arg==1 or opttab['-h'] then usage(); os.exit(1) end
 
@@ -585,11 +588,14 @@ if not utils.file_exists(outdir.."/types") then
    end
 end
 
+if block_model.cpp then c_ext = '.cpp' end
+if block_model.cpp then h_ext = '.hpp' end
+
 -- static part
 local codegen_tab = {
    { fun=generate_makefile, funargs={ block_model }, file="Makefile", overwrite=false },
-   { fun=generate_block_if, funargs={ block_model } , file=block_model.name..".h", overwrite=true },
-   { fun=generate_block_body, funargs={ block_model }, file=block_model.name..".c", overwrite=false },
+   { fun=generate_block_if, funargs={ block_model } , file=block_model.name..h_ext, overwrite=true },
+   { fun=generate_block_body, funargs={ block_model }, file=block_model.name..c_ext, overwrite=false },
    { fun=generate_bd_system, funargs={ block_model, outdir }, file=block_model.name..".usc", overwrite=false },
 }
 
