@@ -1,3 +1,5 @@
+#define DEBUG
+
 #include "rml_vel.hpp"
 
 #include <ReflexxesAPI.h>
@@ -75,8 +77,16 @@ int rml_vel_start(ubx_block_t *b)
 		ERR("invalid array dimensions of config max_vel. is %lu but should be %d", max_vel_data->len, 5);
 		goto out;
 	}
-
 	memcpy(inf->IP->MaxVelocityVector->VecData, max_vel_data->data, data_size(max_vel_data));
+
+	for(int i=0; i<4; i++) {
+		inf->IP->MaxAccelerationVector->VecData[i]=100;
+		inf->IP->MaxJerkVector->VecData[i]=100;
+		inf->IP->CurrentPositionVector->VecData[i]=0;
+		inf->IP->CurrentVelocityVector->VecData[i]=0;
+		inf->IP->CurrentAccelerationVector->VecData[i]=0;
+	}
+
 	ret = 0;
  out:
 	return ret;
@@ -115,24 +125,28 @@ void rml_vel_step(ubx_block_t *b)
 	/* new target pos? */
 	sz_des_pos = read_des_pos_5(inf->ports.des_pos, &des_pos);
 
-	if(sz_des_pos == 5)
+	if(sz_des_pos == 5) {
 		inf->IP->TargetPositionVector->VecData=des_pos;
+		DBG("[%f, %f, %f, %f, %f]",
+		    inf->IP->TargetPositionVector->VecData[0],
+		    inf->IP->TargetPositionVector->VecData[1],
+		    inf->IP->TargetPositionVector->VecData[2],
+		    inf->IP->TargetPositionVector->VecData[3],
+		    inf->IP->TargetPositionVector->VecData[4]);
+	}
 
 	/* new target vel? */
 	sz_des_vel = read_des_vel_5(inf->ports.des_vel, &des_vel);
-
 	if(sz_des_vel == 5)
 		inf->IP->TargetVelocityVector->VecData=des_vel;
 
 	/* new measured pos? */
 	sz_msr_pos = read_msr_pos_5(inf->ports.msr_pos, &msr_pos);
-
 	if(sz_msr_pos == 5)
 		inf->IP->CurrentPositionVector->VecData = msr_pos;
 
 	/* new measured vel? */
 	sz_msr_vel = read_msr_vel_5(inf->ports.msr_vel, &msr_vel);
-
 	if(sz_msr_vel == 5)
 		inf->IP->CurrentVelocityVector->VecData = msr_vel;
 
@@ -140,6 +154,7 @@ void rml_vel_step(ubx_block_t *b)
 	for(i=0; i<5; i++)
 		inf->IP->SelectionVector->VecData[i] = true;
 
+	DBG("CheckForValidity: %d", inf->IP->CheckForValidity());
 
 	/* update */
 	res = inf->RML->RMLPosition(*inf->IP, inf->OP, inf->Flags);
@@ -148,12 +163,12 @@ void rml_vel_step(ubx_block_t *b)
 	case ReflexxesAPI::RML_WORKING:
 		break;
 	case ReflexxesAPI::RML_FINAL_STATE_REACHED:
-		i=1; /* reuse i to emit "reached" event */
+		i=1; /* reuse i to emit "reached" event */	
 		write_reached(inf->ports.reached, &i);
 		break;
 	case ReflexxesAPI::RML_ERROR_INVALID_INPUT_VALUES:
 		ERR("RML_ERROR_INVALID_INPUT_VALUES");
-		goto out_err;
+		break;
 	case ReflexxesAPI::RML_ERROR_EXECUTION_TIME_CALCULATION:
 		ERR("RML_ERROR_EXECUTION_TIME_CALCULATION");
 		goto out_err;
@@ -186,3 +201,4 @@ void rml_vel_step(ubx_block_t *b)
 out_err:
 	return;
 }
+

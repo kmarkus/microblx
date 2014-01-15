@@ -126,3 +126,12 @@ function test_pointer_to_prim()
    assert_equal(init, val, "L: mismatch after converting from cdata")
 
 end
+
+
+function test_arr_data()
+   local d = ubx.data_alloc(ni, "double", 5)
+   local init = {1.1,2.2,3.3,4.4,5.5}
+   ubx.data_set(d, init)
+   local res = ubx.data_tolua(d)
+   assert_true(utils.table_cmp(res, init), "test_arr_data double[5] roundtrip failed")
+end

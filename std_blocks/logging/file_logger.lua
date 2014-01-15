@@ -88,6 +88,7 @@ local function report_conf_to_portlist(rc, this)
 	    conf.pname = p_rep_name
 	    conf.sample=create_read_sample(p, ni)
 	    conf.sample_cdata = ubx.data_to_cdata(conf.sample)
+	    print("the type is: ", ubx.data_to_ctype(conf.sample))
 	    conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample), blockport)
 	 else
 	    print("ERR: file_logger: refusing to report in-port ", bname.."."..pname)
@@ -108,7 +109,7 @@ function init(b)
 
    local rconf_str = ubx.data_tolua(ubx.config_get_data(b, "report_conf"))
 
-   if rconf_str == 0 then
+   if not rconf_str or rconf_str == 0 then
       print(ubx.safe_tostr(b.name)..": invalid/nonexisting report_conf")
       return false
    end

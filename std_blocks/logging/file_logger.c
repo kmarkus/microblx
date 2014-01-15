@@ -17,7 +17,7 @@
 #ifdef COMPILE_IN_LOG_LUA_FILE
 #include "file_logger.lua.hexarr"
 #else
-#define FILE_LOG_FILE "/home/mk/prog/c/microblx/std_blocks/reporter/file_logger.lua"
+#define FILE_LOG_FILE "/home/mk/prog/c/microblx/std_blocks/logging/file_logger.lua"
 #endif
 
 char file_logger_meta[] =

@@ -232,6 +232,7 @@ function system.launch(self, t)
 		     log("    "..green(c.name).." with "..yellow(utils.tab2str(c.config))..")")
 		     ubx.set_config_tab(b, c.config)
 		  end
+		  ubx.block_init(b)
 	       end
 	    end, self.configurations)
 	 log("configuring blocks completed")
