@@ -248,7 +248,7 @@ function M.gen_logfun(ctype, prefix)
    -- add a pre-separator 'presep' field: empty string if key starts
    -- with array, else a "."
    utils.foreach(function(e)
-		    if string.char(string.byte(e.key, 1))~='[' then e.presep="." else e.presep="" end
+		    if string.char(string.byte(e.key, 1))~='[' then e.presep="." else e.presep="[0]" end
 		 end, flattab)
 
    -- generate a fast serialization function:

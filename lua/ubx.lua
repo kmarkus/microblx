@@ -322,30 +322,48 @@ end
 --- Convert an ubx_type_t to a FFI ctype object.
 -- Only works for TYPE_CLASS_BASIC and TYPE_CLASS_STRUCT
 -- @param ubx_type_t
+-- @param ptr if true, then create pointer type
+-- @param fixed_len number that specifies the array length (e.g. char (*)[10])
 -- @return luajit FFI ctype
-local function type_to_ctype_str(t, ptr)
-   if ptr then ptr='*' else ptr="" end
+local function type_to_ctype_str(t, ptr, fixed_len)
+   if ptr and fixed_len then ptr='(*)'
+   elseif ptr then ptr='*'
+   else ptr="" end
+
+   if fixed_len then fixed_len='['..tostring(fixed_len)..']' else fixed_len="" end
+
    if t.type_class==ffi.C.TYPE_CLASS_BASIC or t.type_class==ffi.C.TYPE_CLASS_STRUCT then
-      return ffi.string(t.name)..ptr
+      return ffi.string(t.name)..ptr..fixed_len
    end
    error("__type_to_ctype_str: unknown type_class")
 end
 
 -- memoize?
-function M.type_to_ctype(t, ptr)
-   local ctstr=type_to_ctype_str(t, ptr)
+function M.type_to_ctype(t, ptr, fixed_len)
+   local ctstr=type_to_ctype_str(t, ptr, fixed_len)
    return ffi.typeof(ctstr)
 end
 
-function M.data_to_ctype(d)
+--- Transform an ubx_data_t* to a lua FFI ctype
+-- @param d ubx_data_t pointer
+-- @return ffi ctype
+function M.data_to_ctype(d, uselen)
+   if uselen then
+      return M.type_to_ctype(d.type, true, tonumber(d.len))
+   end
    return M.type_to_ctype(d.type, true)
 end
 
 --- Transform the value of a ubx_data_t* to a lua FFI cdata.
 -- @param d ubx_data_t pointer
 -- @return ffi cdata
-function M.data_to_cdata(d)
-   local ctp = M.type_to_ctype(d.type, true)
+function M.data_to_cdata(d, uselen)
+   local ctp
+   if uselen then
+      ctp = M.type_to_ctype(d.type, true, tonumber(d.len))
+   else
+      ctp = M.type_to_ctype(d.type, true)
+   end
    return ffi.cast(ctp, d.data)
 end
 

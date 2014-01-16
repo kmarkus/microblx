@@ -66,8 +66,8 @@ local function report_conf_to_portlist(rc, this)
 
 	 conf.pname = p_rep_name
 	 conf.sample = ubx.data_alloc(ni, p.in_type_name, p.in_data_len)
-	 conf.sample_cdata = ubx.data_to_cdata(conf.sample)
-	 conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample), bname)
+	 conf.sample_cdata = ubx.data_to_cdata(conf.sample, true)
+	 conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample, true), bname)
 
       else -- normal connection to cblock
 	 local p = ubx.port_get(b, pname)
@@ -87,9 +87,9 @@ local function report_conf_to_portlist(rc, this)
 
 	    conf.pname = p_rep_name
 	    conf.sample=create_read_sample(p, ni)
-	    conf.sample_cdata = ubx.data_to_cdata(conf.sample)
-	    print("the type is: ", ubx.data_to_ctype(conf.sample))
-	    conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample), blockport)
+	    conf.sample_cdata = ubx.data_to_cdata(conf.sample, true)
+	    print("the type is: ", ubx.data_to_ctype(conf.sample, true))
+	    conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample, true), blockport)
 	 else
 	    print("ERR: file_logger: refusing to report in-port ", bname.."."..pname)
 	 end
