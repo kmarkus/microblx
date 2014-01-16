@@ -88,7 +88,6 @@ local function report_conf_to_portlist(rc, this)
 	    conf.pname = p_rep_name
 	    conf.sample=create_read_sample(p, ni)
 	    conf.sample_cdata = ubx.data_to_cdata(conf.sample, true)
-	    print("the type is: ", ubx.data_to_ctype(conf.sample, true))
 	    conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample, true), blockport)
 	 else
 	    print("ERR: file_logger: refusing to report in-port ", bname.."."..pname)

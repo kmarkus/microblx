@@ -1,4 +1,4 @@
-#define DEBUG
+// #define DEBUG
 
 #include "rml_vel.hpp"
 
@@ -79,9 +79,17 @@ int rml_vel_start(ubx_block_t *b)
 	}
 	memcpy(inf->IP->MaxVelocityVector->VecData, max_vel_data->data, data_size(max_vel_data));
 
-	for(int i=0; i<4; i++) {
-		inf->IP->MaxAccelerationVector->VecData[i]=100;
-		inf->IP->MaxJerkVector->VecData[i]=100;
+	DBG("setting max_vel: [%f, %f, %f, %f, %f]",
+	    inf->IP->MaxVelocityVector->VecData[0],
+	    inf->IP->MaxVelocityVector->VecData[1],
+	    inf->IP->MaxVelocityVector->VecData[2],
+	    inf->IP->MaxVelocityVector->VecData[3],
+	    inf->IP->MaxVelocityVector->VecData[4]);
+
+
+	for(int i=0; i<5; i++) {
+		inf->IP->MaxAccelerationVector->VecData[i]=1000;
+		inf->IP->MaxJerkVector->VecData[i]=1000;
 		inf->IP->CurrentPositionVector->VecData[i]=0;
 		inf->IP->CurrentVelocityVector->VecData[i]=0;
 		inf->IP->CurrentAccelerationVector->VecData[i]=0;
@@ -124,21 +132,19 @@ void rml_vel_step(ubx_block_t *b)
 
 	/* new target pos? */
 	sz_des_pos = read_des_pos_5(inf->ports.des_pos, &des_pos);
-
 	if(sz_des_pos == 5) {
+		i=0; /* reuse i to emit "reached" event */
+		write_reached(inf->ports.reached, &i);
 		inf->IP->TargetPositionVector->VecData=des_pos;
-		DBG("[%f, %f, %f, %f, %f]",
-		    inf->IP->TargetPositionVector->VecData[0],
-		    inf->IP->TargetPositionVector->VecData[1],
-		    inf->IP->TargetPositionVector->VecData[2],
-		    inf->IP->TargetPositionVector->VecData[3],
-		    inf->IP->TargetPositionVector->VecData[4]);
 	}
 
 	/* new target vel? */
 	sz_des_vel = read_des_vel_5(inf->ports.des_vel, &des_vel);
-	if(sz_des_vel == 5)
+	if(sz_des_vel == 5) {
+		i=0; /* reuse i to emit "reached" event */
+		write_reached(inf->ports.reached, &i);
 		inf->IP->TargetVelocityVector->VecData=des_vel;
+	}
 
 	/* new measured pos? */
 	sz_msr_pos = read_msr_pos_5(inf->ports.msr_pos, &msr_pos);
@@ -154,6 +160,35 @@ void rml_vel_step(ubx_block_t *b)
 	for(i=0; i<5; i++)
 		inf->IP->SelectionVector->VecData[i] = true;
 
+	DBG("des_pos: [%f, %f, %f, %f, %f]",
+	    inf->IP->TargetPositionVector->VecData[0],
+	    inf->IP->TargetPositionVector->VecData[1],
+	    inf->IP->TargetPositionVector->VecData[2],
+	    inf->IP->TargetPositionVector->VecData[3],
+	    inf->IP->TargetPositionVector->VecData[4]);
+
+	DBG("des_vel: [%f, %f, %f, %f, %f]",
+	    inf->IP->TargetVelocityVector->VecData[0],
+	    inf->IP->TargetVelocityVector->VecData[1],
+	    inf->IP->TargetVelocityVector->VecData[2],
+	    inf->IP->TargetVelocityVector->VecData[3],
+	    inf->IP->TargetVelocityVector->VecData[4]);
+
+	DBG("msr_pos: [%f, %f, %f, %f, %f]",
+	    inf->IP->CurrentPositionVector->VecData[0],
+	    inf->IP->CurrentPositionVector->VecData[1],
+	    inf->IP->CurrentPositionVector->VecData[2],
+	    inf->IP->CurrentPositionVector->VecData[3],
+	    inf->IP->CurrentPositionVector->VecData[4]);
+
+	DBG("msr_vel: [%f, %f, %f, %f, %f]",
+	    inf->IP->CurrentVelocityVector->VecData[0],
+	    inf->IP->CurrentVelocityVector->VecData[1],
+	    inf->IP->CurrentVelocityVector->VecData[2],
+	    inf->IP->CurrentVelocityVector->VecData[3],
+	    inf->IP->CurrentVelocityVector->VecData[4]);
+
+
 	DBG("CheckForValidity: %d", inf->IP->CheckForValidity());
 
 	/* update */
@@ -163,12 +198,12 @@ void rml_vel_step(ubx_block_t *b)
 	case ReflexxesAPI::RML_WORKING:
 		break;
 	case ReflexxesAPI::RML_FINAL_STATE_REACHED:
-		i=1; /* reuse i to emit "reached" event */	
+		i=1; /* reuse i to emit "reached" event */
 		write_reached(inf->ports.reached, &i);
 		break;
 	case ReflexxesAPI::RML_ERROR_INVALID_INPUT_VALUES:
 		ERR("RML_ERROR_INVALID_INPUT_VALUES");
-		break;
+		goto out_err;
 	case ReflexxesAPI::RML_ERROR_EXECUTION_TIME_CALCULATION:
 		ERR("RML_ERROR_EXECUTION_TIME_CALCULATION");
 		goto out_err;
@@ -191,9 +226,9 @@ void rml_vel_step(ubx_block_t *b)
 		ERR("unkown error");
 	}
 
-	memcpy(cmd_pos, inf->OP->NewPositionVector->VecData, 5);
-	memcpy(cmd_vel, inf->OP->NewVelocityVector->VecData, 5);
-	memcpy(cmd_acc, inf->OP->NewAccelerationVector->VecData, 5);
+	memcpy(cmd_pos, inf->OP->NewPositionVector->VecData, sizeof(cmd_pos));
+	memcpy(cmd_vel, inf->OP->NewVelocityVector->VecData, sizeof(cmd_vel));
+	memcpy(cmd_acc, inf->OP->NewAccelerationVector->VecData, sizeof(cmd_acc));
 
 	write_cmd_pos_5(inf->ports.cmd_pos, &cmd_pos);
 	write_cmd_vel_5(inf->ports.cmd_vel, &cmd_vel);
@@ -201,4 +236,3 @@ void rml_vel_step(ubx_block_t *b)
 out_err:
 	return;
 }
-

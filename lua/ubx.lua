@@ -190,7 +190,11 @@ end
 
 
 -- OS stuff
-M.clock_mono_gettime = ubx.ubx_clock_mono_gettime
+function M.clock_mono_gettime(ts)
+   ts = ts or ffi.new("struct ubx_timespec")
+   ubx.ubx_clock_mono_gettime(ts)
+   return ts
+end
 
 --- Unload a block: bring it to state preinit and call ubx_block_rm
 function M.block_unload(ni, name)

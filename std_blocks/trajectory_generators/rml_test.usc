@@ -5,8 +5,8 @@ logger_report_conf = [[
 {
   { blockname='rml_vel1', portname="cmd_pos", buff_len=3 },
   { blockname='rml_vel1', portname="cmd_vel", buff_len=3 },
+  { blockname='lb1',      portname="rnd_pos", buff_len=3 },
   { blockname='rml_vel1', portname="reached", buff_len=3 },
-  { blockname='lb1',      portname="des_pos", buff_len=3 },
 }
 ]]
 
@@ -14,30 +14,33 @@ lua_block_impl = [[
 local ubx=require "ubx"
 local ffi=require "ffi"
 
-local des_pos_data
-local des_pos
-local p_des_pos
+local rnd_pos_data
+local rnd_pos
+local p_rnd_pos
 
 function init(b)
    print("init")
    b = ffi.cast("ubx_block_t*", b)
 
-   ubx.port_add(b, "des_pos", "random value", nil, 0, "double", 5, 0)
-   p_des_pos = ubx.port_get(b, "des_pos")
-   des_pos_data = ubx.data_alloc(b.ni, "double", 5)
-   des_pos = ubx.data_to_cdata(des_pos_data)
+   ubx.port_add(b, "rnd_pos", "random value", nil, 0, "double", 5, 0)
+   p_rnd_pos = ubx.port_get(b, "rnd_pos")
+   rnd_pos_data = ubx.data_alloc(b.ni, "double", 5)
+   rnd_pos = ubx.data_to_cdata(rnd_pos_data)
+
+   local ts = ubx.clock_mono_gettime()
+   math.randomseed(tonumber(ts.nsec))
    return true
 end
 
 function step(b)
    print("step")
-   for i=0,4 do des_pos[i] = (math.random(200) - 100) end
-   ubx.port_write(p_des_pos, des_pos_data)
+   for i=0,4 do rnd_pos[i] = (math.random(200) - 100) end
+   ubx.port_write(p_rnd_pos, rnd_pos_data)
 end
 
 function cleanup(b) 
    print("cleanup") 
-   ubx.port_rm(block, "des_pos")
+   ubx.port_rm(block, "rnd_pos")
 end
 ]]
 
@@ -57,6 +60,7 @@ return bd.system
    blocks = {
       { name="rml_vel1", type="rml_vel" },
       { name="lb1", type="lua/luablock" },
+      { name="lb2", type="lua/luablock" },
       { name="ptrig1", type="std_triggers/ptrig" },
       { name="logger1", type="logging/file_logger" },
    },
@@ -64,17 +68,20 @@ return bd.system
    configurations = {
       { name="ptrig1", config = { period = {sec=0, usec=100000 }, trig_blocks={ { b="#rml_vel1", num_steps=1, measure=0 },
 										{ b="#logger1", num_steps=1, measure=0 } } } },
-      { name="rml_vel1", config = { max_vel={5,5,5,5,5}, cycle_time=0.1 } },
+      { name="rml_vel1", config = { max_vel={300,300,300,300,300}, cycle_time=0.1 } },
 
       { name='lb1', config = { lua_str = lua_block_impl } },
+      { name='lb2', config = { lua_str = lua_block_impl } },
 
-      { name="logger1", config = { filename="rml_test.log", separator=",", report_conf = logger_report_conf } },
+      { name="logger1", config = { filename="rml_test.log", separator=",", timestamp=1,
+				   report_conf = logger_report_conf } },
    },
 
    connections = {
       { src="rml_vel1.cmd_pos",  tgt="rml_vel1.msr_pos" },
       { src="rml_vel1.cmd_vel",  tgt="rml_vel1.msr_vel"  },
-      { src="lb1.des_pos",  tgt="rml_vel1.des_pos" },
+      { src="lb1.rnd_pos",  tgt="rml_vel1.des_pos" },
+      { src="lb2.rnd_pos",  tgt="rml_vel1.msr_pos" },
    },
 }
 
