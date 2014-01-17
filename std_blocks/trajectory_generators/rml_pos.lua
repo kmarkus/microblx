@@ -9,7 +9,7 @@ NUM_DOF=5
 
 return block
 {
-      name="rml_vel",
+      name="rml_pos",
       meta_data=meta_data,
       port_cache=true,
       cpp=true,

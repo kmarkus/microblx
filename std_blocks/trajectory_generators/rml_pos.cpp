@@ -1,6 +1,6 @@
 /* #define DEBUG */
 
-#include "rml_vel.hpp"
+#include "rml_pos.hpp"
 
 #include <ReflexxesAPI.h>
 #include <RMLPositionFlags.h>
@@ -11,7 +11,7 @@
  * instance of this struct to the block private_data pointer (see init), this
  * information becomes accessible within the hook functions.
  */
-struct rml_vel_info
+struct rml_pos_info
 {
 	ReflexxesAPI *RML;
 	RMLPositionInputParameters *IP;
@@ -20,20 +20,20 @@ struct rml_vel_info
 
 	/* this is to have fast access to ports for reading and writing, without
 	 * needing a hash table lookup */
-	struct rml_vel_port_cache ports;
+	struct rml_pos_port_cache ports;
 };
 
 /* init */
-int rml_vel_init(ubx_block_t *b)
+int rml_pos_init(ubx_block_t *b)
 {
 	int ret = -1;
 	unsigned int len;
-	struct rml_vel_info *inf;
+	struct rml_pos_info *inf;
 	double cycle_time;
 
 	/* allocate memory for the block local state */
-	if ((inf = (rml_vel_info*) calloc(1, sizeof(struct rml_vel_info)))==NULL) {
-		ERR("rml_vel: failed to alloc memory");
+	if ((inf = (rml_pos_info*) calloc(1, sizeof(struct rml_pos_info)))==NULL) {
+		ERR("rml_pos: failed to alloc memory");
 		ret=EOUTOFMEM;
 		goto out;
 	}
@@ -64,12 +64,12 @@ int rml_vel_init(ubx_block_t *b)
 }
 
 /* start */
-int rml_vel_start(ubx_block_t *b)
+int rml_pos_start(ubx_block_t *b)
 {
 	int ret = -1;
 	ubx_data_t *max_vel_data, *max_acc_data;
 
-	struct rml_vel_info *inf = (struct rml_vel_info*) b->private_data;
+	struct rml_pos_info *inf = (struct rml_pos_info*) b->private_data;
 
 	max_vel_data = ubx_config_get_data(b, "max_vel");
 	if(max_vel_data->len != 5) {
@@ -114,16 +114,16 @@ int rml_vel_start(ubx_block_t *b)
 }
 
 /* stop */
-void rml_vel_stop(ubx_block_t *b)
+void rml_pos_stop(ubx_block_t *b)
 {
 	/* struct _info *inf = (struct _info*) b->private_data; */
 }
 
 /* cleanup */
-void rml_vel_cleanup(ubx_block_t *b)
+void rml_pos_cleanup(ubx_block_t *b)
 {
-	struct rml_vel_info *inf;
-	inf = (struct rml_vel_info*) b->private_data;
+	struct rml_pos_info *inf;
+	inf = (struct rml_pos_info*) b->private_data;
 
 	delete inf->RML;
 	delete inf->IP;
@@ -133,14 +133,14 @@ void rml_vel_cleanup(ubx_block_t *b)
 }
 
 /* step */
-void rml_vel_step(ubx_block_t *b)
+void rml_pos_step(ubx_block_t *b)
 {
 	int i, res;
 	double tmparr[5];
 	double cmd_pos[5], cmd_vel[5], cmd_acc[5];
 	int sz_msr_pos, sz_msr_vel, sz_des_pos, sz_des_vel;
 
-	struct rml_vel_info *inf = (struct rml_vel_info*) b->private_data;
+	struct rml_pos_info *inf = (struct rml_pos_info*) b->private_data;
 
 	/* new target pos? */
 	sz_des_pos = read_des_pos_5(inf->ports.des_pos, &tmparr);

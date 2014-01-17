@@ -5,10 +5,10 @@ return bd.system
    imports = {
       "std_types/stdtypes/stdtypes.so",
       "std_blocks/webif/webif.so",
-      "std_blocks/trajectory_generators/rml_vel.so",
+      "std_blocks/trajectory_generators/rml_pos.so",
    },
 
    blocks = {
-      { name="rml_vel_1", type="rml_vel" },
+      { name="rml_pos_1", type="rml_pos" },
    },
 }
