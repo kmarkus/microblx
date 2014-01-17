@@ -5,7 +5,7 @@ logger_report_conf = [[
 {
   { blockname='rml_vel1', portname="cmd_pos", buff_len=3 },
   { blockname='rml_vel1', portname="cmd_vel", buff_len=3 },
-  { blockname='lb1',      portname="rnd_pos", buff_len=3 },
+  { blockname='tgtpos',      portname="rnd_pos", buff_len=3 },
   { blockname='rml_vel1', portname="reached", buff_len=3 },
 }
 ]]
@@ -38,8 +38,8 @@ function step(b)
    ubx.port_write(p_rnd_pos, rnd_pos_data)
 end
 
-function cleanup(b) 
-   print("cleanup") 
+function cleanup(b)
+   print("cleanup")
    ubx.port_rm(block, "rnd_pos")
 end
 ]]
@@ -59,8 +59,8 @@ return bd.system
 
    blocks = {
       { name="rml_vel1", type="rml_vel" },
-      { name="lb1", type="lua/luablock" },
-      { name="lb2", type="lua/luablock" },
+      { name="tgtpos", type="lua/luablock" },
+      { name="startpos", type="lua/luablock" },
       { name="ptrig1", type="std_triggers/ptrig" },
       { name="logger1", type="logging/file_logger" },
    },
@@ -68,10 +68,13 @@ return bd.system
    configurations = {
       { name="ptrig1", config = { period = {sec=0, usec=100000 }, trig_blocks={ { b="#rml_vel1", num_steps=1, measure=0 },
 										{ b="#logger1", num_steps=1, measure=0 } } } },
-      { name="rml_vel1", config = { max_vel={300,300,300,300,300}, cycle_time=0.1 } },
+      { name="rml_vel1", config = { max_vel={20,20,20,20,20},
+				    max_acc={10,10,10,10,10},
+				    cycle_time=0.1 }
+      },
 
-      { name='lb1', config = { lua_str = lua_block_impl } },
-      { name='lb2', config = { lua_str = lua_block_impl } },
+      { name='tgtpos', config = { lua_str = lua_block_impl } },
+      { name='startpos', config = { lua_str = lua_block_impl } },
 
       { name="logger1", config = { filename="rml_test.log", separator=",", timestamp=1,
 				   report_conf = logger_report_conf } },
@@ -80,8 +83,7 @@ return bd.system
    connections = {
       { src="rml_vel1.cmd_pos",  tgt="rml_vel1.msr_pos" },
       { src="rml_vel1.cmd_vel",  tgt="rml_vel1.msr_vel"  },
-      { src="lb1.rnd_pos",  tgt="rml_vel1.des_pos" },
-      { src="lb2.rnd_pos",  tgt="rml_vel1.msr_pos" },
+      { src="tgtpos.rnd_pos",  tgt="rml_vel1.des_pos" },
+      { src="startpos.rnd_pos",  tgt="rml_vel1.msr_pos" },
    },
 }
-

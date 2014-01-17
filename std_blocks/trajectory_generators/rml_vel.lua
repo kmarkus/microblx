@@ -21,6 +21,7 @@ return block
 
       configurations= {
 	 { name="max_vel", type_name="double", len=NUM_DOF, doc="maximum velocity" },
+	 { name="max_acc", type_name="double", len=NUM_DOF, doc="maximum acceleration" },
 	 { name="cycle_time", type_name="double", len=NUM_DOF, doc="cycle time [s]" },
       },
 
