@@ -862,7 +862,7 @@ function M.node_todot(ni)
       [[
 digraph "$node" {
     // global attributes
-    graph [ rankdir=TD ];
+    graph [ rankdir=LR ];
 
     // nodes
 $blocks
