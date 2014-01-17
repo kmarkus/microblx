@@ -9,7 +9,7 @@ compiler flag `-fPIC`. E.g. for Linux, edit the
 `Linux/Makefile.global` and append `-fPIC` to the lines `DEBUG_CC` and
 `RELEASE_CC`.
 
-To compile the block, create a softlink "reflexxes" to the source
+To compile the block, create a softlink `reflexxes` to the source
 directory containing the compiled library and run `make`.
 
 
@@ -35,4 +35,8 @@ Todo
 
  - make the number of DOFS a configuration option.
 
+
+Links
+-----
+ - http://www.reflexxes.com/
 
