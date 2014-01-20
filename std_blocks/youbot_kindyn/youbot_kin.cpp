@@ -7,9 +7,6 @@
 #define YOUBOT_NR_OF_JOINTS	5
 #define IK_WDLS_LAMBDA		0.5
 
-/* Register a dummy type "struct youbot_kin" */
-// #include "types/youbot_kin.h"
-// #include "types/youbot_kin.h.hexarr"
 
 #include <kdl/chain.hpp>
 #include <kdl/frames.hpp>
@@ -25,11 +22,6 @@ using namespace KDL;
 /* from std_types/kdl */
 #include <kdl.h>
 
-
-// ubx_type_t types[] = {
-//	def_struct_type(struct youbot_kin, &youbot_kin_h),
-//	{ NULL },
-// };
 
 /* block meta information */
 char youbot_kin_meta[] =
@@ -47,7 +39,8 @@ ubx_config_t youbot_kin_config[] = {
 /* declaration port block ports */
 ubx_port_t youbot_kin_ports[] = {
 	/* FK */
-	{ .name="arm_in_jntstate", .in_type_name="struct motionctrl_jnt_state" },
+	{ .name="arm_in_msr_pos", .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS },
+	{ .name="arm_in_msr_vel", .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS },
 	{ .name="arm_out_msr_ee_pose", .out_type_name="struct kdl_frame" },
 	{ .name="arm_out_msr_ee_twist", .out_type_name="struct kdl_twist" },
 
@@ -70,7 +63,8 @@ struct youbot_kin_info
 	FrameVel *frame_vel;
 	JntArrayVel *jnt_array;
 
-	ubx_port_t *p_arm_in_jntstate;
+	ubx_port_t *p_arm_in_msr_pos;
+	ubx_port_t *p_arm_in_msr_vel;
 	ubx_port_t *p_arm_in_cmd_ee_twist;
 	ubx_port_t *p_arm_out_cmd_jnt_vel;
 	ubx_port_t *p_arm_out_msr_ee_pose;
@@ -79,7 +73,7 @@ struct youbot_kin_info
 };
 
 /* declare convenience functions to read/write from the ports */
-def_read_fun(read_jntstate, struct motionctrl_jnt_state)
+def_read_arr_fun(read_double5, double, YOUBOT_NR_OF_JOINTS)
 def_read_fun(read_kdl_twist, struct kdl_twist)
 def_write_arr_fun(write_jnt_arr, double, YOUBOT_NR_OF_JOINTS)
 def_write_fun(write_kdl_frame, struct kdl_frame)
@@ -120,7 +114,8 @@ static int youbot_kin_init(ubx_block_t *b)
 	inf->jnt_array = new JntArrayVel(YOUBOT_NR_OF_JOINTS);
 
 	/* cache port ptrs */
-	assert(inf->p_arm_in_jntstate = ubx_port_get(b, "arm_in_jntstate"));
+	assert(inf->p_arm_in_msr_pos = ubx_port_get(b, "arm_in_msr_pos"));
+	assert(inf->p_arm_in_msr_vel = ubx_port_get(b, "arm_in_msr_vel"));
 	assert(inf->p_arm_in_cmd_ee_twist = ubx_port_get(b, "arm_in_cmd_ee_twist"));
 	assert(inf->p_arm_out_cmd_jnt_vel = ubx_port_get(b, "arm_out_cmd_jnt_vel"));
 	assert(inf->p_arm_out_msr_ee_pose = ubx_port_get(b, "arm_out_msr_ee_pose"));
@@ -160,9 +155,10 @@ static void youbot_kin_cleanup(ubx_block_t *b)
 static void youbot_kin_step(ubx_block_t *b)
 {
 	int ret;
-	struct motionctrl_jnt_state jnt_state;
 	struct kdl_twist ee_twist;
 	double jnt_vel[YOUBOT_NR_OF_JOINTS] = { 0, 0, 0, 0, 0};
+	double msr_pos[YOUBOT_NR_OF_JOINTS];
+	double msr_vel[YOUBOT_NR_OF_JOINTS];
 
 	Twist const *KDLTwistPtr;
 	Frame KDLPose;
@@ -171,11 +167,12 @@ static void youbot_kin_step(ubx_block_t *b)
 	struct youbot_kin_info* inf;
 	inf = (struct youbot_kin_info*) b->private_data;
 
-	/* read jnt state and  compute forward kinematics */
-	if(read_jntstate(inf->p_arm_in_jntstate, &jnt_state) == 1) {
+	/* read jnt state and compute forward kinematics */
+	if(read_double5(inf->p_arm_in_msr_pos, &msr_pos) == 5 &&
+	   read_double5(inf->p_arm_in_msr_vel, &msr_vel) == 5) {
 		for(int i=0;i<YOUBOT_NR_OF_JOINTS;i++){
-			inf->jnt_array->q(i) = jnt_state.pos[i];
-			inf->jnt_array->qdot(i) = jnt_state.vel[i];
+			inf->jnt_array->q(i) = msr_pos[i];
+			inf->jnt_array->qdot(i) = msr_vel[i];
 		}
 
 		/* compute and write out current EE Pose and Twist */
@@ -230,13 +227,6 @@ static int youbot_kin_mod_init(ubx_node_info_t* ni)
 {
 	DBG(" ");
 	int ret = -1;
-	// ubx_type_t *tptr;
-
-	// for(tptr=types; tptr->name!=NULL; tptr++) {
-	//	if(ubx_type_register(ni, tptr) != 0) {
-	//		goto out;
-	//	}
-	// }
 
 	if(ubx_block_register(ni, &youbot_kin_block) != 0)
 		goto out;
@@ -249,11 +239,6 @@ out:
 static void youbot_kin_mod_cleanup(ubx_node_info_t *ni)
 {
 	DBG(" ");
-	// const ubx_type_t *tptr;
-
-	// for(tptr=types; tptr->name!=NULL; tptr++)
-	//	ubx_type_unregister(ni, tptr->name);
-
 	ubx_block_unregister(ni, "youbot_kin");
 }
 
