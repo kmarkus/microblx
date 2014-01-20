@@ -1,0 +1,84 @@
+-- -*- mode: Lua; -*-
+-- a minimal blockdiagram to start the block
+
+logger_report_conf = [[
+{
+  { blockname='ybkin1', portname="arm_out_msr_ee_pose", buff_len=1 },
+  { blockname='ybkin1', portname="arm_out_msr_ee_twist", buff_len=1 },
+}
+]]
+
+lua_block_impl = [[
+local ubx=require "ubx"
+local ffi=require "ffi"
+
+local rnd_num_data
+local rnd_num
+local p_rnd_num
+
+function init(b)
+   print("init")
+   b = ffi.cast("ubx_block_t*", b)
+
+   ubx.port_add(b, "rnd_num", "random array [5] value", nil, 0, "double", 5, 0)
+
+   p_rnd_num = ubx.port_get(b, "rnd_num")
+   rnd_num_data = ubx.data_alloc(b.ni, "double", 5)
+   rnd_num = ubx.data_to_cdata(rnd_num_data)
+
+   local ts = ubx.clock_mono_gettime()
+   math.randomseed(tonumber(ts.nsec))
+   return true
+end
+
+function step(b)
+   print("step")
+   for i=0,4 do rnd_num[i] = (math.random(200) - 100) end
+   ubx.port_write(p_rnd_num, rnd_num_data)
+end
+
+function cleanup(b)
+   print("cleanup")
+   ubx.port_rm(block, "rnd_num")
+end
+]]
+
+
+return bd.system
+{
+   imports = {
+      "std_types/stdtypes/stdtypes.so",
+      "std_types/kdl/kdl_types.so",
+      "std_blocks/webif/webif.so",
+      "std_blocks/luablock/luablock.so",
+      "std_blocks/trig/trig.so",
+      "std_blocks/logging/file_logger.so",
+      "std_blocks/lfds_buffers/lfds_cyclic.so",
+      "std_blocks/youbot_kindyn/youbot_kin.so",
+   },
+
+   blocks = {
+      { name="ybkin1", type="youbot_kin" },
+      { name="jntpos", type="lua/luablock" },
+      { name="jntvel", type="lua/luablock" },
+      { name="trig1", type="std_triggers/trig" },
+      { name="logger1", type="logging/file_logger" },
+   },
+
+   configurations = {
+      { name='jntpos', config = { lua_str = lua_block_impl } },
+      { name='jntvel', config = { lua_str = lua_block_impl } },
+      { name="logger1", config = { filename="youbot_kin_test.log", separator=",", timestamp=1,
+				   report_conf = logger_report_conf } },
+      { name="trig1", config = {
+	   trig_blocks={ { b="#jntpos", num_steps=1, measure=0 },
+			 { b="#ybkin1", num_steps=1, measure=0 },
+			 { b="#logger1", num_steps=1, measure=0 } } },
+      }
+   },
+
+   connections = {
+      { src="jntpos.rnd_num",  tgt="ybkin1.arm_in_msr_pos" },
+      { src="jntvel.rnd_num",  tgt="ybkin1.arm_in_msr_vel" },
+   },
+}

@@ -290,6 +290,8 @@ function system.launch(self, t)
 				    yellow(ts(bufflen), true).."]".."-> "..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
 			     local bsrc = ubx.block_get(ni, bnamesrc)
 			     local btgt = ubx.block_get(ni, bnametgt)
+			     if bsrc==nil then log(red("ERR: no block named "..bnamesrc.. " found")); return end
+			     if btgt==nil then log(red("ERR: no block named "..bnametgt.. " found")); return end
 			     ubx.conn_lfds_cyclic(bsrc, pnamesrc, btgt, pnametgt, bufflen)
 			  end
 		       end, self.connections)

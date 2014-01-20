@@ -1,3 +1,5 @@
+-- -*- mode: lua; -*-
+
 local bd = require("blockdiagram")
 
 logger_report_conf = [[

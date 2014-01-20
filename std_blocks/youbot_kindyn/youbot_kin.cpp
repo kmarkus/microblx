@@ -2,6 +2,8 @@
  * youbot_kin microblx function block
  */
 
+#define DEBUG
+
 #include "ubx.h"
 
 #define YOUBOT_NR_OF_JOINTS	5
@@ -157,8 +159,8 @@ static void youbot_kin_step(ubx_block_t *b)
 	int ret;
 	struct kdl_twist ee_twist;
 	double jnt_vel[YOUBOT_NR_OF_JOINTS] = { 0, 0, 0, 0, 0};
-	double msr_pos[YOUBOT_NR_OF_JOINTS];
-	double msr_vel[YOUBOT_NR_OF_JOINTS];
+	double msr_pos[YOUBOT_NR_OF_JOINTS] = { 0, 0, 0, 0, 0};
+	double msr_vel[YOUBOT_NR_OF_JOINTS] = { 0, 0, 0, 0, 0};
 
 	Twist const *KDLTwistPtr;
 	Frame KDLPose;
@@ -170,7 +172,10 @@ static void youbot_kin_step(ubx_block_t *b)
 	/* read jnt state and compute forward kinematics */
 	if(read_double5(inf->p_arm_in_msr_pos, &msr_pos) == 5 &&
 	   read_double5(inf->p_arm_in_msr_vel, &msr_vel) == 5) {
-		for(int i=0;i<YOUBOT_NR_OF_JOINTS;i++){
+
+		DBG("computing FK");
+
+		for(int i=0;i<YOUBOT_NR_OF_JOINTS;i++) {
 			inf->jnt_array->q(i) = msr_pos[i];
 			inf->jnt_array->qdot(i) = msr_vel[i];
 		}
@@ -188,6 +193,9 @@ static void youbot_kin_step(ubx_block_t *b)
 
 	/* read cmd_ee_twist and compute inverse kinematics */
 	if(read_kdl_twist(inf->p_arm_in_cmd_ee_twist, &ee_twist) == 1) {
+
+		DBG("computing IK");
+
 		KDLTwistPtr = (Twist*) &ee_twist; /* uh */
 		// kdl_twist = reinterpret_cast<Twist*>(&ee_twist);
 		ret = inf->ivk->CartToJnt(inf->jnt_array->q, *KDLTwistPtr, inf->jnt_array->qdot);
