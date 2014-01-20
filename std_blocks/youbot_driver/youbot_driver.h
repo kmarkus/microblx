@@ -44,6 +44,12 @@
  * don't deactivate unless you know what you are doing. */
 #define LIMIT_CURRENT_SOFT
 
+/* Option to get legacy behavior, if defined, pos, vel and effort will
+ * be output in a struct motionctrl_jnt_state, otherwise via
+ * individual ports of type double[5]. */
+#undef USE_ARM_JNT_STATE_STRUCT
+
+
 /* youbot driver information */
 
 #define YOUBOT_SYSCONF_BASE_ONLY		1
@@ -288,8 +294,18 @@ struct youbot_arm_info {
 	int8_t control_mode;		/* currently used control mode */
 	struct youbot_motor_info jnt_inf[YOUBOT_NR_OF_JOINTS];
 
+#ifdef USE_ARM_JNT_STATE_STRUCT
 	struct motionctrl_jnt_state jnt_states;
+	ubx_port_t *p_arm_state;
+#else
+	double pos[YOUBOT_NR_OF_JOINTS];
+	double vel[YOUBOT_NR_OF_JOINTS];
+	double eff[YOUBOT_NR_OF_JOINTS];
 
+	ubx_port_t *p_msr_pos;
+	ubx_port_t *p_msr_vel;
+	ubx_port_t *p_msr_eff;
+#endif
 	/* calibration stuff */
 	int calibrating;
 	int axis_at_limit[YOUBOT_NR_OF_JOINTS];
@@ -303,7 +319,6 @@ struct youbot_arm_info {
 	ubx_port_t *p_cmd_vel;
 	ubx_port_t *p_cmd_cur;
 	ubx_port_t *p_cmd_eff;
-	ubx_port_t *p_arm_state;
 	ubx_port_t *p_arm_motorinfo;
 	ubx_port_t *p_gripper;
 };
