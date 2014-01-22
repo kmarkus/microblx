@@ -2,7 +2,7 @@
  * youbot_kin microblx function block
  */
 
-#define DEBUG
+#define DEBUG	1
 
 #include "ubx.h"
 
@@ -99,10 +99,14 @@ static int youbot_kin_init(ubx_block_t *b)
 	inf->chain = new Chain();
 
 	/* youbot arm kinematics */
+	// inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Rotation::RPY(0.0, 0.0, 170*M_PI/180), Vector(0.024, 0.0, 0.096))));
+	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, -65*M_PI/180, 0.0), Vector(0.033, 0.0, 0.019))));
+	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, 146*M_PI/180, 0.0), Vector(0.000, 0.0, 0.155))));
+	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, -102.5*M_PI/180, 0.0), Vector(0.000, 0.0, 0.135))));
 	inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Vector(0.024, 0.0, 0.096))));
-	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.033, 0.0, 0.019))));
-	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.000, 0.0, 0.155))));
-	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.000, 0.0, 0.135))));
+	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, 0, -M_PI), Vector(0.033, 0.0, 0.019))));
+	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.0, 0.0, 0.155))));
+	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, 0.0, -M_PI), Vector(0.0, 0.0, 0.135))));
 	inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Vector(-0.002, 0.0, 0.130))));
 
 	/* create and configure solvers */
@@ -169,11 +173,14 @@ static void youbot_kin_step(ubx_block_t *b)
 	struct youbot_kin_info* inf;
 	inf = (struct youbot_kin_info*) b->private_data;
 
+	DBG("");
+
 	/* read jnt state and compute forward kinematics */
 	if(read_double5(inf->p_arm_in_msr_pos, &msr_pos) == 5 &&
 	   read_double5(inf->p_arm_in_msr_vel, &msr_vel) == 5) {
 
 		DBG("computing FK");
+		DBG("msr_pos: %3f %3f %3f %3f %3f", msr_pos[0], msr_pos[1], msr_pos[2], msr_pos[3], msr_pos[4]);
 
 		for(int i=0;i<YOUBOT_NR_OF_JOINTS;i++) {
 			inf->jnt_array->q(i) = msr_pos[i];
@@ -186,8 +193,15 @@ static void youbot_kin_step(ubx_block_t *b)
 		KDLPose = inf->frame_vel->GetFrame();
 		KDLTwist = inf->frame_vel->GetTwist();
 
+		DBG("KDLPose:\n%3f %3f %3f %3f\n%3f %3f %3f %3f\n%3f %3f %3f %3f\n%3f %3f %3f %3f",
+		    KDLPose.M.data[0], KDLPose.M.data[1], KDLPose.M.data[2], KDLPose.p[0],
+		    KDLPose.M.data[3], KDLPose.M.data[4], KDLPose.M.data[5], KDLPose.p[1],
+		    KDLPose.M.data[6], KDLPose.M.data[7], KDLPose.M.data[8], KDLPose.p[2],
+		    0.0, 0.0, 0.0, 1.0);
+
+
 		write_kdl_frame(inf->p_arm_out_msr_ee_pose, (struct kdl_frame*) &KDLPose);
-		write_kdl_twist(inf->p_arm_out_msr_ee_twist, (struct kdl_twist*) &KDLPose);
+		write_kdl_twist(inf->p_arm_out_msr_ee_twist, (struct kdl_twist*) &KDLTwist);
 
 	}
 

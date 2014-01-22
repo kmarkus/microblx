@@ -3,12 +3,13 @@
 
 logger_report_conf = [[
 {
+  { blockname='jntpos', portname="rnd_num", buff_len=1 },
   { blockname='ybkin1', portname="arm_out_msr_ee_pose", buff_len=1 },
-  { blockname='ybkin1', portname="arm_out_msr_ee_twist", buff_len=1 },
+  -- { blockname='ybkin1', portname="arm_out_msr_ee_twist", buff_len=1 },
 }
 ]]
 
-lua_block_impl = [[
+lua_block_rndpos = [[
 local ubx=require "ubx"
 local ffi=require "ffi"
 
@@ -17,8 +18,8 @@ local rnd_num
 local p_rnd_num
 
 function init(b)
-   print("init")
    b = ffi.cast("ubx_block_t*", b)
+   print(ffi.string(b.name).." init")
 
    ubx.port_add(b, "rnd_num", "random array [5] value", nil, 0, "double", 5, 0)
 
@@ -32,16 +33,74 @@ function init(b)
 end
 
 function step(b)
-   print("step")
+   b = ffi.cast("ubx_block_t*", b)
+   print(ffi.string(b.name).." step")
    for i=0,4 do rnd_num[i] = (math.random(200) - 100) end
    ubx.port_write(p_rnd_num, rnd_num_data)
 end
 
 function cleanup(b)
-   print("cleanup")
+   b = ffi.cast("ubx_block_t*", b)
+   print(ffi.string(b.name).." cleanup")
    ubx.port_rm(block, "rnd_num")
 end
 ]]
+
+lua_block_prelist = [[
+local ubx=require "ubx"
+local ffi=require "ffi"
+local math=require "math"
+local utils=require"utils"
+
+local rnd_num_data
+local rnd_num
+local p_rnd_num
+local cnt=1
+
+values = {
+	{ 0,0,0,0,0 },
+	{ math.pi/2,0,0,0,0 },
+	{ 0,math.pi/2,0,0,0 },
+	{ 0,0,math.pi/2,0,0 },
+	{ 0,0,0,math.pi/2,0 },
+
+}
+
+function init(b)
+   b = ffi.cast("ubx_block_t*", b)
+   print(ffi.string(b.name).." init")
+
+   ubx.port_add(b, "rnd_num", "random array [5] value", nil, 0, "double", 5, 0)
+
+   p_rnd_num = ubx.port_get(b, "rnd_num")
+   rnd_num_data = ubx.data_alloc(b.ni, "double", 5)
+   rnd_num = ubx.data_to_cdata(rnd_num_data)
+
+   local ts = ubx.clock_mono_gettime()
+   math.randomseed(tonumber(ts.nsec))
+   return true
+end
+
+function step(b)
+   b = ffi.cast("ubx_block_t*", b)
+   print(ffi.string(b.name).." step")
+
+   local v = values[cnt]
+   print(ffi.string(b.name).." step "..tostring(cnt)..": "..utils.tab2str(v))
+
+   for i=0,4 do rnd_num[i] = v[i+1] end
+   ubx.port_write(p_rnd_num, rnd_num_data)
+   cnt=cnt%5
+   cnt=cnt+1
+end
+
+function cleanup(b)
+   b = ffi.cast("ubx_block_t*", b)
+   print(ffi.string(b.name).." cleanup")
+   ubx.port_rm(block, "rnd_num")
+end
+]]
+
 
 
 return bd.system
@@ -66,12 +125,13 @@ return bd.system
    },
 
    configurations = {
-      { name='jntpos', config = { lua_str = lua_block_impl } },
-      { name='jntvel', config = { lua_str = lua_block_impl } },
+      { name='jntpos', config = { lua_str = lua_block_prelist } },
+      { name='jntvel', config = { lua_str = lua_block_rndpos } },
       { name="logger1", config = { filename="youbot_kin_test.log", separator=",", timestamp=1,
 				   report_conf = logger_report_conf } },
       { name="trig1", config = {
 	   trig_blocks={ { b="#jntpos", num_steps=1, measure=0 },
+			 { b="#jntvel", num_steps=1, measure=0 },
 			 { b="#ybkin1", num_steps=1, measure=0 },
 			 { b="#logger1", num_steps=1, measure=0 } } },
       }
