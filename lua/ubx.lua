@@ -824,7 +824,8 @@ function M.node_todot(ni)
    --- Add trigger edges
    function gen_dot_trigger_edges(b, res)
 
-      if b.prototype~="std_triggers/ptrig" then return end
+      if not (b.prototype=="std_triggers/ptrig" or
+	      b.prototype=="std_triggers/trig") then return end
       local trig_blocks_cfg
 
       for i,c in ipairs(b.configs) do
