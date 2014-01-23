@@ -41,6 +41,17 @@ local ac=require "ansicolors"
 
 local M={}
 
+--- set to false to disable terminal colors
+M.color = true
+
+local function red(str, bright) if M.color then str = ac.red(str); if bright then str=ac.bright(str) end end return str end
+local function blue(str, bright) if M.color then str = ac.blue(str); if bright then str=ac.bright(str) end end return str end
+local function cyan(str, bright) if M.color then str = ac.cyan(str); if bright then str=ac.bright(str) end end return str end
+local function white(str, bright) if M.color then str = ac.white(str); if bright then str=ac.bright(str) end end return str end
+local function green(str, bright) if M.color then str = ac.green(str); if bright then str=ac.bright(str) end end return str end
+local function yellow(str, bright) if M.color then str = ac.yellow(str); if bright then str=ac.bright(str) end end return str end
+local function magenta(str, bright) if M.color then str = ac.magenta(str); if bright then str=ac.bright(str) end end return str end
+
 local setup_enums
 
 ------------------------------------------------------------------------------
@@ -147,18 +158,23 @@ function M.is_outport(p) return p.out_type_name ~= nil end
 function M.is_inport(p) return p.in_type_name ~= nil end
 function M.is_inoutport(p) return M.is_outport(p) and M.is_inport(p) end
 
+
 ------------------------------------------------------------------------------
---                           Node and block API
+--                           OS API
 ------------------------------------------------------------------------------
 
---- Load and initialize a ubx module.
--- @param ni node_info pointer into which to load module
--- @param libfile module file to load
-function M.load_module(ni, libfile)
-   assert(ubx.ubx_module_load(ni, libfile), "loading module "..ts(libfile).." failed")
-   M.ffi_load_types(ni)
+--- Get monotonic clock
+-- @param ts optional out value struct ubx_timespec
+-- @param filled struct ubx_timespec
+function M.clock_mono_gettime(ts)
+   ts = ts or ffi.new("struct ubx_timespec")
+   ubx.ubx_clock_mono_gettime(ts)
+   return ts
 end
 
+------------------------------------------------------------------------------
+--                           Node API
+------------------------------------------------------------------------------
 
 --- Create and initalize a new node_info struct
 -- @param name name of node
@@ -167,6 +183,14 @@ function M.node_create(name)
    local ni=ffi.new("ubx_node_info_t")
    assert(ubx.ubx_node_init(ni, name)==0, "node_create failed")
    return ni
+end
+
+--- Load and initialize a ubx module.
+-- @param ni node_info pointer into which to load module
+-- @param libfile module file to load
+function M.load_module(ni, libfile)
+   assert(ubx.ubx_module_load(ni, libfile), "loading module "..ts(libfile).." failed")
+   M.ffi_load_types(ni)
 end
 
 --- Cleanup a node: cleanup and remove instances and unload modules.
@@ -188,12 +212,10 @@ function M.block_create(ni, type, name, conf)
    return b
 end
 
-
--- OS stuff
-function M.clock_mono_gettime(ts)
-   ts = ts or ffi.new("struct ubx_timespec")
-   ubx.ubx_clock_mono_gettime(ts)
-   return ts
+function M.block_get(ni, bname)
+   local b = ubx.ubx_block_get(ni, bname)
+   if b==nil then error("block_get: no block with name '"..ts(bname).."'") end
+   return b
 end
 
 --- Unload a block: bring it to state preinit and call ubx_block_rm
@@ -204,6 +226,114 @@ function M.block_unload(ni, name)
    if b.block_state==ffi.C.BLOCK_STATE_INACTIVE then M.block_cleanup(b) end
    if M.block_rm(ni, name) ~= 0 then error("block_unload: ubx_block_rm failed for '"..name.."'") end
 end
+
+--- Determine the number of blocks
+function M.num_blocks(ni)
+   local num_cb, num_ib, inv = 0,0,0
+   M.blocks_map(ni,
+		function (b)
+		   if b.type==ffi.C.BLOCK_TYPE_COMPUTATION then num_cb=num_cb+1
+		   elseif b.type==ffi.C.BLOCK_TYPE_INTERACTION then num_ib=num_ib+1
+		   else inv=inv+1 end
+		end)
+   return num_cb, num_ib, inv
+end
+
+function M.num_types(ni) return ubx.ubx_num_types(ni) end
+
+
+-- add Lua OO methods
+local ubx_node_info_mt = {
+   __tostring = function(ni)
+      local num_cb, num_ib, inv = M.num_blocks(ni)
+      local num_types = M.num_types(ni)
+
+      return string.format("%s <node>: #blocks: %d (#cb: %d, #ib: %d), #types: %d",
+			   green(M.safe_tostr(ni.name)), num_cb + num_ib, num_cb, num_ib, num_types)
+   end,
+   __index = {
+      load_module = M.load_module,
+      block_create = M.block_create,
+      block_unload = M.block_unload,
+      cleanup = M.node_cleanup,
+      b = M.block_get,
+      block_get = M.block_get,
+   },
+}
+ffi.metatype("struct ubx_node_info", ubx_node_info_mt)
+
+
+------------------------------------------------------------------------------
+--                           Block API
+------------------------------------------------------------------------------
+
+--- Convert a block to a Lua table.
+function M.block_totab(b)
+   if b==nil then error("NULL block") end
+   local res = {}
+   res.name=M.safe_tostr(b.name)
+   res.meta_data=M.safe_tostr(b.meta_data)
+   res.block_type=M.block_type_tostr[b.type]
+   res.state=M.block_state_tostr[b.block_state]
+   if b.prototype~=nil then res.prototype=M.safe_tostr(b.prototype) else res.prototype="<prototype>" end
+
+   if b.type==ffi.C.BLOCK_TYPE_COMPUTATION then
+      res.stat_num_steps=tonumber(b.stat_num_steps)
+   elseif b.type==ffi.C.BLOCK_TYPE_INTERACTION then
+      res.stat_num_reads=tonumber(b.stat_num_reads)
+      res.stat_num_writes=tonumber(b.stat_num_writes)
+   end
+
+   res.ports=M.ports_map(b, M.port_totab)
+   res.configs=M.configs_map(b, M.config_totab)
+
+   return res
+end
+
+--- Pretty print a block.
+-- @param b block to convert to string.
+-- @return string
+function M.block_tostr(b)
+   local bt=M.block_totab(b)
+   local fmt="%s (type=%s, state=%s, prototype=%s)"
+   local res=fmt:format(green(bt.name), bt.block_type, bt.state, blue(bt.prototype), bt.stat_num_steps)
+   return res
+end
+
+function M.block_port_get (b, n)
+   local res = ubx.ubx_port_get(b, n)
+   if res==nil then error("port_get: no port with name '"..ts(n).."'") end
+   return res
+end
+
+function M.block_config_get (b, n)
+   local res = ubx.ubx_config_get(b, n)
+   if res==nil then error("config_get: no config with name '"..ts(n).."'") end
+   return res
+end
+
+-- add Lua OO methods
+local ubx_block_mt = {
+   __tostring = M.block_tostr,
+   __index = {
+      p = M.block_port_get,
+      port_get = M.block_port_get,
+      port_add = ubx.ubx_port_add,
+      port_rm = ubx.ubx_port_rm,
+
+      c = M.block_config_get,
+      config_get = M.block_config_get,
+      config_add = ubx.ubx_config_add,
+      config_rm = ubx.ubx_config_rm,
+
+      init = ubx.ubx_block_init,
+      start = ubx.ubx_block_start,
+      stop = ubx.ubx_block_stop,
+      cleanup = ubx.ubx_block_cleanup,
+      step = ubx.ubx_cblock_step,
+   }
+}
+ffi.metatype("struct ubx_block", ubx_block_mt)
 
 ------------------------------------------------------------------------------
 --                           Data type handling
@@ -227,19 +357,26 @@ end
 
 --- Allocate a new ubx_data with a given dimensionality.
 -- This data will be automatically garbage collected.
+-- @param ubx_type of data to allocate
+-- @param num desired type array length
+-- @return ubx_data_t
+function M.__data_alloc(typ, num)
+   num=num or 1
+   local d = ubx.__ubx_data_alloc(typ, num)
+   if d==nil then error(M.safe_tostr(ni.name)..": data_alloc: unkown type '"..type_name.."'") end
+   ffi.gc(d, function(dat) ubx.ubx_data_free(ni, dat) end)
+   return d
+end
+
+--- Allocate a new ubx_data with a given dimensionality.
+-- This data will be automatically garbage collected.
 -- @param ni node_info
 -- @param name type of data to allocate
 -- @param num dimensionality
 -- @return ubx_data_t
 function M.data_alloc(ni, type_name, num)
-   num=num or 1
-   local d = ubx.ubx_data_alloc(ni, type_name, num)
-   if d==nil then error(M.safe_tostr(ni.name)..": data_alloc: unkown type '"..type_name.."'") end
-   ffi.gc(d, function(dat)
-		-- print("data_free: freeing data ", dat)
-		ubx.ubx_data_free(ni, dat)
-	     end)
-   return d
+   local t = M.type_get(ni, type_name)
+   return M.__data_alloc(t, num)
 end
 
 M.data_free = ubx.ubx_data_free
@@ -419,7 +556,63 @@ function M.data_set(d, val, resize)
    return d_cdata
 end
 
+-- add Lua OO methods
+local ubx_data_mt = {
+   __tostring = M.data_tostr,
+   __len = function (d) return tonumber(d.len) end,
+   __index = {
+      tolua = M.data_tolua,
+      size = M.data_size,
+      ctype = M.data_to_ctype,
+      cdata = M.data_to_cdata,
+      resize = M.data_resize,
+      set = M.data_set,
+   },
+}
+ffi.metatype("struct ubx_data", ubx_data_mt)
+
+
+--- Convert a ubx_type to a Lua table
+function M.ubx_type_totab(t)
+   if t==nil then error("NULL type"); return end
+   local res = {}
+   res.name=M.safe_tostr(t.name)
+   res.class=M.type_class_tostr[t.type_class]
+   res.size=tonumber(t.size)
+   if t.type_class==ubx.TYPE_CLASS_STRUCT then res.model=M.safe_tostr(t.private_data) end
+   return res
+end
+
+--- Print a ubx_type
+function M.type_tostr(t, verb)
+   local tt=M.ubx_type_totab(t)
+   local res=("%s, sz=%d, %s"):format(tt.name, tt.size, tt.class)
+   if verb then res=res.."\nmodel=\n"..tt.model end
+   return res
+end
+
+-- add Lua OO methods
+local ubx_type_mt = {
+   __tostring = M.type_tostr,
+   __index = {
+      totab = M.ubx_type_totab,
+      size = function (t) return tonumber(t.size) end,
+      ctype = M.type_to_ctype,
+   },
+}
+ffi.metatype("struct ubx_type", ubx_type_mt)
+
+
+------------------------------------------------------------------------------
+--                           Config handling
+------------------------------------------------------------------------------
+
+function M.config_set(c, val)
+   return M.data_set(c.value, val)
+end
+
 --- Set a configuration value
+-- @deprecated
 -- @param b block
 -- @param name name of configuration value
 -- @param val value to assign (must follow luajit FFI initialization rules)
@@ -482,6 +675,38 @@ function M.set_config_str(b, name, strval)
    return M.set_config(b, name, load_confstr(strval))
 end
 
+function M.config_totab(c)
+   if c==nil then return "NULL config" end
+   local res = {}
+   res.name = M.safe_tostr(c.name)
+   res.doc = M.safe_tostr(c.doc)
+   res.type_name = M.safe_tostr(c.type_name)
+   res.value = M.data_tolua(c.value)
+   return res
+end
+
+function M.config_tostr(c)
+   local ctab = M.config_totab(c)
+   local doc = ""
+   local tstr = M.type_tostr(c.value.type)
+
+   if ctab.doc then doc=red("// "..ctab.doc) end
+
+   return blue(ctab.name, true).." <"..tstr.."> "..yellow(tostring(c.value))
+end
+
+-- add Lua OO methods
+local ubx_config_mt = {
+   __tostring = M.config_tostr,
+   __index = {
+      set = M.set_config,
+      totab = M.config_totab,
+      data = function (c) return c.value end,
+   },
+}
+
+ffi.metatype("struct ubx_config", ubx_config_mt)
+
 
 ------------------------------------------------------------------------------
 --                              Interactions
@@ -512,12 +737,37 @@ end
 --                   Port reading and writing
 ------------------------------------------------------------------------------
 
-function M.port_read(p, rdat)
-   return ubx.__port_read(p, rdat)
+--- Allocate a ubx_data for port reading
+-- @param port
+-- @return ubx_data_t sample
+function M.port_alloc_read_sample(p)
+   return ubx.__ubx_data_alloc(p.in_type, p.in_data_len)
 end
 
-function M.port_write(p, data)
-   ubx.__port_write(p, data)
+--- Allocate a ubx_data for port writing
+-- @param port
+-- @return ubx_data_t sample
+function M.port_alloc_write_sample(p)
+   return ubx.__ubx_data_alloc(p.out_type, p.out_data_len)
+end
+
+--- Read from a port.
+--
+function M.port_read(p, rval)
+   if type(rval)~='cdata' then
+      rval=M.port_alloc_read_sample(p)
+   end
+   return ubx.__port_read(p, rval), rval
+end
+
+function M.port_write(p, wval)
+   if type(wval) == 'cdata' then
+      ubx.__port_write(p, wval)
+   else
+      local sample = M.port_alloc_write_sample(p)
+      sample:set(wval)
+      ubx.__port_write(p, sample)
+   end
 end
 
 function M.port_write_read(p, wdat, rdat)
@@ -525,28 +775,36 @@ function M.port_write_read(p, wdat, rdat)
    return M.port_read(p, rdat)
 end
 
+--- Read from port with timeout.
+-- @param p port to read from
+-- @param data data to store result of read
+-- @param sec duration to block in seconds
+function M.port_read_timed(p, data, sec)
+   local res
+   local ts_start=ffi.new("struct ubx_timespec")
+   local ts_cur=ffi.new("struct ubx_timespec")
 
-------------------------------------------------------------------------------
---                   Usefull stuff: foreach, pretty printing
-------------------------------------------------------------------------------
+   M.clock_mono_gettime(ts_start)
+   M.clock_mono_gettime(ts_cur)
 
---- Convert a ubx_type to a Lua table
-function M.ubx_type_totab(t)
-   if t==nil then error("NULL type"); return end
-   local res = {}
-   res.name=M.safe_tostr(t.name)
-   res.class=M.type_class_tostr[t.type_class]
-   res.size=tonumber(t.size)
-   if t.type_class==ubx.TYPE_CLASS_STRUCT then res.model=M.safe_tostr(t.private_data) end
-   return res
+   while ts_cur.sec - ts_start.sec < sec do
+      res=M.port_read(p, data)
+      if res>0 then return res end
+      M.clock_mono_gettime(ts_cur)
+   end
+   error("port_read_timed: timeout after reading "..M.safe_tostr(p.name).." for "..tostring(sec).." seconds")
 end
 
---- Print a ubx_type
-function M.type_tostr(t, verb)
-   local tt=M.ubx_type_totab(t)
-   local res=("ubx_type_t: name=%s, size=%d, type_class=%s"):format(tt.name, tt.size, tt.class)
-   if verb then res=res.."\nmodel=\n"..tt.model end
-   return res
+function M.port_out_size(p)
+   if p==nil then error("port_out_size: port is nil") end
+   if not M.is_outport(p) then error("port "..M.safe_tostr(p.name).." is not an outport") end
+   return tonumber(p.out_type.size * p.out_data_len)
+end
+
+function M.port_in_size(p)
+   if p==nil then error("port_in_size: port is nil") end
+   if not M.is_inport(p) then error("port_in_size: port "..M.safe_tostr(p.name).." is not an inport") end
+   return tonumber(p.in_type.size * p.in_data_len)
 end
 
 
@@ -587,65 +845,50 @@ function M.port_totab(p)
    return ptab
 end
 
-function M.config_totab(c)
-   if c==nil then return "NULL config" end
-   local res = {}
-   res.name = M.safe_tostr(c.name)
-   res.doc = M.safe_tostr(c.doc)
-   res.type_name = M.safe_tostr(c.type_name)
-   res.value = M.data_tolua(c.value)
-   return res
-end
+function M.port_tostr(port)
+   local in_str=""
+   local out_str=""
+   local doc=""
 
---- Convert a block to a Lua table.
-function M.block_totab(b)
-   if b==nil then error("NULL block") end
-   local res = {}
-   res.name=M.safe_tostr(b.name)
-   res.meta_data=M.safe_tostr(b.meta_data)
-   res.block_type=M.block_type_tostr[b.type]
-   res.state=M.block_state_tostr[b.block_state]
-   if b.prototype~=nil then res.prototype=M.safe_tostr(b.prototype) else res.prototype="<prototype>" end
+   local p = M.port_totab(port)
 
-   if b.type==ffi.C.BLOCK_TYPE_COMPUTATION then
-      res.stat_num_steps=tonumber(b.stat_num_steps)
-   elseif b.type==ffi.C.BLOCK_TYPE_INTERACTION then
-      res.stat_num_reads=tonumber(b.stat_num_reads)
-      res.stat_num_writes=tonumber(b.stat_num_writes)
+   if p.in_type_name then
+      in_str = "in: "..p.in_type_name
+      if p.in_data_len > 1 then in_str = in_str.."["..ts(p.in_data_len).."]" end
+      in_str = in_str.." #conn: "..ts(#p.connections.incoming)
    end
 
-   res.ports=M.ports_map(b, M.port_totab)
-   res.configs=M.configs_map(b, M.config_totab)
+   if p.out_type_name==nil then
+      out_str = ", out: "..p.out_type_name
+      if p.out_data_len > 1 then out_str = out_str.."["..ts(p.out_data_len).."]" end
+      out_str = out_str.." #conn: "..ts(#p.connections.outgoing)
+   end
 
-   return res
+   if p.doc then doc = red(" // "..p.doc) end
+
+   return cyan(p.name, true) .. ": "..in_str..out_str..doc
 end
 
---- Pretty print a port
--- @param p port to convert to string
--- @return string
-function M.ports_tostr(ports)
-   local res={}
-   for i,p in ipairs(ports) do res[#res+1]="    port: "..ac.blue(p.name)..":   "..utils.tab2str(p) end
-   return table.concat(res, '\n')
-end
+-- add Lua OO methods
+local ubx_port_mt = {
+   __tostring = M.port_tostr,
+   __len = function (p) return tonumber(p.in_data_len), tonumber(p.out_data_len) end,
+   __index = {
+      totab = M.port_totab,
+      out_size = M.port_out_size,
+      in_size = M.port_in_size,
+      write = M.port_write,
+      read = M.port_read,
+      write_read = M.port_write_read,
+      read_timed = M.port_read_timed,
+   },
+}
+ffi.metatype("struct ubx_port", ubx_port_mt)
 
-function M.configs_tostr(configs)
-   local res={}
-   for i,c in ipairs(configs) do res[#res+1]="    config: "..ac.blue(c.name)..": "..utils.tab2str(c) end
-   return table.concat(res, '\n')
-end
 
---- Pretty print a block.
--- @param b block to convert to string.
--- @return string
-function M.block_tostr(b)
-   local bt=M.block_totab(b)
-   local fmt="ubx_block_t: name=%s, block_type=%s, state=%s, prototype=%s\n"
-   local res=fmt:format(ac.blue(bt.name), bt.block_type, bt.state, bt.prototype, bt.stat_num_steps)
-   res=res..M.ports_tostr(bt.ports)
-   res=res..M.configs_tostr(bt.configs)
-   return res
-end
+------------------------------------------------------------------------------
+--                   Usefull stuff: foreach, pretty printing
+------------------------------------------------------------------------------
 
 --- Call a function on every known type.
 -- @param ni ubx_node_info_t*
@@ -711,19 +954,10 @@ function M.configs_map(b, fun, pred)
 end
 
 --- Call a function on every block of the given list.
--- @param a block_list
--- @param function
-function M.blocks_foreach(ni, fun, pred)
-   if ni==nil then return end
-   pred = pred or function() return true end
-   local ubx_block_t_ptr = ffi.typeof("ubx_block_t*")
-   local b=ni.blocks
-   while b ~= nil do
-      if pred(b) then fun(b) end
-      b=ffi.cast(ubx_block_t_ptr, b.hh.next)
-   end
-end
-
+-- @param ni node info
+-- @param fun functionw
+-- @param pred predicate function to filter
+-- @param result table
 function M.blocks_map(ni, fun, pred)
    local res = {}
    if ni==nil then return end
@@ -737,21 +971,6 @@ function M.blocks_map(ni, fun, pred)
    return res
 end
 
-function M.cblocks_foreach(ni, fun, pred)
-   pred = pred or function() return true end
-   M.blocks_foreach(ni, fun, function(b)
-				if not M.is_cblock(b) then return end
-				return pred(b)
-			     end)
-end
-
-function M.iblocks_foreach(ni, fun, pred)
-   pred = pred or function() return true end
-   M.blocks_foreach(ni, fun, function(b)
-				if not M.is_iblock(b) then return end
-				return pred(b)
-			     end)
-end
 
 --- Apply a function to each module of a node.
 -- @param ni node
@@ -768,40 +987,10 @@ function M.modules_foreach(ni, fun, pred)
    end
 end
 
---- Pretty print helpers
-function M.print_types(ni) types_foreach(ni, ubx_type_pp) end
-function M.print_cblocks(ni) M.cblocks_foreach(ni, function(b) print(M.block_tostr(b)) end) end
-function M.print_iblocks(ni) M.iblocks_foreach(ni, function(b) print(M.block_tostr(b)) end) end
-
-function M.num_blocks(ni)
-   local num_cb, num_ib, inv = 0,0,0
-   M.block_foreach(ni, function (b)
-			  if b.block_type==ffi.C.BLOCK_TYPE_COMPUTATION then num_cb=num_cb+1
-			  elseif b.block_type==ffi.C.BLOCK_TYPE_INTERACTION then num_ib=num_ib+1
-			  else inv=inv+1 end
-		       end)
-   return num_cb, num_ib, inv
-end
-
-function M.num_types(ni) return ubx.ubx_num_types(ni) end
-
---- Print an overview of current node state.
-function M.ni_stat(ni)
-   print(string.rep('-',78))
-   local num_cb, num_ib, num_inv
-   print("cblocks:"); M.print_cblocks(ni);
-   print("iblocks:"); M.print_iblocks(ni);
-   print(tostring(num_cb).." cblocks, ",
-	 tostring(num_ib).." iblocks, ",
-	 tostring(ubx.ubx_num_types(ni)).." types")
-   print(string.rep('-',78))
-end
-
 --- Convert the current system to a dot-file
 -- @param ni
 -- @return graphviz dot string
 function M.node_todot(ni)
-
    --- Generate a list of block nodes in graphviz dot syntax
    function gen_dot_nodes(blocks)
       local function block2color(b)
@@ -961,27 +1150,6 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, data_len1, data_l
    return p
 end
 
---- Read from port with timeout.
--- @param p port to read from
--- @param data data to store result of read
--- @param sec duration to block in seconds
-function M.port_read_timed(p, data, sec)
-   local res
-   local ts_start=ffi.new("struct ubx_timespec")
-   local ts_cur=ffi.new("struct ubx_timespec")
-
-   M.clock_mono_gettime(ts_start)
-   M.clock_mono_gettime(ts_cur)
-
-   while ts_cur.sec - ts_start.sec < sec do
-      res=M.port_read(p, data)
-      if res>0 then return res end
-      M.clock_mono_gettime(ts_cur)
-   end
-   error("port_read_timed: timeout after reading "..M.safe_tostr(p.name).." for "..tostring(sec).." seconds")
-end
-
-
 --- Connect two blocks' ports via a unidirectional connection.
 -- @param b1 block1
 -- @param pname1 name of a block1's out port to connect from.
@@ -1028,18 +1196,6 @@ function M.conn_uni(b1, pname1, b2, pname2, iblock_type, iblock_config, dont_sta
    if not dont_start then M.block_start(ib) end
 
    return ib
-end
-
-function M.port_out_size(p)
-   if p==nil then error("port_out_size: port is nil") end
-   if not M.is_outport(p) then error("port "..M.safe_tostr(p.name).." is not an outport") end
-   return tonumber(p.out_type.size * p.out_data_len)
-end
-
-function M.port_in_size(p)
-   if p==nil then error("port_in_size: port is nil") end
-   if not M.is_inport(p) then error("port_in_size: port "..M.safe_tostr(p.name).." is not an inport") end
-   return tonumber(p.in_type.size * p.in_data_len)
 end
 
 

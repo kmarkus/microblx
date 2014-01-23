@@ -508,6 +508,49 @@ int ubx_resolve_types(ubx_block_t* b)
 	return ret;
 }
 
+/**
+ * Allocate a ubx_data_t of the given type and array length.
+ *
+ * This type should be free'd using the ubx_data_free function.
+ *
+ * @param ubx_type_t of the new type
+ * @param array_len
+ *
+ * @return ubx_data_t* or NULL in case of error.
+ */
+ubx_data_t* __ubx_data_alloc(ubx_type_t* typ, unsigned long array_len)
+{
+	ubx_data_t* d = NULL;
+
+	if(typ==NULL) {
+		ERR("invalid type parameter");
+		goto out;
+	}
+
+	if(array_len == 0) {
+		ERR("invalid array_len 0");
+		goto out;
+	}
+
+	if((d=calloc(1, sizeof(ubx_data_t)))==NULL)
+		goto out_nomem;
+
+	d->type = typ;
+	d->len = array_len;
+
+	if((d->data=calloc(array_len, typ->size))==NULL)
+		goto out_nomem;
+
+	/* all ok */
+	goto out;
+
+ out_nomem:
+	ERR("memory allocation failed");
+	if(d) free(d);
+
+ out:
+	return d;
+}
 
 /**
  * Allocate a ubx_data_t of the given type and array length.
@@ -526,12 +569,7 @@ ubx_data_t* ubx_data_alloc(ubx_node_info_t *ni, const char* typname, unsigned lo
 	ubx_data_t* d = NULL;
 
 	if(ni==NULL) {
-		ERR("ni is NULL");
-		goto out;
-	}
-
-	if(array_len == 0) {
-		ERR("invalid array_len 0");
+		ERR("ni parameter NULL");
 		goto out;
 	}
 
@@ -540,21 +578,10 @@ ubx_data_t* ubx_data_alloc(ubx_node_info_t *ni, const char* typname, unsigned lo
 		goto out;
 	}
 
-	if((d=calloc(1, sizeof(ubx_data_t)))==NULL)
-		goto out_nomem;
-
-	d->type = t;
-	d->len = array_len;
-
-	if((d->data=calloc(array_len, t->size))==NULL)
-		goto out_nomem;
+	d = __ubx_data_alloc(t, array_len);
 
 	/* all ok */
 	goto out;
-
- out_nomem:
-	ERR("memory allocation failed");
-	if(d) free(d);
  out:
 	return d;
 }

@@ -26,13 +26,6 @@ function get_time()
    return tonumber(ts1.sec) + tonumber(ts1.nsec) / ns_per_s
 end
 
---- For the given port, create a ubx_data to hold the result of a read.
--- @param port
--- @return ubx_data_t sample
-function create_read_sample(p, ni)
-   return ubx.data_alloc(ni, p.out_type_name, p.out_data_len)
-end
-
 --- convert the report_conf string to a table.
 -- @param report_conf str
 -- @param ni node_info
@@ -86,7 +79,7 @@ local function report_conf_to_portlist(rc, this)
 	    ubx.conn_lfds_cyclic(b, pname, this, p_rep_name, conf.buff_len)
 
 	    conf.pname = p_rep_name
-	    conf.sample=create_read_sample(p, ni)
+	    conf.sample=ubx.port_alloc_write_sample(p)
 	    conf.sample_cdata = ubx.data_to_cdata(conf.sample, true)
 	    conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample, true), blockport)
 	 else

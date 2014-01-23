@@ -14,6 +14,7 @@ int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type);
 ubx_type_t *ubx_type_unregister(ubx_node_info_t *ni, const char *name);
 ubx_type_t *ubx_type_get(ubx_node_info_t *ni, const char *name);
 int ubx_resolve_types(ubx_block_t *b);
+ubx_data_t *__ubx_data_alloc(ubx_type_t *typ, unsigned long array_len);
 ubx_data_t *ubx_data_alloc(ubx_node_info_t *ni, const char *typname, unsigned long array_len);
 int ubx_data_resize(ubx_data_t *d, unsigned int newlen);
 void ubx_data_free(ubx_node_info_t *ni, ubx_data_t *d);

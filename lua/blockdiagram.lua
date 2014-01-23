@@ -164,7 +164,7 @@ function system.launch(self, t)
 	    log(red("error: failed to resolve block #"..name.." for ubx_block_t* conversion"))
 	    ret=false
 	 end
-	 log(magenta("    resolved block #"..name.." and converted to ptr "..ts(ptr)))
+	 log(magenta("    resolved block #"..name))
 	 tab[key]=ptr
       end
       utils.maptree(subs_blck_ptrs, c, function(v,k) return type(v)=='string' end)
@@ -224,7 +224,7 @@ function system.launch(self, t)
 	    function(c)
 	       local b = ubx.block_get(ni, c.name)
 	       if b==nil then
-		  log("    no block named "..c.name.." ignoring configuration", utils.tab2str(c.config))
+		  log(red("    no block named "..c.name.." ignoring configuration "..utils.tab2str(c.config)))
 	       else
 		  if type(c.config)=='string' then
 		     log("    "..green(c.name).." (from file"..yellow(c.config)..")")
