@@ -3,6 +3,9 @@ API Changes
 
 This file tracks user visible API changes.
 
+ * [4e3a0b9a72] OO support for node, block, port, config, data and
+   type. Removed old and unused Lua functions.
+
  * [65cd7088c6] interaction blocks are not strongly typed,
    i.e. instead if data element size and number of buffer elements,
    the type name, array len and number of buffer elements are
