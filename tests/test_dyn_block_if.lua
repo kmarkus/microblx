@@ -75,7 +75,7 @@ function test_port_add_rm()
 			    end
 		      ]]))
 
-   assert_true(ubx.port_get(lb1, "testport0")==nil, "retrieving non-existing port")
+   assert_false(pcall(ubx.port_get, lb1, "testport0"), "retrieving non-existing port")
 
    assert_not_nil(ubx.port_get(lb1, "testport1"))
    assert_not_nil(ubx.port_get(lb1, "testport2"))
@@ -105,7 +105,7 @@ function test_config_add_rm()
 
 
 
-   assert_true(ubx.config_get(lb1, "testconfig0")==nil)
+   assert_false(pcall(ubx.config_get, lb1, "testconfig0"))
 
    assert_not_nil(ubx.config_get(lb1, "testconfig1"))
    assert_not_nil(ubx.config_get(lb1, "testconfig2"))

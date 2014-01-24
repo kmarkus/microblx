@@ -270,6 +270,15 @@ ffi.metatype("struct ubx_node_info", ubx_node_info_mt)
 --                           Block API
 ------------------------------------------------------------------------------
 
+function block_state_color(sstr)
+   if sstr == 'preinit' then return blue(sstr, true)
+   elseif sstr == 'inactive' then return red(sstr)
+   elseif sstr == 'active' then return green(sstr, true)
+   else
+      error(red("unknown state"..ts(s)))
+   end
+end
+
 --- Convert a block to a Lua table.
 function M.block_totab(b)
    if b==nil then error("NULL block") end
@@ -299,7 +308,7 @@ end
 function M.block_tostr(b)
    local bt=M.block_totab(b)
    local fmt="%s (type=%s, state=%s, prototype=%s)"
-   local res=fmt:format(green(bt.name), bt.block_type, bt.state, blue(bt.prototype), bt.stat_num_steps)
+   local res=fmt:format(green(bt.name), bt.block_type, block_state_color(bt.state), blue(bt.prototype), bt.stat_num_steps)
    return res
 end
 
@@ -315,6 +324,7 @@ function M.block_config_get (b, n)
    if res==nil then error("config_get: no config with name '"..ts(n).."'") end
    return res
 end
+M.config_get = M.block_config_get
 
 -- add Lua OO methods
 local ubx_block_mt = {
@@ -322,6 +332,9 @@ local ubx_block_mt = {
    __index = {
       get_name = function (b) return M.safe_tostr(b.name) end,
       get_meta = function (b) return M.safe_tostr(b.meta) end,
+      get_block_state = function (b) return block_state_color(M.block_state_tostr[b.block_state]) end,
+      get_block_type = function (b) return M.block_type_tostr[b.type] end,
+
       p = M.block_port_get,
       port_get = M.block_port_get,
       port_add = ubx.ubx_port_add,
@@ -332,11 +345,11 @@ local ubx_block_mt = {
       config_add = ubx.ubx_config_add,
       config_rm = ubx.ubx_config_rm,
 
-      init = ubx.ubx_block_init,
-      start = ubx.ubx_block_start,
-      stop = ubx.ubx_block_stop,
-      cleanup = ubx.ubx_block_cleanup,
-      step = ubx.ubx_cblock_step,
+      do_init = ubx.ubx_block_init,
+      do_start = ubx.ubx_block_start,
+      do_stop = ubx.ubx_block_stop,
+      do_cleanup = ubx.ubx_block_cleanup,
+      do_step = ubx.ubx_cblock_step,
    }
 }
 ffi.metatype("struct ubx_block", ubx_block_mt)
