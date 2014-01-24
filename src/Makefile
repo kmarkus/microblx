@@ -2,7 +2,7 @@ include ../make.conf
 INCLUDE_DIR=../../src/
 
 libubx.so: ubx.o md5.o
-	${CC} $(LIBUBX_CFLAGS_SHARED) -o $@ $^ -lrt
+	${CC} $(LIBUBX_CFLAGS_SHARED) -o $@ $^ -lrt -ldl
 
 ubx_proto.h: md5.c ubx.c
 	cproto $^ -o $@
