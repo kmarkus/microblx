@@ -6,16 +6,7 @@ local ac = require "ansicolors"
 local ts = tostring
 local M={}
 
--- happy colors
--- color = true
--- local function red(str, bright) if color then str = ac.red(str); if bright then str=ac.bright(str) end end return str end
--- local function blue(str, bright) if color then str = ac.blue(str); if bright then str=ac.bright(str) end end return str end
--- local function cyan(str, bright) if color then str = ac.cyan(str); if bright then str=ac.bright(str) end end return str end
--- local function white(str, bright) if color then str = ac.white(str); if bright then str=ac.bright(str) end end return str end
--- local function green(str, bright) if color then str = ac.green(str); if bright then str=ac.bright(str) end end return str end
--- local function yellow(str, bright) if color then str = ac.yellow(str); if bright then str=ac.bright(str) end end return str end
--- local function magenta(str, bright) if color then str = ac.magenta(str); if bright then str=ac.bright(str) end end return str end
-
+-- color handling via ubx
 red=ubx.red; blue=ubx.blue; cyan=ubx.cyan; white=ubx.cyan; green=ubx.green; yellow=ubx.yellow; magenta=ubx.magenta
 
 AnySpec=umf.AnySpec
