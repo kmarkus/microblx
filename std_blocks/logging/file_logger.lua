@@ -5,6 +5,9 @@ local ffi = require("ffi")
 local time = require("time")
 local ts = tostring
 
+-- color handling via ubx
+red=ubx.red; blue=ubx.blue; cyan=ubx.cyan; white=ubx.cyan; green=ubx.green; yellow=ubx.yellow; magenta=ubx.magenta
+
 -- global state
 filename=nil
 rconf=nil
@@ -34,15 +37,15 @@ local function report_conf_to_portlist(rc, this)
    local ni = this.ni
 
    local succ, res = utils.eval_sandbox("return "..rc)
-   if not succ then error("file_logger: failed to load report_conf:\n"..res) end
+   if not succ then error(red("file_logger: failed to load report_conf:\n"..res), true) end
 
    for i,conf in ipairs(res) do
       local bname, pname = conf.blockname, conf.portname
 
-      local b = ubx.block_get(ni, bname)
+      local b = ni:b(bname)
 
       if b==nil then
-	 print("file_logger error: no block "..bname.." found")
+	 print(red("file_logger error: no block ",true)..green(bname, true)..red(" found", true))
 	 return false
       end
 
@@ -57,7 +60,10 @@ local function report_conf_to_portlist(rc, this)
 	 local p = ubx.port_get(this, p_rep_name)
 	 ubx.port_connect_in(p, b)
 
-	 conf.pname = p_rep_name
+	 conf.type = 'iblock'
+	 conf.bname = bname
+	 conf.pname = pname
+	 conf.p_rep_name = p_rep_name
 	 conf.sample = ubx.data_alloc(ni, p.in_type_name, p.in_data_len)
 	 conf.sample_cdata = ubx.data_to_cdata(conf.sample, true)
 	 conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample, true), bname)
@@ -65,7 +71,7 @@ local function report_conf_to_portlist(rc, this)
       else -- normal connection to cblock
 	 local p = ubx.port_get(b, pname)
 	 if p==nil then
-	    print("file_logger error: block "..bname.." has no port "..pname)
+	    print(red("file_logger error: block ", true)..green(bname, true)..red(" has no port ", true)..cyan(pname, true))
 	    return false
 	 end
 
@@ -74,22 +80,27 @@ local function report_conf_to_portlist(rc, this)
 	 if p.out_type~=nil then
 	    local blockport = bname.."."..pname
 	    local p_rep_name='r'..ts(i)
+	    local iblock
 	    print("file_logger: reporting "..blockport.." as "..p_rep_name)
 	    ubx.port_add(this, p_rep_name, "reporting "..blockport, p.out_type_name, p.out_data_len, nil, 0, 0)
-	    ubx.conn_lfds_cyclic(b, pname, this, p_rep_name, conf.buff_len)
+	    iblock = ubx.conn_lfds_cyclic(b, pname, this, p_rep_name, conf.buff_len)
 
-	    conf.pname = p_rep_name
+	    conf.type = 'port'
+	    conf.iblock_name = iblock:get_name()
+	    conf.bname = bname
+	    conf.pname = pname
+	    conf.p_rep_name = p_rep_name
 	    conf.sample=ubx.port_alloc_write_sample(p)
 	    conf.sample_cdata = ubx.data_to_cdata(conf.sample, true)
 	    conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample, true), blockport)
 	 else
-	    print("ERR: file_logger: refusing to report in-port ", bname.."."..pname)
+	    print(red("ERR: file_logger: refusing to report in-port ", bname.."."..pname), true)
 	 end
       end
    end
 
    -- cache port ptr's (only *after* adding has finished (realloc!)
-   for _,conf in ipairs(res) do conf.pinv=ubx.port_get(this, conf.pname) end
+   for _,conf in ipairs(res) do conf.pinv=ubx.port_get(this, conf.p_rep_name) end
 
    return res
 end
@@ -159,6 +170,25 @@ end
 
 --- cleanup
 function cleanup(b)
+   b=ffi.cast("ubx_block_t*", b)
+   local ni = b.ni
+
+   -- cleanup connections and remove ports
+   for i,c in ipairs(rconf) do
+      if c.type == 'iblock' then
+	 ubx.port_disconnect_in(b:p(c.p_rep_name), ni:b(c.bname))
+	 b:port_rm(c.p_rep_name)
+      else
+	 -- disconnect reporting iblock from reported port:
+	 ubx.port_disconnect_out(ni:b(c.bname):p(c.pname), ni:b(c.iblock_name))
+	 -- disconnect local port from iblock and remove it
+	 ubx.port_disconnect_in(b:p(c.p_rep_name), ni:b(c.iblock_name))
+	 b:port_rm(c.p_rep_name)
+	 -- unload iblock
+	 ni:block_unload(c.iblock_name)
+      end
+   end
+
    io.close(fd)
    fd=nil
    filename=nil
