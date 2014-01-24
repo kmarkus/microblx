@@ -52,6 +52,8 @@ local function green(str, bright) if M.color then str = ac.green(str); if bright
 local function yellow(str, bright) if M.color then str = ac.yellow(str); if bright then str=ac.bright(str) end end return str end
 local function magenta(str, bright) if M.color then str = ac.magenta(str); if bright then str=ac.bright(str) end end return str end
 
+M.red=red; M.blue=blue; M.cyan=cyan; M.white=white; M.green=green; M.yellow=yellow; M.magenta=magenta;
+
 local setup_enums
 
 ------------------------------------------------------------------------------
