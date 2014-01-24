@@ -165,9 +165,9 @@ function M.is_inoutport(p) return M.is_outport(p) and M.is_inport(p) end
 --                           OS API
 ------------------------------------------------------------------------------
 
---- Get monotonic clock
--- @param ts optional out value struct ubx_timespec
--- @param filled struct ubx_timespec
+--- Retrieve the current time using clock_gettime(CLOCK_MONOTONIC).
+-- @param ts struct ubx_timespec out parameter (optional)
+-- @return struct ubx_timespec with current time
 function M.clock_mono_gettime(ts)
    ts = ts or ffi.new("struct ubx_timespec")
    ubx.ubx_clock_mono_gettime(ts)
@@ -739,14 +739,14 @@ end
 --                   Port reading and writing
 ------------------------------------------------------------------------------
 
---- Allocate a ubx_data for port reading
+--- Allocate an ubx_data for port reading
 -- @param port
 -- @return ubx_data_t sample
 function M.port_alloc_read_sample(p)
    return ubx.__ubx_data_alloc(p.in_type, p.in_data_len)
 end
 
---- Allocate a ubx_data for port writing
+--- Allocate an ubx_data for port writing
 -- @param port
 -- @return ubx_data_t sample
 function M.port_alloc_write_sample(p)

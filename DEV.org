@@ -5,6 +5,10 @@
 * Next steps
 
 
+** TODO [#A] overhaul ubx_reflection layer
+   - switch to handle ubx_data.len via cdata
+   - exhaustive unit tests
+
 ** TODO improve type safety of gen_[read/write] generated functions
 
    =/* assert(strcmp(#typename, port->out_type_name)==0); */=
