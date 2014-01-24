@@ -254,6 +254,7 @@ local ubx_node_info_mt = {
 			   green(M.safe_tostr(ni.name)), num_cb + num_ib, num_cb, num_ib, num_types)
    end,
    __index = {
+      get_name = function (ni) return M.safe_tostr(ni.name) end,
       load_module = M.load_module,
       block_create = M.block_create,
       block_unload = M.block_unload,
@@ -307,6 +308,7 @@ function M.block_port_get (b, n)
    if res==nil then error("port_get: no port with name '"..ts(n).."'") end
    return res
 end
+M.port_get = M.block_port_get
 
 function M.block_config_get (b, n)
    local res = ubx.ubx_config_get(b, n)
@@ -318,6 +320,8 @@ end
 local ubx_block_mt = {
    __tostring = M.block_tostr,
    __index = {
+      get_name = function (b) return M.safe_tostr(b.name) end,
+      get_meta = function (b) return M.safe_tostr(b.meta) end,
       p = M.block_port_get,
       port_get = M.block_port_get,
       port_add = ubx.ubx_port_add,
@@ -597,6 +601,8 @@ end
 local ubx_type_mt = {
    __tostring = M.type_tostr,
    __index = {
+      get_name = function (t) return M.safe_tostr(t.name) end,
+      get_type = function (t) return M.safe_tostr(t.doc) end,
       totab = M.ubx_type_totab,
       size = function (t) return tonumber(t.size) end,
       ctype = M.type_to_ctype,
@@ -701,6 +707,8 @@ end
 local ubx_config_mt = {
    __tostring = M.config_tostr,
    __index = {
+      get_name = function (c) return M.safe_tostr(c.name) end,
+      get_doc = function (c) return M.safe_tostr(c.doc) end,
       set = M.set_config,
       totab = M.config_totab,
       data = function (c) return c.value end,
@@ -876,6 +884,8 @@ local ubx_port_mt = {
    __tostring = M.port_tostr,
    __len = function (p) return tonumber(p.in_data_len), tonumber(p.out_data_len) end,
    __index = {
+      get_name = function (p) return M.safe_tostr(p.name) end,
+      get_doc = function (p) return M.safe_tostr(p.doc) end,
       totab = M.port_totab,
       out_size = M.port_out_size,
       in_size = M.port_in_size,
@@ -1036,12 +1046,12 @@ function M.node_todot(ni)
       for _,b in ipairs(blocks) do
 	 for _,p in ipairs(b.ports) do
 	    for _,iblock_out in ipairs(p.connections.outgoing) do
-	       res[#res+1]=utils.expand('    "$from" -> "$to" [taillabel="$taillabel", labeldistance=2];',
-					{from=b.name, to=iblock_out, taillabel=p.name})
+	       res[#res+1]=utils.expand('    "$from" -> "$to" [label="$label", labeldistance=2];',
+					{from=b.name, to=iblock_out, label=p.name})
 	    end
 	    for _,iblock_in in ipairs(p.connections.incoming) do
-	       res[#res+1]=utils.expand('    "$from" -> "$to" [headlabel="$headlabel", labeldistance=2];',
-					{from=iblock_in, to=b.name, headlabel=p.name})
+	       res[#res+1]=utils.expand('    "$from" -> "$to" [label="$label", labeldistance=2];',
+					{from=iblock_in, to=b.name, label=p.name})
 	    end
 	 end
 	 gen_dot_trigger_edges(b, res)

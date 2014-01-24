@@ -212,7 +212,7 @@ function M.gen_logfun(ctype, prefix)
    -- print("ctype: ", ctype)
    -- print("refct: ", utils.tab2str(reflect.typeof(ctype)))
 
-   function format_num(x) return string.format(num_format_spec, tonumber(x)) end
+   local function format_num(x) return string.format(num_format_spec, tonumber(x)) end
 
    if is_string(ctype) then
       return
