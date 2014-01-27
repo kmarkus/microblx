@@ -14,7 +14,7 @@ loop_freq_hz = 100
 
 local p_des_pos, init_done = nil, nil
 
-function move_to(jntpos)
+function move_to_jnt(jntpos)
    assert(ni~=nil, "no 'ni' ptr found")
    assert(jntpos, "missing argument")
    assert(#jntpos==5, "argument has wrong table length, should be 5")

@@ -5,6 +5,7 @@ local utils = require "utils"
 local ac = require "ansicolors"
 local ts = tostring
 local M={}
+local strict = require "strict"
 
 -- color handling via ubx
 red=ubx.red; blue=ubx.blue; cyan=ubx.cyan; white=ubx.cyan; green=ubx.green; yellow=ubx.yellow; magenta=ubx.magenta
@@ -19,6 +20,11 @@ uoo_type = umf.uoo_type
 instance_of = umf.instance_of
 
 system = umf.class("system")
+
+function system:init()
+   local function create_parent_links(subsys) subsys._parent=self end
+   utils.foreach(create_parent_links, self.include or {})
+end
 
 --- imports spec
 imports_spec = TableSpec
@@ -97,8 +103,9 @@ system_spec = ObjectSpec
       blocks=blocks_spec,
       connections=connections_spec,
       configurations=configs_spec,
+      _parent=AnySpec{},
    },
-   optional={ 'include', 'imports', 'blocks', 'connections', 'configurations' },
+   optional={ 'include', 'imports', 'blocks', 'connections', 'configurations', '_parent' },
 }
 
 -- add self include reference
@@ -143,9 +150,37 @@ function system.launch(self, t)
       end
    else log=function() end end
 
-   local imported_modules={}
+   --- Generate a list of all blockdiagram.blocks to be created
+   -- @param blockdiagram.system
+   -- @return list of blocks
+   local function make_block_list(c)
+      local res = {}
+      local function __make_block_list(c)
+	 utils.foreach(__make_block_list, c.include or {})
+	 for _,b in ipairs(c.blocks) do res[#res+1] = b end
+      end
+      __make_block_list(c)
+      print("block_list", #res)
+      return res
+   end
+
+   --- Generate an order list of all modules to be imported
+   -- @param blockdiagram.system
+   -- @reteurn list of imports
+   local function make_import_list(c)
+      local res = {}
+
+      local function __make_import_list(c)
+	 utils.foreach(__make_import_list, c.include or {})
+	 for _,m in ipairs(c.imports) do res[#res+1] = m end
+      end
+      __make_import_list(c)
+      return utils.table_unique(res)
+   end
 
    -- Preprocess configs
+   -- @param ni node_info
+   -- @param c configuration
    -- Substitue #blockanme with corresponding ubx_block_t ptrs
    local function preproc_configs(ni, c)
       local ret=true
@@ -161,7 +196,20 @@ function system.launch(self, t)
 	 tab[key]=ptr
       end
       utils.maptree(subs_blck_ptrs, c, function(v,k) return type(v)=='string' end)
+
       return ret
+   end
+
+   --- Configure a the given block with a config (file or table)
+   -- @param c blockdiagram.config
+   -- @param b ubx_block_t
+   local function apply_conf(c, b)
+      if type(c.config)=='string' then
+	 log("    "..green(c.name).." (from file"..yellow(c.config)..")")
+      else
+	 log("    "..green(c.name).." with "..yellow(utils.tab2str(c.config))..")")
+	 ubx.set_config_tab(b, c.config)
+      end
    end
 
    -- Instatiate the system recursively.
@@ -179,51 +227,39 @@ function system.launch(self, t)
 
       log("launching block diagram system in node "..ts(t.nodename))
 
+      log("    preprocessing configs")
+      if not preproc_configs(ni, self.configurations) then
+	 log(red("    failed"))
+	 os.exit(1)
+      end
+
+      -- launch subsystems
       if #self.include > 0 then
 	 log("loading used subsystems")
 	 utils.foreach(function(s) __launch(s, t, ni) end, self.include)
 	 log("loading subsystems completed")
       end
 
-      if #self.imports > 0 then
-	 log("importing "..ts(#self.imports).." modules... ")
-	 utils.foreach(function(m)
-			  if imported_modules[m] then return end
-			  log("    "..magenta(m) )
-			  ubx.load_module(ni, m)
-			  imported_modules[m]=true
-		       end, self.imports)
-	 log("importing modules completed")
-      end
-
-      if #self.blocks > 0 then
-	 log("instantiating "..ts(#self.blocks).." blocks... ")
-	 utils.foreach(function(b)
-			  log("    "..green(b.name).." ["..blue(b.type).."]")
-			  ubx.block_create(ni, b.type, b.name)
-		       end, self.blocks)
-	 log("instantiating blocks completed")
-      end
-
+      -- apply configuration
       if #self.configurations > 0 then
 	 log("configuring "..ts(#self.configurations).." blocks... ")
-	 log("    preprocessing configs")
-	 if not preproc_configs(ni, self.configurations) then
-	    log(red("    failed"))
-	    os.exit(1)
-	 end
 
 	 utils.foreach(
 	    function(c)
 	       local b = ubx.block_get(ni, c.name)
 	       if b==nil then
 		  log(red("    no block named "..c.name.." ignoring configuration "..utils.tab2str(c.config)))
+	       elseif b:get_block_state()~='preinit' then return
 	       else
-		  if type(c.config)=='string' then
-		     log("    "..green(c.name).." (from file"..yellow(c.config)..")")
-		  else
-		     log("    "..green(c.name).." with "..yellow(utils.tab2str(c.config))..")")
-		     ubx.set_config_tab(b, c.config)
+		  -- apply this config to and then find configs for
+		  -- this block in super-systems (parent systems)
+		  apply_conf(c, b)
+		  local walker = self._parent
+		  while walker ~= nil do
+		     utils.foreach(function (cc)
+				      if cc.name==c.name then apply_conf(cc, b) end
+				   end, walker.configurations)
+		     walker = walker._parent
 		  end
 		  ubx.block_init(b)
 	       end
@@ -231,6 +267,7 @@ function system.launch(self, t)
 	 log("configuring blocks completed")
       end
 
+      -- create connections
       if #self.connections > 0 then
 	 log("creating "..ts(#self.connections).." connections... ")
 	 utils.foreach(function(c)
@@ -296,6 +333,26 @@ function system.launch(self, t)
 
    -- fire it up
    local ni = ubx.node_create(t.nodename)
+
+   -- import modules
+   local imports = make_import_list(self)
+   log("importing "..ts(#imports).." modules... ")
+   utils.foreach(function(m)
+		    log("    "..magenta(m) )
+		    ubx.load_module(ni, m)
+		 end, imports)
+   log("importing modules completed")
+
+   --- create blocks
+   local blocks = make_block_list(self)
+   log("instantiating "..ts(#blocks).." blocks... ")
+   utils.foreach(function(b)
+		    log("    "..green(b.name).." ["..blue(b.type).."]")
+		    ubx.block_create(ni, b.type, b.name)
+		 end, blocks)
+   log("instantiating blocks completed")
+
+   -- configure and connect
    __launch(self, t, ni)
    return ni
 end

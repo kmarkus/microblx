@@ -332,7 +332,7 @@ local ubx_block_mt = {
    __index = {
       get_name = function (b) return M.safe_tostr(b.name) end,
       get_meta = function (b) return M.safe_tostr(b.meta) end,
-      get_block_state = function (b) return block_state_color(M.block_state_tostr[b.block_state]) end,
+      get_block_state = function (b) return M.block_state_tostr[b.block_state] end,
       get_block_type = function (b) return M.block_type_tostr[b.type] end,
 
       p = M.block_port_get,
@@ -1247,8 +1247,12 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
    if p1==nil then error("block "..M.safe_tostr(b1.name).." has no port '"..M.safe_tostr(pname1).."'") end
    if p2==nil then error("block "..M.safe_tostr(b2.name).." has no port '"..M.safe_tostr(pname2).."'") end
 
-   if not M.is_outport(p1) then error("conn_uni: block "..bname1.."'s port "..pname1.." is not an outport") end
-   if not M.is_inport(p2) then error("conn_uni: block "..bname2.."'s port "..pname2.." is not an inport") end
+   if not M.is_outport(p1) then
+      error("conn_uni: block "..M.safe_tostr(b1.name).."'s port "..pname1.." is not an outport")
+   end
+   if not M.is_inport(p2) then
+      error("conn_uni: block ".. M.safe_tostr(b2.name).."'s port "..pname2.." is not an inport") 
+   end
 
    size = max(M.port_out_size(p1), M.port_in_size(p2))
 
