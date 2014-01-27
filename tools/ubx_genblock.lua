@@ -457,14 +457,9 @@ void $(bm.name)_cleanup(ubx_block_t *b)
 /* step */
 void $(bm.name)_step(ubx_block_t *b)
 {
-
-
 	/*
 	struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data;
-
-
 	*/
-
 }
 @ end
 
