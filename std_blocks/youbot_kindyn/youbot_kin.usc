@@ -1,0 +1,58 @@
+-- -*- mode: lua; -*-
+
+-- This composition launches a driver and a joint space trajectory
+-- generator.
+
+local bd = require("blockdiagram")
+
+logger_report_conf = [[
+{ { blockname='ybdrv', portname="arm1_msr_pos", buff_len=3 },
+  { blockname='rml_pos1', portname="cmd_vel", buff_len=3, } }
+]]
+
+loop_freq_hz = 100
+
+local p_des_pos, init_done = nil, nil
+
+function move_to_cart(jntpos)
+   assert(ni~=nil, "no 'ni' ptr found")
+   assert(jntpos, "missing argument")
+   assert(#jntpos==5, "argument has wrong table length, should be 5")
+
+   if not init_done then
+      p_des_pos = ubx.port_clone_conn(ni:b("rml_pos1"), "des_pos", 1, nil, 5)
+      init_done = true
+   end
+   p_des_pos:write(jntpos)
+end
+
+return bd.system
+{
+   imports = {
+      "std_blocks/youbot_kindyn/youbot_kin.so",
+   },
+
+   include = {
+      bd.load("std_blocks/youbot_kindyn/youbot_jntspace.usc")
+   },
+
+   blocks = {
+      { name="ybkin", type="youbot_kin" },
+   },
+
+   connections = {
+      { src="ybkin.arm_out_cmd_jnt_vel", tgt="rml_pos1.des_vel" }
+   },
+
+   configurations = {
+      { name="ybdrv", config = { ethernet_if="eth1" } },
+      { name="ptrig1", config = { period = {sec=0, usec=(1/loop_freq_hz)*1000000 }, 
+				  trig_blocks={ 
+				     { b="#ybkin", num_steps=1, measure=0 },
+				     { b="#rml_pos1", num_steps=1, measure=0 },
+				     { b="#ybdrv", num_steps=1, measure=0 },
+				     { b="#logger1", num_steps=1, measure=0 } } } },
+      
+      { name="logger1", config = { filename="youbot_jntspace.log", separator=",", report_conf = logger_report_conf, } }
+   },
+}
