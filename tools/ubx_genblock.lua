@@ -181,8 +181,10 @@ end
 --- Generate a Makefile
 -- @param bm block model
 -- @param fd file to write to (optional, default: io.stdout)
-function generate_makefile(fd, bm)
+function generate_makefile(fd, bm, c_ext, h_ext)
    fd = fd or io.stdout
+   local cc
+   if bm.cpp then cc = "CPP" else cc = "CC" end
    local str = utils.expand(
       [[
 ROOT_DIR=$(CURDIR)/../..
@@ -196,14 +198,14 @@ TYPES:=$(wildcard types/*.h)
 HEXARRS:=$(TYPES:%=%.hexarr)
 
 $block_name.so: $block_name.o $(INCLUDE_DIR)/libubx.so
-	${CC} $(CFLAGS_SHARED) -o $block_name.so $block_name.o $(INCLUDE_DIR)/libubx.so
+	${$cc} $(CFLAGS_SHARED) -o $block_name.so $block_name.o $(INCLUDE_DIR)/libubx.so
 
-$block_name.o: $block_name.h $block_name.c $(INCLUDE_DIR)/ubx.h $(INCLUDE_DIR)/ubx_types.h $(INCLUDE_DIR)/ubx.c $(HEXARRS)
-	${CC} -fPIC -I$(INCLUDE_DIR) -c $(CFLAGS) $block_name.c
+$block_name.o: $block_name$h_ext $block_name$c_ext $(INCLUDE_DIR)/ubx.h $(INCLUDE_DIR)/ubx_types.h $(INCLUDE_DIR)/ubx.c $(HEXARRS)
+	${$cc} -fPIC -I$(INCLUDE_DIR) -c $(CFLAGS) $block_name$c_ext
 
 clean:
 	rm -f *.o *.so *~ core $(HEXARRS)
-]], { block_name=bm.name })
+]], { block_name=bm.name, cc=cc, c_ext=c_ext, h_ext=h_ext })
    fd:write(str)
 end
 
@@ -387,7 +389,11 @@ function generate_block_body(fd, bm)
    local res, str = utils.preproc(
 [[
 
+@ if bm.cpp then
+#include "$(bm.name).hpp"
+@ else
 #include "$(bm.name).h"
+@ end
 
 /* define a structure for holding the block local state. By assigning an
  * instance of this struct to the block private_data pointer (see init), this
@@ -596,7 +602,7 @@ if block_model.cpp then h_ext = '.hpp' end
 
 -- static part
 local codegen_tab = {
-   { fun=generate_makefile, funargs={ block_model }, file="Makefile", overwrite=false },
+   { fun=generate_makefile, funargs={ block_model, c_ext, h_ext }, file="Makefile", overwrite=false },
    { fun=generate_block_if, funargs={ block_model } , file=block_model.name..h_ext, overwrite=true },
    { fun=generate_block_body, funargs={ block_model }, file=block_model.name..c_ext, overwrite=false },
    { fun=generate_bd_system, funargs={ block_model, outdir }, file=block_model.name..".usc", overwrite=false },
