@@ -2,7 +2,7 @@
  * youbot_kin microblx function block
  */
 
-#define DEBUG	1
+// #define DEBUG	1
 
 #include "ubx.h"
 

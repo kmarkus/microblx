@@ -57,7 +57,7 @@ function arm_initialized()
 end
 
 function arm_calibrate()
-   yb_pinv.arm1_calibrate_cmd:write()
+   yb_pinv.arm1_calibrate_cmd:write(1)
 end
 
 --- Move with a given twist.
@@ -179,6 +179,7 @@ function init()
    ni:b("logger1"):do_start()
    ni:b("ybdrv"):do_start()
    ni:b("ptrig1"):do_start()
+   ni:b("ptrig2"):do_start()
 
    nr_arms=ni:b("ybdrv"):c("nr_arms"):tolua()
    print("nr arms:", nr_arms)
@@ -257,6 +258,7 @@ return bd.system
       { name="ybdrv", type="youbot/youbot_driver" },
       { name="kin", type="youbot_kin" },
       { name="ptrig1", type="std_triggers/ptrig" },
+      { name="ptrig2", type="std_triggers/ptrig" },
       { name="logger1", type="logging/file_logger" },
    },
 
@@ -269,9 +271,11 @@ return bd.system
    configurations = {
       { name="ybdrv", config = { ethernet_if="eth0" } },
       { name="logger1", config = { filename="youbot_basic.log", separator=",", report_conf = logger_report_conf, } },
-      { name="ptrig1", config = { period = {sec=0, usec=10000 },
+      { name="ptrig1", config = { period = {sec=0, usec=1000 }, sched_policy="SCHED_FIFO", sched_priority=80,
 				  trig_blocks={ { b="#ybdrv", num_steps=1, measure=0 },
-						{ b="#kin", num_steps=1, measure=0 },
-						{ b="#logger1", num_steps=1, measure=0 } } } },
+						{ b="#kin", num_steps=1, measure=0 } } } },
+      { name="ptrig2", config = { period = {sec=0, usec=100000 },
+				  trig_blocks={ { b="#logger1", num_steps=1, measure=0 } } } },
+
    }
 }
