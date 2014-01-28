@@ -23,11 +23,14 @@ return block
       },
 
       ports = {
-	 { name="msr_pos", in_type_name="struct kdl_frame ", doc="current measured position" },
 	 { name="des_pos", in_type_name="struct kdl_frame", doc="desired target position" },
+	 { name="msr_pos", in_type_name="struct kdl_frame ", doc="current measured position" },
+	 { name="des_dur", in_type_name="double", doc="desired duration of trajectory [s] " },
 
-	 { name="cmd_pos", in_type_name="struct kdl_frame", doc="next target position" },
-	 { name="reached", out_type_name="int", doc="the trajectory has been output entirely" },
+	 { name="cmd_pos", out_type_name="struct kdl_frame", doc="next position increment" },
+	 { name="cmd_vel", out_type_name="struct kdl_twist", doc="next velocity increment" },
+	 { name="reached", out_type_name="int", doc="outputs 1 if the trajectory has been output entirely" },
+	 { name="move_dur", out_type_name="double", doc="time since last move to command [s]" },
       },
 
       operations = { start=true, stop=true, step=true }
