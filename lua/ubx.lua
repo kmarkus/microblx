@@ -755,6 +755,7 @@ local ubx_config_mt = {
       get_doc = function (c) return M.safe_tostr(c.doc) end,
       set = M.set_config,
       totab = M.config_totab,
+      tolua = function (c) return M.data_tolua(c.value) end,
       data = function (c) return c.value end,
    },
 }
@@ -832,18 +833,22 @@ end
 --- Read from port with timeout.
 -- @param p port to read from
 -- @param data data to store result of read
--- @param sec duration to block in seconds
-function M.port_read_timed(p, data, sec)
+-- @param timeout duration to block in seconds
+function M.port_read_timed(p, rval, timeout)
    local res
    local ts_start=ffi.new("struct ubx_timespec")
    local ts_cur=ffi.new("struct ubx_timespec")
 
+   if type(rval)~='cdata' then
+      rval=M.port_alloc_read_sample(p)
+   end
+
    M.clock_mono_gettime(ts_start)
    M.clock_mono_gettime(ts_cur)
 
-   while ts_cur.sec - ts_start.sec < sec do
-      res=M.port_read(p, data)
-      if res>0 then return res end
+   while ts_cur - ts_start < timeout do
+      res=ubx.__port_read(p, rval)
+      if res>0 then return res, rval end
       M.clock_mono_gettime(ts_cur)
    end
    error("port_read_timed: timeout after reading "..M.safe_tostr(p.name).." for "..tostring(sec).." seconds")
@@ -891,10 +896,14 @@ function M.port_totab(p)
    ptab.doc = M.safe_tostr(p.doc)
    ptab.attrs = tonumber(p.attrs)
    ptab.state = tonumber(p.state)
-   ptab.in_type_name = M.safe_tostr(p.in_type_name)
-   ptab.out_type_name = M.safe_tostr(p.out_type_name)
-   ptab.in_data_len = tonumber(p.in_data_len)
-   ptab.out_data_len = tonumber(p.out_data_len)
+   if M.is_inport(p) then
+      ptab.in_type_name = M.safe_tostr(p.in_type_name)
+      ptab.in_data_len = tonumber(p.in_data_len)
+   end
+   if M.is_outport(p) then
+      ptab.out_type_name = M.safe_tostr(p.out_type_name)
+      ptab.out_data_len = tonumber(p.out_data_len)
+   end
    ptab.connections = M.port_conns_totab(p)
    return ptab
 end
@@ -906,14 +915,16 @@ function M.port_tostr(port)
 
    local p = M.port_totab(port)
 
+   -- print(utils.tab2str(p))
+
    if p.in_type_name then
       in_str = "in: "..p.in_type_name
       if p.in_data_len > 1 then in_str = in_str.."["..ts(p.in_data_len).."]" end
       in_str = in_str.." #conn: "..ts(#p.connections.incoming)
    end
 
-   if p.out_type_name==nil then
-      out_str = ", out: "..p.out_type_name
+   if p.out_type_name then
+      out_str = "out: "..p.out_type_name
       if p.out_data_len > 1 then out_str = out_str.."["..ts(p.out_data_len).."]" end
       out_str = out_str.." #conn: "..ts(#p.connections.outgoing)
    end
@@ -1129,10 +1140,8 @@ end
 -- @param pname name of port
 -- @param buff_len1 desired buffer length (if port is in/out: length of out->in buffer)
 -- @param buff_len2 only if port is in/out port: length of in->out buffer
--- @param data_len1 array multiplier for out->in buffer
--- @param data_len2 array multiplier for in->out buffer
 -- @return the new port
-function M.port_clone_conn(block, pname, buff_len1, buff_len2, data_len1, data_len2)
+function M.port_clone_conn(block, pname, buff_len1, buff_len2)
    local prot = M.port_get(block, pname)
    local p=ffi.new("ubx_port_t")
    local ts = ffi.new("struct ubx_timespec")
@@ -1150,9 +1159,6 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, data_len1, data_l
    buff_len1 = buff_len1 or 1
    if p.in_type and p.out_type then buff_len2 = buff_len2 or buff_len1 end
 
-   data_len1 = data_len1 or 1
-   if p.in_type and p.out_type then data_len2 = data_len2 or data_len1 end
-
    -- New port is an out-port?
    local i_p_to_prot=nil
    if p.out_type~=nil then
@@ -1165,7 +1171,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, data_len1, data_l
       i_p_to_prot = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
 				     { buffer_len=buff_len1,
 				       type_name=ffi.string(p.out_type_name),
-				       data_len=data_len1 })
+				       data_len=tonumber(p.out_data_len) })
       M.block_init(i_p_to_prot)
 
       if M.ports_connect_uni(p, prot, i_p_to_prot)~=0 then
@@ -1185,7 +1191,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, data_len1, data_l
       i_prot_to_p = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
 				     { buffer_len=buff_len2,
 				       type_name=ffi.string(p.in_type_name),
-				       data_len=data_len2 })
+				       data_len=tonumber(p.in_data_len) })
 
       M.block_init(i_prot_to_p)
 

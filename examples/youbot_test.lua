@@ -1,4 +1,4 @@
-#!/usr/bin/luajit
+#!/usr/bin/env luajit
 
 ffi = require("ffi")
 ubx = require("ubx")

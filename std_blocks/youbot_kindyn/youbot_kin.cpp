@@ -173,8 +173,6 @@ static void youbot_kin_step(ubx_block_t *b)
 	struct youbot_kin_info* inf;
 	inf = (struct youbot_kin_info*) b->private_data;
 
-	DBG("");
-
 	/* read jnt state and compute forward kinematics */
 	if(read_double5(inf->p_arm_in_msr_pos, &msr_pos) == 5 &&
 	   read_double5(inf->p_arm_in_msr_vel, &msr_vel) == 5) {
