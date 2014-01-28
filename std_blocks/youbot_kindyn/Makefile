@@ -18,7 +18,7 @@ endif
 .PHONY: no_youbot_kindyn
 
 youbot_kin.so: youbot_kin.o $(UBX_DIR)/libubx.so
-	${CPP} $(CFLAGS_SHARED) -o youbot_kin.so -lorocos-kdl youbot_kin.o $(UBX_DIR)/libubx.so
+	${CPP} $(CFLAGS_SHARED) -o youbot_kin.so youbot_kin.o -lorocos-kdl $(UBX_DIR)/libubx.so
 
 youbot_kin.o: youbot_kin.cpp $(UBX_DIR)/ubx.h $(UBX_DIR)/ubx_types.h $(UBX_DIR)/ubx.c $(HEXARRS)
 	${CPP} -fPIC $(INCLUDES) -c $(CFLAGS) youbot_kin.cpp

@@ -15,7 +15,7 @@ endif
 .PHONY: no_cart_trajgen
 
 cart_trajgen.so: cart_trajgen.o $(INCLUDE_DIR)/libubx.so
-	${CPP} $(CFLAGS_SHARED) -lorocos-kdl -o cart_trajgen.so cart_trajgen.o $(INCLUDE_DIR)/libubx.so
+	${CPP} $(CFLAGS_SHARED) -o cart_trajgen.so cart_trajgen.o -lorocos-kdl $(INCLUDE_DIR)/libubx.so
 
 cart_trajgen.o: cart_trajgen.hpp cart_trajgen.cpp $(INCLUDE_DIR)/ubx.h $(INCLUDE_DIR)/ubx_types.h $(INCLUDE_DIR)/ubx.c $(HEXARRS)
 	${CPP} -fPIC -I$(INCLUDE_DIR) -c $(CFLAGS) cart_trajgen.cpp
