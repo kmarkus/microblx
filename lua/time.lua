@@ -9,8 +9,8 @@ local math = math
 module("time")
 
 -- constants
-local ns_per_s = 1000000000
-local us_per_s = 1000000
+ns_per_s = 1000000000
+us_per_s = 1000000
 
 --- Normalize time.
 -- @param sec seconds
@@ -115,4 +115,12 @@ end
 -- @return time string
 function tostr_us(sec, nsec)
    return tous(sec, nsec) .. "us"
+end
+
+--- Concert sec, nsec to floating point sec
+-- @param sec
+-- @param nsec
+-- @return floating point [s]
+function to_sec(sec, nsec)
+   return sec+nsec/ns_per_s
 end

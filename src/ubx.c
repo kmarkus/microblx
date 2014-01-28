@@ -2139,3 +2139,15 @@ void ubx_ts_div(struct ubx_timespec *ts, long div, struct ubx_timespec *out)
 	out->sec = ts->sec/div;
 	out->nsec = ts->sec/div;
 }
+
+/**
+ * ubx_ts_to_double - convert ubx_timespec to double [s]
+ *
+ * @param ts
+ *
+ * @return time in seconds
+ */
+double ubx_ts_to_double(struct ubx_timespec *ts)
+{
+	return ((double) ts->sec) + ((double) ts->nsec/NSEC_PER_SEC);
+}

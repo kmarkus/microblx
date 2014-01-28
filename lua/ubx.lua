@@ -37,6 +37,7 @@ local cdata = require "cdata"
 local utils= require "utils"
 local ts=tostring
 local ac=require "ansicolors"
+local time=require"time"
 --require "strict"
 
 local M={}
@@ -173,6 +174,33 @@ function M.clock_mono_gettime(ts)
    ubx.ubx_clock_mono_gettime(ts)
    return ts
 end
+
+local function to_sec(sec, nsec)
+   return tonumber(sec)+tonumber(nsec)/time.ns_per_s
+end
+
+local ubx_timespec_mt = {
+   __tostring = function (ts) return tonumber(ubx.ubx_ts_to_double(ts)) end,
+   __add = function (t1, t2) local s,ns = time.add(t1, t2); return to_sec(s,ns) end,
+   __sub = function (t1, t2) local s,ns = time.sub(t1, t2); return to_sec(s,ns) end,
+   __mul = function (t1, t2) local s,ns = time.mul(t1, t2); return to_sec(s,ns) end,
+   __div = function (t1, d) local s,ns = time.div(t1, d); return to_sec(s,ns) end,
+   __eq = function(op1, op2) return time.cmp(op1, op2)==0 end,
+   __lt = function(op1, op2) return time.cmp(op1, op2)==-1 end,
+   __le =
+      function(op1, op2)
+	 local res = time.cmp(op1, op2)
+	 return res == 0 or res == -1
+      end,
+
+   __index = {
+      normalize = time.normalize,
+      tous = time.ts2us,
+   },
+}
+ffi.metatype("struct ubx_timespec", ubx_timespec_mt)
+
+
 
 ------------------------------------------------------------------------------
 --                           Node API
@@ -1251,7 +1279,7 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
       error("conn_uni: block "..M.safe_tostr(b1.name).."'s port "..pname1.." is not an outport")
    end
    if not M.is_inport(p2) then
-      error("conn_uni: block ".. M.safe_tostr(b2.name).."'s port "..pname2.." is not an inport") 
+      error("conn_uni: block ".. M.safe_tostr(b2.name).."'s port "..pname2.." is not an inport")
    end
 
    size = max(M.port_out_size(p1), M.port_in_size(p2))

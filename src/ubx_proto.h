@@ -56,3 +56,4 @@ void ubx_ts_norm(struct ubx_timespec *ts);
 void ubx_ts_sub(struct ubx_timespec *ts1, struct ubx_timespec *ts2, struct ubx_timespec *out);
 void ubx_ts_add(struct ubx_timespec *ts1, struct ubx_timespec *ts2, struct ubx_timespec *out);
 void ubx_ts_div(struct ubx_timespec *ts, long div, struct ubx_timespec *out);
+double ubx_ts_to_double(struct ubx_timespec *ts);
