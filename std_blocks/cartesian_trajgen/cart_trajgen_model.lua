@@ -24,7 +24,7 @@ return block
 
       ports = {
 	 { name="des_pos", in_type_name="struct kdl_frame", doc="desired target position" },
-	 { name="msr_pos", in_type_name="struct kdl_frame ", doc="current measured position" },
+	 { name="msr_pos", in_type_name="struct kdl_frame", doc="current measured position" },
 	 { name="des_dur", in_type_name="double", doc="desired duration of trajectory [s] " },
 
 	 { name="cmd_pos", out_type_name="struct kdl_frame", doc="next position increment" },

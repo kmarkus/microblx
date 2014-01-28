@@ -157,10 +157,9 @@ function system.launch(self, t)
       local res = {}
       local function __make_block_list(c)
 	 utils.foreach(__make_block_list, c.include or {})
-	 for _,b in ipairs(c.blocks) do res[#res+1] = b end
+	 for _,b in ipairs(c.blocks or {}) do res[#res+1] = b end
       end
       __make_block_list(c)
-      print("block_list", #res)
       return res
    end
 

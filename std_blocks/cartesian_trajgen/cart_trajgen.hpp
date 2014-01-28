@@ -27,7 +27,7 @@ ubx_config_t cart_trajgen_config[] = {
 /* declaration port block ports */
 ubx_port_t cart_trajgen_ports[] = {
 	{ .name="des_pos", .in_type_name="struct kdl_frame", .in_data_len=1, .doc="desired target position"  },
-	{ .name="msr_pos", .in_type_name="struct kdl_frame ", .in_data_len=1, .doc="current measured position"  },
+	{ .name="msr_pos", .in_type_name="struct kdl_frame", .in_data_len=1, .doc="current measured position"  },
 	{ .name="des_dur", .in_type_name="double", .in_data_len=1, .doc="desired duration of trajectory [s] "  },
 	{ .name="cmd_pos", .out_type_name="struct kdl_frame", .out_data_len=1, .doc="next position increment"  },
 	{ .name="cmd_vel", .out_type_name="struct kdl_twist", .out_data_len=1, .doc="next velocity increment"  },
@@ -66,7 +66,7 @@ static void update_port_cache(ubx_block_t *b, struct cart_trajgen_port_cache *pc
 
 /* for each port type, declare convenience functions to read/write from ports */
 def_read_fun(read_des_pos, struct kdl_frame)
-def_read_fun(read_msr_pos, struct kdl_frame )
+def_read_fun(read_msr_pos, struct kdl_frame)
 def_read_fun(read_des_dur, double)
 def_write_fun(write_cmd_pos, struct kdl_frame)
 def_write_fun(write_cmd_vel, struct kdl_twist)
