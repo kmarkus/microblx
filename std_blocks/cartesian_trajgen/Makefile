@@ -8,6 +8,12 @@ CFLAGS:=$(CFLAGS) -Wno-unused-function
 TYPES:=$(wildcard types/*.h)
 HEXARRS:=$(TYPES:%=%.hexarr)
 
+ifndef HAVE_KDL
+default: no_cart_trajgen
+endif
+
+.PHONY: no_cart_trajgen
+
 cart_trajgen.so: cart_trajgen.o $(INCLUDE_DIR)/libubx.so
 	${CPP} $(CFLAGS_SHARED) -lorocos-kdl -o cart_trajgen.so cart_trajgen.o $(INCLUDE_DIR)/libubx.so
 
@@ -16,3 +22,7 @@ cart_trajgen.o: cart_trajgen.hpp cart_trajgen.cpp $(INCLUDE_DIR)/ubx.h $(INCLUDE
 
 clean:
 	rm -f *.o *.so *~ core $(HEXARRS)
+
+no_cart_trajgen:
+	$(warning Not building cart_trajgen, set HAVE_KDL to enable build)
+	@:
