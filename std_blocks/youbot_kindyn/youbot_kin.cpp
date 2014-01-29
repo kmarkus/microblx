@@ -100,15 +100,21 @@ static int youbot_kin_init(ubx_block_t *b)
 
 	/* youbot arm kinematics */
 
+#ifdef JNT_ZERO_SET_IN_TUCKED_POS
 	inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Rotation::RPY(0.0, 0.0, 170*M_PI/180), Vector(0.024, 0.0, 0.096))));
 	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, -65*M_PI/180, 0.0), Vector(0.033, 0.0, 0.019))));
 	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, 146*M_PI/180, 0.0), Vector(0.000, 0.0, 0.155))));
 	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, -102.5*M_PI/180, 0.0), Vector(0.000, 0.0, 0.135))));
 	inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Rotation::RPY(0.0, 167.5*M_PI/180, 0.0), Vector(-0.002, 0.0, 0.130))));
+#else /* JNT_ZERO_SET_IN_CANDLE_POS */
+	// inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Rotation::RPY(0.0, 0.0, -M_PI), Vector(0.024, 0.0, 0.096))));
+	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.033, 0.0, 0.019))));
+	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, 0.0, -M_PI), Vector(0.0, 0.0, 0.155))));
+	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.0, 0.0, 0.135))));
+	// inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Vector(-0.002, 0.0, 0.130))));
 
-#if 0
 	inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Vector(0.024, 0.0, 0.096))));
-	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, 0, -M_PI), Vector(0.033, 0.0, 0.019))));
+	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.033, 0.0, 0.019))));
 	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.0, 0.0, 0.155))));
 	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, 0.0, -M_PI), Vector(0.0, 0.0, 0.135))));
 	inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Vector(-0.002, 0.0, 0.130))));
