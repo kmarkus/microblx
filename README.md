@@ -5,7 +5,7 @@ What is it?
 -----------
 
 Microblx is an lightweight, dynamic, reflective, hard real-time safe
-function block implementation:
+function block framework:
 
  - Pure C, no external dependencies
  - Lua scripting for system configuration and deployment
@@ -55,6 +55,14 @@ Documentation
  - [Quickstart](/doc/quickstart.md)
  - [User manual](/doc/manual.md)
  - [API Changes](/API_Changes.md)
+
+
+Mailing List
+------------
+
+Feel free to ask questions on the microblx mailing list:
+
+ http://lists.mech.kuleuven.be/mailman/listinfo/microblx
 
 
 FAQ
