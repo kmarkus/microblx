@@ -1285,13 +1285,17 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
    if p2==nil then error("block "..M.safe_tostr(b2.name).." has no port '"..M.safe_tostr(pname2).."'") end
 
    if not M.is_outport(p1) then
-      error("conn_uni: block "..M.safe_tostr(b1.name).."'s port "..pname1.." is not an outport")
+      error("conn_lfds_cyclic: block "..M.safe_tostr(b1.name).."'s port "..pname1.." is not an outport")
    end
    if not M.is_inport(p2) then
-      error("conn_uni: block ".. M.safe_tostr(b2.name).."'s port "..pname2.." is not an inport")
+      error("conn_lfds_cyclic: block ".. M.safe_tostr(b2.name).."'s port "..pname2.." is not an inport")
    end
 
    size = max(M.port_out_size(p1), M.port_in_size(p2))
+
+   if type(element_num) ~= 'number' or element_num < 1 then
+      error("conn_lfds_cyclic: invalid element_num array length param "..ts(element_num))
+   end
 
    return M.conn_uni(b1, pname1, b2, pname2, "lfds_buffers/cyclic",
 		     { buffer_len=element_num,
