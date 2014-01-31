@@ -113,11 +113,35 @@ static int youbot_kin_init(ubx_block_t *b)
 	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.0, 0.0, 0.135))));
 	// inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Vector(-0.002, 0.0, 0.130))));
 
-	inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Vector(0.024, 0.0, 0.096))));
-	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.033, 0.0, 0.019))));
-	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.0, 0.0, 0.155))));
-	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, 0.0, -M_PI), Vector(0.0, 0.0, 0.135))));
-	inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Vector(-0.002, 0.0, 0.130))));
+	// inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Vector(0.024, 0.0, 0.096))));
+	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.033, 0.0, 0.019))));
+	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.0, 0.0, 0.155))));
+	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, 0.0, -M_PI), Vector(0.0, 0.0, 0.135))));
+	// inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Vector(-0.002, 0.0, 0.130))));
+
+	// derived from:
+	// https://github.com/kmarkus/youbot-ros-pkg/tree/master/youbot_common/youbot_description/urdf/youbot_arm
+
+	// arm_link_1 (Joint constructor is (origin, axis, type) )
+	inf->chain->addSegment( Segment( Joint( Vector(0.024, 0.0, 0.096), Vector(0.0, 0.0, 1.0), Joint::RotAxis ),
+					 Frame( Vector(0.024, 0.0, 0.096) )));
+
+	// arm_link_2
+	inf->chain->addSegment( Segment( Joint( Vector(0.033, 0.0, 0.019), Vector(0.0, -1.0, 0.0), Joint::RotAxis ),
+					 Frame( Vector(0.033, 0.0, 0.019) )));
+
+	// arm_link_3
+	inf->chain->addSegment( Segment( Joint( Vector(0.0, 0.0, 0.155), Vector(0.0, 1.0, 0.0), Joint::RotAxis ),
+					 Frame( Vector(0.0, 0.0, 0.155) )));
+
+	// arm_link_4
+	inf->chain->addSegment( Segment( Joint( Vector(0.0, 0.0, 0.135), Vector(0.0, -1, 0.0), Joint::RotAxis),
+					 Frame( Vector(0.0, 0.0, 0.135) )));
+
+	// arm_link_5
+	inf->chain->addSegment( Segment( Joint( Vector(-0.002, 0.0, 0.13), Vector(0.0, 0.0, 1.0), Joint::RotAxis),
+					 Frame( Vector(-0.002, 0.0, 0.13) )));
+
 #endif
 
 	/* create and configure solvers */
