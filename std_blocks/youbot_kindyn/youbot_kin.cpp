@@ -98,51 +98,28 @@ static int youbot_kin_init(ubx_block_t *b)
 
 	inf->chain = new Chain();
 
-	/* youbot arm kinematics */
-
-#ifdef JNT_ZERO_SET_IN_TUCKED_POS
-	inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Rotation::RPY(0.0, 0.0, 170*M_PI/180), Vector(0.024, 0.0, 0.096))));
-	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, -65*M_PI/180, 0.0), Vector(0.033, 0.0, 0.019))));
-	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, 146*M_PI/180, 0.0), Vector(0.000, 0.0, 0.155))));
-	inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, -102.5*M_PI/180, 0.0), Vector(0.000, 0.0, 0.135))));
-	inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Rotation::RPY(0.0, 167.5*M_PI/180, 0.0), Vector(-0.002, 0.0, 0.130))));
-#else /* JNT_ZERO_SET_IN_CANDLE_POS */
-	// inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Rotation::RPY(0.0, 0.0, -M_PI), Vector(0.024, 0.0, 0.096))));
-	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.033, 0.0, 0.019))));
-	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, 0.0, -M_PI), Vector(0.0, 0.0, 0.155))));
-	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.0, 0.0, 0.135))));
-	// inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Vector(-0.002, 0.0, 0.130))));
-
-	// inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Vector(0.024, 0.0, 0.096))));
-	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.033, 0.0, 0.019))));
-	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Vector(0.0, 0.0, 0.155))));
-	// inf->chain->addSegment(Segment(Joint(Joint::RotY), Frame(Rotation::RPY(0.0, 0.0, -M_PI), Vector(0.0, 0.0, 0.135))));
-	// inf->chain->addSegment(Segment(Joint(Joint::RotZ), Frame(Vector(-0.002, 0.0, 0.130))));
-
-	// derived from:
-	// https://github.com/kmarkus/youbot-ros-pkg/tree/master/youbot_common/youbot_description/urdf/youbot_arm
-
-	// arm_link_1 (Joint constructor is (origin, axis, type) )
+	/* youbot arm kinematics, derived from:
+	 * https://github.com/kmarkus/youbot-ros-pkg/tree/master/youbot_common/youbot_description/urdf/youbot_arm
+	 */
+	/* arm_link_1 (Joint constructor is (origin, axis, type) ) */
 	inf->chain->addSegment( Segment( Joint( Vector(0.024, 0.0, 0.096), Vector(0.0, 0.0, 1.0), Joint::RotAxis ),
 					 Frame( Vector(0.024, 0.0, 0.096) )));
 
-	// arm_link_2
+	/* arm_link_2 */
 	inf->chain->addSegment( Segment( Joint( Vector(0.033, 0.0, 0.019), Vector(0.0, -1.0, 0.0), Joint::RotAxis ),
 					 Frame( Vector(0.033, 0.0, 0.019) )));
 
-	// arm_link_3
+	/* arm_link_3 */
 	inf->chain->addSegment( Segment( Joint( Vector(0.0, 0.0, 0.155), Vector(0.0, 1.0, 0.0), Joint::RotAxis ),
 					 Frame( Vector(0.0, 0.0, 0.155) )));
 
-	// arm_link_4
+	/* arm_link_4 */
 	inf->chain->addSegment( Segment( Joint( Vector(0.0, 0.0, 0.135), Vector(0.0, -1, 0.0), Joint::RotAxis),
 					 Frame( Vector(0.0, 0.0, 0.135) )));
 
-	// arm_link_5
+	/* arm_link_5 */
 	inf->chain->addSegment( Segment( Joint( Vector(-0.002, 0.0, 0.13), Vector(0.0, 0.0, 1.0), Joint::RotAxis),
 					 Frame( Vector(-0.002, 0.0, 0.13) )));
-
-#endif
 
 	/* create and configure solvers */
 	inf->fpk = new ChainFkSolverVel_recursive(*inf->chain);
