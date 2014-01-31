@@ -37,7 +37,7 @@ local function report_conf_to_portlist(rc, this)
    local ni = this.ni
 
    local succ, res = utils.eval_sandbox("return "..rc)
-   if not succ then error(red("file_logger: failed to load report_conf:\n"..res), true) end
+   if not succ then error(red("file_logger: failed to load report_conf:\n"..res, true)) end
 
    for i,conf in ipairs(res) do
       local bname, pname = conf.blockname, conf.portname
