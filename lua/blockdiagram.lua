@@ -190,6 +190,9 @@ function system.launch(self, t)
 	 if ptr==nil then
 	    log(red("error: failed to resolve block #"..name.." for ubx_block_t* conversion"))
 	    ret=false
+	 elseif ubx.is_proto(ptr) then
+	    log(red("error: block #"..name.." is a proto block"))
+	    ret=false
 	 end
 	 log(magenta("    resolved block #"..name))
 	 tab[key]=ptr
