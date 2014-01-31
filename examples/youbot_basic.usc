@@ -168,6 +168,7 @@ end
 
 function arm_tuck() arm_move_pos{2.588, 1.022, 2.248, 1.580, 2.591 } end
 function arm_home() arm_move_pos{0,0,0,0,0} end
+function arm_sway() arm_move_pos{0.042, 0.153, -0.860, -0.026, -0.019 } end
 
 nr_arms=false
 
@@ -234,9 +235,10 @@ end
 
 
 logger_report_conf = [[
-{ { blockname='kin', portname="arm_out_msr_ee_pose", buff_len=3 },
-  { blockname='kin', portname="arm_out_msr_ee_twist", buff_len=3, },
-  { blockname='ybdrv', portname="arm1_msr_vel", buff_len=3, }
+{ --{ blockname='kin', portname="arm_out_msr_ee_pose", buff_len=3 },
+  --{ blockname='kin', portname="arm_out_msr_ee_twist", buff_len=3, },
+   { blockname='ybdrv', portname="arm1_msr_vel", buff_len=3 },
+   { blockname='ybdrv', portname="arm1_msr_pos", buff_len=3 }
 }
 
 ]]
