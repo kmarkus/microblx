@@ -74,21 +74,20 @@ return bd.system
    connections = {
       { src="kin.arm_out_msr_ee_pose", tgt="cart_trajgen1.msr_pos", buffer_length=1 },
       { src="cart_trajgen1.cmd_vel", tgt="kin.arm_in_cmd_ee_twist", buffer_length=1 },
-      { src="kin.arm_out_cmd_jnt_vel", tgt="ybdrv.arm1_cmd_vel", buffer_length=1 },
    },
 
    configurations = {
       { name="logger1", config = { filename="youbot_cart.log", separator=",", report_conf = logger_report_conf2, } },
 
       { name="cart_trajgen1", config = {
-	   max_vel = {vel={y=0.1, x=0.1, z=0.1}, rot={y=0.1, x=0.1, z=0.1} },
-	   max_acc = {vel={y=0.1, x=0.1, z=0.1}, rot={y=0.1, x=0.1, z=0.1} }, }
+	   max_vel = {vel={y=0.3, x=0.3, z=0.3}, rot={y=0.3, x=0.3, z=0.3} },
+	   max_acc = {vel={y=0.2, x=0.2, z=0.2}, rot={y=0.2, x=0.2, z=0.2} }, }
       },
 
       { name="ptrig1", config = { period = {sec=0, usec=1000 }, sched_policy="SCHED_FIFO", sched_priority=80,
 				  trig_blocks={ { b="#ybdrv", num_steps=1, measure=0 },
 						{ b="#kin", num_steps=1, measure=0 },
-						--{ b="#cart_trajgen1", num_steps=1, measure=0 }
+						{ b="#cart_trajgen1", num_steps=1, measure=0 }
 				       } } },
       { name="ptrig2", config = { period = {sec=0, usec=100000 },
 				  trig_blocks={ { b="#logger1", num_steps=1, measure=0 } } } },

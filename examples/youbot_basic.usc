@@ -267,7 +267,7 @@ return bd.system
    connections = {
       { src="ybdrv.arm1_msr_pos", tgt="kin.arm_in_msr_pos", buffer_length=1 },
       { src="ybdrv.arm1_msr_vel", tgt="kin.arm_in_msr_vel", buffer_length=1 },
-      -- { src="kin.arm_out_cmd_jnt_vel", tgt="ybdrv.arm1_cmd_vel", buffer_length=1 },
+      { src="kin.arm_out_cmd_jnt_vel", tgt="ybdrv.arm1_cmd_vel", buffer_length=1 },
    },
 
    configurations = {
