@@ -2,6 +2,7 @@
 
 utils=require "utils"
 umf=require "umf"
+local ts = tostring
 
 ---
 --- ubx block meta-model

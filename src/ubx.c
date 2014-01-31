@@ -1437,7 +1437,7 @@ void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *le
 		goto out;
 
 	ret = d->data;
-	*len = data_size(d);
+	*len = d->len;
  out:
 	return ret;
 }
