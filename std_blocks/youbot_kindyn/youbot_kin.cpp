@@ -65,6 +65,8 @@ struct youbot_kin_info
 	FrameVel *frame_vel;
 	JntArrayVel *jnt_array;
 
+	double cmd_jnt_vel[YOUBOT_NR_OF_JOINTS];
+
 	ubx_port_t *p_arm_in_msr_pos;
 	ubx_port_t *p_arm_in_msr_vel;
 	ubx_port_t *p_arm_in_cmd_ee_twist;
@@ -174,7 +176,7 @@ static void youbot_kin_step(ubx_block_t *b)
 {
 	int ret;
 	struct kdl_twist ee_twist;
-	double jnt_vel[YOUBOT_NR_OF_JOINTS] = { 0, 0, 0, 0, 0};
+	// double jnt_vel[YOUBOT_NR_OF_JOINTS] = { 0, 0, 0, 0, 0};
 	double msr_pos[YOUBOT_NR_OF_JOINTS] = { 0, 0, 0, 0, 0};
 	double msr_vel[YOUBOT_NR_OF_JOINTS] = { 0, 0, 0, 0, 0};
 
@@ -226,14 +228,14 @@ static void youbot_kin_step(ubx_block_t *b)
 
 		if(ret >= 0) {
 			for(int i=0;i<YOUBOT_NR_OF_JOINTS;i++)
-				jnt_vel[i] = inf->jnt_array->qdot(i);
+				inf->cmd_jnt_vel[i] = inf->jnt_array->qdot(i);
 		} else {
 			ERR("%s: Failed to compute inverse velocity kinematics", b->name);
 			/* set jnt_vel to zero (jnt_vel is initialized to zero) */
 		}
-		/* write out desired jnt velocities */
-		write_jnt_arr(inf->p_arm_out_cmd_jnt_vel, &jnt_vel);
 	}
+	/* write out desired jnt velocities */
+	write_jnt_arr(inf->p_arm_out_cmd_jnt_vel, &inf->cmd_jnt_vel);
 }
 
 
