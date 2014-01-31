@@ -1156,8 +1156,8 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 				arm->jnt_inf[i].cmd_val = cmd_pos[i] / ARM_TICKS_TO_POS;
 		}
 		break;
-	case YOUBOT_CMODE_VELOCITY:
-		if(read_double5(arm->p_cmd_vel, &cmd_vel) == YOUBOT_NR_OF_JOINTS) { /* raw velocity */
+	case YOUBOT_CMODE_VELOCITY:  /* raw velocity */
+		if (arm->calibrating==0 && read_double5(arm->p_cmd_vel, &cmd_vel) == YOUBOT_NR_OF_JOINTS) {
 			for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
 				arm->jnt_inf[i].cmd_val = cmd_vel[i] / ARM_RPM_TO_VEL;
 		}
