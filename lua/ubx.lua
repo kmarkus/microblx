@@ -851,7 +851,7 @@ function M.port_read_timed(p, rval, timeout)
       if res>0 then return res, rval end
       M.clock_mono_gettime(ts_cur)
    end
-   error("port_read_timed: timeout after reading "..M.safe_tostr(p.name).." for "..tostring(sec).." seconds")
+   error("port_read_timed: timeout after reading "..M.safe_tostr(p.name).." for "..tostring(timeout).." seconds")
 end
 
 function M.port_out_size(p)
