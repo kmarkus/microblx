@@ -152,6 +152,8 @@ typedef struct ubx_port
 	unsigned long stat_writes;
 	unsigned long stat_reades;
 
+	struct ubx_block *block;	/* used for extra typechecks */
+
 	/* todo time stats */
 } ubx_port_t;
 

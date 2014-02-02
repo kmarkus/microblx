@@ -583,6 +583,26 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
 
 
 * Big questions
+** How to permit with dynamic block interface creating
+
+   Requirement: the block interface needs to be created (extended)
+   dynamically at block initialization time. To do this, access to
+   configuration may be required.
+
+   Options:
+
+   1. Multi-pass configuration
+      In [preinit] set configuration, in init hook create IF. If
+      additional configuration is added, then their values can only be
+      check in start.
+
+   2. Add an extra state
+
+      PREINIT -[init]-> INITIALIZED -[configure]-> INACTIVE -[start]->
+      ACTIVE -[stop]-> INACTIVE -[deconfigure] -> INITIALIZED -[cleanup]->preinit
+
+      - "configured" or maybe better "create_if"
+
 
 ** Types
    =local tm = ffi.cast('TimeMsg*', tm_rtt:tolud())=
@@ -624,7 +644,6 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
   A composition of blocks needs to be compilable into a new block.
 
 * Future Ideas
-
 ** C only definition?
 
     - How to define type ports, configuration, etc.

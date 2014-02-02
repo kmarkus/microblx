@@ -953,11 +953,14 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 			goto out_free;
 
 		for(srcport=prot->ports, tgtport=newb->ports; srcport->name!=NULL; srcport++,tgtport++) {
+
 			if(ubx_clone_port_data(tgtport, srcport->name, srcport->doc,
 					       srcport->in_type, srcport->in_data_len,
 					       srcport->out_type, srcport->out_data_len,
 					       srcport->state) != 0)
 				goto out_free;
+
+			tgtport->block = newb;
 		}
 	}
 
@@ -1619,6 +1622,9 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* doc,
 	}
 
 	b->ports=parr;
+
+	/* setup port */
+	b->ports[i].block = b;
 
 	ret=ubx_clone_port_data(&b->ports[i], name, doc,
 				in_type, in_data_len,

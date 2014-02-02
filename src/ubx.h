@@ -33,6 +33,8 @@
 /* #define CONFIG_MLOCK_ALL	1 */
 #define CONFIG_PARANOIA		1	/* enable extra checks */
 
+#define CONFIG_TYPECHECK_EXTRA	1	/* enable extra typechecking on read/write */
+
 /* constants */
 #define NSEC_PER_SEC		1000000000
 #define NSEC_PER_USEC           1000
@@ -61,80 +63,6 @@ extern "C"
 #include "ubx_types.h"
 #include "ubx_proto.h"
 
-/* module init, cleanup */
-#define UBX_MODULE_INIT(initfn) \
-__attribute__ ((visibility("default"))) int __ubx_initialize_module(ubx_node_info_t* ni) { return initfn(ni); }
-
-#define UBX_MODULE_CLEANUP(exitfn) \
-__attribute__ ((visibility("default"))) void __ubx_cleanup_module(ubx_node_info_t* ni) { exitfn(ni); }
-
-/* type definition helpers */
-#define def_basic_ctype(typename) { .name=#typename, .type_class=TYPE_CLASS_BASIC, .size=sizeof(typename) }
-
-#define def_struct_type(typename, hexdata) \
-{					\
-	.name=#typename, 		\
-	.type_class=TYPE_CLASS_STRUCT,	\
-	.size=sizeof(typename),		\
-	.private_data=(void*) hexdata,	\
-}
-
-
-/* normally the user would have to box/unbox his value himself. This
- * generate a strongly typed, automatic boxing version for
- * convenience. */
-#define def_write_fun(function_name, typename)		\
-static void function_name(ubx_port_t* port, typename *outval) 	\
-{ 							\
- ubx_data_t val; 					\
- if(port==NULL) { ERR("port is NULL"); return; } 	\
- /* assert(strcmp(#typename, port->out_type_name)==0); */ 	\
- val.data = outval; 					\
- val.type = port->out_type; 				\
- val.len=1;						\
- __port_write(port, &val);				\
-} 							\
-
-/* generate a typed read function: arguments to the function are the
- * port and a pointer to the result value.
- */
-#define def_read_fun(function_name, typename)		 \
-static int32_t function_name(ubx_port_t* port, typename *inval) \
-{ 							\
- ubx_data_t val; 					\
- if(port==NULL) { ERR("port is NULL"); return -1; } 	\
- /* assert(strcmp(#typename, port->in_type_name)==0); */ \
- val.type=port->in_type;				\
- val.data = inval;	  				\
- val.len = 1;						\
- return __port_read(port, &val);			\
-} 							\
-
-/* these ones are for arrays */
-#define def_write_arr_fun(function_name, typename, arrlen)	\
-static void function_name(ubx_port_t* port, typename (*outval)[arrlen]) \
-{ 							\
- ubx_data_t val; 					\
- if(port==NULL) { ERR("port is NULL"); return; } 	\
- /* assert(strcmp(#typename, port->out_type_name)==0); */ 	\
- val.data = outval; 					\
- val.type = port->out_type; 				\
- val.len=arrlen;					\
- __port_write(port, &val);				\
-} 							\
-
-#define def_read_arr_fun(function_name, typename, arrlen)	 \
-static int32_t function_name(ubx_port_t* port, typename (*inval)[arrlen])	\
-{ 							\
- ubx_data_t val; 					\
- if(port==NULL) { ERR("port is NULL"); return -1; } 	\
- /* assert(strcmp(#typename, port->in_type_name)==0); */ \
- val.type = port->in_type;				\
- val.data = inval;	  				\
- val.len = arrlen;					\
- return __port_read(port, &val);			\
-} 							\
-
 /*
  * Debug stuff
  */
@@ -160,6 +88,101 @@ static int32_t function_name(ubx_port_t* port, typename (*inval)[arrlen])	\
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
+
+
+/* module init, cleanup */
+#define UBX_MODULE_INIT(initfn) \
+__attribute__ ((visibility("default"))) int __ubx_initialize_module(ubx_node_info_t* ni) { return initfn(ni); }
+
+#define UBX_MODULE_CLEANUP(exitfn) \
+__attribute__ ((visibility("default"))) void __ubx_cleanup_module(ubx_node_info_t* ni) { exitfn(ni); }
+
+/* type definition helpers */
+#define def_basic_ctype(typename) { .name=#typename, .type_class=TYPE_CLASS_BASIC, .size=sizeof(typename) }
+
+#define def_struct_type(typename, hexdata) \
+{					\
+	.name=#typename, 		\
+	.type_class=TYPE_CLASS_STRUCT,	\
+	.size=sizeof(typename),		\
+	.private_data=(void*) hexdata,	\
+}
+
+int checktype(ubx_node_info_t* ni, ubx_type_t *required, const char *tcheck_str, const char *portname, int isrd)
+{
+#ifdef CONFIG_TYPECHECK_EXTRA
+	ubx_type_t *tcheck = ubx_type_get(ni, tcheck_str);
+
+	assert(ni!=NULL);
+	assert(required!=NULL);
+	assert(tcheck_str!=NULL);
+	assert(portname!=NULL);
+
+	if (required != tcheck) {
+		ERR("port %s type error during %s: is '%s' but should be '%s'",
+		    portname, (isrd==1) ? "read" : "write", tcheck_str, required->name);
+		return -1;
+	}
+#endif
+	return 0;
+}
+
+
+/* normally the user would have to box/unbox his value himself. This
+ * generate a strongly typed, automatic boxing version for
+ * convenience. */
+#define def_write_fun(function_name, typename)		\
+static void function_name(ubx_port_t* port, typename *outval) 	\
+{ 							\
+ ubx_data_t val; 					\
+ if(port==NULL) { ERR("port is NULL"); return; } 	\
+ checktype(port->block->ni, port->out_type, #typename, port->name, 0);	\
+ val.data = outval; 					\
+ val.type = port->out_type; 				\
+ val.len=1;						\
+ __port_write(port, &val);				\
+} 							\
+
+/* generate a typed read function: arguments to the function are the
+ * port and a pointer to the result value.
+ */
+#define def_read_fun(function_name, typename)		 \
+static int32_t function_name(ubx_port_t* port, typename *inval) \
+{ 							\
+ ubx_data_t val; 					\
+ if(port==NULL) { ERR("port is NULL"); return -1; } 	\
+ checktype(port->block->ni, port->in_type, #typename, port->name, 1);	\
+ val.type=port->in_type;				\
+ val.data = inval;	  				\
+ val.len = 1;						\
+ return __port_read(port, &val);			\
+} 							\
+
+/* these ones are for arrays */
+#define def_write_arr_fun(function_name, typename, arrlen)	\
+static void function_name(ubx_port_t* port, typename (*outval)[arrlen]) \
+{ 							\
+ ubx_data_t val; 					\
+ if(port==NULL) { ERR("port is NULL"); return; } 	\
+ checktype(port->block->ni, port->out_type, #typename, port->name, 0);	\
+ val.data = outval; 					\
+ val.type = port->out_type; 				\
+ val.len=arrlen;					\
+ __port_write(port, &val);				\
+} 							\
+
+#define def_read_arr_fun(function_name, typename, arrlen)	 \
+static int32_t function_name(ubx_port_t* port, typename (*inval)[arrlen])	\
+{ 							\
+ ubx_data_t val; 					\
+ if(port==NULL) { ERR("port is NULL"); return -1; } 	\
+ checktype(port->block->ni, port->in_type, #typename, port->name, 1); \
+ val.type = port->in_type;				\
+ val.data = inval;	  				\
+ val.len = arrlen;					\
+ return __port_read(port, &val);			\
+} 							\
+
 
 #ifdef __cplusplus
 }

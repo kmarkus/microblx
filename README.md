@@ -57,8 +57,8 @@ Documentation
  - [API Changes](/API_Changes.md)
 
 
-Mailing List
-------------
+Community
+---------
 
 Feel free to ask questions on the microblx mailing list:
 
