@@ -5,6 +5,8 @@
 * Next steps
 
 
+** TODO add SPDX license identifier to each ubx module
+   - http://www.spdx.org/spdx-license-list
 ** TODO [#A] overhaul ubx_reflection layer
    - switch to handle ubx_data.len via cdata
    - exhaustive unit tests
@@ -21,6 +23,7 @@
 ** TODO tools: add ubx_info <module>
    pretty print contents of a module
 ** TODO create rotating zero copy ptr example
+   - consider kdbus' memfd's
 ** TODO add support for enum types
 ** TODO add function ffi_basic_type_is_loaded(t)
    - such that reloading a char[50] will go ok too.
