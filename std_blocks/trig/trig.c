@@ -24,7 +24,6 @@
 /* trig metadata */
 char trig_meta[] =
 	"{ doc='simple, activity-less trigger',"
-	"  license='MIT',"
 	"  real-time=true,"
 	"}";
 
@@ -211,3 +210,4 @@ void trig_mod_cleanup(ubx_node_info_t *ni)
 
 UBX_MODULE_INIT(trig_mod_init)
 UBX_MODULE_CLEANUP(trig_mod_cleanup)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)

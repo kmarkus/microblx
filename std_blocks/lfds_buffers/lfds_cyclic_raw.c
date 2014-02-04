@@ -11,13 +11,14 @@
 
 #include "ubx.h"
 
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
+
 /* meta-data */
 char cyclic_meta[] =
 	"{ doc='High performance scalable, lock-free cyclic, buffered in process communication"
 	"  description=[[This ubx interaction is based on based on liblfds"
 	"                ringbuffer (v0.6.1.1) (www.liblfds.org)]],"
 	"  version=0.01,"
-	"  license='MIT',"
 	"  hard_real_time=true,"
 	"}";
 

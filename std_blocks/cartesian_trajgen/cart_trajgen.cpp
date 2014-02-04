@@ -1,4 +1,10 @@
-// #define DEBUG
+// Cartesian Trajectory Generator
+//
+// Copyright (C) 2003 Klaas Gadeyne <klaas.gadeyne@mech.kuleuven.ac.be>
+//                    Wim Meeussen  <wim.meeussen@mech.kuleuven.ac.be>
+// Copyright (C) 2006 Ruben Smits <ruben.smits@mech.kuleuven.ac.be>
+// Copyright (C) 2014 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
+//
 
 #include <vector>
 
@@ -9,8 +15,9 @@
 
 #include "cart_trajgen.hpp"
 
-using namespace std;
+UBX_MODULE_LICENSE_SPDX(GPL-2.0+)
 
+using namespace std;
 
 void print_kdl_frame(struct kdl_frame* f)
 {

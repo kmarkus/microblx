@@ -13,7 +13,6 @@
 
 char mqueue_meta[] =
 	"{ doc='POSIX mqueue interaction',"
-	"  license='MIT',"
 	"  real-time=true,"
 	"}";
 
@@ -227,3 +226,4 @@ static void mqueue_mod_cleanup(ubx_node_info_t *ni)
 
 UBX_MODULE_INIT(mqueue_mod_init)
 UBX_MODULE_CLEANUP(mqueue_mod_cleanup)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)

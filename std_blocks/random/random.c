@@ -32,7 +32,6 @@ ubx_type_t random_config_type = def_struct_type(struct random_config, &random_co
  */
 char rnd_meta[] =
 	"{ doc='A random number generator function block',"
-	"  license='LGPL',"
 	"  real-time=true,"
 	"}";
 
@@ -213,3 +212,4 @@ static void rnd_module_cleanup(ubx_node_info_t *ni)
 /* declare the module init and cleanup function */
 UBX_MODULE_INIT(rnd_module_init)
 UBX_MODULE_CLEANUP(rnd_module_cleanup)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)

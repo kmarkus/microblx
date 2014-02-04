@@ -18,7 +18,6 @@ char fifometa[] =
 	"               reader/writers. For that case, the lfds_* versions should"
 	"               be preferred.]],"
 	"  version=0.01,"
-	"  license='MIT',"
 	"  real-time=false,"
 	"}";
 
@@ -270,3 +269,4 @@ static void fifo_mod_cleanup(ubx_node_info_t *ni)
 
 UBX_MODULE_INIT(fifo_mod_init)
 UBX_MODULE_CLEANUP(fifo_mod_cleanup)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)

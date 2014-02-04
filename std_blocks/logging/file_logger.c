@@ -208,3 +208,4 @@ static void file_logger_mod_cleanup(ubx_node_info_t *ni)
 
 UBX_MODULE_INIT(file_logger_mod_init)
 UBX_MODULE_CLEANUP(file_logger_mod_cleanup)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)

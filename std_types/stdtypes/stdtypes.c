@@ -50,3 +50,4 @@ static void stdtypes_cleanup(ubx_node_info_t *ni)
 
 UBX_MODULE_INIT(stdtypes_init)
 UBX_MODULE_CLEANUP(stdtypes_cleanup)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)

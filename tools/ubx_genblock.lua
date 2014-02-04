@@ -257,7 +257,6 @@ ubx_type_t types[] = {
 /* block meta information */
 char $(bm.name)_meta[] =
 	" { doc='',"
-	"   license='',"
 	"   real-time=true,"
 	"}";
 
@@ -395,6 +394,10 @@ function generate_block_body(fd, bm)
 @ else
 #include "$(bm.name).h"
 @ end
+
+/* edit and uncomment this:
+ * UBX_MODULE_LICENSE_SPDX(GPL-2.0+)
+ */
 
 /* define a structure for holding the block local state. By assigning an
  * instance of this struct to the block private_data pointer (see init), this

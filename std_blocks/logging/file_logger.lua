@@ -1,3 +1,9 @@
+--
+-- Microblx generic logger
+--
+-- SPDX-License-Identifier: BSD-3-Clause
+--
+
 local ubx=require("ubx")
 local utils = require("utils")
 local cdata = require("cdata")

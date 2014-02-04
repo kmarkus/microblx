@@ -20,6 +20,8 @@
 #include "mongoose.h"
 #include "ubx.h"
 
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
+
 #ifdef COMPILE_IN_WEBIF_LUA_FILE
 #include "webif.lua.hexarr"
 #else

@@ -10,13 +10,11 @@ using namespace std;
 #include "ubx.h"
 #include <cstring>
 
-
 /* function block meta-data
  * used by higher level functions.
  */
 char cppdemo_meta[] =
 	"{ doc='A cppdemo number generator function block',"
-	"  license='LGPL',"
 	"  real-time=true,"
 	"}";
 
@@ -91,3 +89,4 @@ static void cppdemo_cleanup(ubx_node_info_t *ni)
 
 UBX_MODULE_INIT(cppdemo_init)
 UBX_MODULE_CLEANUP(cppdemo_cleanup)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)

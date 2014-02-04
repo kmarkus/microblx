@@ -1,6 +1,11 @@
-/* #define DEBUG */
+/* 
+ * Reflexxes based trajectory generator block.
+ */
 
+/* #define DEBUG */
 #include "rml_pos.hpp"
+
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
 
 #include <ReflexxesAPI.h>
 #include <RMLPositionFlags.h>

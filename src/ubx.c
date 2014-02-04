@@ -1,33 +1,33 @@
 /*
  * microblx: embedded, real-time safe, reflective function blocks.
- * Copyright (C) 2013 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
+ * Copyright (C) 2013,2014 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
  *
- * This program is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * microblx is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 or (at your option)
+ * any later version.
+ *
+ * microblx is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with eCos; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  * As a special exception, if other files instantiate templates or use
  * macros or inline functions from this file, or you compile this file
  * and link it with other works to produce a work based on this file,
  * this file does not by itself cause the resulting work to be covered
  * by the GNU General Public License. However the source code for this
- * file must still be made available in accordance with the GNU
- * General Public License.
+ * file must still be made available in accordance with section (3) of
+ * the GNU General Public License.
  *
  * This exception does not invalidate any other reasons why a work
  * based on this file might be covered by the GNU General Public
  * License.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see
- * <http://www.gnu.org/licenses/>.
- */
+*/
 
 /* #define DEBUG 1 */
 
@@ -120,6 +120,13 @@ int ubx_module_load(ubx_node_info_t* ni, const char *lib)
 	if ((err = dlerror()) != NULL)  {
 		ERR("failed to lookup __ubx_cleanup_module for module %s: %s", lib, err);
 		goto out_err_close;
+	}
+
+	dlerror();
+
+	mod->spdx_license_id = dlsym(mod->handle, "__ubx_module_license_spdx");
+	if ((err = dlerror()) != NULL)  {
+		MSG("Warning: missing license in module %s. Please define UBX_MODULE_LICENSE_SPDX", lib);
 	}
 
 	/* execute module init */

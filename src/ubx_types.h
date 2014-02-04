@@ -1,33 +1,33 @@
 /*
  * microblx: embedded, real-time safe, reflective function blocks.
- * Copyright (C) 2013 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
+ * Copyright (C) 2013,2014 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
  *
- * This program is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * microblx is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 or (at your option)
+ * any later version.
+ *
+ * microblx is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with eCos; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  * As a special exception, if other files instantiate templates or use
  * macros or inline functions from this file, or you compile this file
  * and link it with other works to produce a work based on this file,
  * this file does not by itself cause the resulting work to be covered
  * by the GNU General Public License. However the source code for this
- * file must still be made available in accordance with the GNU
- * General Public License.
+ * file must still be made available in accordance with section (3) of
+ * the GNU General Public License.
  *
  * This exception does not invalidate any other reasons why a work
  * based on this file might be covered by the GNU General Public
  * License.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see
- * <http://www.gnu.org/licenses/>.
- */
+*/
 
 /*
  * ubx type a function definitions.
@@ -37,9 +37,9 @@
 
 /* constants */
 enum {
-	BLOCK_NAME_MAXLEN 	= 100,
-	TYPE_HASH_LEN 		= 16,   /* md5 */
-	TYPE_HASH_LEN_UNIQUE 	= 8 	/* Number of characters of the
+	BLOCK_NAME_MAXLEN	= 100,
+	TYPE_HASH_LEN		= 16,   /* md5 */
+	TYPE_HASH_LEN_UNIQUE	= 8	/* Number of characters of the
 					   type checksum to compare */
 };
 
@@ -248,6 +248,7 @@ typedef struct ubx_module
 	void *handle;
 	int(*init)(struct ubx_node_info* ni);
 	void(*cleanup)(struct ubx_node_info* ni);
+	const char* spdx_license_id;
 	UT_hash_handle hh;
 } ubx_module_t;
 
@@ -271,4 +272,3 @@ struct ubx_timespec
 	long int sec;
 	long int nsec;
 };
-

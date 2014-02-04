@@ -1,5 +1,13 @@
 /*
- * youbot_kin microblx function block
+ * KUKA Youbot kinematics block.
+ *
+ * (C) 2011-2014 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
+ *     2010 Ruben Smits <ruben.smits@mech.kuleuven.be>
+ *
+ *            Department of Mechanical Engineering,
+ *           Katholieke Universiteit Leuven, Belgium.
+ *
+ * see UBX_MODULE_LICENSE_SPDX tag below for licenses.
  */
 
 // #define DEBUG	1
@@ -280,3 +288,4 @@ static void youbot_kin_mod_cleanup(ubx_node_info_t *ni)
  * find these when the module is loaded/unloaded */
 UBX_MODULE_INIT(youbot_kin_mod_init)
 UBX_MODULE_CLEANUP(youbot_kin_mod_cleanup)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause LGPL-2.1+)

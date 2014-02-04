@@ -282,6 +282,28 @@ static void rnd_module_cleanup(ubx_node_info_t *ni)
 UBX_MODULE_CLEANUP(rnd_module_cleanup)
 ```
 
+### SPDX License Identifier
+
+Microblx uses a macro to define module licenses in a form that is both
+machine readable and available at runtime:
+
+```C
+UBX_MODULE_LICENSE_SPDX(GPL-2.0+)
+```
+
+To dual-license a block, write:
+
+```C
+UBX_MODULE_LICENSE_SPDX(GPL-2.0+ BSD-3-Clause)
+```
+
+Is is strongly recommended to use this macro. The list of licenses can
+be found here:
+
+http://spdx.org/licenses/
+http://spdx.org
+
+(Credit: inspired by U-Boot).
 
 ### Block code-generation
 
