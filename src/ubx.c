@@ -637,7 +637,7 @@ int data_copy(ubx_data_t *dest, void *src, size_t size)
 	unsigned int dest_len = data_size(dest);
 
 	if(dest_len < size) {
-		ERR("provided data buffer too small (is %d, required: %ld)", dest_len, size);
+		ERR("provided data buffer too small (is %d, required: %zu)", dest_len, size);
 		goto out;
 	}
 
