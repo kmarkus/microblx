@@ -1269,29 +1269,33 @@ end
 -- @param element_num number of elements
 -- @param dont start if true, interaction will not be started
 function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
-   local function max(x1, x2)
-      if x1>x2 then return x1; else return x2; end
-   end
-
-   local p1, p2, size
+   local p1, p2, len1, len2
 
    if b1==nil then error("conn_lfds_cyclic: block (arg 1) is nil") end
    if b2==nil then error("conn_lfds_cyclic: block (arg 3) is nil") end
 
+   local bname1, bname2 = M.safe_tostr(b1.name), M.safe_tostr(b2.name)
+
    p1 = M.port_get(b1, pname1)
    p2 = M.port_get(b2, pname2)
 
-   if p1==nil then error("block "..M.safe_tostr(b1.name).." has no port '"..M.safe_tostr(pname1).."'") end
-   if p2==nil then error("block "..M.safe_tostr(b2.name).." has no port '"..M.safe_tostr(pname2).."'") end
+   if p1==nil then error("block "..bname1.." has no port '"..M.safe_tostr(pname1).."'") end
+   if p2==nil then error("block "..bname2.." has no port '"..M.safe_tostr(pname2).."'") end
 
    if not M.is_outport(p1) then
-      error("conn_lfds_cyclic: block "..M.safe_tostr(b1.name).."'s port "..pname1.." is not an outport")
+      error("conn_lfds_cyclic: block "..bname1.."'s port "..pname1.." is not an outport")
    end
    if not M.is_inport(p2) then
-      error("conn_lfds_cyclic: block ".. M.safe_tostr(b2.name).."'s port "..pname2.." is not an inport")
+      error("conn_lfds_cyclic: block ".. bname2.."'s port "..pname2.." is not an inport")
    end
 
-   size = max(M.port_out_size(p1), M.port_in_size(p2))
+   len1, len2 = tonumber(p1.out_data_len), tonumber(p2.in_data_len)
+
+   if len1 ~= len2 then print(yellow("WARNING: conn_lfds_cyclic "
+					..bname1.."."..pname1.. " and "
+					..bname2.."."..pname2.." have different array len ("
+				        ..tostring(len1).." vs "..tostring(len2).."). Using minimum!"), true)
+   end
 
    if type(element_num) ~= 'number' or element_num < 1 then
       error("conn_lfds_cyclic: invalid element_num array length param "..ts(element_num))
@@ -1300,7 +1304,7 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
    return M.conn_uni(b1, pname1, b2, pname2, "lfds_buffers/cyclic",
 		     { buffer_len=element_num,
 		       type_name=M.safe_tostr(p1.out_type_name),
-		       data_len=tonumber(p1.out_data_len) }, dont_start)
+		       data_len=utils.min(len1, len2) }, dont_start)
 end
 
 return M
