@@ -29,6 +29,12 @@ if not (opttab['-c'] and opttab['-c'][1]) then
    print("no configuration file given (-c option)")
    os.exit(1)
 else
+   local microblx_path = os.getenv("MICROBLX_ROOT")
+   if microblx_path == nil then
+     microblx_path = "empty"
+   end
+   print("Environment setup.... MICROBLX_ROOT is: "..microblx_path)
+
    conf_file = opttab['-c'][1]
 end
 
@@ -59,7 +65,7 @@ ni = model:launch{nodename=nodename, verbose=true}
 if opttab['-webif'] then
    local port = opttab['-webif'][1] or 8888
    print("starting up webinterface block (port: "..ts(port)..")")
-   ubx.load_module(ni, "std_blocks/webif/webif.so")
+   ubx.load_module(ni, os.getenv("MICROBLX_ROOT").."/std_blocks/webif/webif.so")
    local webif1=ubx.block_create(ni, "webif/webif", "webif1", { port=ts(port) })
    assert(ubx.block_init(webif1)==0)
    assert(ubx.block_start(webif1)==0)

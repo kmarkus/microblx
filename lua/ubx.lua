@@ -61,11 +61,22 @@ local setup_enums
 --                           helpers
 ------------------------------------------------------------------------------
 
+--- Extract the MICROBLX_ROOT environment variable path
+-- @return string MICROBLX_ROOT_path
+local function get_microblx_root()
+  local rootpath = os.getenv("MICROBLX_ROOT")
+  if rootpath == nil then
+    return ""
+  end
+
+  return rootpath.."/"
+end
+
 --- Read the entire contents of a file.
 -- @param file name of file
 -- @return string contents
 local function read_file(file)
-   local f = assert(io.open(file, "rb"))
+   local f = assert(io.open(get_microblx_root()..file, "rb"))
    local data = f:read("*all")
    f:close()
    return data
@@ -124,7 +135,7 @@ end
 ffi.cdef(read_file("src/uthash_ffi.h"))
 ffi.cdef(read_file("src/ubx_types.h"))
 ffi.cdef(read_file("src/ubx_proto.h"))
-local ubx=ffi.load("src/libubx.so")
+local ubx=ffi.load(get_microblx_root().."src/libubx.so")
 
 setmetatable(M, { __index=function(t,k) return ubx["ubx_"..k] end })
 
