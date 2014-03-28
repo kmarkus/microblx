@@ -2,6 +2,7 @@
 
 ffi = require("ffi")
 ubx = require "ubx"
+ubx_env = require "ubx_env"
 bd = require("blockdiagram")
 ts = tostring
 
@@ -29,12 +30,6 @@ if not (opttab['-c'] and opttab['-c'][1]) then
    print("no configuration file given (-c option)")
    os.exit(1)
 else
-   local ubx_path = os.getenv("UBX_ROOT")
-   if ubx_path == nil then
-     ubx_path = "empty"
-   end
-   print("Environment setup.... UBX_ROOT is: "..ubx_path)
-
    conf_file = opttab['-c'][1]
 end
 
@@ -65,7 +60,7 @@ ni = model:launch{nodename=nodename, verbose=true}
 if opttab['-webif'] then
    local port = opttab['-webif'][1] or 8888
    print("starting up webinterface block (port: "..ts(port)..")")
-   ubx.load_module(ni, os.getenv("UBX_ROOT").."/std_blocks/webif/webif.so")
+   ubx.load_module(ni, ubx_env.get_ubx_root().."std_blocks/webif/webif.so")
    local webif1=ubx.block_create(ni, "webif/webif", "webif1", { port=ts(port) })
    assert(ubx.block_init(webif1)==0)
    assert(ubx.block_start(webif1)==0)

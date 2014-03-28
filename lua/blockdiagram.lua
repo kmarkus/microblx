@@ -2,6 +2,7 @@ local ubx = require "ubx"
 local umf = require "umf"
 local strict = require "strict"
 local utils = require "utils"
+local ubx_env = require "ubx_env"
 local ac = require "ansicolors"
 local ts = tostring
 local M={}
@@ -168,11 +169,31 @@ function system.launch(self, t)
    -- @reteurn list of imports
    local function make_import_list(c)
       local res = {}
-
+      
       local function __make_import_list(c)
+         local ubx_root = ubx_env.get_ubx_root()
+         local ubx_modules = ubx_env.get_ubx_modules()
+         if ubx_root == "" then
+           log(yellow("  Warning, UBX_ROOT not defined"))
+         end
+         if ubx_modules == "" then
+           log(yellow("  Warning, UBX_MODULES not defined"))
+         end
 	 utils.foreach(__make_import_list, c.include or {})
-	 for _,m in ipairs(c.imports) do res[#res+1] = m end
+	 for _,m in ipairs(c.imports) do
+           if utils.file_exists(m) then
+             res[#res+1] = m 
+           elseif utils.file_exists(ubx_root..m) then
+             res[#res+1] = ubx_root..m
+           elseif utils.file_exists(ubx_modules..m) then
+             res[#res+1] = ubx_modules..m
+           else
+             log(red("  Module "..m.." not found! It will not be loaded"))
+             log(yellow("    Tip: did you set UBX_ROOT or UBX_MODULES?"))
+           end
+         end
       end
+      
       __make_import_list(c)
       return utils.table_unique(res)
    end
@@ -336,6 +357,10 @@ function system.launch(self, t)
    -- fire it up
    local ni = ubx.node_create(t.nodename)
 
+   -- Environment printout
+   log("Environment setup...\n    "..green("UBX_ROOT: ")..cyan(os.getenv("UBX_ROOT")))
+   log("    "..green("UBX_MODULES: ")..cyan(os.getenv("UBX_MODULES")))
+   
    -- import modules
    local imports = make_import_list(self)
    log("importing "..ts(#imports).." modules... ")

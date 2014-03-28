@@ -35,6 +35,7 @@
 local ffi=require "ffi"
 local cdata = require "cdata"
 local utils= require "utils"
+local ubx_env = require "ubx_env"
 local ts=tostring
 local ac=require "ansicolors"
 local time=require"time"
@@ -61,22 +62,11 @@ local setup_enums
 --                           helpers
 ------------------------------------------------------------------------------
 
---- Extract the UBX_ROOT environment variable path
--- @return string UBX_ROOT_path
-local function get_ubx_root()
-  local rootpath = os.getenv("UBX_ROOT")
-  if rootpath == nil then
-    return ""
-  end
-
-  return rootpath.."/"
-end
-
 --- Read the entire contents of a file.
 -- @param file name of file
 -- @return string contents
 local function read_file(file)
-   local f = assert(io.open(get_ubx_root()..file, "rb"))
+   local f = assert(io.open(ubx_env.get_ubx_root()..file, "rb"))
    local data = f:read("*all")
    f:close()
    return data
@@ -135,7 +125,7 @@ end
 ffi.cdef(read_file("src/uthash_ffi.h"))
 ffi.cdef(read_file("src/ubx_types.h"))
 ffi.cdef(read_file("src/ubx_proto.h"))
-local ubx=ffi.load(get_ubx_root().."src/libubx.so")
+local ubx=ffi.load(ubx_env.get_ubx_root().."src/libubx.so")
 
 setmetatable(M, { __index=function(t,k) return ubx["ubx_"..k] end })
 
