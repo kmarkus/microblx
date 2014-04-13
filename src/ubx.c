@@ -41,6 +41,36 @@
 const char *block_states[] = {	"preinit", "inactive", "active" };
 
 /**
+ * Check type in ports
+ * 
+ * @param ni ubx block node pointer
+ * @param required ubx type required 
+ * @param tcheck_str check string
+ * @param port string to port name
+ * @param isrd is read?
+ * 
+ * @return int to result: 0 is success, -1 is failure 
+ */
+int checktype(ubx_node_info_t* ni, ubx_type_t *required, const char *tcheck_str, const char *portname, int isrd)
+{
+#ifdef CONFIG_TYPECHECK_EXTRA
+        ubx_type_t *tcheck = ubx_type_get(ni, tcheck_str);
+
+        assert(ni!=NULL);
+        assert(required!=NULL);
+        assert(tcheck_str!=NULL);
+        assert(portname!=NULL);
+
+        if (required != tcheck) {
+                ERR("port %s type error during %s: is '%s' but should be '%s'",
+                    portname, (isrd==1) ? "read" : "write", tcheck_str, required->name);
+                return -1;
+        }
+#endif
+        return 0;
+}
+
+/**
  * Convert block state to string.
  *
  * @param state

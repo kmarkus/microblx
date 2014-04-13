@@ -28,6 +28,8 @@
  * based on this file might be covered by the GNU General Public
  * License.
 */
+#ifndef _UBX_ONCE_H_
+#define _UBX_ONCE_H_
 
 #define CONFIG_DUMPABLE		1	/* enable for dumps even when running with priviledges */
 /* #define CONFIG_MLOCK_ALL	1 */
@@ -114,25 +116,6 @@ __attribute__ ((visibility("default"))) void __ubx_cleanup_module(ubx_node_info_
 	.private_data=(void*) hexdata,	\
 }
 
-int checktype(ubx_node_info_t* ni, ubx_type_t *required, const char *tcheck_str, const char *portname, int isrd)
-{
-#ifdef CONFIG_TYPECHECK_EXTRA
-	ubx_type_t *tcheck = ubx_type_get(ni, tcheck_str);
-
-	assert(ni!=NULL);
-	assert(required!=NULL);
-	assert(tcheck_str!=NULL);
-	assert(portname!=NULL);
-
-	if (required != tcheck) {
-		ERR("port %s type error during %s: is '%s' but should be '%s'",
-		    portname, (isrd==1) ? "read" : "write", tcheck_str, required->name);
-		return -1;
-	}
-#endif
-	return 0;
-}
-
 
 /* normally the user would have to box/unbox his value himself. This
  * generate a strongly typed, automatic boxing version for
@@ -192,4 +175,6 @@ static int32_t function_name(ubx_port_t* port, typename (*inval)[arrlen])	\
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
