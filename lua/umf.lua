@@ -107,7 +107,7 @@ end
 --- Return the class name of the given object.
 function uoo_class(o)
    if uoo_type(o) == 'instance' then
-      return obj:class().name
+      return o:class().name
    end
    return false
 end
