@@ -52,8 +52,8 @@ local function fetch_model(bm,ext)
     return bm.."."..ext
   elseif utils.file_exists("models/"..bm.."."..ext) then
     return "models/"..bm.."."..ext
-  elseif utils.file(exists(ubx_env.get_ubx_models()..bm.."."..ext)) then
-    return ubx_env.get_ubx_models()..bm.."."..ext
+  elseif get_ubx_models() and utils.file_exists(get_ubx_models()..bm.."."..ext) then
+    return get_ubx_models()..bm.."."..ext
   end
   return false;
 end
