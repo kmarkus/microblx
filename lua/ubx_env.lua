@@ -50,7 +50,7 @@ local function fetch_model(bm,ext)
   -- UBX_MODELS
   if utils.file_exists(bm.."."..ext) then
     return bm.."."..ext
-  else if utils.file_exists("models/"..bm.."."..ext) then
+  elseif utils.file_exists("models/"..bm.."."..ext) then
     return "models/"..bm.."."..ext
   elseif utils.file(exists(ubx_env.get_ubx_models()..bm.."."..ext)) then
     return ubx_env.get_ubx_models()..bm.."."..ext
