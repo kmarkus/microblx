@@ -1,9 +1,10 @@
 --
--- Useful code snips
--- to parse ubx environment
---
+-- Useful code snips to parse ubx environment
+-- Copyright (C) 2014 Enea Scioni <enea.scioni@unife.it>
+--                             <enea.scioni@kuleuven.be>
 
 local os = os
+local utils = require "utils"
 
 module('ubx_env')
 
@@ -27,4 +28,46 @@ function get_ubx_modules()
   end
 
   return path.."/"
+end
+
+--- Extract the UBX_MODELS environment variable path
+-- @return string UBX_MODELS path
+function get_ubx_models()
+  local path = os.getenv("UBX_MODELS")
+  if path == nil then
+    return ""
+  end
+
+  return path.."/"
+end
+
+--- fetch a model file, given the name and the type
+-- @param bm model name
+-- @param ext model type/extension
+-- @return string to model file
+local function fetch_model(bm,ext)
+  -- looking into: relative path, models folder (if pkg),
+  -- UBX_MODELS
+  if utils.file_exists(bm.."."..ext) then
+    return bm.."."..ext
+  else if utils.file_exists("models/"..bm.."."..ext) then
+    return "models/"..bm.."."..ext
+  elseif utils.file(exists(ubx_env.get_ubx_models()..bm.."."..ext)) then
+    return ubx_env.get_ubx_models()..bm.."."..ext
+  end
+  return false;
+end
+
+--- fetch a block model file
+-- @param blx block model name
+-- @return string to model file
+function fetch_block_model(blx)
+  return fetch_model(blx,"blx")
+end
+
+--- fetch a block model file
+-- @param pkg package model name
+-- @return string to model file
+function fetch_pkg_model(pkg)
+  return fetch_model(pkg,"pkg")
 end
