@@ -602,7 +602,7 @@ document.body.innerHTML += Viz(src("dotstr"), "svg")
       return html(
 	 "Node graph: "..nodename,
 	 h(1, "Node graph: "..a("/", nodename)),
-	 script("", {src="https://rawgithub.com/mdaines/viz.js/7a58912fa07cbe2a5f3cd8c2b4f5cf48b9dca7d8/viz.js"}),
+	 script("", {src="https://cdn.rawgit.com/mdaines/viz.js/7a58912fa07cbe2a5f3cd8c2b4f5cf48b9dca7d8/viz.js"}),
 	 script(dotstr, { type="text/vnd.graphviz", id="dotstr" }),
 	 script(scrpt, { language="javascript", type="text/javascript"})
 		 )
