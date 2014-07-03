@@ -1,0 +1,11 @@
+# Build generated files
+*.o
+*.so
+*.hexarr
+
+# Data files
+*.dat
+
+# Editor files
+*~
+.*.swp
