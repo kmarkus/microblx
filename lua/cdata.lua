@@ -91,6 +91,7 @@ function M.tolua(cd, refct)
       -- Don't touch any char*, because we don't know if they are zero
       -- terminated or not
       if cd==nil then res='NULL'
+      elseif refct.element_type.what=='void' then res=tonumber(ffi.cast('intptr_t', ffi.cast('void *', cd))) --cf. http://wiki.luajit.org/ffi-knowledge       	
       elseif is_prim_num(refct.element_type) then res=tonumber(cd[0])
       else res=M.tolua(cd, refct.element_type) end
    else print("can't handle "..refct.what..", ignoring.") end

@@ -1,4 +1,3 @@
-
 local ffi=require"ffi"
 local lunit=require"lunit"
 local ubx=require"ubx"
@@ -38,9 +37,9 @@ function test_frame()
 	     0, 0, 1 },
       },
 
-      p={ x=1.2, y=2.2, z=3.2 } 
+      p={ x=1.2, y=2.2, z=3.2 }
    }
-   
+
    local f1 = ffi.new("struct kdl_frame", init)
    local val=cdata.tolua(f1)
    assert_true(utils.table_cmp(val, init), "C: table->frame rountrip comparison error")
@@ -53,7 +52,7 @@ function test_frame_inv()
 	     0, 1, 0,
 	     0, 0, 1 },
       },
-      p={ x=1.2, y=2.2, z=3.2 } 
+      p={ x=1.2, y=2.2, z=3.2 }
    }
    local f1 = ffi.new("struct kdl_frame", init)
    init.p.x=33
@@ -66,13 +65,13 @@ function test_char()
       name="Frodo Baggins",
       benchmark=993
    }
-   
+
    local c = ffi.new("struct test_trig_conf", init)
    local val=cdata.tolua(c)
    assert_true(utils.table_cmp(val, init), "E: table->char rountrip comparison error")
 end
 
-   
+
 function test_int()
    local init=33
    local i = ffi.new("unsigned int", init)
@@ -117,7 +116,7 @@ function test_pointer_to_prim()
    local init = 333
    local i = ffi.new("unsigned int[1]", init )
    local ip = ffi.new("unsigned int*", i)
-   
+
    assert_equal(init, tonumber(i[0]), "K: init failed")
    assert_equal(tonumber(i[0]), tonumber(ip[0]), "L: mismatch between int and int*")
 
@@ -125,4 +124,19 @@ function test_pointer_to_prim()
 
    assert_equal(init, val, "L: mismatch after converting from cdata")
 
+end
+
+function test_arr_data()
+   local d = ubx.data_alloc(ni, "double", 5)
+   local init = {1.1,2.2,3.3,4.4,5.5}
+   ubx.data_set(d, init)
+   local res = ubx.data_tolua(d)
+   assert_true(utils.table_cmp(res, init), "test_arr_data double[5] roundtrip failed")
+end
+
+function test_void_pointer_to_prim()
+   local init = 0xdeafbeaf
+   local vp = ffi.new("void *", ffi.cast('void *', init))
+   local val = cdata.tolua(vp)
+   assert_equal(init, val, "L: mismatch after converting from cdata")
 end
