@@ -1,4 +1,4 @@
-/* ubx.c */
+/* libubx/ubx.c */
 const char *block_state_tostr(int state);
 const char *get_typename(ubx_data_t *data);
 int ubx_node_init(ubx_node_info_t *ni, const char *name);

@@ -7,14 +7,14 @@ local ts = tostring
 
 ni=ubx.node_create("testnode")
 
-ubx.load_module(ni, "std_types/stdtypes/stdtypes.so")
-ubx.load_module(ni, "std_types/testtypes/testtypes.so")
-ubx.load_module(ni, "std_blocks/random/random.so")
-ubx.load_module(ni, "std_blocks/hexdump/hexdump.so")
-ubx.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
-ubx.load_module(ni, "std_blocks/webif/webif.so")
-ubx.load_module(ni, "std_blocks/logging/file_logger.so")
-ubx.load_module(ni, "std_blocks/ptrig/ptrig.so")
+ubx.load_module(ni, "/usr/local/lib/microblx/stdtypes.so")
+ubx.load_module(ni, "/usr/local/lib/microblx/testtypes.so")
+ubx.load_module(ni, "/usr/local/lib/microblx/random.so")
+ubx.load_module(ni, "/usr/local/lib/microblx/hexdump.so")
+ubx.load_module(ni, "/usr/local/lib/microblx/lfds_cyclic.so")
+ubx.load_module(ni, "/usr/local/lib/microblx/webif.so")
+ubx.load_module(ni, "/usr/local/lib/microblx/logger.so")
+ubx.load_module(ni, "/usr/local/lib/microblx/ptrig.so")
 
 ubx.ffi_load_types(ni)
 
