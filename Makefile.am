@@ -33,6 +33,20 @@ libubx/ubx_proto.h:
 %.lua.hexarr: %.lua
 	tools/file2carr.lua $<
 
+BUILT_SOURCES = std_blocks/logging/file_logger.lua.hexarr \
+                std_blocks/ptrig/types/ptrig_config.h.hexarr \
+                std_blocks/ptrig/types/ptrig_period.h.hexarr \
+                std_blocks/ptrig/types/ptrig_tstat.h.hexarr \
+                std_blocks/random/types/random_config.h.hexarr \
+                std_blocks/webif/webif.lua.hexarr \
+                std_types/kdl/types/kdl_frame.h.hexarr \
+                std_types/kdl/types/kdl_rotation.h.hexarr \
+                std_types/kdl/types/kdl_vector.h.hexarr \
+                std_types/kdl/types/kdl.h.hexarr \
+                std_types/kdl/types/kdl_twist.h.hexarr \
+                std_types/kdl/types/kdl_wrench.h.hexarr \
+                std_types/testtypes/types/test_trig_conf.h.hexarr
+
 # cppdemo : CPP Demo block
 cppdemo_la_includes = libubx/ubx.h
 cppdemo_la_SOURCES = $(cppdemo_ls_includes) \
@@ -206,3 +220,5 @@ ubxincludedir = $(ubxdir)/include
 ubxinclude_DATA = libubx/uthash_ffi.h \
                   libubx/ubx_types.h \
                   libubx/ubx_proto.h
+
+CLEANFILES = $(BUILT_SOURCES)
