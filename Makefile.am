@@ -69,13 +69,11 @@ std_blocks/lfds_buffers/liblfds611/bin/liblfds611.a:
 # logger : Logger block
 logger_la_includes = libubx/ubx.h libubx/ubx_types.h
 logger_la_SOURCES = $(logger_la_includes) \
-                       std_blocks/logging/file_logger.lua.hexarr \
-                       std_blocks/logging/file_logger.c
+                    std_blocks/logging/file_logger.lua.hexarr \
+                    std_blocks/logging/file_logger.c
 logger_la_LIBADD = libubx.la
 logger_la_CPPFLAGS = -I$(top_srcdir)/libubx
 logger_la_LDFLAGS = -module -avoid-version
-std_blocks/logging/file_logger.lua.hexarr: std_blocks/logging/file_logger.lua
-	tools/file2carr.lua std_blocks/logging/file_logger.lua
 
 #======================================
 # luablock : Lua block
