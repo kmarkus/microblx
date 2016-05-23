@@ -22,7 +22,7 @@ libubx_includes = libubx/ubx.h libubx/uthash.h libubx/uthash_ffi.h \
                   libubx/ubx_types.h libubx/ubx_proto.h
 libubx_la_SOURCES = $(libubx_includes) \
                     libubx/ubx.c
-#include_HEADERS = libubx/ubx.h
+libubx_la_LDFLAGS = -module -avoid-version
 libubx/ubx_proto.h:
 	cproto libubx/ubx.c > $@
 
