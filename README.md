@@ -31,23 +31,21 @@ Building and setting up
 
 ### Building
 
+Building to run locally on a PC.
+
 ```
-$ Just run "make".
+$ ./bootstrap
+$ ./configure --prefix=/usr
+$ make
+$ sudo make install
 ```
 
 Some blocks have external dependencies and may fail. Check for a
 README in the respective subdirectory.
 
-Note: currently blocks are not installed yet, but instead used from
-the location where they are built. This will change soon.
+Running:
 
-### Source the env.sh script to setup Lua module paths
-
-```sh
-$ . env.sh
-```
-
-That's it.
+luajit /usr/share/lua/5.1/trig_rnd_to_hexdump.lua
 
 Documentation
 -------------
