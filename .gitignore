@@ -1,10 +1,13 @@
 *.la
 *.o
 *.lo
+*.hexarr
 .libs/
 .deps/
 .dirstamp
 m4/
+aclocal-copy/
+x86_64-poky-linux-libtool
 Makefile
 Makefile.in
 aclocal.m4
