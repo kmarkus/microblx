@@ -1,0 +1,3 @@
+SUBDIRS = kdl \
+          stdtypes \
+          testtypes

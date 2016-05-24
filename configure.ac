@@ -42,7 +42,27 @@ AC_SEARCH_LIBS([lua_pcall], [luajit luajit-5.1], [], [
 ])
 
 # files to generate via autotools
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile
+libubx/Makefile
+std_blocks/Makefile
+std_blocks/cppdemo/Makefile
+std_blocks/hexdump/Makefile
+std_blocks/lfds_buffers/Makefile
+std_blocks/logging/Makefile
+std_blocks/luablock/Makefile
+std_blocks/mqueue/Makefile
+std_blocks/ptrig/Makefile
+std_blocks/random/Makefile
+std_blocks/simple_fifo/Makefile
+std_blocks/webif/Makefile
+std_types/Makefile
+std_types/kdl/Makefile
+std_types/stdtypes/Makefile
+std_types/testtypes/Makefile
+examples/Makefile
+lua/Makefile
+tools/Makefile
+])
 
 # generate
 AC_OUTPUT
