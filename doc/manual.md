@@ -137,7 +137,7 @@ void rnd_step(ubx_block_t *b);
 These functions can be called according to the microblx block
 life-cycle finite state machine:
 
-![Block lifecycle FSM](http://git.kistler.com/KiBox2/microblx/raw/master/doc/figures/life_cycle.png?raw=true)
+![Block lifecycle FSM](figures/life_cycle.png?raw=true)
 
 
 **How to store the current state of the block in a thread-safe way?**
