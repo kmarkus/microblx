@@ -10,4 +10,10 @@ lua_SCRIPTS = ansicolors.lua \
               cdata_layout.lua \
               luaffi-introspection.lua \
               time.lua \
-              utils.lua
+              utils.lua \
+              lunit-console.lua \
+              lunit.lua
+
+bin_SCRIPTS = lunit
+
+

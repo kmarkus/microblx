@@ -54,9 +54,9 @@ extern "C"
 #include <sys/prctl.h>
 #endif
 
-#include "uthash.h"
-#include "ubx_types.h"
-#include "ubx_proto.h"
+#include <uthash.h>
+#include <ubx_types.h>
+#include <ubx_proto.h>
 
 /* module init, cleanup */
 #define UBX_MODULE_INIT(initfn) \

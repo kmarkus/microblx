@@ -176,32 +176,29 @@ function generate_rd_wr_helpers(bm)
    return table.concat(filter_dupes(res), "\n")
 end
 
-
---- Generate a Makefile
+--- Generate Makefile.am
 -- @param bm block model
 -- @param fd file to write to (optional, default: io.stdout)
-function generate_makefile(fd, bm)
+function generate_automakefile(fd, bm)
    fd = fd or io.stdout
    local str = utils.expand(
       [[
-ROOT_DIR=$(CURDIR)/../..
-include $(ROOT_DIR)/make.conf
-INCLUDE_DIR=$(ROOT_DIR)/src/
-
-# silence warnings due to unused rd/write helpers: remove once used!
-CFLAGS:=$(CFLAGS) -Wno-unused-function
+pkglib_LTLIBRARIES = $block_name.la
 
 TYPES:=$(wildcard types/*.h)
 HEXARRS:=$(TYPES:%=%.hexarr)
 
-$block_name.so: $block_name.o $(INCLUDE_DIR)/libubx.so
-	${CC} $(CFLAGS_SHARED) -o $block_name.so $block_name.o $(INCLUDE_DIR)/libubx.so
+BUILT_SOURCES = $(HEXARRS)
+CLEANFILES = $(BUILT_SOURCES)
 
-$block_name.o: $block_name.c $(INCLUDE_DIR)/ubx.h $(INCLUDE_DIR)/ubx_types.h $(INCLUDE_DIR)/ubx.c $(HEXARRS)
-	${CC} -fPIC -I$(INCLUDE_DIR) -c $(CFLAGS) $block_name.c
+%.h.hexarr: %.h
+	/usr/share/lua/5.1/file2carr.lua $<
 
-clean:
-	rm -f *.o *.so *~ core $(HEXARRS)
+$block_name_la_includes = /usr/include/ubx.h
+$block_name_la_SOURCES = $block_name_la_includes \
+                     $(HEXARRS) \
+                     $block_name.c
+$block_name_la_LDFLAGS = -module -avoid-version
 ]], { block_name=bm.name })
    fd:write(str)
 end
@@ -585,7 +582,7 @@ end
 
 -- static part
 local codegen_tab = {
-   { fun=generate_makefile, funargs={ block_model }, file="Makefile", overwrite=false },
+   { fun=generate_automakefile, funargs={ block_model }, file="Makefile.am", overwrite=false },
    { fun=generate_block_if, funargs={ block_model } , file=block_model.name..".h", overwrite=true },
    { fun=generate_block_body, funargs={ block_model }, file=block_model.name..".c", overwrite=false },
    { fun=generate_bd_system, funargs={ block_model, outdir }, file=block_model.name..".usc", overwrite=false },

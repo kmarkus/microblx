@@ -13,13 +13,13 @@ require"strict"
 ni=ubx.node_create("youbot")
 
 -- load modules
-ubx.load_module(ni, "std_types/stdtypes/stdtypes.so")
-ubx.load_module(ni, "std_types/kdl/kdl_types.so")
-ubx.load_module(ni, "std_blocks/webif/webif.so")
-ubx.load_module(ni, "std_blocks/youbot_driver/youbot_driver.so")
-ubx.load_module(ni, "std_blocks/ptrig/ptrig.so")
-ubx.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
-ubx.load_module(ni, "std_blocks/logging/file_logger.so")
+ubx.load_module(ni, "/usr/lib/microblx/stdtypes.so")
+ubx.load_module(ni, "/usr/lib/microblx/kdl_types.so")
+ubx.load_module(ni, "/usr/lib/microblx/webif.so")
+ubx.load_module(ni, "/usr/lib/microblx/youbot_driver.so")
+ubx.load_module(ni, "/usr/lib/microblx/ptrig.so")
+ubx.load_module(ni, "/usr/lib/microblx/lfds_cyclic.so")
+ubx.load_module(ni, "/usr/lib/microblx/file_logger.so")
 
 -- create necessary blocks
 print("creating instance of 'webif/webif'")

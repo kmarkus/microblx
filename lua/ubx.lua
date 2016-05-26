@@ -100,10 +100,10 @@ local function setup_enums()
 end
 
 -- load ubx_types and library
-ffi.cdef(read_file("/usr/share/microblx/include/uthash_ffi.h"))
-ffi.cdef(read_file("/usr/share/microblx/include/ubx_types.h"))
-ffi.cdef(read_file("/usr/share/microblx/include/ubx_proto.h"))
-local ubx=ffi.load("/usr/lib/microblx/libubx.so")
+ffi.cdef(read_file("/usr/include/uthash_ffi.h"))
+ffi.cdef(read_file("/usr/include/ubx_types.h"))
+ffi.cdef(read_file("/usr/include/ubx_proto.h"))
+local ubx=ffi.load("/usr/lib/libubx.so")
 
 setmetatable(M, { __index=function(t,k) return ubx["ubx_"..k] end })
 
