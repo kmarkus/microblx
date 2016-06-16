@@ -1050,8 +1050,8 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
    if p1==nil then error("block "..M.safe_tostr(b1.name).." has no port '"..M.safe_tostr(pname1).."'") end
    if p2==nil then error("block "..M.safe_tostr(b2.name).." has no port '"..M.safe_tostr(pname2).."'") end
 
-   if not M.is_outport(p1) then error("conn_uni: block "..bname1.."'s port "..pname1.." is not an outport") end
-   if not M.is_inport(p2) then error("conn_uni: block "..bname2.."'s port "..pname2.." is not an inport") end
+   if not M.is_outport(p1) then error("conn_uni: block "..M.safe_tostr(b1.name).."'s port "..pname1.." is not an outport") end
+   if not M.is_inport(p2) then error("conn_uni: block "..M.safe_tostr(b2.name).."'s port "..pname2.." is not an inport") end
 
    size = max(M.port_out_size(p1), M.port_in_size(p2))
 
