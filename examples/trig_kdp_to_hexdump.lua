@@ -11,7 +11,6 @@ ubx.load_module(ni, "/usr/lib/microblx/stdtypes.so")
 ubx.load_module(ni, "/usr/lib/microblx/testtypes.so")
 ubx.load_module(ni, "/usr/lib/kb2ubx/aggregator.so")
 ubx.load_module(ni, "/usr/lib/kb2ubx/dataprovider.so")
-ubx.load_module(ni, "/usr/lib/microblx/hexdump.so")
 ubx.load_module(ni, "/usr/lib/microblx/lfds_cyclic.so")
 ubx.load_module(ni, "/usr/lib/microblx/webif.so")
 ubx.load_module(ni, "/usr/lib/microblx/ptrig.so")
@@ -22,6 +21,7 @@ ubx.load_module(ni, "/usr/lib/kb2ubx/pmax.so")
 ubx.load_module(ni, "/usr/lib/kb2ubx/firstderivation.so")
 ubx.load_module(ni, "/usr/lib/kb2ubx/imep.so")
 ubx.load_module(ni, "/usr/lib/kb2ubx/noise.so")
+ubx.load_module(ni, "/usr/lib/microblx/logger.so")
 
 ubx.ffi_load_types(ni)
 
@@ -55,13 +55,24 @@ imep1=ubx.block_create(ni, "imep/imep", "imep1")
 print("creating instance of 'noise/noise'")
 noise1=ubx.block_create(ni, "noise/noise", "noise1")
 
-print("creating instance of 'hexdump/hexdump'")
-hexdump1=ubx.block_create(ni, "hexdump/hexdump", "hexdump1")
+print("creating instance of 'logging/file_logger'")
+
+logger_conf=[[
+{
+    { blockname='ptrig1', portname="tstats", buff_len=3, }
+}
+]]
+
+file_log1=ubx.block_create(ni, "logging/file_logger", "file_log1",
+                           {filename=os.date("%Y%m%d_%H%M%S")..'_report.dat',
+                            separator=',',
+                            timestamp=1,
+                            report_conf=logger_conf})
 
 print("creating instance of 'std_triggers/ptrig'")
 ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1",
 			{
-			   period = {sec=1, usec=100000 },
+			   period = {sec=0, usec=2000 },
 			   sched_policy="SCHED_OTHER", sched_priority=0,
 			   trig_blocks={ { b=dataprovider1, num_steps=1, measure=0 },
 					 { b=pegging1, num_steps=1, measure=0 },
@@ -71,7 +82,8 @@ ptrig1=ubx.block_create(ni, "std_triggers/ptrig", "ptrig1",
 					 { b=firstderivation1, num_steps=1, measure=0 },
 					 { b=imep1, num_steps=1, measure=0 },
 					 { b=noise1, num_steps=1, measure=0 },
-					 { b=aggregator1, num_steps=1, measure=0 }
+					 { b=aggregator1, num_steps=1, measure=0 },
+                                         { b=file_log1, num_steps=1, measure=0 }
 			   } } )
 
 print("running webif init", ubx.block_init(webif1))
@@ -85,14 +97,13 @@ print("running pmax1 init", ubx.block_init(pmax1))
 print("running firstderivation1 init", ubx.block_init(firstderivation1))
 print("running imep1 init", ubx.block_init(imep1))
 print("running noise1 init", ubx.block_init(noise1))
-print("running hexdump1 init", ubx.block_init(hexdump1))
+print("running file_log1 init", ubx.block_init(file_log1))
 
 print("running webif start", ubx.block_start(webif1))
 
 provider_outport=ubx.port_get(dataprovider1, "cycle")
 
 print("connecting ports")
-ubx.port_connect_out(provider_outport, hexdump1)
 print("connecting dataprovider to pegging")
 ubx.conn_lfds_cyclic(dataprovider1, "cycle", pegging1, "cycle_in", 1)
 print("connecting pegging to meanvalue:cycle")
@@ -133,7 +144,6 @@ print("running firstderivation start", ubx.block_start(firstderivation1))
 print("running imep start", ubx.block_start(imep1))
 print("running noise start", ubx.block_start(noise1))
 print("running aggregator start", ubx.block_start(aggregator1))
-print("running hexdump start", ubx.block_start(hexdump1))
 
 print("--- kibox2 app launched, browse to http://localhost:8888 and start ptrig1 block to start up")
 io.read()
@@ -149,8 +159,8 @@ print("running pmax1 unload", ubx.block_unload(ni, "pmax1"))
 print("running firstderivation1 unload", ubx.block_unload(ni, "firstderivation1"))
 print("running imep1 unload", ubx.block_unload(ni, "imep1"))
 print("running noise1 unload", ubx.block_unload(ni, "noise1"))
-print("running hexdump1 unload", ubx.block_unload(ni, "hexdump1"))
 print("running aggregator1 unload", ubx.block_unload(ni, "aggregator1"))
+print("running file_log1 unload", ubx.block_unload(ni, "file_log1"))
 
 ubx.unload_modules(ni)
 os.exit(1)
