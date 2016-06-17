@@ -101,6 +101,8 @@ static int trigger_steps(struct ptrig_inf *inf)
 	ubx_clock_mono_gettime(&ts_end);
 	ubx_ts_sub(&ts_end, &ts_start, &ts_dur);
 
+	inf->tstats.dur=ts_dur;
+
 	if(ubx_ts_cmp(&ts_dur, &inf->tstats.min) == -1)
 		inf->tstats.min=ts_dur;
 
