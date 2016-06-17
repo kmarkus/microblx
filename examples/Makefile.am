@@ -4,6 +4,5 @@ examples_SCRIPTS =  block_model_example.lua \
                     youbot_test.lua \
                     cpp_block_demo.usc \
                     trig_rnd_to_hexdump.lua \
-                    trig_kdp_to_hexdump.lua \
                     minimal.usc \
                     youbot_basic.usc
