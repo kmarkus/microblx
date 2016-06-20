@@ -142,8 +142,6 @@ static void* thread_startup(void *arg)
 			goto out;
 		}
 
-		trigger_steps(inf);
-
 		ts.tv_sec += inf->period.sec;
 		ts.tv_nsec += inf->period.usec*NSEC_PER_USEC;
 		tsnorm(&ts);
@@ -152,6 +150,8 @@ static void* thread_startup(void *arg)
 			ERR2(ret, "clock_nanosleep failed");
 			goto out;
 		}
+
+		trigger_steps(inf);
 	}
 
  out:
@@ -225,6 +225,8 @@ static int ptrig_init(ubx_block_t *b)
 	int ret = EOUTOFMEM;
 	const char* threadname;
 	struct ptrig_inf* inf;
+
+	DBG("ptrig_init()");
 
 	if((b->private_data=calloc(1, sizeof(struct ptrig_inf)))==NULL) {
 		ERR("failed to alloc");
@@ -348,6 +350,8 @@ static int ptrig_mod_init(ubx_node_info_t* ni)
 	int ret;
 	ubx_type_t *tptr;
 
+	DBG("ptrig_mod_init()");
+
 	for(tptr=ptrig_types; tptr->name!=NULL; tptr++) {
 		if((ret=ubx_type_register(ni, tptr))!=0) {
 			ERR("failed to register type %s", tptr->name);
@@ -355,6 +359,9 @@ static int ptrig_mod_init(ubx_node_info_t* ni)
 		}
 	}
 	ret=ubx_block_register(ni, &ptrig_comp);
+	if(ret != 0) {
+		ERR("failed to register block");
+	}
  out:
 	return ret;
 }
