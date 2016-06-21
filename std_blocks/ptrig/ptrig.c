@@ -24,6 +24,9 @@
 #include "types/ptrig_tstat.h"
 #include "types/ptrig_tstat.h.hexarr"
 
+#define MAX_BLOCKS 12
+#define BLOCK_TIMERS
+
 /* ptrig metadata */
 char ptrig_meta[] =
 	"{ doc='pthread based trigger',"
@@ -32,7 +35,8 @@ char ptrig_meta[] =
 	"}";
 
 ubx_port_t ptrig_ports[] = {
-	{ .name="tstats", .out_type_name="struct ptrig_tstat" },
+	{ .name="tstats", .out_type_name="struct ptrig_tstat",
+		.out_data_len=MAX_BLOCKS },
 	{ NULL },
 };
 
@@ -67,12 +71,12 @@ struct ptrig_inf {
 	unsigned int trig_list_len;
 
 	struct ptrig_period period;
-	struct ptrig_tstat tstats;
+	struct ptrig_tstat tstats[MAX_BLOCKS];
 
 	ubx_port_t *p_tstats;
 };
 
-def_write_fun(write_tstat, struct ptrig_tstat)
+def_write_arr_fun(write_tstat_arr, struct ptrig_tstat, MAX_BLOCKS)
 
 static inline void tsnorm(struct timespec *ts)
 {
@@ -87,13 +91,34 @@ static int trigger_steps(struct ptrig_inf *inf)
 {
 	int i, steps, ret=-1;
 	struct ubx_timespec ts_start, ts_end, ts_dur;
+	struct ubx_timespec blk_ts_start, blk_ts_end, blk_ts_dur;
 
 	ubx_clock_mono_gettime(&ts_start);
 
 	for(i=0; i<inf->trig_list_len; i++) {
+#ifdef BLOCK_TIMERS
+		ubx_clock_mono_gettime(&blk_ts_start);
+#endif
 		for(steps=0; steps<inf->trig_list[i].num_steps; steps++) {
+//			DBG("block: %d -> %s", i, inf->trig_list[i].b->name);
 			if(ubx_cblock_step(inf->trig_list[i].b)!=0)
 				goto out;
+#ifdef BLOCK_TIMERS
+		ubx_clock_mono_gettime(&blk_ts_end);
+		ubx_ts_sub(&blk_ts_end, &blk_ts_start, &blk_ts_dur);
+
+		inf->tstats[i].dur=blk_ts_dur;
+
+		if(ubx_ts_cmp(&blk_ts_dur, &inf->tstats[i].min) == -1)
+			inf->tstats[i].min=blk_ts_dur;
+
+		if(ubx_ts_cmp(&blk_ts_dur, &inf->tstats[i].max) == 1)
+			inf->tstats[i].max=blk_ts_dur;
+
+		ubx_ts_add(&inf->tstats[i].total, &blk_ts_dur, &inf->tstats[i].total);
+		inf->tstats[i].cnt++;
+		inf->tstats[i].block=i;
+#endif
 		}
 	}
 
@@ -101,17 +126,38 @@ static int trigger_steps(struct ptrig_inf *inf)
 	ubx_clock_mono_gettime(&ts_end);
 	ubx_ts_sub(&ts_end, &ts_start, &ts_dur);
 
-	inf->tstats.dur=ts_dur;
+#ifdef BLOCK_TIMERS
+	inf->tstats[i].dur=ts_dur;
 
-	if(ubx_ts_cmp(&ts_dur, &inf->tstats.min) == -1)
-		inf->tstats.min=ts_dur;
+	if(ubx_ts_cmp(&ts_dur, &inf->tstats[i].min) == -1)
+		inf->tstats[i].min=ts_dur;
 
-	if(ubx_ts_cmp(&ts_dur, &inf->tstats.max) == 1)
-		inf->tstats.max=ts_dur;
+	if(ubx_ts_cmp(&ts_dur, &inf->tstats[i].max) == 1)
+		inf->tstats[i].max=ts_dur;
 
-	ubx_ts_add(&inf->tstats.total, &ts_dur, &inf->tstats.total);
-	inf->tstats.cnt++;
-	write_tstat(inf->p_tstats, &inf->tstats);
+	ubx_ts_add(&inf->tstats[i].total, &ts_dur, &inf->tstats[i].total);
+	inf->tstats[i].cnt++;
+	inf->tstats[i].block=i;
+//	DBG("step: %d, i: %ld", inf->tstats[i].cnt, i);
+#else
+	inf->tstats[0].dur=ts_dur;
+
+	if(ubx_ts_cmp(&ts_dur, &inf->tstats[0].min) == -1)
+		inf->tstats[0].min=ts_dur;
+
+	if(ubx_ts_cmp(&ts_dur, &inf->tstats[0].max) == 1)
+		inf->tstats[0].max=ts_dur;
+
+	ubx_ts_add(&inf->tstats[0].total, &ts_dur, &inf->tstats[0].total);
+	inf->tstats[0].cnt++;
+
+	inf->tstats[1].dur=inf->tstats[0].dur;
+	inf->tstats[1].min=inf->tstats[0].min;
+	inf->tstats[1].max=inf->tstats[0].max;
+	inf->tstats[1].total=inf->tstats[0].total;
+	inf->tstats[1].cnt=inf->tstats[0].cnt;
+#endif
+//	write_tstat_arr(inf->p_tstats, &inf->tstats);
 
 	ret=0;
  out:
@@ -225,8 +271,11 @@ static int ptrig_init(ubx_block_t *b)
 	int ret = EOUTOFMEM;
 	const char* threadname;
 	struct ptrig_inf* inf;
+	int i;
 
 	DBG("ptrig_init()");
+
+	DBG("sizeof(struct ptrig_inf): %d", (int)sizeof(struct ptrig_inf));
 
 	if((b->private_data=calloc(1, sizeof(struct ptrig_inf)))==NULL) {
 		ERR("failed to alloc");
@@ -258,14 +307,16 @@ static int ptrig_init(ubx_block_t *b)
 		ERR("failed to set thread_name to %s", threadname);
 #endif
 
-	inf->tstats.min.sec=999999999;
-	inf->tstats.min.nsec=999999999;
+	for (i=0; i<MAX_BLOCKS; i++) {
+		inf->tstats[i].min.sec=999999999;
+		inf->tstats[i].min.nsec=999999999;
 
-	inf->tstats.max.sec=0;
-	inf->tstats.max.nsec=0;
+		inf->tstats[i].max.sec=0;
+		inf->tstats[i].max.nsec=0;
 
-	inf->tstats.total.sec=0;
-	inf->tstats.total.nsec=0;
+		inf->tstats[i].total.sec=0;
+		inf->tstats[i].total.nsec=0;
+	}
 
 	/* OK */
 	ret=0;
