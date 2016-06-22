@@ -9,6 +9,10 @@
 #define _GNU_SOURCE
 #endif
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -21,11 +25,16 @@
 #include "types/ptrig_config.h.hexarr"
 #include "types/ptrig_period.h"
 #include "types/ptrig_period.h.hexarr"
+#ifdef PTRIG_TSTAT
+#warning "PTRIG_TSTAT defined"
 #include "types/ptrig_tstat.h"
 #include "types/ptrig_tstat.h.hexarr"
+#endif
 
+#ifdef PTRIG_TSTAT_BLOCK
+#warning "PTRIG_TSTAT_BLOCK defined"
 #define MAX_BLOCKS 12
-#define BLOCK_TIMERS
+#endif
 
 /* ptrig metadata */
 char ptrig_meta[] =
@@ -34,17 +43,28 @@ char ptrig_meta[] =
 	"  real-time=false,"
 	"}";
 
+#ifdef PTRIG_TSTAT
+#ifdef PTRIG_TSTAT_BLOCK
 ubx_port_t ptrig_ports[] = {
 	{ .name="tstats", .out_type_name="struct ptrig_tstat",
 		.out_data_len=MAX_BLOCKS },
 	{ NULL },
 };
+#else
+ubx_port_t ptrig_ports[] = {
+        { .name="tstats", .out_type_name="struct ptrig_tstat" },
+        { NULL },
+};
+#endif
+#endif
 
 /* types defined by ptrig block */
 ubx_type_t ptrig_types[] = {
 	def_struct_type(struct ptrig_config, &ptrig_config_h),
 	def_struct_type(struct ptrig_period, &ptrig_period_h),
+#ifdef PTRIG_TSTAT
 	def_struct_type(struct ptrig_tstat, &ptrig_tstat_h),
+#endif
 	{ NULL },
 };
 
@@ -56,7 +76,9 @@ ubx_config_t ptrig_config[] = {
 	{ .name="sched_policy", .type_name = "char", .value = { .len=12 } },
 	{ .name="thread_name", .type_name = "char", .value = { .len=12 } },
 	{ .name="trig_blocks", .type_name = "struct ptrig_config" },
+#ifdef PTRIG_TSTAT
 	{ .name="time_stats_enabled", .type_name = "int" },
+#endif
 	{ NULL },
 };
 
@@ -71,12 +93,23 @@ struct ptrig_inf {
 	unsigned int trig_list_len;
 
 	struct ptrig_period period;
+#ifdef PTRIG_TSTAT
+#ifdef PTRIG_TSTAT_BLOCK
 	struct ptrig_tstat tstats[MAX_BLOCKS];
-
+#else
+	struct ptrig_tstat tstats;
+#endif
 	ubx_port_t *p_tstats;
+#endif
 };
 
+#ifdef PTRIG_TSTAT
+#ifdef PTRIG_TSTAT_BLOCK
 def_write_arr_fun(write_tstat_arr, struct ptrig_tstat, MAX_BLOCKS)
+#else
+def_write_fun(write_tstat, struct ptrig_tstat)
+#endif
+#endif
 
 static inline void tsnorm(struct timespec *ts)
 {
@@ -90,20 +123,26 @@ static inline void tsnorm(struct timespec *ts)
 static int trigger_steps(struct ptrig_inf *inf)
 {
 	int i, steps, ret=-1;
+#ifdef PTRIG_TSTAT
 	struct ubx_timespec ts_start, ts_end, ts_dur;
+#ifdef PTRIG_TSTAT_BLOCK
 	struct ubx_timespec blk_ts_start, blk_ts_end, blk_ts_dur;
+#endif
+#endif
 
+#ifdef PTRIG_TSTAT
 	ubx_clock_mono_gettime(&ts_start);
+#endif
 
 	for(i=0; i<inf->trig_list_len; i++) {
-#ifdef BLOCK_TIMERS
+#ifdef PTRIG_TSTAT_BLOCK
 		ubx_clock_mono_gettime(&blk_ts_start);
 #endif
 		for(steps=0; steps<inf->trig_list[i].num_steps; steps++) {
-//			DBG("block: %d -> %s", i, inf->trig_list[i].b->name);
+			//DBG("block: %d -> %s", i, inf->trig_list[i].b->name);
 			if(ubx_cblock_step(inf->trig_list[i].b)!=0)
 				goto out;
-#ifdef BLOCK_TIMERS
+#ifdef PTRIG_TSTAT_BLOCK
 		ubx_clock_mono_gettime(&blk_ts_end);
 		ubx_ts_sub(&blk_ts_end, &blk_ts_start, &blk_ts_dur);
 
@@ -122,11 +161,12 @@ static int trigger_steps(struct ptrig_inf *inf)
 		}
 	}
 
+#ifdef PTRIG_TSTAT
 	/* compute tstats */
 	ubx_clock_mono_gettime(&ts_end);
 	ubx_ts_sub(&ts_end, &ts_start, &ts_dur);
 
-#ifdef BLOCK_TIMERS
+#ifdef PTRIG_TSTAT_BLOCK
 	inf->tstats[i].dur=ts_dur;
 
 	if(ubx_ts_cmp(&ts_dur, &inf->tstats[i].min) == -1)
@@ -138,27 +178,24 @@ static int trigger_steps(struct ptrig_inf *inf)
 	ubx_ts_add(&inf->tstats[i].total, &ts_dur, &inf->tstats[i].total);
 	inf->tstats[i].cnt++;
 	inf->tstats[i].block=i;
-//	DBG("step: %d, i: %ld", inf->tstats[i].cnt, i);
+	DBG("step: %ld, i: %d", inf->tstats[i].cnt, i);
+	write_tstat_arr(inf->p_tstats, &inf->tstats);
 #else
-	inf->tstats[0].dur=ts_dur;
+	inf->tstats.dur=ts_dur;
 
-	if(ubx_ts_cmp(&ts_dur, &inf->tstats[0].min) == -1)
-		inf->tstats[0].min=ts_dur;
+	if(ubx_ts_cmp(&ts_dur, &inf->tstats.min) == -1)
+		inf->tstats.min=ts_dur;
 
-	if(ubx_ts_cmp(&ts_dur, &inf->tstats[0].max) == 1)
-		inf->tstats[0].max=ts_dur;
+	if(ubx_ts_cmp(&ts_dur, &inf->tstats.max) == 1)
+		inf->tstats.max=ts_dur;
 
-	ubx_ts_add(&inf->tstats[0].total, &ts_dur, &inf->tstats[0].total);
-	inf->tstats[0].cnt++;
-
-	inf->tstats[1].dur=inf->tstats[0].dur;
-	inf->tstats[1].min=inf->tstats[0].min;
-	inf->tstats[1].max=inf->tstats[0].max;
-	inf->tstats[1].total=inf->tstats[0].total;
-	inf->tstats[1].cnt=inf->tstats[0].cnt;
+	ubx_ts_add(&inf->tstats.total, &ts_dur, &inf->tstats.total);
+	inf->tstats.cnt++;
+	inf->tstats[i].block=0;
+	DBG("step: %ld, i: %d", inf->tstats.cnt, i);
+	write_tstat(inf->p_tstats, &inf->tstats);
 #endif
-//	write_tstat_arr(inf->p_tstats, &inf->tstats);
-
+#endif
 	ret=0;
  out:
 	return ret;
@@ -273,10 +310,6 @@ static int ptrig_init(ubx_block_t *b)
 	struct ptrig_inf* inf;
 	int i;
 
-	DBG("ptrig_init()");
-
-	DBG("sizeof(struct ptrig_inf): %d", (int)sizeof(struct ptrig_inf));
-
 	if((b->private_data=calloc(1, sizeof(struct ptrig_inf)))==NULL) {
 		ERR("failed to alloc");
 		goto out;
@@ -307,6 +340,11 @@ static int ptrig_init(ubx_block_t *b)
 		ERR("failed to set thread_name to %s", threadname);
 #endif
 
+#ifdef PTRIG_TSTAT
+#ifdef PTRIG_TSTAT_BLOCK
+	{
+	int i;
+
 	for (i=0; i<MAX_BLOCKS; i++) {
 		inf->tstats[i].min.sec=999999999;
 		inf->tstats[i].min.nsec=999999999;
@@ -317,6 +355,18 @@ static int ptrig_init(ubx_block_t *b)
 		inf->tstats[i].total.sec=0;
 		inf->tstats[i].total.nsec=0;
 	}
+	}
+#else
+	inf->tstats.min.sec=999999999;
+	inf->tstats.min.nsec=999999999;
+
+	inf->tstats.max.sec=0;
+	inf->tstats.max.nsec=0;
+
+	inf->tstats.total.sec=0;
+	inf->tstats.total.nsec=0;
+#endif
+#endif
 
 	/* OK */
 	ret=0;
@@ -348,7 +398,9 @@ static int ptrig_start(ubx_block_t *b)
 	pthread_cond_signal(&inf->active_cond);
 	pthread_mutex_unlock(&inf->mutex);
 
+#ifdef PTRIG_TSTAT
 	assert(inf->p_tstats = ubx_port_get(b, "tstats"));
+#endif
 	return 0;
 }
 
@@ -365,6 +417,7 @@ static void ptrig_stop(ubx_block_t *b)
 
 static void ptrig_cleanup(ubx_block_t *b)
 {
+	DBG(" ");
 	int ret;
 	struct ptrig_inf* inf;
 	inf=(struct ptrig_inf*) b->private_data;
@@ -388,8 +441,9 @@ ubx_block_t ptrig_comp = {
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = ptrig_meta,
 	.configs = ptrig_config,
+#ifdef PTRIG_TSTAT
 	.ports = ptrig_ports,
-
+#endif
 	.init = ptrig_init,
 	.start = ptrig_start,
 	.stop = ptrig_stop,
@@ -400,8 +454,6 @@ static int ptrig_mod_init(ubx_node_info_t* ni)
 {
 	int ret;
 	ubx_type_t *tptr;
-
-	DBG("ptrig_mod_init()");
 
 	for(tptr=ptrig_types; tptr->name!=NULL; tptr++) {
 		if((ret=ubx_type_register(ni, tptr))!=0) {
