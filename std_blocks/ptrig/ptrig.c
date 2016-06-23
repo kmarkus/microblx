@@ -26,13 +26,11 @@
 #include "types/ptrig_period.h"
 #include "types/ptrig_period.h.hexarr"
 #ifdef PTRIG_TSTAT
-#warning "PTRIG_TSTAT defined"
 #include "types/ptrig_tstat.h"
 #include "types/ptrig_tstat.h.hexarr"
 #endif
 
 #ifdef PTRIG_TSTAT_BLOCK
-#warning "PTRIG_TSTAT_BLOCK defined"
 #define MAX_BLOCKS 12
 #endif
 
@@ -191,7 +189,7 @@ static int trigger_steps(struct ptrig_inf *inf)
 
 	ubx_ts_add(&inf->tstats.total, &ts_dur, &inf->tstats.total);
 	inf->tstats.cnt++;
-	inf->tstats[i].block=0;
+	inf->tstats.block=0;
 	DBG("step: %ld, i: %d", inf->tstats.cnt, i);
 	write_tstat(inf->p_tstats, &inf->tstats);
 #endif
