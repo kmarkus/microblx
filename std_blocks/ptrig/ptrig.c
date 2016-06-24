@@ -223,6 +223,8 @@ static void* thread_startup(void *arg)
 			goto out;
 		}
 
+		trigger_steps(inf);
+
 		ts.tv_sec += inf->period.sec;
 		ts.tv_nsec += inf->period.usec*NSEC_PER_USEC;
 		tsnorm(&ts);
@@ -231,8 +233,6 @@ static void* thread_startup(void *arg)
 			ERR2(ret, "clock_nanosleep failed");
 			goto out;
 		}
-
-		trigger_steps(inf);
 	}
 
  out:
