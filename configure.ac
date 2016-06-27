@@ -74,6 +74,7 @@ std_blocks/logging/Makefile
 std_blocks/luablock/Makefile
 std_blocks/mqueue/Makefile
 std_blocks/ptrig/Makefile
+std_blocks/trig/Makefile
 std_blocks/random/Makefile
 std_blocks/simple_fifo/Makefile
 std_blocks/webif/Makefile
