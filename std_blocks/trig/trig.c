@@ -98,6 +98,8 @@ struct trig_inf {
 	struct trig_tstat tstats;
 #endif
 	ubx_port_t *p_tstats;
+#else
+	unsigned int cycles;
 #endif
 };
 
@@ -192,6 +194,8 @@ static int trigger_steps(struct trig_inf *inf)
 	DBG("step: %ld, i: %d", inf->tstats.cnt, i);
 	write_tstat(inf->p_tstats, &inf->tstats);
 #endif
+#else
+	inf->cycles++;
 #endif
 	ret=0;
  out:
@@ -365,6 +369,8 @@ static int trig_init(ubx_block_t *b)
 	inf->tstats.total.sec=0;
 	inf->tstats.total.nsec=0;
 #endif
+#else
+	inf->cycles=0;
 #endif
 
 	/* OK */
@@ -407,11 +413,17 @@ static void trig_stop(ubx_block_t *b)
 {
 	DBG(" ");
 	struct trig_inf *inf;
+	double cycles, avg_duration;
 	inf = (struct trig_inf*) b->private_data;
 
 	pthread_mutex_lock(&inf->mutex);
 	inf->state=BLOCK_STATE_INACTIVE;
 	pthread_mutex_unlock(&inf->mutex);
+	DBG("Cycles processed: %d", inf->cycles);
+	cycles = inf->cycles;
+	cycles /= 10;
+	avg_duration = 1/cycles;
+	DBG("Average duration %f", avg_duration);
 }
 
 static void trig_cleanup(ubx_block_t *b)
