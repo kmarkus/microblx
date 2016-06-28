@@ -196,6 +196,8 @@ static int trigger_steps(struct trig_inf *inf)
 #endif
 #else
 	inf->cycles++;
+	if(inf->cycles%1000 == 0)
+		DBG("Cycles: %d", inf->cycles);
 #endif
 	ret=0;
  out:
