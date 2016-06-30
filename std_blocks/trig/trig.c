@@ -196,8 +196,8 @@ static int trigger_steps(struct trig_inf *inf)
 #endif
 #else
 	inf->cycles++;
-	if(inf->cycles%1000 == 0)
-		DBG("Cycles: %d", inf->cycles);
+//	if(inf->cycles%1000 == 0)
+//		DBG("Cycles: %d", inf->cycles);
 #endif
 	ret=0;
  out:
@@ -387,8 +387,6 @@ static int trig_init(ubx_block_t *b)
 
 static int trig_start(ubx_block_t *b)
 {
-	DBG(" ");
-
 	struct trig_inf *inf;
 	ubx_data_t* trig_list_data;
 
@@ -413,7 +411,6 @@ static int trig_start(ubx_block_t *b)
 
 static void trig_stop(ubx_block_t *b)
 {
-	DBG(" ");
 	struct trig_inf *inf;
 	double cycles, avg_duration;
 	inf = (struct trig_inf*) b->private_data;
