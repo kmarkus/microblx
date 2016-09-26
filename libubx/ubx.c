@@ -1874,7 +1874,6 @@ int ubx_clock_mono_sleep(unsigned int sec)
 {
 	int ret=-1;
 	struct timespec ts, remain;
-	struct sigaction sa;
 
 	DBG("ubx_clock_mono_sleep(%u)", sec);
 
