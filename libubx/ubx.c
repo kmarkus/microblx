@@ -90,7 +90,7 @@ int ubx_node_init(ubx_node_info_t* ni, const char *name)
 #ifdef CONFIG_MLOCK_ALL
 	if(mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
 		ERR2(errno, " ");
-		goto out_err;
+		goto out;
 	};
 #endif
 
