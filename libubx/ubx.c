@@ -1919,6 +1919,8 @@ void ubx_ts_add(struct ubx_timespec *ts1, struct ubx_timespec *ts2, struct ubx_t
  */
 void ubx_ts_div(struct ubx_timespec *ts, long div, struct ubx_timespec *out)
 {
-	out->sec = ts->sec/div;
-	out->nsec = ts->sec/div;
+	int64_t tmp_nsec = (ts->sec * NSEC_PER_SEC) + ts->nsec;
+	tmp_nsec /= div;
+	out->sec = tmp_nsec / NSEC_PER_SEC;
+	out->nsec = tmp_nsec % NSEC_PER_SEC;
 }
