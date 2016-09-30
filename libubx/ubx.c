@@ -1834,16 +1834,16 @@ out:
 }
 
 /**
- * ubx_clock_mono_nsleep - sleep for specified nano-seconds
+ * ubx_clock_mono_nanosleep - sleep for specified timespec
  *
- * @param nsec
+ * @param uts
  *
- * @return < 0 in case of error, 0 otherwise
+ * @return > 0 in case of error, 0 otherwise
  */
 
-int ubx_clock_mono_nsleep(unsigned int nsec)
+int ubx_clock_mono_nanosleep(struct ubx_timespec* uts)
 {
-	int ret=-1;
+	int ret;
 	struct timespec ts;
 
 	if((ret=clock_gettime(CLOCK_MONOTONIC, &ts))) {
@@ -1851,45 +1851,16 @@ int ubx_clock_mono_nsleep(unsigned int nsec)
 		goto out;
 	}
 
-	ts.tv_nsec += nsec;
-
-	if((ret=clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL))) {
-		ERR2(ret, "clock_nanosleep failed");
-		goto out;
-	}
-
-out:
-	return ret;
-}
-
-/**
- * ubx_clock_mono_sleep - sleep for specified seconds
- *
- * @param sec
- *
- * @return < 0 in case of error, 0 otherwise
- */
-
-int ubx_clock_mono_sleep(unsigned int sec)
-{
-	int ret=-1;
-	struct timespec ts, remain;
-
-	DBG("ubx_clock_mono_sleep(%u)", sec);
-
-	if((ret=clock_gettime(CLOCK_MONOTONIC, &ts))) {
-		ERR2(ret, "clock_gettime failed");
-		goto out;
-	}
-
-	ts.tv_sec = sec;
-	ts.tv_nsec = 0;
+	ts.tv_sec += uts->sec;
+	ts.tv_nsec += uts->nsec;
 
 	for (;;) {
-		ret = clock_nanosleep(CLOCK_MONOTONIC, 0, &ts, &remain);
-		if (ret == 0)
-			break;
-		ts = remain;
+		ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
+		if (ret != EINTR) {
+			if (ret != 0)
+				ERR2(ret, "clock_nanosleep failed");
+			goto out;
+		}
 	}
 
 out:
