@@ -5,6 +5,7 @@ SUBDIRS = cppdemo \
           luablock \
           mqueue \
           ptrig \
+          trig \
           random \
           simple_fifo \
           webif

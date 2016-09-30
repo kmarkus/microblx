@@ -25,6 +25,28 @@ AC_PROG_INSTALL
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT
 
+AC_ARG_ENABLE([ptrig-tstat-block],
+  AS_HELP_STRING([--disable-ptrig-tstat-block], [Disable ptrig block-level timing statistics]),
+  [ptrig_tstat_block=${enableval}],
+  [ptrig_tstat_block=yes])
+
+AC_ARG_ENABLE([ptrig-tstat],
+  AS_HELP_STRING([--disable-ptrig-tstat], [Disable ptrig timing statistics]),
+  [ptrig_tstat=${enableval}],
+  [ptrig_tstat=yes])
+
+if test "x${ptrig_tstat}" = xno; then
+  ptrig_tstat_block=no
+fi
+
+if test "x${ptrig_tstat_block}" = xyes; then
+  AC_DEFINE([PTRIG_TSTAT_BLOCK], 1, [ptrig tstat block enabled])
+fi
+
+if test "x${ptrig_tstat}" = xyes; then
+   AC_DEFINE([PTRIG_TSTAT], 1, [ptrig tstat enabled])
+fi
+
 have_pthreads=no
 AC_SEARCH_LIBS([pthread_create], [pthread], [have_pthreads=yes])
 if test "x${have_pthreads}" = xyes; then
@@ -52,6 +74,7 @@ std_blocks/logging/Makefile
 std_blocks/luablock/Makefile
 std_blocks/mqueue/Makefile
 std_blocks/ptrig/Makefile
+std_blocks/trig/Makefile
 std_blocks/random/Makefile
 std_blocks/simple_fifo/Makefile
 std_blocks/webif/Makefile

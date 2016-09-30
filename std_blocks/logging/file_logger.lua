@@ -147,6 +147,9 @@ function step(b)
    fd:write("\n")
 end
 
+function stop(b)
+end
+
 --- cleanup
 function cleanup(b)
    io.close(fd)
