@@ -237,6 +237,14 @@ end
 
 -- OS stuff
 M.clock_mono_gettime = ubx.ubx_clock_mono_gettime
+M.clock_mono_nanosleep = ubx.ubx_clock_mono_nanosleep
+
+function M.clock_mono_sleep(sec, nsec)
+   local ts = ffi.new("struct ubx_timespec")
+   ts.sec=sec
+   ts.nsec=nsec or 0
+   M.clock_mono_nanosleep(ts)
+end
 
 --- Unload a block: bring it to state preinit and call ubx_block_rm
 function M.block_unload(ni, name)

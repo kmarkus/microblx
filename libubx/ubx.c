@@ -1834,6 +1834,40 @@ out:
 }
 
 /**
+ * ubx_clock_mono_nanosleep - sleep for specified timespec
+ *
+ * @param uts
+ *
+ * @return > 0 in case of error, 0 otherwise
+ */
+
+int ubx_clock_mono_nanosleep(struct ubx_timespec* uts)
+{
+	int ret;
+	struct timespec ts;
+
+	if((ret=clock_gettime(CLOCK_MONOTONIC, &ts))) {
+		ERR2(ret, "clock_gettime failed");
+		goto out;
+	}
+
+	ts.tv_sec += uts->sec;
+	ts.tv_nsec += uts->nsec;
+
+	for (;;) {
+		ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
+		if (ret != EINTR) {
+			if (ret != 0)
+				ERR2(ret, "clock_nanosleep failed");
+			goto out;
+		}
+	}
+
+out:
+	return ret;
+}
+
+/**
  * Compare two ubx_timespecs
  *
  * @param ts1
