@@ -1,10 +1,10 @@
-pkglib_LTLIBRARIES = mqueue.la
+lib_LTLIBRARIES = libmqueue.la
 
 #======================================
 # mqueue : Message queue block
-mqueue_la_includes = $(top_srcdir)/libubx/ubx.h
-mqueue_la_SOURCES = $(mqueue_la_includes) \
+libmqueue_la_includes = $(top_srcdir)/libubx/ubx.h
+libmqueue_la_SOURCES = $(libmqueue_la_includes) \
                     mqueue.c
-mqueue_la_LIBADD = $(top_srcdir)/libubx/libubx.la
-mqueue_la_CPPFLAGS = -I$(top_srcdir)/libubx
-mqueue_la_LDFLAGS = -module -avoid-version
+libmqueue_la_LIBADD = $(top_srcdir)/libubx/libubx.la
+libmqueue_la_CPPFLAGS = -I$(top_srcdir)/libubx
+libmqueue_la_LDFLAGS = -module -avoid-version

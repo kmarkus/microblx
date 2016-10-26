@@ -9,9 +9,9 @@ module("cdata_tolua_test", lunit.testcase, package.seeall)
 
 local ni=ubx.node_create("cdata_tolua_test")
 
-ubx.load_module(ni, "/usr/lib/microblx/stdtypes.so")
-ubx.load_module(ni, "/usr/lib/microblx/testtypes.so")
-ubx.load_module(ni, "/usr/lib/microblx/kdl_types.so")
+ubx.load_module(ni, "stdtypes")
+ubx.load_module(ni, "testtypes")
+ubx.load_module(ni, "kdl_types")
 
 function test_vector()
    local init = {x=1,y=2,z=3}

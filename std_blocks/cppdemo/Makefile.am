@@ -1,9 +1,9 @@
-pkglib_LTLIBRARIES = cppdemo.la
+lib_LTLIBRARIES = libcppdemo.la
 
 # cppdemo : CPP Demo block
-cppdemo_la_includes = $(top_srcdir)/libubx/ubx.h
-cppdemo_la_SOURCES = $(cppdemo_la_includes) \
+libcppdemo_la_includes = $(top_srcdir)/libubx/ubx.h
+libcppdemo_la_SOURCES = $(libcppdemo_la_includes) \
                      cppdemo.cpp
-cppdemo_la_LIBADD = $(top_srcdir)/libubx/libubx.la
-cppdemo_la_CPPFLAGS = -I$(top_srcdir)/libubx
-cppdemo_la_LDFLAGS = -module -avoid-version
+libcppdemo_la_LIBADD = $(top_srcdir)/libubx/libubx.la
+libcppdemo_la_CPPFLAGS = -I$(top_srcdir)/libubx
+libcppdemo_la_LDFLAGS = -module -avoid-version

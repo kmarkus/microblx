@@ -1,4 +1,4 @@
-pkglib_LTLIBRARIES = testtypes.la
+lib_LTLIBRARIES = libtesttypes.la
 
 BUILT_SOURCES = types/test_trig_conf.h.hexarr
 CLEANFILES = $(BUILT_SOURCES)
@@ -8,9 +8,9 @@ CLEANFILES = $(BUILT_SOURCES)
 
 #======================================
 # testtypes : The basic types
-testtypes_la_includes = $(top_srcdir)/libubx/ubx.h
-testtypes_la_SOURCES = $(testtypes_la_includes) \
+libtesttypes_la_includes = $(top_srcdir)/libubx/ubx.h
+libtesttypes_la_SOURCES = $(libtesttypes_la_includes) \
                        testtypes.c
-testtypes_la_LIBADD = $(top_srcdir)/libubx/libubx.la
-testtypes_la_CPPFLAGS = -I$(top_srcdir)/libubx
-testtypes_la_LDFLAGS = -module -avoid-version
+libtesttypes_la_LIBADD = $(top_srcdir)/libubx/libubx.la
+libtesttypes_la_CPPFLAGS = -I$(top_srcdir)/libubx
+libtesttypes_la_LDFLAGS = -module -avoid-version
