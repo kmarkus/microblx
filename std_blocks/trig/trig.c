@@ -418,11 +418,6 @@ static void trig_stop(ubx_block_t *b)
 	pthread_mutex_lock(&inf->mutex);
 	inf->state=BLOCK_STATE_INACTIVE;
 	pthread_mutex_unlock(&inf->mutex);
-	DBG("Cycles processed: %d", inf->cycles);
-	cycles = inf->cycles;
-	cycles /= 10;
-	avg_duration = 1/cycles;
-	DBG("Average duration %f", avg_duration);
 }
 
 static void trig_cleanup(ubx_block_t *b)

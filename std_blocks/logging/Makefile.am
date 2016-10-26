@@ -1,4 +1,4 @@
-pkglib_LTLIBRARIES = logger.la
+lib_LTLIBRARIES = liblogger.la
 
 BUILT_SOURCES = file_logger.lua.hexarr
 CLEANFILES = $(BUILT_SOURCES)
@@ -8,11 +8,11 @@ CLEANFILES = $(BUILT_SOURCES)
 
 #======================================
 # logger : Logger block
-logger_la_includes = $(top_srcdir)/libubx/ubx.h \
+liblogger_la_includes = $(top_srcdir)/libubx/ubx.h \
                      $(top_srcdir)/libubx/ubx_types.h
-logger_la_SOURCES = $(logger_la_includes) \
+liblogger_la_SOURCES = $(liblogger_la_includes) \
                     file_logger.lua.hexarr \
                     file_logger.c
-logger_la_LIBADD = $(top_srcdir)/libubx/libubx.la
-logger_la_CPPFLAGS = -I$(top_srcdir)/libubx
-logger_la_LDFLAGS = -module -avoid-version
+liblogger_la_LIBADD = $(top_srcdir)/libubx/libubx.la
+liblogger_la_CPPFLAGS = -I$(top_srcdir)/libubx
+liblogger_la_LDFLAGS = -module -avoid-version

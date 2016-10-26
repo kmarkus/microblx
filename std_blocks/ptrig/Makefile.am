@@ -1,4 +1,4 @@
-pkglib_LTLIBRARIES = ptrig.la
+lib_LTLIBRARIES = libptrig.la
 
 BUILT_SOURCES = types/ptrig_config.h.hexarr \
                 types/ptrig_period.h.hexarr \
@@ -10,10 +10,10 @@ CLEANFILES = $(BUILT_SOURCES)
 
 #======================================
 # ptrig : Pthread based trigger block
-ptrig_la_includes = $(top_srcdir)/libubx/ubx.h \
+libptrig_la_includes = $(top_srcdir)/libubx/ubx.h \
                     $(top_srcdir)/libubx/ubx_types.h
-ptrig_la_SOURCES = $(ptrig_la_includes) \
+libptrig_la_SOURCES = $(libptrig_la_includes) \
                    ptrig.c
-ptrig_la_LIBADD = $(top_srcdir)/libubx/libubx.la
-ptrig_la_CPPFLAGS = -I$(top_srcdir)/libubx
-ptrig_la_LDFLAGS = -module -avoid-version
+libptrig_la_LIBADD = $(top_srcdir)/libubx/libubx.la
+libptrig_la_CPPFLAGS = -I$(top_srcdir)/libubx
+libptrig_la_LDFLAGS = -module -avoid-version

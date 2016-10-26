@@ -14,10 +14,10 @@ module("test_struct_comm", lunit.testcase, package.seeall)
 
 local ni = ubx.node_create("test_struct_comm")
 
-ubx.load_module(ni, "/usr/lib/microblx/stdtypes.so")
-ubx.load_module(ni, "/usr/lib/microblx/kdl_types.so")
-ubx.load_module(ni, "/usr/lib/microblx/luablock.so")
-ubx.load_module(ni, "/usr/lib/microblx/lfds_cyclic.so")
+ubx.load_module(ni, "stdtypes")
+ubx.load_module(ni, "kdl_types")
+ubx.load_module(ni, "luablock")
+ubx.load_module(ni, "lfds_cyclic")
 
 local lua_testcomp = [[
 ubx=require "ubx"

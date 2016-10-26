@@ -60,7 +60,7 @@ ni = model:launch{nodename=nodename, verbose=true}
 if opttab['-webif'] then
    local port = opttab['-webif'][1] or 8888
    print("starting up webinterface block (port: "..ts(port)..")")
-   ubx.load_module(ni, "/usr/lib/microblx/webif.so")
+   ubx.load_module(ni, "webif")
    local webif1=ubx.block_create(ni, "webif/webif", "webif1", { port=ts(port) })
    assert(ubx.block_init(webif1)==0)
    assert(ubx.block_start(webif1)==0)

@@ -1,10 +1,10 @@
-pkglib_LTLIBRARIES = hexdump.la
+lib_LTLIBRARIES = libhexdump.la
 
 #======================================
 # hexdump : Hexdump block
-hexdump_la_includes = $(top_srcdir)/libubx/ubx.h
-hexdump_la_SOURCES = $(hexdump_la_includes) \
+libhexdump_la_includes = $(top_srcdir)/libubx/ubx.h
+libhexdump_la_SOURCES = $(libhexdump_la_includes) \
                      hexdump.c
-hexdump_la_LIBADD = $(top_srcdir)/libubx/libubx.la
-hexdump_la_CPPFLAGS = -I$(top_srcdir)/libubx
-hexdump_la_LDFLAGS = -module -avoid-version
+libhexdump_la_LIBADD = $(top_srcdir)/libubx/libubx.la
+libhexdump_la_CPPFLAGS = -I$(top_srcdir)/libubx
+libhexdump_la_LDFLAGS = -module -avoid-version
