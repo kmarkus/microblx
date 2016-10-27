@@ -63,6 +63,18 @@ AC_SEARCH_LIBS([lua_pcall], [luajit luajit-5.1], [], [
   AC_MSG_ERROR([unable to find lua_pcall() function])
 ])
 
+lave_lfds=no
+AC_SEARCH_LIBS([lfds611_ringbuffer_new], [lfds], [have_lfds=yes])
+if test "x${have_lfds}" = xyes; then
+  AC_CHECK_HEADERS([liblfds611.h], [], [have_lfds=no])
+fi
+if test "x${have_lfds}" = xno; then
+  echo "--------------------------------------"
+  echo "Unable to find liblfds on this system."
+  echo "--------------------------------------"
+  exit 1
+fi
+
 # files to generate via autotools
 AC_CONFIG_FILES([Makefile
 libubx/Makefile

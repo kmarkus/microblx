@@ -14,6 +14,5 @@ libptrig_la_includes = $(top_srcdir)/libubx/ubx.h \
                     $(top_srcdir)/libubx/ubx_types.h
 libptrig_la_SOURCES = $(libptrig_la_includes) \
                    ptrig.c
-libptrig_la_LIBADD = $(top_srcdir)/libubx/libubx.la
+libptrig_la_LIBADD = $(top_builddir)/libubx/libubx.la
 libptrig_la_CPPFLAGS = -I$(top_srcdir)/libubx
-libptrig_la_LDFLAGS = -module -avoid-version

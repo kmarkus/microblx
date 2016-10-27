@@ -5,6 +5,5 @@ lib_LTLIBRARIES = libsimple_fifo.la
 libsimple_fifo_la_includes = $(top_srcdir)/libubx/ubx.h
 libsimple_fifo_la_SOURCES = $(libsimple_fifo_la_includes) \
                          simple_fifo.c
-libsimple_fifo_la_LIBADD = $(top_srcdir)/libubx/libubx.la
+libsimple_fifo_la_LIBADD = $(top_builddir)/libubx/libubx.la
 libsimple_fifo_la_CPPFLAGS = -I$(top_srcdir)/libubx
-libsimple_fifo_la_LDFLAGS = -module -avoid-version
