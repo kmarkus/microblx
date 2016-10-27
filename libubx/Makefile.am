@@ -11,6 +11,6 @@ include_HEADERS = ubx.h \
                   uthash_ffi.h
 libubx_la_SOURCES = $(libubx_includes) \
                     ubx.c
-libubx_la_LDFLAGS = -module -avoid-version
+
 ubx_proto.h:
 	cproto ubx.c > $@
