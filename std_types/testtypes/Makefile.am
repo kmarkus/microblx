@@ -11,6 +11,6 @@ CLEANFILES = $(BUILT_SOURCES)
 libtesttypes_la_includes = $(top_srcdir)/libubx/ubx.h
 libtesttypes_la_SOURCES = $(libtesttypes_la_includes) \
                        testtypes.c
-libtesttypes_la_LIBADD = $(top_srcdir)/libubx/libubx.la
+libtesttypes_la_LIBADD = $(top_builddir)/libubx/libubx.la
 libtesttypes_la_CPPFLAGS = -I$(top_srcdir)/libubx
-libtesttypes_la_LDFLAGS = -module -avoid-version
+#libtesttypes_la_LDFLAGS = -module -avoid-version

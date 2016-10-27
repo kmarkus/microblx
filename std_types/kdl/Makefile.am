@@ -16,6 +16,6 @@ CLEANFILES = $(BUILT_SOURCES)
 libkdl_types_la_includes = $(top_srcdir)/libubx/ubx.h
 libkdl_types_la_SOURCES = $(libkdl_types_la_includes) \
                        kdl_types.c
-libkdl_types_la_LIBADD = $(top_srcdir)/libubx/libubx.la
+libkdl_types_la_LIBADD = $(top_builddir)/libubx/libubx.la
 libkdl_types_la_CPPFLAGS = -I$(top_srcdir)/libubx
-libkdl_types_la_LDFLAGS = -module -avoid-version
+#libkdl_types_la_LDFLAGS = -module -avoid-version

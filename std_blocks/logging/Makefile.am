@@ -13,6 +13,5 @@ liblogger_la_includes = $(top_srcdir)/libubx/ubx.h \
 liblogger_la_SOURCES = $(liblogger_la_includes) \
                     file_logger.lua.hexarr \
                     file_logger.c
-liblogger_la_LIBADD = $(top_srcdir)/libubx/libubx.la
+liblogger_la_LIBADD = $(top_builddir)/libubx/libubx.la
 liblogger_la_CPPFLAGS = -I$(top_srcdir)/libubx
-liblogger_la_LDFLAGS = -module -avoid-version
