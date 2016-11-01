@@ -21,6 +21,7 @@ Dependencies
 ------------
 
  - `luajit`, `libluajit-5.1-dev` (>=2.0.0-beta11, for scripting (optional, but recommended)
+ - `liblfds`(v6.1.1, for liblfds_cyclic buffer)
  - `clang++` (only necessary for compiling C++ blocks)
  - gcc (v4.6 or newer) or clang
  - only for development: `cproto` to generate C prototype header file
@@ -33,7 +34,25 @@ Building and setting up
 
 Building to run locally on a PC.
 
+Before building microblx, liblfds611 needs to be built and installed. There
+is a set of patches in the microblx repository to clean up the packaging
+of liblfds. Follow the instructions below:
+
 ```
+$ cd ~
+$ git clone https://github.com/liblfds/liblfds6.1.1.git
+$ cd liblfds6.1.1
+$ git am ../microblx/liblfds/*.patch
+$ ./bootstrap
+$ ./configure --prefix=/usr
+$ make
+$ sudo make install
+```
+
+Now build microblx
+
+```
+$ cd ~/microblx
 $ ./bootstrap
 $ ./configure --prefix=/usr
 $ make
