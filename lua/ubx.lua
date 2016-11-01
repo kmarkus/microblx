@@ -153,8 +153,6 @@ ubx_modules = {}
 function M.load_module(ni, libfile)
    local nodename=M.safe_tostr(ni.name)
 
-   if not utils.file_exists(libfile) then error("non-existing file "..tostring(libfile)) end
-
    if ubx_modules[nodename] and ubx_modules[nodename].loaded[libfile] then
       -- print(nodename..": library "..tostring(libfile).." already loaded, ignoring")
       goto out
