@@ -64,7 +64,7 @@ AC_SEARCH_LIBS([lua_pcall], [luajit luajit-5.1], [], [
 ])
 
 have_lfds=no
-AC_SEARCH_LIBS([lfds611_ringbuffer_new], [lfds], [have_lfds=yes])
+AC_SEARCH_LIBS([lfds611_ringbuffer_new], [lfds611], [have_lfds=yes])
 if test "x${have_lfds}" = xyes; then
   AC_CHECK_HEADERS([liblfds611.h], [], [have_lfds=no])
 fi
