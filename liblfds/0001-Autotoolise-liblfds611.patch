@@ -1,0 +1,101 @@
+From 342467ed7fba0b2e711d6b8022274f899230bb59 Mon Sep 17 00:00:00 2001
+From: Hamish Guthrie <hamish.guthrie@kistler.com>
+Date: Mon, 31 Oct 2016 13:19:46 +0100
+Subject: [PATCH] Autotoolise liblfds611
+
+---
+ Makefile.am                |  3 +++
+ configure.ac               | 21 +++++++++++++++++++++
+ liblfds611/Makefile.am     |  1 +
+ liblfds611/src/Makefile.am | 33 +++++++++++++++++++++++++++++++++
+ 4 files changed, 58 insertions(+)
+ create mode 100644 Makefile.am
+ create mode 100644 configure.ac
+ create mode 100644 liblfds611/Makefile.am
+ create mode 100644 liblfds611/src/Makefile.am
+
+diff --git a/Makefile.am b/Makefile.am
+new file mode 100644
+index 0000000..c69fd68
+--- /dev/null
++++ b/Makefile.am
+@@ -0,0 +1,3 @@
++UTOMAKE_OPTIONS = subdir-objects
++ACLOCAL_AMFLAGS = -I m4
++SUBDIRS = liblfds611
+diff --git a/configure.ac b/configure.ac
+new file mode 100644
+index 0000000..725f009
+--- /dev/null
++++ b/configure.ac
+@@ -0,0 +1,21 @@
++AC_INIT([liblfds611], [1.0])
++AC_CONFIG_SRCDIR([configure.ac])
++
++AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
++
++AC_PROG_CC
++
++AC_CONFIG_HEADERS([config.h])
++AC_CONFIG_MACRO_DIR([m4])
++
++AC_PROG_INSTALL
++
++m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
++LT_INIT
++
++AC_CONFIG_FILES([
++Makefile
++liblfds611/Makefile
++liblfds611/src/Makefile
++])
++AC_OUTPUT
+diff --git a/liblfds611/Makefile.am b/liblfds611/Makefile.am
+new file mode 100644
+index 0000000..af437a6
+--- /dev/null
++++ b/liblfds611/Makefile.am
+@@ -0,0 +1 @@
++SUBDIRS = src
+diff --git a/liblfds611/src/Makefile.am b/liblfds611/src/Makefile.am
+new file mode 100644
+index 0000000..0785597
+--- /dev/null
++++ b/liblfds611/src/Makefile.am
+@@ -0,0 +1,33 @@
++lib_LTLIBRARIES = liblfds611.la
++
++liblfds611_la_SOURCES = \
++	lfds611_queue/lfds611_queue_delete.c \
++	lfds611_queue/lfds611_queue_new.c \
++	lfds611_queue/lfds611_queue_query.c \
++	lfds611_queue/lfds611_queue_queue.c \
++	lfds611_ringbuffer/lfds611_ringbuffer_delete.c \
++	lfds611_ringbuffer/lfds611_ringbuffer_get_and_put.c \
++	lfds611_ringbuffer/lfds611_ringbuffer_new.c \
++	lfds611_ringbuffer/lfds611_ringbuffer_query.c \
++	lfds611_slist/lfds611_slist_delete.c \
++	lfds611_slist/lfds611_slist_get_and_set.c \
++	lfds611_slist/lfds611_slist_link.c \
++	lfds611_slist/lfds611_slist_new.c \
++	lfds611_stack/lfds611_stack_delete.c \
++	lfds611_stack/lfds611_stack_new.c \
++	lfds611_stack/lfds611_stack_push_pop.c \
++	lfds611_stack/lfds611_stack_query.c \
++	lfds611_freelist/lfds611_freelist_delete.c \
++	lfds611_freelist/lfds611_freelist_get_and_set.c \
++	lfds611_freelist/lfds611_freelist_new.c \
++	lfds611_freelist/lfds611_freelist_pop_push.c \
++	lfds611_freelist/lfds611_freelist_query.c \
++	lfds611_liblfds/lfds611_liblfds_abstraction_test_helpers.c \
++	lfds611_liblfds/lfds611_liblfds_aligned_free.c \
++	lfds611_liblfds/lfds611_liblfds_aligned_malloc.c \
++	lfds611_abstraction/lfds611_abstraction_free.c \
++	lfds611_abstraction/lfds611_abstraction_malloc.c
++
++include_HEADERS = $(top_srcdir)/liblfds611/inc/liblfds611.h
++
++liblfds611_la_CPPFLAGS = -I$(top_srcdir)/liblfds611/inc
+-- 
+1.9.1
+
