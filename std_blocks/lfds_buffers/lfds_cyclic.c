@@ -6,8 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "liblfds611/inc/liblfds611.h"
+#include <liblfds611.h>
 
 #include "ubx.h"
 

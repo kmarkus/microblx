@@ -1,5 +1,4 @@
-
-struct ptrig_tstat
+struct trig_tstat
 {
 	int block;
 	struct ubx_timespec dur;

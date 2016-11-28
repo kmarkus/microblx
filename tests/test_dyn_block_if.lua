@@ -13,11 +13,11 @@ module("test_dyn_block_if", lunit.testcase, package.seeall)
 
 local ni=ubx.node_create("test_dyn_block_if")
 
-ubx.load_module(ni, "std_types/stdtypes/stdtypes.so")
-ubx.load_module(ni, "std_types/testtypes/testtypes.so")
-ubx.load_module(ni, "std_types/kdl/kdl_types.so")
-ubx.load_module(ni, "std_blocks/luablock/luablock.so")
-ubx.load_module(ni, "std_blocks/lfds_buffers/lfds_cyclic.so")
+ubx.load_module(ni, "stdtypes")
+ubx.load_module(ni, "testtypes")
+ubx.load_module(ni, "kdl_types")
+ubx.load_module(ni, "luablock")
+ubx.load_module(ni, "lfds_cyclic")
 
 lb1=ubx.block_create(ni, "lua/luablock", "lb1")
 p_exec_str=ubx.port_get(lb1, "exec_str")

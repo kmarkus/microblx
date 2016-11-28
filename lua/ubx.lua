@@ -100,10 +100,10 @@ local function setup_enums()
 end
 
 -- load ubx_types and library
-ffi.cdef(read_file("src/uthash_ffi.h"))
-ffi.cdef(read_file("src/ubx_types.h"))
-ffi.cdef(read_file("src/ubx_proto.h"))
-local ubx=ffi.load("src/libubx.so")
+ffi.cdef(read_file("/usr/include/uthash_ffi.h"))
+ffi.cdef(read_file("/usr/include/ubx_types.h"))
+ffi.cdef(read_file("/usr/include/ubx_proto.h"))
+local ubx=ffi.load("/usr/lib/libubx.so")
 
 setmetatable(M, { __index=function(t,k) return ubx["ubx_"..k] end })
 
@@ -152,8 +152,6 @@ ubx_modules = {}
 -- @param libfile module file to load
 function M.load_module(ni, libfile)
    local nodename=M.safe_tostr(ni.name)
-
-   if not utils.file_exists(libfile) then error("non-existing file "..tostring(libfile)) end
 
    if ubx_modules[nodename] and ubx_modules[nodename].loaded[libfile] then
       -- print(nodename..": library "..tostring(libfile).." already loaded, ignoring")
@@ -237,6 +235,14 @@ end
 
 -- OS stuff
 M.clock_mono_gettime = ubx.ubx_clock_mono_gettime
+M.clock_mono_nanosleep = ubx.ubx_clock_mono_nanosleep
+
+function M.clock_mono_sleep(sec, nsec)
+   local ts = ffi.new("struct ubx_timespec")
+   ts.sec=sec
+   ts.nsec=nsec or 0
+   M.clock_mono_nanosleep(ts)
+end
 
 --- Unload a block: bring it to state preinit and call ubx_block_rm
 function M.block_unload(ni, name)
@@ -1050,8 +1056,8 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
    if p1==nil then error("block "..M.safe_tostr(b1.name).." has no port '"..M.safe_tostr(pname1).."'") end
    if p2==nil then error("block "..M.safe_tostr(b2.name).." has no port '"..M.safe_tostr(pname2).."'") end
 
-   if not M.is_outport(p1) then error("conn_uni: block "..bname1.."'s port "..pname1.." is not an outport") end
-   if not M.is_inport(p2) then error("conn_uni: block "..bname2.."'s port "..pname2.." is not an inport") end
+   if not M.is_outport(p1) then error("conn_uni: block "..M.safe_tostr(b1.name).."'s port "..pname1.." is not an outport") end
+   if not M.is_inport(p2) then error("conn_uni: block "..M.safe_tostr(b2.name).."'s port "..pname2.." is not an inport") end
 
    size = max(M.port_out_size(p1), M.port_in_size(p2))
 

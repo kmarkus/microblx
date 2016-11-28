@@ -1,0 +1,47 @@
+From e20dc2a972c6c2b099653c3141b8b721a74d1d86 Mon Sep 17 00:00:00 2001
+From: Hamish Guthrie <hamish.guthrie@kistler.com>
+Date: Mon, 31 Oct 2016 15:49:28 +0100
+Subject: [PATCH] Add .gitignore
+
+---
+ .gitignore | 28 ++++++++++++++++++++++++++++
+ 1 file changed, 28 insertions(+)
+ create mode 100644 .gitignore
+
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..6ca278b
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,28 @@
++*.la
++*.o
++*.lo
++*.so
++*.d
++*.hexarr
++.libs/
++.deps/
++.dirstamp
++m4/
++aclocal-copy/
++x86_64-poky-linux-libtool
++Makefile
++Makefile.in
++aclocal.m4
++ar-lib
++autom4te.cache
++compile
++config.*
++configure
++depcomp
++install-sh
++libtool
++ltmain.sh
++missing
++stamp-h1
++std_blocks/lfds_buffers/liblfds611/bin/
++std_blocks/lfds_buffers/liblfds611/obj/
+-- 
+1.9.1
+

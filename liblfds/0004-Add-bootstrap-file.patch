@@ -1,0 +1,22 @@
+From f0b7c33334f85f384a51c31315d4fb8859226116 Mon Sep 17 00:00:00 2001
+From: Hamish Guthrie <hamish.guthrie@kistler.com>
+Date: Tue, 1 Nov 2016 13:14:31 +0100
+Subject: [PATCH] Add bootstrap file
+
+---
+ bootstrap | 3 +++
+ 1 file changed, 3 insertions(+)
+ create mode 100755 bootstrap
+
+diff --git a/bootstrap b/bootstrap
+new file mode 100755
+index 0000000..bbb4008
+--- /dev/null
++++ b/bootstrap
+@@ -0,0 +1,3 @@
++#!/bin/sh
++
++autoreconf --install || exit 1
+-- 
+1.9.1
+
