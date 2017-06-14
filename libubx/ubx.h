@@ -55,7 +55,15 @@ extern "C"
 #endif
 
 #include <uthash.h>
+
+#ifdef __cplusplus
+/* ubx_typescpp includes ubx_types */
+/* this is needed since no ifdef protection is allowed in ubx_types. */
+#include "ubx_types_cpp.h"
+#else
 #include <ubx_types.h>
+#endif
+
 #include <ubx_proto.h>
 
 /* module init, cleanup */

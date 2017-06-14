@@ -28,14 +28,14 @@ char cppdemo_meta[] =
  * if an array is required, then .value = { .len=<LENGTH> } can be used.
  */
 ubx_config_t cppdemo_config[] = {
-	{ .name="test_conf", .type_name = "double" },
+	ubx_config_cpp("test_conf", NULL, "double"),
 	{ NULL },
 };
 
 
 ubx_port_t cppdemo_ports[] = {
-	{ .name="foo", .attrs=PORT_DIR_IN, .in_type_name="unsigned int" },
-	{ .name="bar", .attrs=PORT_DIR_OUT, .out_type_name="unsigned int" },
+	ubx_port_cpp("foo", "unsigned int", NULL, PORT_DIR_IN),
+	ubx_port_cpp("bar", NULL, "unsigned int", PORT_DIR_OUT),
 	{ NULL },
 };
 
@@ -63,19 +63,18 @@ static void cppdemo_step(ubx_block_t *c) {
 
 
 /* put everything together */
-ubx_block_t cppdemo_comp = {
-	.name = "cppdemo/cppdemo",
-	.type = BLOCK_TYPE_COMPUTATION,
-	.meta_data = cppdemo_meta,
-	.configs = cppdemo_config,
-	.ports = cppdemo_ports,
 
-	/* ops */
-	.init = cppdemo_init,
-	.start = cppdemo_start,
-	.step = cppdemo_step,
-	.cleanup = cppdemo_cleanup,
-};
+ubx_block_t cppdemo_comp = ubx_block_cpp(
+	"cppdemo/cppdemo",
+	BLOCK_TYPE_COMPUTATION,
+	cppdemo_meta,
+	cppdemo_config,
+	cppdemo_ports,
+	cppdemo_init,
+	cppdemo_start,
+	NULL,
+	cppdemo_step,
+	cppdemo_cleanup);
 
 static int cppdemo_init(ubx_node_info_t* ni)
 {

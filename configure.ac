@@ -14,7 +14,7 @@ AM_INIT_AUTOMAKE([foreign -Wall])
 
 # compilers
 AC_PROG_CC
-AC_PROG_CXX([clang++])
+AC_PROG_CXX
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])

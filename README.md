@@ -22,7 +22,6 @@ Dependencies
 
  - `luajit`, `libluajit-5.1-dev` (>=2.0.0-beta11, for scripting (optional, but recommended)
  - `liblfds`(v6.1.1, for liblfds_cyclic buffer)
- - `clang++` (only necessary for compiling C++ blocks)
  - gcc (v4.6 or newer) or clang
  - only for development: `cproto` to generate C prototype header file
 
