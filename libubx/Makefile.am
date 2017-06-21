@@ -7,6 +7,7 @@ libubx_includes = ubx.h uthash.h uthash_ffi.h \
 include_HEADERS = ubx.h \
                   uthash.h \
                   ubx_types.h \
+                  ubx_types_cpp.h \
                   ubx_proto.h \
                   uthash_ffi.h
 libubx_la_SOURCES = $(libubx_includes) \
