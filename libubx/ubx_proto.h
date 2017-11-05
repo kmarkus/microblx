@@ -52,7 +52,7 @@ int ubx_cblock_step(ubx_block_t *b);
 uint32_t __port_read(ubx_port_t *port, ubx_data_t *data);
 void __port_write(ubx_port_t *port, ubx_data_t *data);
 int ubx_clock_mono_gettime(struct ubx_timespec *uts);
-int ubx_clock_mono_nanosleep(struct ubx_timespec* uts);
+int ubx_clock_mono_nanosleep(struct ubx_timespec *uts);
 int ubx_ts_cmp(struct ubx_timespec *ts1, struct ubx_timespec *ts2);
 void ubx_ts_norm(struct ubx_timespec *ts);
 void ubx_ts_sub(struct ubx_timespec *ts1, struct ubx_timespec *ts2, struct ubx_timespec *out);

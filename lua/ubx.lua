@@ -200,11 +200,6 @@ local ubx_timespec_mt = {
 ffi.metatype("struct ubx_timespec", ubx_timespec_mt)
 
 
-   local mod=ffi.load(libfile)
-   if mod.__ubx_initialize_module(ni) ~= 0 then
-      error("failed to init module "..libfile)
-   end
-
 ------------------------------------------------------------------------------
 --                           Node API
 ------------------------------------------------------------------------------
@@ -213,10 +208,7 @@ ffi.metatype("struct ubx_timespec", ubx_timespec_mt)
 -- @param name name of node
 -- @return ubx_node_info_t
 function M.node_create(name)
-   if ubx_modules[name] then error("a node named "..tostring(name).." already exists") end
    local ni=ffi.new("ubx_node_info_t")
-   -- the following is bad, because nodes are shared among different Lua instances.
-   -- ffi.gc(ni, M.node_cleanup)
    assert(ubx.ubx_node_init(ni, name)==0, "node_create failed")
    return ni
 end
@@ -235,18 +227,6 @@ end
 --- Cleanup a node: cleanup and remove instances and unload modules.
 -- @param ni node info
 function M.node_cleanup(ni)
-   local nname = M.safe_tostr(ni.name)
-   print(nname..": cleaning up node")
-   print(nname..": unloading block instances:")
-   M.blocks_foreach(ni, function (b)
-			   local n=M.safe_tostr(b.name)
-			   print("    unloading "..n)
-			   M.block_unload(ni, n)
-			end,
-		    M.is_instance)
-   print(nname..": unloading modules:")
-   M.unload_modules(ni)
-   print(nname..": cleaning up node info")
    ubx.ubx_node_cleanup(ni)
    collectgarbage("collect")
 end
