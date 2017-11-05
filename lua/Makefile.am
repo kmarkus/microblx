@@ -6,7 +6,6 @@ lua_SCRIPTS = ansicolors.lua \
               blockdiagram.lua \
               cdata_tolua_test.lua \
               strict.lua \
-              ubx_utils.lua \
               cdata_layout.lua \
               luaffi-introspection.lua \
               time.lua \

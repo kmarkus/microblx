@@ -13,7 +13,7 @@ struct ubx_port_cpp : public ubx_port
 		uint32_t _attrs)
 	{
 		ubx_port::name = _name;
-		ubx_port::meta_data = NULL;
+		ubx_port::doc = NULL;
 		ubx_port::attrs =_attrs;
 		ubx_port::state = 0;
 		ubx_port::in_type_name = _in_type_name;
@@ -33,11 +33,11 @@ struct ubx_config_cpp : public ubx_config
 {
 	ubx_config_cpp(
 	const char* _name,
-	const char* _meta_data,
+	const char* _doc,
 	const char* _type_name)
 	{
 		name = _name;
-		meta_data = _meta_data;
+		doc = _doc;
 		type_name = _type_name;
 		attrs = 0;
 	};
