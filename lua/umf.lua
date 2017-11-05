@@ -1,9 +1,7 @@
 --
 -- This file is part of uMF.
 --
--- (C) 2012,2013 Markus Klotzbuecher, markus.klotzbuecher@mech.kuleuven.be,
--- Department of Mechanical Engineering, Katholieke Universiteit
--- Leuven, Belgium.
+-- (C) 2012-2017 Markus Klotzbuecher, mk@marumbi.de
 --
 -- You may redistribute this software and/or modify it under either
 -- the terms of the GNU Lesser General Public License version 2.1
@@ -107,7 +105,7 @@ end
 --- Return the class name of the given object.
 function uoo_class(o)
    if uoo_type(o) == 'instance' then
-      return obj:class().name
+      return o:class().name
    end
    return false
 end
@@ -272,10 +270,22 @@ end
 --- Validate a string spec.
 function StringSpec.check(self, obj, vres)
    log("checking obj '"..tostring(obj).."' against StringSpec")
+
    local t = type(obj)
-   if t == "string" then return true end
-   add_msg(vres, "err", "not a string but a " ..t)
-   return false
+
+   if t ~= "string" then
+      add_msg(vres, "err", "not a string but a " ..t)
+      return false
+   end
+
+   if self.regexp then
+      local res = string.match(obj, self.regexp)
+      if not res then
+	 add_msg(vres, "err", "regexp "..tostring(self.regexp).. " didn't match string "..tostring(obj))
+	 return false
+      end
+   end
+   return true
 end
 
 --- Validate a boolean spec.
@@ -502,6 +512,49 @@ function ObjectSpec.check(self, obj, vres)
    ind_dec()
    return res
 end
+
+--- Resolve string links to objects
+-- Format: "<class_name>:<object_name>
+-- @param root object
+-- @param verbose (optional)
+-- @return false if link resolving failed, true otherwise
+function resolve_links(obj, verbose)
+   local failures = 0
+   function __resolve_links(v,k)
+      for kk,vv in pairs(v) do
+	 if type(vv) == 'string' then
+	    -- check if this is a link
+	    local klass, objid = string.match(vv, "(%g+)#(%g+)")
+	    if klass then
+	       -- find the target obj
+	       local no_dups = { }
+	       local tgts = utils.maptree(
+		  function (v,k)
+		     if no_dups[v] then return end
+		     no_dups[v]=true
+		     return { k=k, v=v }
+		  end, obj,
+		  function(v) return uoo_class(v)==klass and v.name==objid end)
+	       if #tgts == 0 then
+		  print(ac.red("resolve_links: failed to resolve " .. ac.bright(ts(klass).."#"..ts(objid))))
+		  failures = failures + 1
+	       elseif #tgts > 1 then
+		  print(ac.red("resolve_links: multiple targets found for ".. ac.bright(ts(klass).."#"..ts(objid))))
+		  print(utils.tab2str(tgts))
+		  failures = failures + 1
+	       else
+		  if verbose then print("resolve_links: successfully resolved target "  .. ts(klass).."#"..ts(objid)) end
+		  v[kk] = tgts[1].v
+	       end
+	    end
+	 end
+      end
+   end
+
+   utils.maptree( __resolve_links, obj, function (v) return type(v) == 'table' end)
+   return (failures == 0)
+end
+
 
 --- Print the validation results.
 function print_vres(vres)
