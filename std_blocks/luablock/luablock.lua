@@ -1,6 +1,5 @@
 
 local ubx=require "ubx"
-local ubx_utils = require("lua/ubx_utils")
 
 function init(block)
    print("init")

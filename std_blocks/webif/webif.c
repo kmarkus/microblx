@@ -3,10 +3,11 @@
  */
 
 #undef DEBUG
-#define WEBIF_RELOAD			 1
-#define COMPILE_IN_WEBIF_LUA_FILE	 1
+#define WEBIF_RELOAD			1
+#define COMPILE_IN_WEBIF_LUA_FILE	1
 
-#define MONGOOSE_NR_THREADS		 "1"	/* don't change. */
+#define MONGOOSE_NR_THREADS		"1"	/* don't change. */
+#define WEBIF_DEFAULT_PORT		"8080"
 
 #include <luajit-2.0/lauxlib.h>
 #include <luajit-2.0/lualib.h>
@@ -19,6 +20,8 @@
 #include "mongoose.h"
 #include "ubx.h"
 
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
+
 #ifdef COMPILE_IN_WEBIF_LUA_FILE
 #include "webif.lua.hexarr"
 #else
@@ -29,7 +32,8 @@
 static struct ubx_node_info *global_ni;
 
 ubx_config_t webif_conf[] = {
-	{ .name="port", .type_name="char", .value = { .len=10 } }, /* char[10] */
+	{ .name="port", .type_name="char", .value = { .len=10 },
+	  .doc="Port to listen on (default: " WEBIF_DEFAULT_PORT ")" },
 	{ NULL }
 };
 
@@ -89,9 +93,9 @@ static int begin_request_handler(struct mg_connection *conn)
 	else
 		lua_pushnil(inf->L);
 
-
 	if(lua_pcall(inf->L, 3, 2, 0)!=0) {
-		ERR("Lua: %s", lua_tostring(inf->L, -1));
+		ERR("%s, calling Lua request_handler failed: %s",
+		    "webif", lua_tostring(inf->L, -1));
 		goto out_unlock;
 	}
 
@@ -198,7 +202,9 @@ static int wi_start(ubx_block_t *c)
 
 	/* read port config and set default if undefined */
 	port_num = (char *) ubx_config_get_data_ptr(c, "port", &port_num_len);
-	port_num = (port_num_len==0) ?  "8080" : port_num;
+
+	if(port_num_len == 0 || strlen(port_num)==0)
+		port_num = WEBIF_DEFAULT_PORT;
 
 	DBG("starting mongoose on port %s using %s thread(s)", port_num, MONGOOSE_NR_THREADS);
 

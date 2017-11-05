@@ -27,12 +27,15 @@
 
 local ffi=require "ffi"
 local reflect=require "reflect"
+local string=string
 
 local M={}
 
 M.struct2tab={}
 
 M.struct2tab['struct ubx_block']=function(b) return ffi.string(b.name) end
+
+local num_format_spec="%.3f"
 
 --- Convert a FFI cdata to a Lua table.
 -- @param cd FFI cdata to convert Lua
@@ -177,7 +180,7 @@ end
 
 function is_prim_num_ptr(ctype)
    local refct = reflect.typeof(ctype)
-   if refct.what=='ptr' and refct.element_type.what=='int' then return true end
+   if refct.what=='ptr' and (refct.element_type.what=='int' or refct.element_type.what=='float')  then return true end
    return false
 end
 
@@ -209,6 +212,8 @@ function M.gen_logfun(ctype, prefix)
    -- print("ctype: ", ctype)
    -- print("refct: ", utils.tab2str(reflect.typeof(ctype)))
 
+   local function format_num(x) return string.format(num_format_spec, tonumber(x)) end
+
    if is_string(ctype) then
       return
       function (x, fd)
@@ -220,13 +225,13 @@ function M.gen_logfun(ctype, prefix)
       function (x, fd)
 	 if x=='header' then fd:write(prefix); return end
 	 print("is_prim_num:", utils.tab2str(reflect.typeof(ffi.typeof(x))))
-	 fd:write(tonumber(x))
+	 fd:write(format_num(x))
       end
    elseif is_prim_num_ptr(ctype) then
       return
       function (x, fd)
 	 if x=='header' then fd:write(prefix); return end
-	 fd:write(tonumber(x[0]))
+	 fd:write(format_num(x[0]))
       end
    elseif not (is_composite(ctype) or is_composite_ptr(ctype)) then
       error("unknown ctype "..tostring(ctype))
@@ -238,7 +243,7 @@ function M.gen_logfun(ctype, prefix)
 
    -- add 'serfun' field holding serialization function
    utils.foreach(function(e)
-		    if e.value == 'number' then e.serfun = "tonumber"
+		    if e.value == 'number' then e.serfun = "format_num"
 		    elseif e.value == 'string' then e.serfun = "ffi.string"
 		    else
 		       error("unkown value "..e.value.." for key "..e.key)
@@ -248,12 +253,14 @@ function M.gen_logfun(ctype, prefix)
    -- add a pre-separator 'presep' field: empty string if key starts
    -- with array, else a "."
    utils.foreach(function(e)
-		    if string.char(string.byte(e.key, 1))~='[' then e.presep="." else e.presep="" end
+		    if string.char(string.byte(e.key, 1))~='[' then e.presep="." else e.presep="[0]" end
 		 end, flattab)
 
    -- generate a fast serialization function:
    local ok, res = utils.preproc(
 [[
+function format_num(x) return string.format("$(num_format_spec)", tonumber(x)) end
+
 return function(x, fd)
     if x=='header' then
     @ for i=1,#flattab do
@@ -274,12 +281,12 @@ return function(x, fd)
     @   end
     @ end
 end
-]], { io=io, table=table, ipairs=ipairs, flattab=flattab, 
+]], { io=io, table=table, ipairs=ipairs, flattab=flattab, num_format_spec=num_format_spec,
       tostring=tostring, ctype=ctype, separator=', ', prefix=prefix })
 
    assert(ok, res)
-   ok, res = utils.eval_sandbox(res, { print=print, ffi=ffi, io=io, assert=assert,
-				       tostring=tostring, tonumber=tonumber })
+   ok, res = utils.eval_sandbox(res, { string=string, print=print, ffi=ffi, io=io, 
+				       assert=assert, tostring=tostring, tonumber=tonumber })
    assert(ok, res)
    return res
 end

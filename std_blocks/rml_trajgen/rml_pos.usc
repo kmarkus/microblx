@@ -1,0 +1,14 @@
+-- a minimal blockdiagram to start the block
+
+return bd.system
+{
+   imports = {
+      "std_types/stdtypes/stdtypes.so",
+      "std_blocks/webif/webif.so",
+      "std_blocks/rml_trajgen/rml_pos.so",
+   },
+
+   blocks = {
+      { name="rml_pos_1", type="rml_pos" },
+   },
+}

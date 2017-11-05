@@ -173,7 +173,8 @@ function typelist_tohtml(ni)
 <table border="0" style="float:left; position:relative;" cellspacing="0" cellpadding="0">
   <tr>
    <th>name</th>
-   <th>size (bytes)</th>
+   <th>size [B]</th>
+   <th>md5</th>
   </tr> ]]
 
    table_footer = '</table>'
@@ -181,7 +182,7 @@ function typelist_tohtml(ni)
    -- generate a single table entry and append it to entries
    local function gen_type_entry(t)
       entries[#entries+1]=
-	 "<tr><td><tt>"..ffi.string(t.name).."</tt></td><td>"..tonumber(t.size).."</td></tr>"
+	 "<tr><td><tt>"..ffi.string(t.name).."</tt></td><td>"..tonumber(t.size).."</td><td>"..utils.str_to_hexstr(ffi.string(t.hash, 4)).."</td></tr>"
    end
 
    -- generate list of entries
@@ -208,6 +209,47 @@ function typelist_tohtml(ni)
    output[#output+1]='<div style="clear:left"></div>'
    return table.concat(output, "\n")
 end
+
+
+--- Generate html tables of the module+license
+-- @param ni node_info
+-- @return string containing html
+function modlist_tohtml(ni)
+   local output={}
+
+   local mods =  {}
+   ubx.modules_foreach(ni,
+		       function (m)
+			  mods[#mods+1] = { id=safe_ts(m.id),
+				   spdx_license_id=safe_ts(m.spdx_license_id) }
+		       end)
+
+   if #mods == 0 then return "" end
+
+   output[#output+1]="<h2>Loaded modules</h2>"
+
+   output[#output+1] = [[
+<table border="0" style="float:left; position:relative;" cellspacing="0" cellpadding="0">
+  <tr>
+   <th>module</th>
+   <th>SPDX License ID</th>
+  </tr> ]]
+
+   -- generate a single table entry and append it to entries
+   local function gen_mod_entry(t)
+      output[#output+1] =
+	 "<tr><td><tt>"..ffi.string(t.id).."</tt></td><td>"..t.spdx_license_id.."</td></tr>"
+   end
+
+   -- generate list of entries
+   utils.foreach(gen_mod_entry, mods)
+
+   output[#output+1]= '</table>'
+   output[#output+1]= '<div style="clear:left"></div>'
+
+   return table.concat(output, "\n")
+end
+
 
 function colorize_state(t)
    -- t.name=color("blue", t.name)
@@ -473,8 +515,8 @@ function show_block(ri, ni)
    utils.foreach(attrs_to_str, bt.ports)
    utils.foreach(rm_unused_data_len, bt.ports)
 
-   local port_fields={ 'name', 'attrs', 'in_type_name', 'in_data_len', 'out_type_name', 'out_data_len' }
-   local conf_fields={ 'name', 'type_name', 'value' }
+   local port_fields={ 'name', 'attrs', 'in_type_name', 'in_data_len', 'out_type_name', 'out_data_len', 'doc' }
+   local conf_fields={ 'name', 'type_name', 'value', 'doc' }
 
    colorize_state(bt)
 
@@ -526,6 +568,7 @@ dispatch_table = {
 		 blocklist_tohtml(iinst, "Interaction Blocks", iblock_table_fields),
 		 blocklist_tohtml(protoblocks, "Prototype Blocks", protoblocks_table_fields),
 		 typelist_tohtml(ni), "<br>",
+		 modlist_tohtml(ni), "<br>",
 		 sysinfo(), "<br><br>",
 		 reqinf_tostr(ri))
 	   end,

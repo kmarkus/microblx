@@ -282,20 +282,71 @@ static void rnd_module_cleanup(ubx_node_info_t *ni)
 UBX_MODULE_CLEANUP(rnd_module_cleanup)
 ```
 
+### SPDX License Identifier
+
+Microblx uses a macro to define module licenses in a form that is both
+machine readable and available at runtime:
+
+```C
+UBX_MODULE_LICENSE_SPDX(GPL-2.0+)
+```
+
+To dual-license a block, write:
+
+```C
+UBX_MODULE_LICENSE_SPDX(GPL-2.0+ BSD-3-Clause)
+```
+
+Is is strongly recommended to use this macro. The list of licenses can
+be found here:
+
+http://spdx.org/licenses/
+http://spdx.org
+
+(Credit: inspired by U-Boot).
 
 ### Block code-generation
 
-The script `tools/ubx_genblock.lua` generates a dummy microblx block
-including makefile.
+The script `tools/ubx_genblock.lua` generates a microblx block
+including a makefile. After this, only the hook functions need to be
+implemented in the `.c` file:
 
-Example: generate stubs for a `mul` block:
+Example: generate stubs for a `myblock` block (see
+`examples/block_model_example.lua` for the block generator model).
 
 ```bash
-$ tools/ubx_genblock.lua -n mul -d std_blocks/math
+$ tools/ubx_genblock.lua -c examples/block_model_example.lua -d std_blocks/test
+    generating std_blocks/test/Makefile
+    generating std_blocks/test/myblock.h
+	generating std_blocks/test/myblock.c
+	generating std_blocks/test/myblock.usc
+	generating std_blocks/test/types/vector.h
+	generating std_blocks/test/types/robot_data.h
 ```
+
+If the command is run again, only the `.c` file will be
+regenerated. This can be overriden using the `-force` option.
 
 Assembling blocks
 -----------------
+
+There are different options how to create a system from blocks:
+
+ - by using a declarative description of the desired composition (the
+   `*.usc` files under examples). `usc` stands for microblx system
+   composition). These can be launched using the `ubx_launch` tool, e.g.
+
+```bash
+$ tools/ubx_launch -webif -c examples/trig_rnd_hexdump.usc
+```
+
+   this will launch␇the given system composition and additionally
+   create a webserver block to allow system to be introspected.
+
+ - by writing a so called "deployment script" (e.g. see
+   `examples/trig_rnd_to_hexdump.lua`)
+
+ - by assembling the necessary parts in C.
 
 
 Tips and Tricks
@@ -308,7 +359,16 @@ initalization used in this manual) are used, the block must be
 compiled with `clang`, because g++ does not support designated
 initializers (yet).
 
-### speeding up port writing
+### Avoiding Lua scripting
+
+It is possible to avoid the Lua scripting layer entirely. A small
+example can be found in `examples/c-only.c`.
+
+### Speeding up port writing
+
+To speed up port writing, the pointers to ports can be cached in the
+block info structure. The `ubx_genblock` script automatically takes
+care of this.
 
 ### What the difference between block types and instances?
 

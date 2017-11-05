@@ -2,7 +2,6 @@
 
 ffi = require("ffi")
 ubx = require "ubx"
-ubx_utils = require("ubx_utils")
 bd = require("blockdiagram")
 ts = tostring
 

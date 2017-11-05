@@ -1,8 +1,246 @@
+-- -*- mode: lua; -*-
+
 local bd = require("blockdiagram")
 
+
+local yb_pinv=nil
+
+--- Create a table of all inversely connected ports:
+function make_pinv_tab(name)
+   if yb_pinv~=nil then return end
+   yb_pinv={}
+   local youbot1 = ni:b(name)
+   ubx.ports_map(youbot1,
+		 function(p)
+		    local pname = ubx.safe_tostr(p.name)
+		    yb_pinv[pname] = ubx.port_clone_conn(youbot1, pname)
+		 end)
+end
+
+function gettime()
+   local __time = ubx.clock_mono_gettime()
+   return {sec=tonumber(__time.sec), nsec=tonumber(__time.nsec)}
+end
+
+--- Configure the base control mode.
+-- @param mode control mode.
+-- @return true if mode was set, false otherwise.
+function base_set_control_mode(mode)
+   ubx.port_write(yb_pinv.base_control_mode, mode)
+   local res, rval = ubx.port_read_timed(yb_pinv.base_control_mode, nil, 3)
+   return ubx.data_tolua(rval)==mode
+end
+
+function gripper(v)
+   ubx.port_write(yb_pinv.arm1_gripper, v)
+end
+
+--- Configure the arm control mode.
+-- @param mode control mode.
+-- @return true if mode was set, false otherwise.
+function arm_set_control_mode(mode)
+   ubx.port_write(yb_pinv.arm1_control_mode, mode)
+   local res, rval = ubx.port_read_timed(yb_pinv.arm1_control_mode, nil, 3)
+   return ubx.data_tolua(rval)==mode
+end
+
+--- Return once the youbot is initialized or raise an error.
+function base_initialized()
+   local res,rval=ubx.port_read_timed(yb_pinv.base_control_mode, nil, 5)
+   return ubx.data_tolua(rval)==0 -- 0=MOTORSTOP
+end
+
+--- Return once the youbot is initialized or raise an error.
+function arm_initialized()
+   local res,rval=ubx.port_read_timed(yb_pinv.arm1_control_mode, nil, 5.5)
+   return ubx.data_tolua(rval)==0 -- 0=MOTORSTOP
+end
+
+function arm_calibrate()
+   yb_pinv.arm1_calibrate_cmd:write(1)
+end
+
+--- Move with a given twist.
+-- @param twist table.
+-- @param dur duration in seconds
+function base_move_twist(twist_tab, dur)
+   base_set_control_mode(2) -- VELOCITY
+
+   local ts_start = ubx.clock_mono_gettime()
+   local ts_cur = ubx.clock_mono_gettime()
+
+   while ts_cur - ts_start < dur do
+      ubx.port_write(yb_pinv.base_cmd_twist, twist_tab)
+      ubx.clock_mono_gettime(ts_cur)
+   end
+   ubx.port_write(yb_pinv.base_cmd_twist, {vel={0,0,0}, rot={0,0,0}})
+end
+
+--- Move each wheel with an individual RPM value.
+-- @param table of size for with wheel velocity
+-- @param dur time in seconds to apply velocity
+function base_move_vel(vel_tab, dur)
+   base_set_control_mode(2) -- VELOCITY
+
+   local ts_start = ubx.clock_mono_gettime()
+   local ts_cur = ubx.clock_mono_gettime()
+
+   while ts_cur - ts_start < dur do
+      ubx.port_write(yb_pinv.base_cmd_vel, vel_tab)
+      ubx.clock_mono_gettime(ts_cur)
+   end
+   ubx.port_write(yb_pinv.base_cmd_vel, {0,0,0,0})
+end
+
+
+--- Move each wheel with an individual current value.
+-- @param table of size 4 for with wheel current
+-- @param dur time in seconds to apply currents.
+function base_move_cur(cur_tab, dur)
+   base_set_control_mode(6) -- CURRENT
+
+   local ts_start = ubx.clock_mono_gettime()
+   local ts_cur = ubx.clock_mono_gettime()
+
+   while ts_cur - ts_start < dur do
+      ubx.port_write(yb_pinv.base_cmd_cur, cur_tab)
+      ubx.clock_mono_gettime(ts_cur)
+   end
+   ubx.port_write(yb_pinv.base_cmd_cur, {0,0,0,0})
+end
+
+
+--- Move each joint with an individual rad/s value.
+-- @param table of size for with wheel velocity
+-- @param dur time in seconds to apply velocity
+function arm_move_vel(vel_tab, dur)
+   arm_set_control_mode(2) -- VELOCITY
+
+   local ts_start = ubx.clock_mono_gettime()
+   local ts_cur = ubx.clock_mono_gettime()
+
+   while ts_cur - ts_start < dur do
+      ubx.port_write(yb_pinv.arm1_cmd_vel, vel_tab)
+      ubx.clock_mono_gettime(ts_cur)
+   end
+   ubx.port_write(yb_pinv.arm1_cmd_vel, {0,0,0,0,0})
+end
+
+--- Move each wheel with an individual effort value.
+-- @param table of size 5 for with wheel effort
+-- @param dur time in seconds to apply effort
+function arm_move_eff(eff_tab, dur)
+   arm_set_control_mode(6) -- Effort
+
+   local ts_start = ubx.clock_mono_gettime()
+   local ts_cur = ubx.clock_mono_gettime()
+
+   while ts_cur - ts_start < dur do
+      ubx.port_write(yb_pinv.arm1_cmd_eff, eff_tab)
+      ubx.clock_mono_gettime(ts_cur)
+   end
+   ubx.port_write(yb_pinv.arm1_cmd_eff, {0,0,0,0,0})
+end
+
+--- Move each wheel with an individual RPM value.
+-- @param table of size for with wheel curocity
+-- @param dur time in seconds to apply curocity
+function arm_move_cur(cur_tab, dur)
+   arm_set_control_mode(6) --
+
+   local ts_start = ubx.clock_mono_gettime()
+   local ts_cur = ubx.clock_mono_gettime()
+
+   while ts_cur - ts_start < dur do
+      ubx.port_write(yb_pinv.arm1_cmd_cur, cur_tab)
+      ubx.clock_mono_gettime(ts_cur)
+   end
+   ubx.port_write(yb_pinv.arm1_cmd_cur, {0,0,0,0,0})
+end
+
+
+--- Move arm to a given jntpos
+-- @param pos_tab table of size 5
+function arm_move_pos(pos_tab)
+   arm_set_control_mode(1) -- POS
+   ubx.port_write(yb_pinv.arm1_cmd_pos, pos_tab)
+end
+
+function arm_tuck() arm_move_pos{2.588, 1.022, 2.248, 1.580, 2.591 } end
+function arm_home() arm_move_pos{0,0,0,0,0} end
+function arm_sway() arm_move_pos{0.042, 0.153, -0.860, -0.026, -0.019 } end
+
+nr_arms=false
+
+function init()
+   make_pinv_tab("ybdrv")
+
+   ni:b("kin"):do_init()
+   ni:b("kin"):do_start()
+   ni:b("logger1"):do_start()
+   ni:b("ybdrv"):do_start()
+   ni:b("ptrig1"):do_start()
+   ni:b("ptrig2"):do_start()
+
+   nr_arms=ni:b("ybdrv"):c("nr_arms"):tolua()
+   print("nr arms:", nr_arms)
+
+   base_initialized()
+
+   if nr_arms==1 then
+      arm_initialized()
+   elseif nr_arms==2 then
+      print("WARNING: this script does not yet support a two arm youbot (the driver does however)")
+   end
+   print('Please run "help()" for information on available functions')
+end
+
+
+
+function help()
+   local help_msg=
+      [[
+youbot test script.
+ Base:
+      base_set_control_mode(mode)	mode: mstop=0, pos=1, vel=2, cur=6
+      base_move_twist(twist_tab, dur)  	move with twist (as Lua table) for dur seconds
+      base_move_vel(vel_tab, dur)       move each wheel with individual vel [rpm] for dur seconds
+      base_move_cur(cur_tab, dur)       move each wheel with individual current [mA] for dur seconds
+
+]]
+
+   if nr_arms>=1 then
+      help_msg=help_msg..[[
+
+ Arm: run arm_calibrate() (after each power-down) _BEFORE_ using the other arm functions!!
+
+      arm_calibrate()			calibrate the arm. !!! DO THIS FIRST !!!
+      arm_set_control_mode(mode)	see base.
+      arm_move_pos(pos_tab, dur)	move to pos. pos_tab is Lua table of len=5 [rad]
+      arm_move_vel(vel_tab, dur)	move joints. vel_tab is Lua table of len=5 [rad/s]
+      arm_move_eff(eff_tab, dur)        move joints. eff_tab is Lua table of len=5 [Nm]
+      arm_move_cur(cur_tab, dur)        move joints. cur_tab is Lua table of len=5 [mA]
+      arm_tuck()                        move arm to "tuck" position
+      arm_home()                        move arm to "candle" position
+]]
+   end
+   if nr_arms>=2 then
+      help_msg=help_msg..[[
+
+	    WARNING: this script does currently not support the second youbot arm!
+      ]]
+   end
+   print(help_msg)
+end
+
+
 logger_report_conf = [[
-{ { blockname='kin', portname="arm_out_msr_ee_pose", buff_len=3 },
-  { blockname='kin', portname="arm_out_msr_ee_twist", buff_len=3, } }
+{ --{ blockname='kin', portname="arm_out_msr_ee_pose", buff_len=3 },
+  --{ blockname='kin', portname="arm_out_msr_ee_twist", buff_len=3, },
+   { blockname='ybdrv', portname="arm1_msr_vel", buff_len=3 },
+   { blockname='ybdrv', portname="arm1_msr_pos", buff_len=3 }
+}
+
 ]]
 
 return bd.system
@@ -10,7 +248,6 @@ return bd.system
    imports = {
       "std_types/stdtypes/stdtypes.so",
       "std_types/kdl/kdl_types.so",
-      "std_blocks/webif/webif.so",
       "std_blocks/youbot_driver/youbot_driver.so",
       "std_blocks/youbot_kindyn/youbot_kin.so",
       "std_blocks/ptrig/ptrig.so",
@@ -23,16 +260,24 @@ return bd.system
       { name="ybdrv", type="youbot/youbot_driver" },
       { name="kin", type="youbot_kin" },
       { name="ptrig1", type="std_triggers/ptrig" },
+      { name="ptrig2", type="std_triggers/ptrig" },
       { name="logger1", type="logging/file_logger" },
    },
 
    connections = {
-      { src="ybdrv.arm1_state", tgt="kin.arm_in_jntstate", buffer_length=1 },
+      { src="ybdrv.arm1_msr_pos", tgt="kin.arm_in_msr_pos", buffer_length=1 },
+      { src="ybdrv.arm1_msr_vel", tgt="kin.arm_in_msr_vel", buffer_length=1 },
       { src="kin.arm_out_cmd_jnt_vel", tgt="ybdrv.arm1_cmd_vel", buffer_length=1 },
    },
 
    configurations = {
       { name="ybdrv", config = { ethernet_if="eth0" } },
-      { name="logger1", config = { filename="kin.log", separator=",", report_conf = logger_report_conf, } }
-   },
+      { name="logger1", config = { filename="youbot_basic.log", separator=",", report_conf = logger_report_conf, } },
+      { name="ptrig1", config = { period = {sec=0, usec=1000 }, sched_policy="SCHED_FIFO", sched_priority=80,
+				  trig_blocks={ { b="#ybdrv", num_steps=1, measure=0 },
+						{ b="#kin", num_steps=1, measure=0 } } } },
+      { name="ptrig2", config = { period = {sec=0, usec=100000 },
+				  trig_blocks={ { b="#logger1", num_steps=1, measure=0 } } } },
+
+   }
 }

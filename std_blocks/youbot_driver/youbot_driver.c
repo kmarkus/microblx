@@ -1,39 +1,14 @@
 /*
  * KUKA Youbot microblx driver.
  *
- * (C) 2011-2013 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
+ * (C) 2011-2014 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
  *     2010 Ruben Smits <ruben.smits@mech.kuleuven.be>
  *     2010 Steven Bellens <steven.bellens@mech.kuleuven.be>
  *
  *            Department of Mechanical Engineering,
  *           Katholieke Universiteit Leuven, Belgium.
  *
- *  You may redistribute this software and/or modify it under either the
- *  terms of the GNU Lesser General Public License version 2.1 (LGPLv2.1
- *  <http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>) or (at you
- *  discretion) of the Modified BSD License:
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
- *  1. Redistributions of source code must retain the above copyright
- *  notice, this list of conditions and the following disclaimer.
- *  2. Redistributions in binary form must reproduce the above copyright
- *  notice, this list of conditions and the following disclaimer in the
- *  documentation and/or other materials provided with the distribution.
- *  3. The name of the author may not be used to endorse or promote
- *  products derived from this software without specific prior written
- *  permission.
- *  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
- *  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIREC
- *  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- *  OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION
- *  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- *  STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISIN
- *  IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
+ * see UBX_MODULE_LICENSE_SPDX tag below for licenses.
  */
 
 #define DEBUG 1
@@ -69,29 +44,35 @@ ubx_config_t youbot_config[] = {
 
 ubx_port_t youbot_ports[] = {
 	/* generic arm+base */
-	{ .name="events", .in_type_name="unsigned int" },
+	{ .name="events", .in_type_name="unsigned int", .doc="outgoing coordination events" },
 
 	/* base */
-	{ .name="base_control_mode", .in_type_name="int32_t", .out_type_name="int32_t" },
-	{ .name="base_cmd_twist", .in_type_name="struct kdl_twist" },
-	{ .name="base_cmd_vel", .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_WHEELS },
-	{ .name="base_cmd_cur", .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_WHEELS },
+	{ .name="base_control_mode", .in_type_name="int32_t", .out_type_name="int32_t", .doc="desired base control mode" },
+	{ .name="base_cmd_twist", .in_type_name="struct kdl_twist", .doc="desired twist motion of base [m/s, rad/s]" },
+	{ .name="base_cmd_vel", .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_WHEELS, .doc="desired joint space base velocity [rpm]" },
+	{ .name="base_cmd_cur", .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_WHEELS, .doc="desired current to apply to joints [mA]" },
 
-	{ .name="base_msr_odom",  .out_type_name="struct kdl_frame" },
-	{ .name="base_msr_twist", .out_type_name="struct kdl_twist" },
-	{ .name="base_motorinfo", .out_type_name="struct youbot_base_motorinfo" },
+	{ .name="base_msr_odom",  .out_type_name="struct kdl_frame", .doc="odometry information" },
+	{ .name="base_msr_twist", .out_type_name="struct kdl_twist", .doc="current, measured twist" },
+	{ .name="base_motorinfo", .out_type_name="struct youbot_base_motorinfo", .doc="low-level motor information" },
 
 	/* arm */
-	{ .name="arm1_control_mode", .in_type_name="int32_t", .out_type_name="int32_t" },
-	{ .name="arm1_calibrate_cmd", .in_type_name="int32_t" },
-	{ .name="arm1_cmd_pos", .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS },
-	{ .name="arm1_cmd_vel", .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS },
-	{ .name="arm1_cmd_eff", .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS },
-	{ .name="arm1_cmd_cur", .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS },
+	{ .name="arm1_control_mode", .in_type_name="int32_t", .out_type_name="int32_t", .doc="desired arm control mode" },
+	{ .name="arm1_calibrate_cmd", .in_type_name="int32_t", .doc="writing any value will start arm calibration" },
+	{ .name="arm1_cmd_pos", .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS, .doc="desire joint space arm position [rad]" },
+	{ .name="arm1_cmd_vel", .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS, .doc="desired joint space arm velocity [rad/s]" },
+	{ .name="arm1_cmd_eff", .in_type_name="double", .in_data_len=YOUBOT_NR_OF_JOINTS, .doc="desired effort to apply to joints" },
+	{ .name="arm1_cmd_cur", .in_type_name="int32_t", .in_data_len=YOUBOT_NR_OF_JOINTS, .doc="desired current to apply to joints [mA]" },
 
-	{ .name="arm1_motorinfo",  .out_type_name="struct youbot_arm_motorinfo" },
-	{ .name="arm1_state", .out_type_name="struct motionctrl_jnt_state" },
-	{ .name="arm1_gripper", .in_type_name="int32_t", .out_type_name="int32_t" },
+	{ .name="arm1_motorinfo",  .out_type_name="struct youbot_arm_motorinfo", .doc="low-level motor information" },
+#ifdef USE_ARM_JNT_STATE_STRUCT
+	{ .name="arm1_state", .out_type_name="struct motionctrl_jnt_state", .doc="struct containing arrays[5] for pos, vel and eff" },
+#else
+	{ .name="arm1_msr_pos", .out_type_name="double", .out_data_len=YOUBOT_NR_OF_JOINTS, .doc="measured arm position joint space [rad]" },
+	{ .name="arm1_msr_vel", .out_type_name="double", .out_data_len=YOUBOT_NR_OF_JOINTS, .doc="measured arm velocity joint space [rad/s]" },
+	{ .name="arm1_msr_eff", .out_type_name="double", .out_data_len=YOUBOT_NR_OF_JOINTS, .doc="measured arm effort joint space [N/m]" },
+#endif
+	{ .name="arm1_gripper", .in_type_name="int32_t", .out_type_name="int32_t", .doc="gripper control port, 1 to open, 0 to close" },
 
 	{ NULL },
 };
@@ -102,8 +83,10 @@ ubx_port_t youbot_ports[] = {
 #include "types/youbot_base_motorinfo.h"
 #include "types/youbot_base_motorinfo.h.hexarr"
 
+#ifdef USE_ARM_JNT_STATE_STRUCT
 /* high level: m, m/s, Nm */
 #include "types/motionctrl_jnt_state.h.hexarr"
+#endif
 
 /* low level: ticks, rpm, current */
 #include "types/youbot_arm_motorinfo.h"
@@ -114,7 +97,10 @@ ubx_port_t youbot_ports[] = {
 ubx_type_t youbot_types[] = {
 	def_struct_type(struct youbot_base_motorinfo, &youbot_base_motorinfo_h),
 	def_struct_type(struct youbot_arm_motorinfo, &youbot_arm_motorinfo_h),
+
+#ifdef USE_ARM_JNT_STATE_STRUCT
 	def_struct_type(struct motionctrl_jnt_state, &motionctrl_jnt_state_h),
+#endif
 	/* def_struct_type("youbot", enum youbot_control_modes, &youbot_control_modes_h), */
 	{ NULL },
 };
@@ -143,7 +129,12 @@ def_write_fun(write_kdl_frame, struct kdl_frame)
 def_write_fun(write_base_motorinfo, struct youbot_base_motorinfo)
 
 def_write_fun(write_arm_motorinfo, struct youbot_arm_motorinfo)
+
+#ifdef USE_ARM_JNT_STATE_STRUCT
 def_write_fun(write_arm_state, struct motionctrl_jnt_state)
+#else
+def_write_arr_fun(write_double5, double, 5)
+#endif
 
 /**
  * validate_base_slaves - check whether a valid base was detected.
@@ -758,7 +749,7 @@ static int base_proc_update(struct youbot_base_info* base)
 		}
 		break;
 	case YOUBOT_CMODE_CURRENT:
-		if(read_int4(base->p_cmd_cur, &cmd_cur_vel) == 4) { /* raw velocity */
+		if(read_int4(base->p_cmd_cur, &cmd_cur_vel) == 4) { /* raw current */
 			for(i=0; i<YOUBOT_NR_OF_WHEELS; i++)
 				base->wheel_inf[i].cmd_val=cmd_cur_vel[i];
 			base_check_watchdog(base, 1);
@@ -898,38 +889,42 @@ static int32_t scale_down_cmd_val(struct youbot_arm_info* arm, int jnt_num)
 
 	cmd_val = arm->jnt_inf[jnt_num].cmd_val;
 
-        if(arm->jntlim_safety_disabled || arm->control_mode == YOUBOT_CMODE_POSITIONING)
+	if(arm->jntlim_safety_disabled || arm->control_mode == YOUBOT_CMODE_POSITIONING)
 		goto out;
 
-        jntpos = arm->jnt_states.pos[jnt_num];
-        upper_start = youbot_arm_upper_limits[jnt_num] * YOUBOT_ARM_SCALE_START * (M_PI/180);
-        upper_end = youbot_arm_upper_limits[jnt_num] * YOUBOT_ARM_SCALE_END * (M_PI/180);
-        lower_start = youbot_arm_lower_limits[jnt_num] * YOUBOT_ARM_SCALE_START * (M_PI/180);
-        lower_end = youbot_arm_lower_limits[jnt_num] * YOUBOT_ARM_SCALE_END * (M_PI/180);
+#ifdef USE_ARM_JNT_STATE_STRUCT
+	jntpos = arm->jnt_states.pos[jnt_num];
+#else
+	jntpos = arm->pos[jnt_num];
+#endif
+	upper_start = youbot_arm_upper_limits[jnt_num] * YOUBOT_ARM_SCALE_START * (M_PI/180);
+	upper_end = youbot_arm_upper_limits[jnt_num] * YOUBOT_ARM_SCALE_END * (M_PI/180);
+	lower_start = youbot_arm_lower_limits[jnt_num] * YOUBOT_ARM_SCALE_START * (M_PI/180);
+	lower_end = youbot_arm_lower_limits[jnt_num] * YOUBOT_ARM_SCALE_END * (M_PI/180);
 
-        scale_val=1;
+	scale_val=1;
 
 	/* outside of range */
-        if (jntpos < upper_start && jntpos > lower_start)
+	if (jntpos < upper_start && jntpos > lower_start)
 		goto out;
 
-        /* inside upper range and moving towards limit. */
-        if (jntpos > upper_start && cmd_val > 0) {
+	/* inside upper range and moving towards limit. */
+	if (jntpos > upper_start && cmd_val > 0) {
 		scale_val = (upper_end - jntpos)/(upper_end - upper_start);
 		goto scale;
-        }
+	}
 
-        /* inside lower range and moving towards limit */
-        if (jntpos < lower_start && cmd_val < 0) {
+	/* inside lower range and moving towards limit */
+	if (jntpos < lower_start && cmd_val < 0) {
 		scale_val = (lower_end - jntpos)/(lower_end - lower_start);
 		goto scale;
-        }
+	}
 	/* should never get here */
-        goto out;
+	goto out;
  scale:
 	cmd_val*=scale_val;
  out:
-        return cmd_val;
+	return cmd_val;
 }
 
 
@@ -959,13 +954,25 @@ static void arm_output_msr_data(struct youbot_arm_info* arm)
 		motorinf.vel[i]=arm->jnt_inf[i].msr_vel;
 		motorinf.cur[i]=arm->jnt_inf[i].msr_cur;
 
+#ifdef USE_ARM_JNT_STATE_STRUCT
 		arm->jnt_states.pos[i] = ARM_TICKS_TO_POS * arm->jnt_inf[i].msr_pos;
 		arm->jnt_states.vel[i] = ARM_RPM_TO_VEL * arm->jnt_inf[i].msr_vel;
 		arm->jnt_states.eff[i] = ARM_CUR_TO_EFF * arm->jnt_inf[i].msr_cur;
+#else
+		arm->pos[i] = ARM_TICKS_TO_POS * arm->jnt_inf[i].msr_pos;
+		arm->vel[i] = ARM_RPM_TO_VEL * arm->jnt_inf[i].msr_vel;
+		arm->eff[i] = ARM_CUR_TO_EFF * arm->jnt_inf[i].msr_cur;
+#endif
 	}
 
 	write_arm_motorinfo(arm->p_arm_motorinfo, &motorinf);
+#ifdef USE_ARM_JNT_STATE_STRUCT
 	write_arm_state(arm->p_arm_state, &arm->jnt_states);
+#else
+	write_double5(arm->p_msr_pos, &arm->pos);
+	write_double5(arm->p_msr_vel, &arm->vel);
+	write_double5(arm->p_msr_eff, &arm->eff);
+#endif
 }
 
 #if 0
@@ -1119,13 +1126,13 @@ static int arm_proc_update(struct youbot_arm_info* arm)
 	case YOUBOT_CMODE_MOTORSTOP:
 		break;
 	case YOUBOT_CMODE_POSITIONING:
-		if(read_double5(arm->p_cmd_pos, &cmd_pos) == YOUBOT_NR_OF_JOINTS) { /* raw velocity */
+		if(read_double5(arm->p_cmd_pos, &cmd_pos) == YOUBOT_NR_OF_JOINTS) { /* raw position */
 			for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
 				arm->jnt_inf[i].cmd_val = cmd_pos[i] / ARM_TICKS_TO_POS;
 		}
 		break;
-	case YOUBOT_CMODE_VELOCITY:
-		if(read_double5(arm->p_cmd_vel, &cmd_vel) == YOUBOT_NR_OF_JOINTS) { /* raw velocity */
+	case YOUBOT_CMODE_VELOCITY:  /* raw velocity */
+		if (arm->calibrating==0 && read_double5(arm->p_cmd_vel, &cmd_vel) == YOUBOT_NR_OF_JOINTS) {
 			for(i=0; i<YOUBOT_NR_OF_JOINTS; i++)
 				arm->jnt_inf[i].cmd_val = cmd_vel[i] / ARM_RPM_TO_VEL;
 		}
@@ -1343,7 +1350,13 @@ static int youbot_start(ubx_block_t *b)
 	assert(inf->arm1.p_cmd_vel = ubx_port_get(b, "arm1_cmd_vel"));
 	assert(inf->arm1.p_cmd_cur = ubx_port_get(b, "arm1_cmd_cur"));
 	assert(inf->arm1.p_cmd_eff = ubx_port_get(b, "arm1_cmd_eff"));
+#ifdef USE_ARM_JNT_STATE_STRUCT
 	assert(inf->arm1.p_arm_state = ubx_port_get(b, "arm1_state"));
+#else
+	assert(inf->arm1.p_msr_pos = ubx_port_get(b, "arm1_msr_pos"));
+	assert(inf->arm1.p_msr_vel = ubx_port_get(b, "arm1_msr_vel"));
+	assert(inf->arm1.p_msr_eff = ubx_port_get(b, "arm1_msr_eff"));
+#endif
 	assert(inf->arm1.p_arm_motorinfo = ubx_port_get(b, "arm1_motorinfo"));
 	assert(inf->arm1.p_gripper = ubx_port_get(b, "arm1_gripper"));
 
@@ -1431,3 +1444,4 @@ static void youbot_mod_cleanup(ubx_node_info_t *ni)
 
 UBX_MODULE_INIT(youbot_mod_init)
 UBX_MODULE_CLEANUP(youbot_mod_cleanup)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause LGPL-2.1+)

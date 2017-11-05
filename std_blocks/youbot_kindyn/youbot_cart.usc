@@ -1,0 +1,96 @@
+-- -*- mode: lua; -*-
+
+local bd = require("blockdiagram")
+
+
+logger_report_conf2 = [[
+      { 
+	 { blockname='kin', portname="arm_out_msr_ee_pose", buff_len=1 },
+	 { blockname='kin', portname="arm_out_cmd_jnt_vel", buff_len=1 },
+	-- { blockname='cart_trajgen1', portname="cmd_vel", buff_len=1 },
+	-- { blockname='kin', portname="arm_out_msr_ee_twist", buff_len=3, },
+	 { blockname='ybdrv', portname="arm1_msr_vel", buff_len=1 },
+}
+]]
+
+
+local p_des_twist, init_done2 = nil, nil, nil
+function move_arm_twist(dur, twist)
+   assert(ni~=nil, "no 'ni' ptr found")
+   assert(dur and twist, "missing arguments")
+   arm_set_control_mode(2) -- vel
+
+   if not init_done2 then
+      p_des_twist = ubx.port_clone_conn(ni:b("kin"), "arm_in_cmd_ee_twist", 1)
+      init_done2 = true
+   end
+   local ts_start = ubx.clock_mono_gettime()
+   local ts_cur = ubx.clock_mono_gettime()
+
+   while ts_cur - ts_start < dur do
+      p_des_twist:write(twist)
+      ubx.clock_mono_gettime(ts_cur)
+   end
+   p_des_twist:write({vel={x=0,y=0,z=0}, rot={x=0,y=0,z=0}})
+end
+
+local p_des_pos, p_des_dur, init_done1 = nil, nil, nil
+
+function move_to_cart(des_dur, cartpos)
+   assert(ni~=nil, "no 'ni' ptr found")
+   assert(cartpos, "missing argument")
+   arm_set_control_mode(2) -- vel
+
+   if not init_done1 then
+      p_des_pos = ubx.port_clone_conn(ni:b("cart_trajgen1"), "des_pos", 1)
+      p_des_dur = ubx.port_clone_conn(ni:b("cart_trajgen1"), "des_dur", 1)
+      init_done1 = true
+   end
+   p_des_dur:write(des_dur)
+   p_des_pos:write(cartpos)
+end
+
+function init2()
+   init()
+   ni:b("cart_trajgen1"):do_init()
+   ni:b("cart_trajgen1"):do_start()
+end
+
+return bd.system
+{
+
+   include = {
+      bd.load("examples/youbot_basic.usc"),
+   },
+
+   imports = {
+      "std_blocks/cartesian_trajgen/cart_trajgen.so",
+   },
+
+   blocks = {
+      { name="cart_trajgen1", type="cart_trajgen" },
+   },
+
+   connections = {
+      { src="kin.arm_out_msr_ee_pose", tgt="cart_trajgen1.msr_pos", buffer_length=1 },
+      { src="cart_trajgen1.cmd_vel", tgt="kin.arm_in_cmd_ee_twist", buffer_length=1 },
+   },
+
+   configurations = {
+      { name="logger1", config = { filename="youbot_cart.log", separator=",", report_conf = logger_report_conf2, } },
+
+      { name="cart_trajgen1", config = {
+	   max_vel = {vel={y=0.3, x=0.3, z=0.3}, rot={y=0.3, x=0.3, z=0.3} },
+	   max_acc = {vel={y=0.2, x=0.2, z=0.2}, rot={y=0.2, x=0.2, z=0.2} }, }
+      },
+
+      { name="ptrig1", config = { period = {sec=0, usec=1000 }, sched_policy="SCHED_FIFO", sched_priority=80,
+				  trig_blocks={ { b="#ybdrv", num_steps=1, measure=0 },
+						{ b="#kin", num_steps=1, measure=0 },
+						{ b="#cart_trajgen1", num_steps=1, measure=0 }
+				       } } },
+      { name="ptrig2", config = { period = {sec=0, usec=100000 },
+				  trig_blocks={ { b="#logger1", num_steps=1, measure=0 } } } },
+
+   }
+}

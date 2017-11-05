@@ -2,7 +2,7 @@
  * A generic luajit based block.
  */
 
-#define DEBUG
+/* #define DEBUG	1 */
 #define COMPILE_IN_LOG_LUA_FILE
 
 #include <luajit-2.0/lauxlib.h>
@@ -17,7 +17,7 @@
 #ifdef COMPILE_IN_LOG_LUA_FILE
 #include "file_logger.lua.hexarr"
 #else
-#define FILE_LOG_FILE "/home/mk/prog/c/microblx/std_blocks/reporter/file_logger.lua"
+#define FILE_LOG_FILE "/home/mk/prog/c/microblx/std_blocks/logging/file_logger.lua"
 #endif
 
 char file_logger_meta[] =
@@ -35,7 +35,6 @@ ubx_config_t file_logger_conf[] = {
 };
 
 struct file_logger_info {
-	struct ubx_node_info* ni;
 	struct lua_State* L;
 };
 
@@ -61,14 +60,14 @@ int call_hook(ubx_block_t* b, const char *fname, int require_fun, int require_re
 		lua_pop(inf->L, 1);
 		if(require_fun)
 			ERR("%s: no (required) Lua function %s", b->name, fname);
-		else
-			goto out;
+		goto out;
 	}
 
 	lua_pushlightuserdata(inf->L, (void*) b);
 
 	if (lua_pcall(inf->L, 1, num_res, 0) != 0) {
 		ERR("%s: error calling function %s: %s", b->name, fname, lua_tostring(inf->L, -1));
+		lua_pop(inf->L, 1); /* pop result */
 		ret = -1;
 		goto out;
 	}
@@ -209,3 +208,4 @@ static void file_logger_mod_cleanup(ubx_node_info_t *ni)
 
 UBX_MODULE_INIT(file_logger_mod_init)
 UBX_MODULE_CLEANUP(file_logger_mod_cleanup)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)

@@ -1,0 +1,41 @@
+-- -*- mode: lua; -*-
+
+local bd = require("blockdiagram")
+
+logger_report_conf = [[
+{ { blockname='rnd', portname="rnd", buff_len=3 },
+  { blockname='fifo1' } }
+]]
+
+return bd.system
+{
+   imports = {
+      "std_types/stdtypes/stdtypes.so",
+      "std_blocks/ptrig/ptrig.so",
+      "std_blocks/logging/file_logger.so",
+      "std_blocks/random/random.so",
+      "std_blocks/lfds_buffers/lfds_cyclic.so",
+      "std_blocks/hexdump/hexdump.so",
+   },
+
+   blocks = {
+      { name="rnd", type="random/random" },
+      { name="hexdump1", type="hexdump/hexdump" },
+      { name="fifo1", type="lfds_buffers/cyclic" },
+      { name="ptrig1", type="std_triggers/ptrig" },
+      { name="logger1", type="logging/file_logger" },
+   },
+
+   connections = {
+      { src="rnd.rnd", tgt="hexdump1" },
+      { src="rnd.rnd", tgt="fifo1" },
+   },
+
+   configurations = {
+      { name="rnd", config = {min_max_config={min=127, max=256} } },
+      { name="fifo1", config = { type_name="unsigned int", buffer_len=3 } },
+      { name="logger1", config = { filename="trig_rnd_hexdump.log", separator=",", report_conf = logger_report_conf, } },
+      { name="ptrig1", config = { period = {sec=0, usec=100000 }, trig_blocks={ { b="#rnd", num_steps=1, measure=0 },
+										{ b="#logger1", num_steps=1, measure=0 } } } }
+   },
+}

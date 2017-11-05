@@ -1,0 +1,101 @@
+-- -*- mode: lua -*-
+
+-- youbot cartesian space control
+
+logger_report_conf = [[
+{
+  { blockname='cart_trajgen_1', portname="reached", buff_len=1 },
+  { blockname='cart_trajgen_1', portname="move_dur", buff_len=1 },
+  { blockname='cart_trajgen_1', portname="cmd_pos", buff_len=1 },
+  { blockname='cart_trajgen_1', portname="cmd_vel", buff_len=1 },
+}
+]]
+
+lua_block_test = [[
+local ubx=require "ubx"
+local ffi=require "ffi"
+
+local rnd_num_data
+local rnd_num
+local p_rnd_num
+
+function init(b)
+   b = ffi.cast("ubx_block_t*", b)
+   print(ffi.string(b.name).." init")
+
+   ubx.ffi_load_types(b.ni)
+
+   ubx.port_add(b, "msr_pos", "measured kdl_frame value", nil, 0, "struct kdl_frame", 1, 0)
+   ubx.port_add(b, "des_pos", "desired goal pos", nil, 0, "struct kdl_frame", 1, 0)
+   ubx.port_add(b, "des_dur", "desired duration", nil, 0, "double", 1, 0)
+
+   local ts = ubx.clock_mono_gettime()
+   math.randomseed(tonumber(ts.nsec))
+   return true
+end
+
+local msr_pos = {M={data={1,0,0,
+                          0,1,0,
+                          0,0,1}},p={y=0,x=0,z=0}}
+
+local des_pos = {M={data={0,-1, 0,
+                          0, 0,-1,
+                          1, 0, 0}},p={y=1,x=1,z=1}}
+
+function step(b)
+   b = ffi.cast("ubx_block_t*", b)
+   print(ffi.string(b.name).." step")
+   b:p("msr_pos"):write(msr_pos)
+   b:p("des_pos"):write(des_pos)
+   b:p("des_dur"):write(10)
+end
+
+function cleanup(b)
+   b = ffi.cast("ubx_block_t*", b)
+   print(ffi.string(b.name).." cleanup")
+   ubx.port_rm(block, "msr_pos")
+   ubx.port_rm(block, "des_pos")
+   ubx.port_rm(block, "des_dur")
+end
+]]
+
+
+return bd.system
+{
+   imports = {
+      "std_types/stdtypes/stdtypes.so",
+      "std_types/kdl/kdl_types.so",
+      "std_blocks/trig/trig.so",
+      "std_blocks/lfds_buffers/lfds_cyclic.so",
+      "std_blocks/logging/file_logger.so",
+      "std_blocks/luablock/luablock.so",
+      "std_blocks/cartesian_trajgen//cart_trajgen.so",
+   },
+
+   blocks = {
+      { name="cart_trajgen_1", type="cart_trajgen" },
+      { name="testgen", type="lua/luablock" },
+      { name="logger1", type="logging/file_logger" },
+      { name="trig1", type="std_triggers/trig" },
+   },
+
+   configurations = {
+      { name="logger1", config = { filename="cart_trajgen.log", separator=",", timestamp=1,
+				   report_conf = logger_report_conf } },
+      { name="cart_trajgen_1", config = {
+	   max_vel = {vel={y=0.01, x=0.01, z=0.01}, rot={y=0.1, x=0.1, z=0.1} },
+	   max_acc = {vel={y=0.01, x=0.01, z=0.01}, rot={y=0.1, x=0.1, z=0.1} }, }
+      },
+      { name='testgen', config = { lua_str = lua_block_test } },
+
+      { name="trig1", config = {
+	   trig_blocks={ { b="#cart_trajgen_1", num_steps=1, measure=0 },
+			 { b="#logger1", num_steps=1, measure=0 } } } },
+   },
+
+   connections = {
+      { src="testgen.msr_pos", tgt="cart_trajgen_1.msr_pos" },
+      { src="testgen.des_pos", tgt="cart_trajgen_1.des_pos" },
+      { src="testgen.des_dur", tgt="cart_trajgen_1.des_dur" },
+   },
+}

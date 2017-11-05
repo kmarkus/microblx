@@ -1,0 +1,19 @@
+-- -*- mode: lua; -*-
+
+return bd.system {
+   imports={
+      "std_types/stdtypes/stdtypes.so",
+      "std_blocks/webif/webif.so",
+      "std_blocks/ptrig/ptrig.so",
+      "std_blocks/lfds_buffers/lfds_cyclic.so",
+      "std_blocks/luablock/luablock.so",
+   },
+   
+   blocks = { { name = "lb1", type="lua/luablock" } },
+   
+   connections = { },
+   
+   configurations = {
+      { name='lb1', config = { lua_file = "std_blocks/luablock/luablock.lua" } }
+   },
+}

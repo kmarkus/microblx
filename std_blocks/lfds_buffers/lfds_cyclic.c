@@ -10,34 +10,39 @@
 
 #include "ubx.h"
 
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
+
 /* meta-data */
 char cyclic_meta[] =
 	"{ doc='High performance scalable, lock-free cyclic, buffered in process communication"
-	"  description=[[This ubx interaction is based on based on liblfds"
+	"  description=[["
+	"		 This version is stongly typed and should be preferred"
+	"                This microblx iblock is based on based on liblfds"
 	"                ringbuffer (v0.6.1.1) (www.liblfds.org)]],"
 	"  version=0.01,"
-	"  license='MIT',"
 	"  hard_real_time=true,"
 	"}";
 
 /* configuration */
 ubx_config_t cyclic_config[] = {
-	{ .name="element_num", .type_name = "uint32_t" },
-	{ .name="element_size", .type_name = "uint32_t" },
+	{ .name="type_name", .type_name = "char", .doc="name of registered microblx type to transport" },
+	{ .name="data_len", .type_name = "uint32_t", .doc="array length (multiplier) of data (default: 1)" },
+	{ .name="buffer_len", .type_name = "uint32_t", .doc="max. number of data elements the buffer shall hold" },
 	{ NULL },
 };
 
 ubx_port_t cyclic_ports[] = {
 	/* generic arm+base */
-	{ .name="overruns", .out_type_name="unsigned long" },
+	{ .name="overruns", .out_type_name="unsigned long", .doc="Number of buffer overruns. Value is output only upon change." },
 	{ NULL },
 };
 
 /* interaction private data */
 struct cyclic_block_info {
-	unsigned long num;		/* number of elements */
-	unsigned long size;		/* buffer size of each element */
 	const ubx_type_t* type;		/* type of contained elements */
+	unsigned long data_len;		/* buffer size of each element */
+	unsigned long buffer_len;	/* number of elements */
+
 	struct lfds611_ringbuffer_state *rbs;
 
 	unsigned long overruns;		/* stats */
@@ -45,7 +50,7 @@ struct cyclic_block_info {
 };
 
 struct cyclic_elem_header {
-	unsigned long len;
+	unsigned long data_len;
 	uint8_t data[0];
 };
 
@@ -54,7 +59,7 @@ def_write_fun(write_ulong, unsigned long)
 int cyclic_data_elem_init(void **user_data, void *user_state)
 {
 	struct cyclic_block_info* bbi = (struct cyclic_block_info*) user_state;
-	*user_data=calloc(1, bbi->size+sizeof(struct cyclic_elem_header));
+	*user_data=calloc(1, bbi->data_len*bbi->type->size+sizeof(struct cyclic_elem_header));
 	return (*user_data==NULL) ? 0 : 1;
 }
 
@@ -69,6 +74,7 @@ static int cyclic_init(ubx_block_t *i)
 {
 	int ret = -1;
 	unsigned int len;
+	const char *type_name;
 	struct cyclic_block_info* bbi;
 
 	if((i->private_data = calloc(1, sizeof(struct cyclic_block_info)))==NULL) {
@@ -80,23 +86,37 @@ static int cyclic_init(ubx_block_t *i)
 	bbi = (struct cyclic_block_info*) i->private_data;
 
 	/* read/check configuration */
-	bbi->num = *((uint32_t*) ubx_config_get_data_ptr(i, "element_num", &len));
-	if(bbi->num==0) {
-		ERR("invalid configuration element_num=0");
+	bbi->buffer_len = *((uint32_t*) ubx_config_get_data_ptr(i, "buffer_len", &len));
+	if(bbi->buffer_len==0) {
+		ERR("invalid configuration buffer_len=0");
 		ret = EINVALID_CONFIG;
 		goto out_free_priv_data;
 	}
 
-	bbi->size = *((uint32_t*) ubx_config_get_data_ptr(i, "element_size", &len));
-	if(bbi->size==0) {
-		ERR("invalid configuration cyclic_size 0");
+	bbi->data_len = *((uint32_t*) ubx_config_get_data_ptr(i, "data_len", &len));
+	bbi->data_len = (bbi->data_len == 0) ? 1 : bbi->data_len;
+
+	type_name = (char*) ubx_config_get_data_ptr(i, "type_name", &len);
+
+	if (type_name == NULL || len <= 0) {
+		ERR("%s: invalid or missing type name", i->name);
+		goto out_free_priv_data;
+	}
+
+	bbi->type=ubx_type_get(i->ni, type_name);
+
+	if(bbi->type==NULL) {
+		ERR("%s: failed to lookup type %s", i->name, type_name);
 		ret = EINVALID_CONFIG;
 		goto out_free_priv_data;
 	}
 
-	DBG("allocating ringbuffer with %lu elements of size %lu bytes.", bbi->num, bbi->size);
-	if(lfds611_ringbuffer_new(&bbi->rbs, bbi->num, cyclic_data_elem_init, bbi)==0) {
-		ERR("%s: creating ringbuffer 0x%ld x 0x%ld bytes failed", i->name, bbi->num, bbi->size);
+	DBG("%s: allocating ringbuffer with %lu elements of type %s [%lu] bytes.",
+	    i->name, bbi->buffer_len, type_name, ,bbi->data_len);
+
+	if(lfds611_ringbuffer_new(&bbi->rbs, bbi->buffer_len, cyclic_data_elem_init, bbi)==0) {
+		ERR("%s: allocating ringbuffer with %lu elements of type %s [%lu] bytes failed.",
+		    i->name, bbi->buffer_len, type_name, bbi->data_len);
 		ret = EOUTOFMEM;
 		goto out_free_priv_data;
 	}
@@ -133,17 +153,14 @@ static void cyclic_write(ubx_block_t *i, ubx_data_t* msg)
 
 	bbi = (struct cyclic_block_info*) i->private_data;
 
-	len = data_size(msg);
-
-	if (len > bbi->size) {
-		ERR("can't store %ld bytes of data in a %ld size buffer", len, bbi->size);
+	if(bbi->type != msg->type) {
+		ERR("%s: invalid message type %s", i->name, msg->type->name);
 		goto out;
 	}
 
-	/* remember type, this should better happen in preconnect-hook. */
-	if(bbi->type==NULL) {
-		DBG("%s: SETTING type to msg->type = %p, %s", i->name, msg->type, msg->type->name);
-		bbi->type=msg->type;
+	if (msg->len > bbi->data_len) {
+		ERR("%s: message array length too large: is: %ld, capacity: %ld", i->name, msg->len, bbi->data_len);
+		goto out;
 	}
 
 	elem = lfds611_ringbuffer_get_write_element(bbi->rbs, &elem, &ret);
@@ -156,8 +173,11 @@ static void cyclic_write(ubx_block_t *i, ubx_data_t* msg)
 
 	/* write */
 	hd=lfds611_freelist_get_user_data_from_element(elem, NULL);
+
+	len = data_size(msg);
 	memcpy(hd->data, msg->data, len);
-	hd->len=len;
+	hd->data_len=msg->len;
+
 	DBG("%s: copying %ld bytes", i->name, len);
 
 	/* release element */
@@ -171,12 +191,17 @@ static void cyclic_write(ubx_block_t *i, ubx_data_t* msg)
 static int cyclic_read(ubx_block_t *i, ubx_data_t* msg)
 {
 	int ret;
-	unsigned long readsz;
+	unsigned long readlen, readsz;
 	struct cyclic_block_info *bbi;
 	struct lfds611_freelist_element *elem;
 	struct cyclic_elem_header *hd;
 
 	bbi = (struct cyclic_block_info*) i->private_data;
+
+	if(bbi->type != msg->type) {
+		ERR("%s: invalid message type %s", i->name, msg->type->name);
+		goto out;
+	}
 
 	if(lfds611_ringbuffer_get_read_element(bbi->rbs, &elem)==NULL) {
 		ret=0;
@@ -185,17 +210,19 @@ static int cyclic_read(ubx_block_t *i, ubx_data_t* msg)
 
 	hd=lfds611_freelist_get_user_data_from_element(elem, NULL);
 
-	readsz=data_size(msg);
+	if(msg->len < hd->data_len) {
+		ERR("%s: warning: only copying %lu array elements of %lu",
+		    i->name, msg->len, hd->data_len);
+	}
 
-	if(readsz < hd->len)
-		ERR("%s: warning: only copying %lu of %lu bytes", i->name, readsz, hd->len);
+	readlen = MIN(msg->len, hd->data_len);
+	readsz = bbi->type->size * readlen;
 
-	readsz=MIN(readsz, hd->len);
 	DBG("%s: copying %ld bytes", i->name, readsz);
 
 	memcpy(msg->data, hd->data, readsz);
 	lfds611_ringbuffer_put_read_element(bbi->rbs, elem);
-	ret=readsz/msg->type->size;		/* compute number of elements read */
+	ret=readlen; /* compute number of elements read */
  out:
 	return ret;
 }

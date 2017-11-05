@@ -1,0 +1,22 @@
+-- -*- mode: lua; -*-
+
+return bd.system
+{
+   imports = {
+      "std_types/stdtypes/stdtypes.so",
+      "std_blocks/random/random.so",
+      "std_blocks/trig/trig.so",
+   },
+
+   blocks = {
+      { name="rnd1", type="random/random" },
+      { name="trig", type="std_triggers/trig" },
+   },
+
+   configurations = {
+      { name="trig", config = { trig_blocks={ { b="#rnd1", num_steps=1, measure=0 } } } },
+   }
+}
+
+
+

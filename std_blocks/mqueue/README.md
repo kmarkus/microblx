@@ -1,4 +1,10 @@
 mqueue interaction block
 ========================
 
-This block implements an untyped interaction via POSIX message queues.
+These blocks provide interactions based on POSIX message queues:
+
+ - mqueue: standard, typed mqueue interaction.
+ 
+ - mqueue_raw: untype mqueue interaction. This one is less safe.
+
+

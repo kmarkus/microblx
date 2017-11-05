@@ -1,0 +1,50 @@
+-- -*- mode: lua; -*-
+
+-- This is a trivial example of a chain of random blocks. The output
+-- of block N is connected to the seed of random block N+1.  The
+-- system is constructed by hierarchically composing these blocks.
+
+logger_report_conf = [[
+{ { blockname='rnd0', portname="rnd" },
+  { blockname='rnd1', portname="rnd" },
+}
+]]
+
+
+return bd.system
+{
+   -- include subsystems
+   include = {
+      bd.load("examples/composition/rndchain1.usc")
+   },
+
+   imports = {
+      "std_types/stdtypes/stdtypes.so",
+      "std_blocks/random/random.so",
+      "std_blocks/ptrig/ptrig.so",
+      "std_blocks/lfds_buffers/lfds_cyclic.so",
+      "std_blocks/logging/file_logger.so",
+   },
+
+   blocks = {
+      { name='ptrig', type="std_triggers/ptrig" },
+      { name="rnd0", type="random/random" },
+      { name="logger", type="logging/file_logger" },
+   },
+
+   configurations = {
+      { name="ptrig", config = { period = {sec=1, usec=0 },
+				 trig_blocks={ { b="#rnd0", num_steps=1, measure=0 },
+					       -- trigger the included subsystems trigger:
+					       { b="#trig", num_steps=1, measure=0 },
+					       { b="#logger", num_steps=1, measure=0 } } } },
+
+      { name="logger", config = { filename="rndchain.log",
+				  separator=",",
+				  report_conf = logger_report_conf, } },
+   },
+
+   connections = {
+      { src="rnd0.rnd", tgt="rnd1.seed" },
+   },
+}

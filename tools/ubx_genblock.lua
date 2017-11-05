@@ -2,6 +2,7 @@
 
 utils=require "utils"
 umf=require "umf"
+local ts = tostring
 
 ---
 --- ubx block meta-model
@@ -72,6 +73,7 @@ block_spec = ObjectSpec {
    dict={
       name=StringSpec{},
       meta_data=StringSpec{},
+      cpp=BoolSpec{},
       port_cache=BoolSpec{},
       types=types_spec,
       configurations=configurations_spec,
@@ -87,7 +89,7 @@ block_spec = ObjectSpec {
 	 optional={ "start", "stop", "step" },
       },
    },
-   optional={ 'meta_data', 'types', 'configurations', 'ports' },
+   optional={ 'meta_data', 'cpp', 'types', 'configurations', 'ports' },
 }
 
 --- Validate a block model.
@@ -164,10 +166,10 @@ function generate_rd_wr_helpers(bm)
 	 end
       elseif p.out_type_name then
 	 if not p.out_data_len or p.out_data_len == 1 then
-	    res[#res+1] = utils.expand("def_read_fun(read_$name, $type_name)",
+	    res[#res+1] = utils.expand("def_write_fun(write_$name, $type_name)",
 				       { name=find_name(p.name), type_name=p.out_type_name })
 	 else -- ou_data_len > 1
-	    res[#res+1] = utils.expand("def_read_arr_fun(read_$name_$len, $type_name, $len)",
+	    res[#res+1] = utils.expand("def_write_arr_fun(write_$name_$len, $type_name, $len)",
 				       { name=find_name(p.name), type_name=p.out_type_name, len=p.out_data_len })
 	 end
       end
@@ -210,13 +212,14 @@ end
 function gen_port_decl(t)
    t.in_data_len = t.in_data_len or 1
    t.out_data_len = t.out_data_len or 1
+   t.doc = t.doc or ''
 
    if t.in_type_name and t.out_type_name then
-      return utils.expand('{ .name="$name", .out_type_name="$out_type_name", .out_data_len=$out_data_len, .in_type_name="$in_type_name", .in_data_len=$in_data_len  },', t)
+      return utils.expand('{ .name="$name", .out_type_name="$out_type_name", .out_data_len=$out_data_len, .in_type_name="$in_type_name", .in_data_len=$in_data_len, .doc="$doc" },', t)
    elseif t.in_type_name then
-      return utils.expand('{ .name="$name", .in_type_name="$in_type_name", .in_data_len=$in_data_len  },', t)
+      return utils.expand('{ .name="$name", .in_type_name="$in_type_name", .in_data_len=$in_data_len, .doc="$doc"  },', t)
    elseif t.out_type_name then
-      return utils.expand('{ .name="$name", .out_type_name="$out_type_name", .out_data_len=$out_data_len  },', t)
+      return utils.expand('{ .name="$name", .out_type_name="$out_type_name", .out_data_len=$out_data_len, .doc="$doc"  },', t)
    end
 end
 
@@ -249,14 +252,14 @@ ubx_type_t types[] = {
 /* block meta information */
 char $(bm.name)_meta[] =
 	" { doc='',"
-	"   license='',"
 	"   real-time=true,"
 	"}";
 
 /* declaration of block configuration */
 ubx_config_t $(bm.name)_config[] = {
 @ for _,c in ipairs(bm.configurations or {}) do
-	{ .name="$(c.name)", .type_name = "$(c.type_name)" },
+@       c.doc=c.doc or ""
+	{ .name="$(c.name)", .type_name = "$(c.type_name)", .doc="$(c.doc)" },
 @ end
 	{ NULL },
 };
@@ -381,7 +384,15 @@ function generate_block_body(fd, bm)
    local res, str = utils.preproc(
 [[
 
+@ if bm.cpp then
+#include "$(bm.name).hpp"
+@ else
 #include "$(bm.name).h"
+@ end
+
+/* edit and uncomment this:
+ * UBX_MODULE_LICENSE_SPDX(GPL-2.0+)
+ */
 
 /* define a structure for holding the block local state. By assigning an
  * instance of this struct to the block private_data pointer (see init), this
@@ -405,7 +416,7 @@ int $(bm.name)_init(ubx_block_t *b)
 	struct $(bm.name)_info *inf;
 
 	/* allocate memory for the block local state */
-	if ((inf = calloc(1, sizeof(struct $(bm.name)_info)))==NULL) {
+	if ((inf = (struct $(bm.name)_info*)calloc(1, sizeof(struct $(bm.name)_info)))==NULL) {
 		ERR("$(bm.name): failed to alloc memory");
 		ret=EOUTOFMEM;
 		goto out;
@@ -421,7 +432,7 @@ out:
 /* start */
 int $(bm.name)_start(ubx_block_t *b)
 {
-	/* struct $(bm_name)_info *inf = (struct $(bm_name)_info*) b->private_data; */
+	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
 	int ret = 0;
 	return ret;
 }
@@ -431,7 +442,7 @@ int $(bm.name)_start(ubx_block_t *b)
 /* stop */
 void $(bm.name)_stop(ubx_block_t *b)
 {
-	/* struct $(bm_name)_info *inf = (struct $(bm_name)_info*) b->private_data; */
+	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
 }
 @ end
 
@@ -475,7 +486,9 @@ return bd.system
 {
    imports = {
       "std_types/stdtypes/stdtypes.so",
-      "std_blocks/webif/webif.so",
+      "std_blocks/ptrig/ptrig.so",
+      "std_blocks/lfds_buffers/lfds_cyclic.so",
+      "std_blocks/logging/file_logger.so",
       "$(outdir)/$(bm.name).so",
    },
 
@@ -526,6 +539,8 @@ local opttab=utils.proc_args(arg)
 
 local block_model_file
 local force_overwrite
+local c_ext = '.c'
+local h_ext = '.h'
 
 if #arg==1 or opttab['-h'] then usage(); os.exit(1) end
 
@@ -580,16 +595,19 @@ if not utils.file_exists(outdir.."/types") then
    end
 end
 
+if block_model.cpp then c_ext = '.cpp' end
+if block_model.cpp then h_ext = '.hpp' end
+
 -- static part
 local codegen_tab = {
    { fun=generate_automakefile, funargs={ block_model }, file="Makefile.am", overwrite=false },
-   { fun=generate_block_if, funargs={ block_model } , file=block_model.name..".h", overwrite=true },
-   { fun=generate_block_body, funargs={ block_model }, file=block_model.name..".c", overwrite=false },
+   { fun=generate_block_if, funargs={ block_model } , file=block_model.name..h_ext, overwrite=true },
+   { fun=generate_block_body, funargs={ block_model }, file=block_model.name..c_ext, overwrite=false },
    { fun=generate_bd_system, funargs={ block_model, outdir }, file=block_model.name..".usc", overwrite=false },
 }
 
 -- add types
-for i,t in ipairs(block_model.types) do
+for i,t in ipairs(block_model.types or {}) do
    if t.class=='struct' then
       codegen_tab[#codegen_tab+1] =
 	 { fun=generate_struct_type, funargs={ t }, file="types/"..t.name..".h", overwrite=false }

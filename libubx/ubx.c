@@ -1,33 +1,33 @@
 /*
  * microblx: embedded, real-time safe, reflective function blocks.
- * Copyright (C) 2013 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
+ * Copyright (C) 2013,2014 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
  *
- * This program is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * microblx is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 or (at your option)
+ * any later version.
+ *
+ * microblx is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with eCos; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  * As a special exception, if other files instantiate templates or use
  * macros or inline functions from this file, or you compile this file
  * and link it with other works to produce a work based on this file,
  * this file does not by itself cause the resulting work to be covered
  * by the GNU General Public License. However the source code for this
- * file must still be made available in accordance with the GNU
- * General Public License.
+ * file must still be made available in accordance with section (3) of
+ * the GNU General Public License.
  *
  * This exception does not invalidate any other reasons why a work
  * based on this file might be covered by the GNU General Public
  * License.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see
- * <http://www.gnu.org/licenses/>.
- */
+*/
 
 /* #define DEBUG 1 */
 
@@ -70,6 +70,117 @@ const char* get_typename(ubx_data_t *data)
 }
 
 /**
+ * ubx_module_load - load a module in a node.
+ *
+ * @param ni
+ * @param lib
+ *
+ * @return 0 if Ok, non-zero otherwise.
+ */
+int ubx_module_load(ubx_node_info_t* ni, const char *lib)
+{
+	int ret = -1;
+	char* err;
+	ubx_module_t* mod;
+
+	HASH_FIND_STR(ni->modules, lib, mod);
+
+	if(mod != NULL) {
+		ERR("module '%s' already loaded in node %s.", lib, ni->name);
+		goto out;
+	};
+
+	/* allocate data */
+	if((mod = calloc(sizeof(ubx_module_t), 1)) == NULL) {
+		ERR("failed to alloc module data");
+		goto out;
+	}
+
+	if((mod->id = strdup(lib))==NULL) {
+		ERR("failed to clone module name");
+		goto out_err_free_mod;
+	}
+
+	if((mod->handle = dlopen(lib, RTLD_NOW)) == NULL) {
+		fprintf(stderr, "%s\n", dlerror());
+		goto out_err_free_id;
+	}
+
+	dlerror();
+
+	mod->init = dlsym(mod->handle, "__ubx_initialize_module");
+	if ((err = dlerror()) != NULL)  {
+		ERR("failed to lookup __ubx_initialize_module for module %s: %s", lib, err);
+		goto out_err_close;
+	}
+
+	dlerror();
+
+	mod->cleanup = dlsym(mod->handle, "__ubx_cleanup_module");
+	if ((err = dlerror()) != NULL)  {
+		ERR("failed to lookup __ubx_cleanup_module for module %s: %s", lib, err);
+		goto out_err_close;
+	}
+
+	dlerror();
+
+	mod->spdx_license_id = dlsym(mod->handle, "__ubx_module_license_spdx");
+	if ((err = dlerror()) != NULL)  {
+		MSG("Warning: missing license in module %s. Please define UBX_MODULE_LICENSE_SPDX", lib);
+	}
+
+	/* execute module init */
+	if(mod->init(ni) != 0)
+		goto out_err_close;
+
+	/* register with node */
+	HASH_ADD_KEYPTR(hh, ni->modules, mod->id, strlen(mod->id), mod);
+
+	ret=0;
+	goto out;
+
+
+ out_err_close:
+	dlclose(mod->handle);
+ out_err_free_id:
+	free((char*) mod->id);
+ out_err_free_mod:
+	free(mod);
+ out:
+	return ret;
+}
+
+
+/**
+ * ubx_module_unload - unload a module from a node.
+ *
+ * @param ni node_info
+ * @param lib name of module library to unload
+ */
+void ubx_module_unload(ubx_node_info_t* ni, const char *lib)
+{
+	ubx_module_t *mod;
+
+	HASH_FIND_STR(ni->modules, lib, mod);
+
+	if(mod==NULL) {
+		ERR("module '%s' not registered.", lib);
+		goto out;
+	}
+
+	HASH_DEL(ni->modules, mod);
+
+	mod->cleanup(ni);
+
+	dlclose(mod->handle);
+	free((char*) mod->id);
+	free(mod);
+ out:
+	return;
+}
+
+
+/**
  * initalize node_info
  *
  * @param ni
@@ -106,6 +217,7 @@ int ubx_node_init(ubx_node_info_t* ni, const char *name)
 
 	ni->blocks=NULL;
 	ni->types=NULL;
+	ni->modules=NULL;
 	ni->cur_seqid=0;
 	ret=0;
  out:
@@ -114,7 +226,44 @@ int ubx_node_init(ubx_node_info_t* ni, const char *name)
 
 void ubx_node_cleanup(ubx_node_info_t* ni)
 {
-	/* clean up all entities */
+	int cnt;
+	ubx_module_t *m, *mtmp;
+	ubx_block_t *b, *btmp;
+
+	/* stop all blocks */
+	HASH_ITER(hh, ni->blocks, b, btmp) {
+		if (b->block_state == BLOCK_STATE_ACTIVE) {
+			DBG("stopping block %s", b->name);
+			if(ubx_block_stop(b)!=0) ERR("%s: failed to stop block %s", ni->name, b->name);
+		}
+	}
+
+	/* cleanup all blocks */
+	HASH_ITER(hh, ni->blocks, b, btmp) {
+		if (b->block_state == BLOCK_STATE_INACTIVE) {
+			DBG("cleaning up block %s", b->name);
+			if(ubx_block_cleanup(b)!=0) ERR("%s: failed to cleanup block %s", ni->name, b->name);
+		}
+	}
+
+	/* rm all non prototype blocks */
+	HASH_ITER(hh, ni->blocks, b, btmp) {
+		if (b->block_state == BLOCK_STATE_PREINIT && b->prototype!=NULL) {
+			DBG("removing block %s", b->name);
+			if(ubx_block_rm(ni, b->name)!=0) ERR("%s: failed to rm block %s", ni->name, b->name);
+		}
+	}
+
+	/* unload all modules. */
+	HASH_ITER(hh, ni->modules, m, mtmp) {
+		DBG("unloading module %s", m->id);
+		ubx_module_unload(ni, m->id);
+	}
+
+	if((cnt = ubx_num_types(ni)) > 0) ERR("node %s: %d types after cleanup", ni->name, cnt);
+	if((cnt = ubx_num_modules(ni)) > 0) ERR("node %s: %d modules after cleanup", ni->name, cnt);
+	if((cnt = ubx_num_blocks(ni)) > 0) ERR("node %s: %d blocks after cleanup", ni->name, cnt);
+
 	free((char*) ni->name);
 	ni->name=NULL;
 }
@@ -245,6 +394,9 @@ int ubx_type_register(ubx_node_info_t* ni, ubx_type_t* type)
 	typref->type_ptr=type;
 	typref->seqid=ni->cur_seqid++;
 
+	/* compute md5 fingerprint for type */
+	md5((const unsigned char*) type->name, strlen(type->name), type->hash);
+
 	HASH_ADD_KEYPTR(hh, ni->types, type->name, strlen(type->name), typref);
 	ret = 0;
  out:
@@ -363,6 +515,49 @@ int ubx_resolve_types(ubx_block_t* b)
 	return ret;
 }
 
+/**
+ * Allocate a ubx_data_t of the given type and array length.
+ *
+ * This type should be free'd using the ubx_data_free function.
+ *
+ * @param ubx_type_t of the new type
+ * @param array_len
+ *
+ * @return ubx_data_t* or NULL in case of error.
+ */
+ubx_data_t* __ubx_data_alloc(ubx_type_t* typ, unsigned long array_len)
+{
+	ubx_data_t* d = NULL;
+
+	if(typ==NULL) {
+		ERR("invalid type parameter");
+		goto out;
+	}
+
+	if(array_len == 0) {
+		ERR("invalid array_len 0");
+		goto out;
+	}
+
+	if((d=calloc(1, sizeof(ubx_data_t)))==NULL)
+		goto out_nomem;
+
+	d->type = typ;
+	d->len = array_len;
+
+	if((d->data=calloc(array_len, typ->size))==NULL)
+		goto out_nomem;
+
+	/* all ok */
+	goto out;
+
+ out_nomem:
+	ERR("memory allocation failed");
+	if(d) free(d);
+
+ out:
+	return d;
+}
 
 /**
  * Allocate a ubx_data_t of the given type and array length.
@@ -381,12 +576,7 @@ ubx_data_t* ubx_data_alloc(ubx_node_info_t *ni, const char* typname, unsigned lo
 	ubx_data_t* d = NULL;
 
 	if(ni==NULL) {
-		ERR("ni is NULL");
-		goto out;
-	}
-
-	if(array_len == 0) {
-		ERR("invalid array_len 0");
+		ERR("ni parameter NULL");
 		goto out;
 	}
 
@@ -395,21 +585,10 @@ ubx_data_t* ubx_data_alloc(ubx_node_info_t *ni, const char* typname, unsigned lo
 		goto out;
 	}
 
-	if((d=calloc(1, sizeof(ubx_data_t)))==NULL)
-		goto out_nomem;
-
-	d->type = t;
-	d->len = array_len;
-
-	if((d->data=calloc(array_len, t->size))==NULL)
-		goto out_nomem;
+	d = __ubx_data_alloc(t, array_len);
 
 	/* all ok */
 	goto out;
-
- out_nomem:
-	ERR("memory allocation failed");
-	if(d) free(d);
  out:
 	return d;
 }
@@ -442,6 +621,43 @@ void ubx_data_free(ubx_node_info_t *ni, ubx_data_t* d)
 	free(d->data);
 	free(d);
 }
+
+/**
+ * Copy the size bytes of src into the dest data's buffer.
+ *
+ * @param dest destination ubx_data_t pointer
+ * @param src src data pointer
+ * @param size size in bytes to copy intop des
+ *
+ * @return actual copied data in array units
+ */
+int data_copy(ubx_data_t *dest, void *src, size_t size)
+{
+	int ret=0;
+	unsigned int dest_len = data_size(dest);
+
+	if(dest_len < size) {
+		ERR("provided data buffer too small (is %d, required: %zu)", dest_len, size);
+		goto out;
+	}
+
+#ifdef CONFIG_PARANOIA
+	/* paranoid check */
+	if(size % dest->type->size != 0) {
+		ERR("size not a multiple of destination type size");
+		goto out;
+	}
+#endif
+
+	memcpy(dest->data, src, size);
+
+	/* compute the actual new array length */
+	ret = size / dest->type->size;
+
+ out:
+	return ret;
+}
+
 
 /**
  * Assign a ubx_data_t value to an second.
@@ -507,6 +723,7 @@ unsigned int data_size(ubx_data_t* d)
 
 int ubx_num_blocks(ubx_node_info_t* ni) { return HASH_COUNT(ni->blocks); }
 int ubx_num_types(ubx_node_info_t* ni) { return HASH_COUNT(ni->types); }
+int ubx_num_modules(ubx_node_info_t* ni) { return HASH_COUNT(ni->modules); }
 
 /**
  * ubx_port_free_data - free additional memory used by port.
@@ -521,7 +738,7 @@ void ubx_port_free_data(ubx_port_t* p)
 	if(p->in_interaction) free((char*) p->in_interaction);
 	if(p->out_interaction) free((char*) p->out_interaction);
 
-	if(p->meta_data) free((char*) p->meta_data);
+	if(p->doc) free((char*) p->doc);
 	if(p->name) free((char*) p->name);
 
 	memset(p, 0x0, sizeof(ubx_port_t));
@@ -532,7 +749,7 @@ void ubx_port_free_data(ubx_port_t* p)
  *
  * @param p pointer to (allocated) target port.
  * @param name name of port
- * @param meta_data port meta_data
+ * @param doc port documentation string
  *
  * @param in_type_name string name of in-port data
  * @param in_type_len max array size of transported data
@@ -546,7 +763,7 @@ void ubx_port_free_data(ubx_port_t* p)
  *
  * This function allocates memory.
  */
-int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta_data,
+int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* doc,
 			ubx_type_t* in_type, unsigned long in_data_len,
 			ubx_type_t* out_type, unsigned long out_data_len, uint32_t state)
 {
@@ -562,8 +779,8 @@ int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta_data,
 	if((p->name=strdup(name))==NULL)
 		goto out_err;
 
-	if(meta_data)
-		if((p->meta_data=strdup(meta_data))==NULL)
+	if(doc)
+		if((p->doc=strdup(doc))==NULL)
 			goto out_err_free;
 
 	if(in_type!=NULL) {
@@ -605,7 +822,7 @@ int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* meta_data,
 static void ubx_config_free_data(ubx_config_t *c)
 {
 	if(c->name) free((char*) c->name);
-	if(c->meta_data) free((char*) c->meta_data);
+	if(c->doc) free((char*) c->doc);
 	if(c->type_name) free((char*) c->type_name);
 	if(c->value.data) free(c->value.data);
 	memset(c, 0x0, sizeof(ubx_config_t));
@@ -625,7 +842,7 @@ static void ubx_config_free_data(ubx_config_t *c)
  */
 static int ubx_clone_config_data(ubx_config_t *cnew,
 				 const char* name,
-				 const char* meta_data,
+				 const char* doc,
 				 const ubx_type_t* type,
 				 unsigned long len)
 {
@@ -634,8 +851,8 @@ static int ubx_clone_config_data(ubx_config_t *cnew,
 	if((cnew->name=strdup(name))==NULL)
 		goto out_err;
 
-	if(meta_data)
-		if((cnew->meta_data=strdup(meta_data))==NULL)
+	if(doc)
+		if((cnew->doc=strdup(doc))==NULL)
 			goto out_err;
 
 	if((cnew->type_name=strdup(type->name))==NULL)
@@ -728,7 +945,7 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 			goto out_free;
 
 		for(srcconf=prot->configs, tgtconf=newb->configs; srcconf->name!=NULL; srcconf++,tgtconf++) {
-			if(ubx_clone_config_data(tgtconf, srcconf->name, srcconf->meta_data,
+			if(ubx_clone_config_data(tgtconf, srcconf->name, srcconf->doc,
 						 srcconf->value.type, srcconf->value.len) != 0)
 				goto out_free;
 		}
@@ -743,11 +960,14 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 			goto out_free;
 
 		for(srcport=prot->ports, tgtport=newb->ports; srcport->name!=NULL; srcport++,tgtport++) {
-			if(ubx_clone_port_data(tgtport, srcport->name, srcport->meta_data,
+
+			if(ubx_clone_port_data(tgtport, srcport->name, srcport->doc,
 					       srcport->in_type, srcport->in_data_len,
 					       srcport->out_type, srcport->out_data_len,
 					       srcport->state) != 0)
 				goto out_free;
+
+			tgtport->block = newb;
 		}
 	}
 
@@ -813,6 +1033,7 @@ ubx_block_t* ubx_block_create(ubx_node_info_t *ni, const char *type, const char*
 
 	if(newb!=NULL) {
 		ERR("existing block named '%s'", name);
+		newb=NULL;
 		goto out;
 	}
 
@@ -1209,7 +1430,7 @@ ubx_data_t* ubx_config_get_data(ubx_block_t* b, const char *name)
  * @param name name of the requested configuration value
  * @param *len outvalue, the length of the region pointed to (in bytes)
  *
- * @return the length in bytes of the pointer
+ * @return the array length of the ubx_data
  */
 void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *len)
 {
@@ -1226,7 +1447,7 @@ void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *le
 		goto out;
 
 	ret = d->data;
-	*len = data_size(d);
+	*len = d->len;
  out:
 	return ret;
 }
@@ -1357,7 +1578,7 @@ static unsigned int get_num_ports(ubx_block_t* b)
   *
   * @param b
   * @param name
-  * @param meta_data
+  * @param doc
   * @param in_type_name
   * @param in_data_len
   * @param out_type_name
@@ -1366,7 +1587,7 @@ static unsigned int get_num_ports(ubx_block_t* b)
   *
   * @return < 0 in case of error, 0 otherwise.
   */
-int ubx_port_add(ubx_block_t* b, const char* name, const char* meta_data,
+int ubx_port_add(ubx_block_t* b, const char* name, const char* doc,
 	     const char* in_type_name, unsigned long in_data_len,
 	     const char* out_type_name, unsigned long out_data_len, uint32_t state)
 {
@@ -1409,7 +1630,10 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* meta_data,
 
 	b->ports=parr;
 
-	ret=ubx_clone_port_data(&b->ports[i], name, meta_data,
+	/* setup port */
+	b->ports[i].block = b;
+
+	ret=ubx_clone_port_data(&b->ports[i], name, doc,
 				in_type, in_data_len,
 				out_type, out_data_len, state);
 
@@ -1493,6 +1717,11 @@ ubx_port_t* ubx_port_get(ubx_block_t* b, const char *name)
 
 	if(b==NULL) {
 		ERR("block is NULL");
+		goto out;
+	}
+
+	if(name==NULL) {
+		ERR("name is NULL");
 		goto out;
 	}
 
@@ -1687,6 +1916,7 @@ int ubx_cblock_step(ubx_block_t* b)
  out:
 	return ret;
 }
+
 
 /**
  * @brief
@@ -1957,4 +2187,16 @@ void ubx_ts_div(struct ubx_timespec *ts, long div, struct ubx_timespec *out)
 	tmp_nsec /= div;
 	out->sec = tmp_nsec / NSEC_PER_SEC;
 	out->nsec = tmp_nsec % NSEC_PER_SEC;
+}
+
+/**
+ * ubx_ts_to_double - convert ubx_timespec to double [s]
+ *
+ * @param ts
+ *
+ * @return time in seconds
+ */
+double ubx_ts_to_double(struct ubx_timespec *ts)
+{
+	return ((double) ts->sec) + ((double) ts->nsec/NSEC_PER_SEC);
 }

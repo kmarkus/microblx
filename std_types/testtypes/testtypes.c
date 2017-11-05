@@ -40,3 +40,4 @@ static void testtypes_cleanup(ubx_node_info_t *ni)
 
 UBX_MODULE_INIT(testtypes_init)
 UBX_MODULE_CLEANUP(testtypes_cleanup)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)

@@ -5,10 +5,12 @@
 * Next steps
 
 
-** TODO [#A] blockdiagram: support for hierarchical composition
-** TODO [#A] ubx_gen_block: add support for ports, configs, types
+** TODO add SPDX license identifier to each ubx module
+   - http://www.spdx.org/spdx-license-list
+** TODO [#A] overhaul ubx_reflection layer
+   - switch to handle ubx_data.len via cdata
+   - exhaustive unit tests
 
-** TODO cleanup modules utils, ubx_utils and ubx
 ** TODO improve type safety of gen_[read/write] generated functions
 
    =/* assert(strcmp(#typename, port->out_type_name)==0); */=
@@ -20,11 +22,8 @@
 ** TODO blockdiagram: figure out how to add behavior aka apps
 ** TODO tools: add ubx_info <module>
    pretty print contents of a module
-** TODO embeddeding microblx: prepare C only example
 ** TODO create rotating zero copy ptr example
-** TODO usability: add Lua OO methods to node, block, port
-   - just make it more convenient
-** TODO logger: allow connection to interaction
+   - consider kdbus' memfd's
 ** TODO add support for enum types
 ** TODO add function ffi_basic_type_is_loaded(t)
    - such that reloading a char[50] will go ok too.
@@ -47,10 +46,6 @@
 
 ** TODO mqueue: add real test.
 ** TODO mqueue safety: if type name given, append md5sum to mqueue name
-** TODO introduce typeid's: (like git commitish)
-   - full name: package/struct foo or package/foo_t or
-   - partial hash of name: 0a407a4f51ff2bb1f92a6ae611cb63fb
-
 ** TODO [#C] find workaround for [[http://gcc.gnu.org/bugzilla/show_bug.cgi?id%3D10676][gcc issue 10676]]
 ** TODO [#C] webif: ubx_load_types is called upon every request.
    - Find a way to only call if a new type was added.
@@ -59,6 +54,35 @@
    where ubx_data_t->data points to it's own addr+1. This means the
    whole ubx_data_t is continuous in memory and could be sent out
    without copying.
+
+** DONE [#A] blockdiagram: support for hierarchical composition
+   CLOSED: [2014-01-23 Do 20:51]
+
+** DONE node_graph: add trigger links
+   CLOSED: [2014-01-23 Do 20:51]
+
+** DONE usability: add Lua OO methods to node, block, port
+   CLOSED: [2014-01-23 Do 20:51]
+   - just make it more convenient
+** DONE logger: allow connection to interaction
+   CLOSED: [2014-01-23 Do 20:51]
+
+** DONE introduce typeid's: (like git commitish)
+   CLOSED: [2014-01-23 Do 20:52]
+   - full name: package/struct foo or package/foo_t or
+   - partial hash of name: 0a407a4f51ff2bb1f92a6ae611cb63fb
+
+
+** DONE add md5 hash support
+   CLOSED: [2013-12-18 Mi 19:42]
+** DONE embeddeding microblx: prepare C only example
+   CLOSED: [2013-12-18 Mi 19:42]
+
+** DONE cleanup modules utils, ubx_utils and ubx
+   CLOSED: [2013-12-18 Mi 19:42]
+
+** DONE [#A] ubx_gen_block: add support for ports, configs, types
+   CLOSED: [2013-12-10 Tue 20:34]
 
 ** DONE logger: add ports to block IF to improve viz
    CLOSED: [2013-12-06 Fr 11:59]
@@ -263,6 +287,7 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
    - https://github.com/anvaka/VivaGraphJS
    - http://js-graph-it.sourceforge.net/index.html (nice!)
    - http://jsplumbtoolkit.com/doc/home (allows editing, flowcharts, FSM, but not layout :-( )
+   - http://jointjs.com/demos/fsa
    - http://labs.unwieldy.net/moowheel/
    - http://cytoscapeweb.cytoscape.org/
 
@@ -558,6 +583,26 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
 
 
 * Big questions
+** How to permit with dynamic block interface creating
+
+   Requirement: the block interface needs to be created (extended)
+   dynamically at block initialization time. To do this, access to
+   configuration may be required.
+
+   Options:
+
+   1. Multi-pass configuration
+      In [preinit] set configuration, in init hook create IF. If
+      additional configuration is added, then their values can only be
+      check in start.
+
+   2. Add an extra state
+
+      PREINIT -[init]-> INITIALIZED -[configure]-> INACTIVE -[start]->
+      ACTIVE -[stop]-> INACTIVE -[deconfigure] -> INITIALIZED -[cleanup]->preinit
+
+      - "configured" or maybe better "create_if"
+
 
 ** Types
    =local tm = ffi.cast('TimeMsg*', tm_rtt:tolud())=
@@ -599,7 +644,6 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
   A composition of blocks needs to be compilable into a new block.
 
 * Future Ideas
-
 ** C only definition?
 
     - How to define type ports, configuration, etc.

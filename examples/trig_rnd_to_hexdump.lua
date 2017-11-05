@@ -2,7 +2,6 @@
 
 local ffi = require("ffi")
 local ubx = require "ubx"
-local ubx_utils = require("ubx_utils")
 local ts = tostring
 
 ni=ubx.node_create("testnode")
@@ -28,7 +27,7 @@ print("creating instance of 'hexdump/hexdump'")
 hexdump1=ubx.block_create(ni, "hexdump/hexdump", "hexdump1")
 
 print("creating instance of 'lfds_buffers/cyclic'")
-fifo1=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo1", {element_num=4, element_size=4})
+fifo1=ubx.block_create(ni, "lfds_buffers/cyclic", "fifo1", {buffer_len=4, type_name="unsigned int"})
 
 print("creating instance of 'logging/file_logger'")
 
@@ -79,18 +78,5 @@ ubx.block_start(hexdump1)
 print("--- demo app launched, browse to http://localhost:8888 and start ptrig1 block to start up")
 io.read()
 
-print("stopping and cleaning up blocks --------------------------------------------------------")
-print("running ptrig1 unload", ubx.block_unload(ni, "ptrig1"))
-print("running webif1 unload", ubx.block_unload(ni, "webif1"))
-print("running random1 unload", ubx.block_unload(ni, "random1"))
-print("running fifo1 unload", ubx.block_unload(ni, "fifo1"))
-print("running hexdump unload", ubx.block_unload(ni, "hexdump1"))
-print("running file_log1 unload", ubx.block_unload(ni, "file_log1"))
-
--- ubx.ni_stat(ni)
--- l1=ubx.ubx_alloc_data(ni, "unsigned long", 1)
--- if l1~=nil then print_data(l1) end
-
-ubx.unload_modules(ni)
--- ubx.ni_stat(ni)
+ubx.node_cleanup(ni)
 os.exit(1)

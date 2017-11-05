@@ -1,6 +1,11 @@
-/* libubx/ubx.c */
+/* md5.c */
+void md5(const unsigned char *input, int len, unsigned char output[16]);
+/* ubx.c */
+int checktype(ubx_node_info_t *ni, ubx_type_t *required, const char *tcheck_str, const char *portname, int isrd);
 const char *block_state_tostr(int state);
 const char *get_typename(ubx_data_t *data);
+int ubx_module_load(ubx_node_info_t *ni, const char *lib);
+void ubx_module_unload(ubx_node_info_t *ni, const char *lib);
 int ubx_node_init(ubx_node_info_t *ni, const char *name);
 void ubx_node_cleanup(ubx_node_info_t *ni);
 int ubx_block_register(ubx_node_info_t *ni, ubx_block_t *block);
@@ -10,15 +15,18 @@ int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type);
 ubx_type_t *ubx_type_unregister(ubx_node_info_t *ni, const char *name);
 ubx_type_t *ubx_type_get(ubx_node_info_t *ni, const char *name);
 int ubx_resolve_types(ubx_block_t *b);
+ubx_data_t *__ubx_data_alloc(ubx_type_t *typ, unsigned long array_len);
 ubx_data_t *ubx_data_alloc(ubx_node_info_t *ni, const char *typname, unsigned long array_len);
 int ubx_data_resize(ubx_data_t *d, unsigned int newlen);
 void ubx_data_free(ubx_node_info_t *ni, ubx_data_t *d);
+int data_copy(ubx_data_t *dest, void *src, size_t size);
 int ubx_data_assign(ubx_data_t *tgt, ubx_data_t *src);
 unsigned int data_size(ubx_data_t *d);
 int ubx_num_blocks(ubx_node_info_t *ni);
 int ubx_num_types(ubx_node_info_t *ni);
+int ubx_num_modules(ubx_node_info_t *ni);
 void ubx_port_free_data(ubx_port_t *p);
-int ubx_clone_port_data(ubx_port_t *p, const char *name, const char *meta_data, ubx_type_t *in_type, unsigned long in_data_len, ubx_type_t *out_type, unsigned long out_data_len, uint32_t state);
+int ubx_clone_port_data(ubx_port_t *p, const char *name, const char *doc, ubx_type_t *in_type, unsigned long in_data_len, ubx_type_t *out_type, unsigned long out_data_len, uint32_t state);
 void ubx_block_free(ubx_block_t *b);
 ubx_block_t *ubx_block_create(ubx_node_info_t *ni, const char *type, const char *name);
 int ubx_block_rm(ubx_node_info_t *ni, const char *name);
@@ -33,7 +41,7 @@ ubx_data_t *ubx_config_get_data(ubx_block_t *b, const char *name);
 void *ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *len);
 int ubx_config_add(ubx_block_t *b, const char *name, const char *meta, const char *type_name, unsigned long len);
 int ubx_config_rm(ubx_block_t *b, const char *name);
-int ubx_port_add(ubx_block_t *b, const char *name, const char *meta_data, const char *in_type_name, unsigned long in_data_len, const char *out_type_name, unsigned long out_data_len, uint32_t state);
+int ubx_port_add(ubx_block_t *b, const char *name, const char *doc, const char *in_type_name, unsigned long in_data_len, const char *out_type_name, unsigned long out_data_len, uint32_t state);
 int ubx_port_rm(ubx_block_t *b, const char *name);
 ubx_port_t *ubx_port_get(ubx_block_t *b, const char *name);
 int ubx_block_init(ubx_block_t *b);
@@ -50,3 +58,4 @@ void ubx_ts_norm(struct ubx_timespec *ts);
 void ubx_ts_sub(struct ubx_timespec *ts1, struct ubx_timespec *ts2, struct ubx_timespec *out);
 void ubx_ts_add(struct ubx_timespec *ts1, struct ubx_timespec *ts2, struct ubx_timespec *out);
 void ubx_ts_div(struct ubx_timespec *ts, long div, struct ubx_timespec *out);
+double ubx_ts_to_double(struct ubx_timespec *ts);

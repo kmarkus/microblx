@@ -1,0 +1,68 @@
+-- -*- mode: lua; -*-
+
+-- This composition launches a driver and a joint space trajectory
+-- generator.
+
+local bd = require("blockdiagram")
+
+logger_report_conf = [[
+{ { blockname='ybdrv', portname="arm1_msr_pos", buff_len=3 },
+  { blockname='rml_pos1', portname="cmd_vel", buff_len=3, } }
+]]
+
+loop_freq_hz = 100
+
+local p_des_pos, init_done = nil, nil
+
+function move_to_jnt(jntpos)
+   assert(ni~=nil, "no 'ni' ptr found")
+   assert(jntpos, "missing argument")
+   assert(#jntpos==5, "argument has wrong table length, should be 5")
+
+   if not init_done then
+      p_des_pos = ubx.port_clone_conn(ni:b("rml_pos1"), "des_pos", 1, nil, 5)
+      init_done = true
+   end
+   p_des_pos:write(jntpos)
+end
+
+return bd.system
+{
+   imports = {
+      "std_types/stdtypes/stdtypes.so",
+      "std_types/kdl/kdl_types.so",
+      "std_blocks/webif/webif.so",
+      "std_blocks/youbot_driver/youbot_driver.so",
+      "std_blocks/ptrig/ptrig.so",
+      "std_blocks/rml_trajgen/rml_pos.so",
+      "std_blocks/lfds_buffers/lfds_cyclic.so",
+      "std_blocks/logging/file_logger.so",
+   },
+
+   blocks = {
+      { name="ybdrv", type="youbot/youbot_driver" },
+      { name="ptrig1", type="std_triggers/ptrig" },
+      { name="logger1", type="logging/file_logger" },
+      { name="rml_pos1", type="rml_pos" },
+   },
+
+   connections = {
+      { src="ybdrv.arm1_msr_pos", tgt="rml_pos1.msr_pos", buffer_length=1 },
+      { src="ybdrv.arm1_msr_vel", tgt="rml_pos1.msr_pos", buffer_length=1 },
+      { src="rml_pos1.cmd_vel",  tgt="ybdrv.arm1_cmd_vel" },
+   },
+
+   configurations = {
+      { name="ybdrv", config = { ethernet_if="eth0" } },
+      { name="rml_pos1", config = { max_vel={0.1,0.1,0.1,0.1,0.1},
+				    max_acc={0.1,0.1,0.1,0.1,0.1},
+				    cycle_time=1/loop_freq_hz } },
+
+      { name="ptrig1", config = { period = {sec=0, usec=(1/loop_freq_hz)*1000000 }, 
+				  trig_blocks={ { b="#rml_pos1", num_steps=1, measure=0 },
+						{ b="#ybdrv", num_steps=1, measure=0 },
+						{ b="#logger1", num_steps=1, measure=0 } } } },
+
+      { name="logger1", config = { filename="youbot_jntspace.log", separator=",", report_conf = logger_report_conf, } }
+   },
+}

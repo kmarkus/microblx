@@ -9,6 +9,8 @@
 
 #include "ubx.h"
 
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
+
 char hexdumpmeta[] =
 	"{ doc='hexdump interaction',"
 	"  license='MIT',"

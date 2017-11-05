@@ -1,39 +1,14 @@
 /*
  * KUKA Youbot microblx driver.
  *
- * (C) 2011-2013 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
+ * (C) 2011-2014 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
  *     2010 Ruben Smits <ruben.smits@mech.kuleuven.be>
  *     2010 Steven Bellens <steven.bellens@mech.kuleuven.be>
  *
  *            Department of Mechanical Engineering,
  *           Katholieke Universiteit Leuven, Belgium.
  *
- *  You may redistribute this software and/or modify it under either the
- *  terms of the GNU Lesser General Public License version 2.1 (LGPLv2.1
- *  <http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>) or (at you
- *  discretion) of the Modified BSD License:
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
- *  1. Redistributions of source code must retain the above copyright
- *  notice, this list of conditions and the following disclaimer.
- *  2. Redistributions in binary form must reproduce the above copyright
- *  notice, this list of conditions and the following disclaimer in the
- *  documentation and/or other materials provided with the distribution.
- *  3. The name of the author may not be used to endorse or promote
- *  products derived from this software without specific prior written
- *  permission.
- *  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
- *  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIREC
- *  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- *  OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION
- *  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- *  STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISIN
- *  IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
+ * see UBX_MODULE_LICENSE_SPDX tag in source file for licenses.
  */
 
 #include <math.h>
@@ -43,6 +18,12 @@
 /* firmware bug workaround, limit max current in software
  * don't deactivate unless you know what you are doing. */
 #define LIMIT_CURRENT_SOFT
+
+/* Option to get legacy behavior, if defined, pos, vel and effort will
+ * be output in a struct motionctrl_jnt_state, otherwise via
+ * individual ports of type double[5]. */
+#undef USE_ARM_JNT_STATE_STRUCT
+
 
 /* youbot driver information */
 
@@ -288,8 +269,18 @@ struct youbot_arm_info {
 	int8_t control_mode;		/* currently used control mode */
 	struct youbot_motor_info jnt_inf[YOUBOT_NR_OF_JOINTS];
 
+#ifdef USE_ARM_JNT_STATE_STRUCT
 	struct motionctrl_jnt_state jnt_states;
+	ubx_port_t *p_arm_state;
+#else
+	double pos[YOUBOT_NR_OF_JOINTS];
+	double vel[YOUBOT_NR_OF_JOINTS];
+	double eff[YOUBOT_NR_OF_JOINTS];
 
+	ubx_port_t *p_msr_pos;
+	ubx_port_t *p_msr_vel;
+	ubx_port_t *p_msr_eff;
+#endif
 	/* calibration stuff */
 	int calibrating;
 	int axis_at_limit[YOUBOT_NR_OF_JOINTS];
@@ -303,7 +294,6 @@ struct youbot_arm_info {
 	ubx_port_t *p_cmd_vel;
 	ubx_port_t *p_cmd_cur;
 	ubx_port_t *p_cmd_eff;
-	ubx_port_t *p_arm_state;
 	ubx_port_t *p_arm_motorinfo;
 	ubx_port_t *p_gripper;
 };

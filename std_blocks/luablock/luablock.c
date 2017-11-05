@@ -17,7 +17,7 @@
 #define EXEC_STR_BUFF_SIZE	16*1024*1024
 
 ubx_port_t lua_ports[] = {
-	{ .name="exec_str", .attrs=PORT_DIR_INOUT, .in_type_name="char", .out_type_name="int", .in_data_len=16777216 },
+	{ .name="exec_str", .in_type_name="char", .out_type_name="int", .in_data_len=16777216 },
 	{ NULL }
 };
 
@@ -248,3 +248,4 @@ static void lua_cleanup(ubx_node_info_t *ni)
 
 UBX_MODULE_INIT(lua_init)
 UBX_MODULE_CLEANUP(lua_cleanup)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
