@@ -16,6 +16,8 @@ AM_INIT_AUTOMAKE([foreign -Wall])
 AC_PROG_CC
 AC_PROG_CXX
 
+PKG_PROG_PKG_CONFIG
+
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -47,6 +49,7 @@ if test "x${ptrig_tstat}" = xyes; then
    AC_DEFINE([PTRIG_TSTAT], 1, [ptrig tstat enabled])
 fi
 
+# check for pthreads
 have_pthreads=no
 AC_SEARCH_LIBS([pthread_create], [pthread], [have_pthreads=yes])
 if test "x${have_pthreads}" = xyes; then
@@ -59,21 +62,8 @@ if test "x${have_pthreads}" = xno; then
   exit 1
 fi
 
-AC_SEARCH_LIBS([lua_pcall], [luajit luajit-5.1], [], [
-  AC_MSG_ERROR([unable to find lua_pcall() function])
-])
-
-have_lfds=no
-AC_SEARCH_LIBS([lfds611_ringbuffer_new], [lfds611], [have_lfds=yes])
-if test "x${have_lfds}" = xyes; then
-  AC_CHECK_HEADERS([liblfds611.h], [], [have_lfds=no])
-fi
-if test "x${have_lfds}" = xno; then
-  echo "--------------------------------------"
-  echo "Unable to find liblfds on this system."
-  echo "--------------------------------------"
-  exit 1
-fi
+PKG_CHECK_MODULES(LUAJIT, luajit >= 2.0.4)
+PKG_CHECK_MODULES(LFDS, lfds6 >= 6.1.1)
 
 # files to generate via autotools
 AC_CONFIG_FILES([Makefile
