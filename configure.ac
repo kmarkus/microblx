@@ -27,6 +27,8 @@ AC_PROG_INSTALL
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT
 
+AC_SUBST([UBX_MODULE_LDFLAGS], ['-avoid-version -module -shared -export-dynamic'])
+
 AC_ARG_ENABLE([ptrig-tstat-block],
   AS_HELP_STRING([--disable-ptrig-tstat-block], [Disable ptrig block-level timing statistics]),
   [ptrig_tstat_block=${enableval}],

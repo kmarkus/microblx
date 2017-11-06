@@ -1,9 +1,9 @@
-lib_LTLIBRARIES = libhexdump.la
+lib_LTLIBRARIES = hexdump.la
 
 #======================================
 # hexdump : Hexdump block
-libhexdump_la_includes = $(top_srcdir)/libubx/ubx.h
-libhexdump_la_SOURCES = $(libhexdump_la_includes) \
+hexdump_la_includes = $(top_srcdir)/libubx/ubx.h
+hexdump_la_SOURCES = $(hexdump_la_includes) \
                      hexdump.c
-libhexdump_la_LIBADD = $(top_builddir)/libubx/libubx.la
-libhexdump_la_CPPFLAGS = -I$(top_srcdir)/libubx
+hexdump_la_LIBADD = $(top_builddir)/libubx/libubx.la @UBX_MODULE_LDFLAGS@
+hexdump_la_CPPFLAGS = -I$(top_srcdir)/libubx

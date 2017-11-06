@@ -10,12 +10,12 @@ logger_report_conf = [[
 return bd.system
 {
    imports = {
-      "libstdtypes.so",
-      "libptrig.so",
-      "liblogger.so",
-      "librandom.so",
-      "liblfds_cyclic.so",
-      "libhexdump.so",
+      "stdtypes.so",
+      "ptrig.so",
+      "logger.so",
+      "random.so",
+      "lfds_cyclic.so",
+      "hexdump.so",
    },
 
    blocks = {

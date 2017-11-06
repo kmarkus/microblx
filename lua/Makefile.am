@@ -1,4 +1,5 @@
 luadir = $(datadir)/lua/5.1
+
 lua_SCRIPTS = ansicolors.lua \
               cdata.lua \
               reflect.lua \

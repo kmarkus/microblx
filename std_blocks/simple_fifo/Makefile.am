@@ -1,9 +1,9 @@
-lib_LTLIBRARIES = libsimple_fifo.la
+lib_LTLIBRARIES = simple_fifo.la
 
 #======================================
 # simple_fifo : Fifoed interaction block
-libsimple_fifo_la_includes = $(top_srcdir)/libubx/ubx.h
-libsimple_fifo_la_SOURCES = $(libsimple_fifo_la_includes) \
-                         simple_fifo.c
-libsimple_fifo_la_LIBADD = $(top_builddir)/libubx/libubx.la
-libsimple_fifo_la_CPPFLAGS = -I$(top_srcdir)/libubx
+simple_fifo_la_includes = $(top_srcdir)/libubx/ubx.h
+simple_fifo_la_SOURCES = $(simple_fifo_la_includes) simple_fifo.c
+
+simple_fifo_la_LIBADD = $(top_builddir)/libubx/libubx.la @UBX_MODULE_LDFLAGS@
+simple_fifo_la_CFLAGS = -I$(top_srcdir)/libubx

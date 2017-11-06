@@ -2,10 +2,10 @@
 
 return bd.system {
    imports={
-      "libstdtypes.so",
-      "libptrig.so",
-      "liblfds_cyclic.so",
-      "libmqueue.so",
+      "stdtypes.so",
+      "ptrig.so",
+      "lfds_cyclic.so",
+      "mqueue.so",
    }
 }
 

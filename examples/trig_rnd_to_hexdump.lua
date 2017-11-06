@@ -6,14 +6,14 @@ local ts = tostring
 
 ni=ubx.node_create("testnode")
 
-ubx.load_module(ni, "libstdtypes.so")
-ubx.load_module(ni, "libtesttypes.so")
-ubx.load_module(ni, "librandom.so")
-ubx.load_module(ni, "libhexdump.so")
-ubx.load_module(ni, "liblfds_cyclic.so")
-ubx.load_module(ni, "libwebif.so")
-ubx.load_module(ni, "liblogger.so")
-ubx.load_module(ni, "libptrig.so")
+ubx.load_module(ni, "stdtypes.so")
+ubx.load_module(ni, "testtypes.so")
+ubx.load_module(ni, "random.so")
+ubx.load_module(ni, "hexdump.so")
+ubx.load_module(ni, "lfds_cyclic.so")
+ubx.load_module(ni, "webif.so")
+ubx.load_module(ni, "logger.so")
+ubx.load_module(ni, "ptrig.so")
 
 ubx.ffi_load_types(ni)
 
