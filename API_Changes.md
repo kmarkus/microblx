@@ -3,6 +3,11 @@ API Changes
 
 This file tracks user visible API changes.
 
+ * [9ff5615f9d] removed std Lua modules provided by separate package
+   uutils (see README.md).
+
+ * [4213621d55] merged support for autotools build
+
  * [4e3a0b9a72] OO support for node, block, port, config, data and
    type. Removed old and unused Lua functions.
 
@@ -10,7 +15,7 @@ This file tracks user visible API changes.
    i.e. instead if data element size and number of buffer elements,
    the type name, array len and number of buffer elements are
    given. This will help ensure type safety for inter-process iblocks.
- 
+
  * [575d26d8ea] removed ubx_connect_one and ubx_connect. Use
    ubx_connect_out, ubx_connect_in and ubx_connect_uni instead.
 
@@ -19,4 +24,3 @@ This file tracks user visible API changes.
    the presence of in_type_name / out_type_name.
 
  * renamed module_init/module_cleanup to UBX_MODULE_INIT/UBX_MODULE_CLEANUP
-
