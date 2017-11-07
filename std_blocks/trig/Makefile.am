@@ -12,6 +12,6 @@ CLEANFILES = $(BUILT_SOURCES)
 # trig : Pthread based trigger block
 trig_la_includes = $(top_srcdir)/libubx/ubx.h $(top_srcdir)/libubx/ubx_types.h
 trig_la_SOURCES = $(trig_la_includes) trig.c
-
-trig_la_LIBADD = $(top_builddir)/libubx/libubx.la @UBX_MODULE_LDFLAGS@
+trig_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
+trig_la_LIBADD = $(top_builddir)/libubx/libubx.la
 trig_la_CPPFLAGS = -I$(top_srcdir)/libubx

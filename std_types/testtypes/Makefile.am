@@ -9,7 +9,7 @@ CLEANFILES = $(BUILT_SOURCES)
 # testtypes : The basic types
 testtypes_la_includes = $(top_srcdir)/libubx/ubx.h
 testtypes_la_SOURCES = $(testtypes_la_includes) testtypes.c
-
-testtypes_la_LIBADD = $(top_builddir)/libubx/libubx.la @UBX_MODULE_LDFLAGS@
+testtypes_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
+testtypes_la_LIBADD = $(top_builddir)/libubx/libubx.la
 testtypes_la_CFLAGS = -I$(top_srcdir)/libubx
 

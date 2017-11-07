@@ -25,7 +25,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_INSTALL
 
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
-LT_INIT
+LT_INIT(disable-static)
 
 AC_SUBST([UBX_MODULE_LDFLAGS], ['-avoid-version -module -shared -export-dynamic'])
 
