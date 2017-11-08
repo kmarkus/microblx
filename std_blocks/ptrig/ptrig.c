@@ -2,7 +2,7 @@
  * A pthread based trigger block
  */
 
-#define DEBUG 1
+/* #define DEBUG 1 */
 #define CONFIG_PTHREAD_SETNAME
 
 #ifdef CONFIG_PTHREAD_SETNAME
