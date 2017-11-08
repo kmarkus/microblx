@@ -1,6 +1,7 @@
 # stdtypes : The standard types
 
-lib_LTLIBRARIES = stdtypes.la
+ubxmoddir = $(libdir)/@PACKAGE@/@UBX_VER@
+ubxmod_LTLIBRARIES = stdtypes.la
 
 stdtypes_la_includes = $(top_srcdir)/libubx/ubx.h
 stdtypes_la_SOURCES = $(stdtypes_la_includes) stdtypes.c

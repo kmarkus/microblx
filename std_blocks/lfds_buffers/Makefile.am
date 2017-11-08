@@ -1,4 +1,6 @@
-lib_LTLIBRARIES = lfds_cyclic.la
+
+ubxmoddir = $(libdir)/@PACKAGE@/@UBX_VER@
+ubxmod_LTLIBRARIES = lfds_cyclic.la
 
 # lfds_cyclic : A lock free interaction block
 lfds_cyclic_la_includes = $(top_srcdir)/libubx/ubx.h

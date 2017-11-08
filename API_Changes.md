@@ -3,6 +3,8 @@ API Changes
 
 This file tracks user visible API changes.
 
+ * install core modules into prefix/lib/microblx/<major.minor>/
+
  * [9ff5615f9d] removed std Lua modules provided by separate package
    uutils (see README.md).
 

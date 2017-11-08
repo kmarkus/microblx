@@ -217,9 +217,11 @@ end
 -- @param ni node_info pointer into which to load module
 -- @param libfile module file to load
 function M.load_module(ni, libfile)
-   local res = ubx.ubx_module_load(ni, libfile)
+   local ver = string.sub(M.safe_tostr(ubx.ubx_version()), 1, 3)
+   local modpath = "/usr/lib/microblx/"..ver.."/"..libfile
+   local res = ubx.ubx_module_load(ni, modpath)
    if res ~= 0 then
-      error(red("loading module ", true)..magenta(ts(libfile))..red(" failed", true))
+      error(red("loading module ", true)..magenta(modpath)..red(" failed", true))
    end
    M.ffi_load_types(ni)
 end

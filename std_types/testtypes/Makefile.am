@@ -1,4 +1,6 @@
-lib_LTLIBRARIES = testtypes.la
+
+ubxmoddir = $(libdir)/@PACKAGE@/@UBX_VER@
+ubxmod_LTLIBRARIES = testtypes.la
 
 BUILT_SOURCES = types/test_trig_conf.h.hexarr
 CLEANFILES = $(BUILT_SOURCES)

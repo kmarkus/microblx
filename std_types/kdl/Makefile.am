@@ -1,4 +1,6 @@
-lib_LTLIBRARIES = kdl_types.la
+
+ubxmoddir = $(libdir)/@PACKAGE@/@UBX_VER@
+ubxmod_LTLIBRARIES = kdl_types.la
 
 BUILT_SOURCES =  types/kdl_frame.h.hexarr \
                  types/kdl_rotation.h.hexarr \

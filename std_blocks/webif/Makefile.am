@@ -1,4 +1,6 @@
-lib_LTLIBRARIES = webif.la
+
+ubxmoddir = $(libdir)/@PACKAGE@/@UBX_VER@
+ubxmod_LTLIBRARIES = webif.la
 
 BUILT_SOURCES = webif.lua.hexarr
 CLEANFILES = $(BUILT_SOURCES)

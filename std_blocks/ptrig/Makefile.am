@@ -1,6 +1,7 @@
 # ptrig: pthread based trigger block
 
-lib_LTLIBRARIES = ptrig.la
+ubxmoddir = $(libdir)/@PACKAGE@/@UBX_VER@
+ubxmod_LTLIBRARIES = ptrig.la
 
 BUILT_SOURCES = types/ptrig_config.h.hexarr \
                 types/ptrig_period.h.hexarr \
