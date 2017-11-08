@@ -2200,3 +2200,13 @@ double ubx_ts_to_double(struct ubx_timespec *ts)
 {
 	return ((double) ts->sec) + ((double) ts->nsec/NSEC_PER_SEC);
 }
+
+/**
+ * ubx_version - return ubx version
+ *
+ * @return version string major.minor.patchlevel
+ */
+const char* ubx_version()
+{
+	return VERSION;
+}

@@ -16,5 +16,5 @@ include_HEADERS = ubx.h \
 libubx_la_SOURCES = $(libubx_includes) \
                     md5.c ubx.c
 
-ubx_proto.h:
-	cproto md5.c ubx.c -I${top_srcdir}/libubx/ > $@
+ubx_proto.h: md5.c ubx.c
+	cproto md5.c ubx.c -I${top_srcdir}/ -I${top_srcdir}/libubx/ > $@

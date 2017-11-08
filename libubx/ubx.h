@@ -71,6 +71,7 @@ extern "C"
 
 #include <ubx_proto.h>
 
+#include <config.h>
 /*
  * Debug stuff
  */

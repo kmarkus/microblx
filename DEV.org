@@ -1,10 +1,11 @@
 # ubx: fiveC compliant function block composition
-#+STARTUP: content
-#+STARTUP: hidestars
+#+STARTUP: overview hidestars
+
 
 * Next steps
 
-
+** TODO install blocks into prefix/lib/ubx/VERSION/ and update module loader to honour it.
+** TODO update ubx_genblock autotools module gen
 ** DONE install tools into .../bin/
 ** TODO add SPDX license identifier to each ubx module
    - http://www.spdx.org/spdx-license-list

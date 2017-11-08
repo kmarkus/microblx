@@ -1,16 +1,10 @@
-AC_INIT([microblx],[1.0])
-AC_CONFIG_SRCDIR([libubx/ubx.c])
+m4_define([package_version_major],[0])
+m4_define([package_version_minor],[1])
+m4_define([package_version_micro],[0])
 
-# directories (relative to top-level) to look into for AutoConf/AutoMake files
-#AC_CONFIG_AUX_DIR([build-aux])
-#AC_CONFIG_MACRO_DIR([build-aux])
-
-# initialisation
-#AM_INIT_AUTOMAKE([1.10])
+AC_INIT([microblx], [package_version_major.package_version_minor.package_version_micro])
+#AC_CONFIG_SRCDIR([libubx/ubx.c])
 AM_INIT_AUTOMAKE([foreign -Wall])
-
-# all defined C macros (HAVE_*) will be saved to this file
-#AC_CONFIG_HEADERS([config.h])
 
 # compilers
 AC_PROG_CC
@@ -27,7 +21,7 @@ AC_PROG_INSTALL
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT(disable-static)
 
-AC_SUBST([UBX_MODULE_LDFLAGS], ['-avoid-version -module -shared -export-dynamic'])
+AC_SUBST([UBX_VER], [package_version_major.package_version_minor])
 
 AC_ARG_ENABLE([ptrig-tstat-block],
   AS_HELP_STRING([--disable-ptrig-tstat-block], [Disable ptrig block-level timing statistics]),
