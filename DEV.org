@@ -4,8 +4,10 @@
 
 * Next steps
 
-** TODO install blocks into prefix/lib/ubx/VERSION/ and update module loader to honour it.
+** TODO pkg-config support for libubx
 ** TODO update ubx_genblock autotools module gen
+** TODO install examples to /share/microblx/
+** DONE install blocks into prefix/lib/ubx/VERSION/ and update module loader to honour it.
 ** DONE install tools into .../bin/
 ** TODO add SPDX license identifier to each ubx module
    - http://www.spdx.org/spdx-license-list
@@ -47,7 +49,7 @@
 
 ** TODO mqueue: add real test.
 ** TODO mqueue safety: if type name given, append md5sum to mqueue name
-** TODO [#C] find workaround for [[http://gcc.gnu.org/bugzilla/show_bug.cgi?id%3D10676][gcc issue 10676]]
+** DONE [#C] find workaround for [[http://gcc.gnu.org/bugzilla/show_bug.cgi?id%3D10676][gcc issue 10676]]
 ** TODO [#C] webif: ubx_load_types is called upon every request.
    - Find a way to only call if a new type was added.
 ** TODO [#C] think about "fast data"
@@ -260,8 +262,7 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
 ** DONE add namespace to struct type's string spec and load into ffi
    CLOSED: [2013-06-13 Thu 15:56]
 
-
-* Usefull stuff:
+* useful stuff:
 
 ** check exported symbols:
    =$ nm -C -D file.so=

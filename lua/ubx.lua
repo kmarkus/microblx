@@ -219,8 +219,10 @@ end
 function M.load_module(ni, libfile)
    local ver = string.sub(M.safe_tostr(ubx.ubx_version()), 1, 3)
    local modpath = "/usr/lib/microblx/"..ver.."/"..libfile
+   if string.sub(modpath, -3) ~= '.so' then modpath = modpath .. ".so" end
+
    local res = ubx.ubx_module_load(ni, modpath)
-   if res ~= 0 then
+      if res ~= 0 then
       error(red("loading module ", true)..magenta(modpath)..red(" failed", true))
    end
    M.ffi_load_types(ni)
