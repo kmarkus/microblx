@@ -261,7 +261,6 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
    CLOSED: [2013-06-13 Thu 15:56]
 
 
-
 * Usefull stuff:
 
 ** check exported symbols:
@@ -574,13 +573,11 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
    - serialization type: STRUCT | CUSTOM |
    - void data*
 
-
 * Compilation
 
   It must be possible to compile two or more blocks, their connections
   and a schedule into a new block, that exposes a specified subset of
   the interface.
-
 
 * Big questions
 ** How to permit with dynamic block interface creating
@@ -637,7 +634,6 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
       3. ROS types
       4. luabind
       5. ...
-
 
 * Compilation
 

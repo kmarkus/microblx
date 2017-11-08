@@ -7,14 +7,13 @@ ts = tostring
 
 function usage()
    print( [=[
-microblx function blocks system launcher
-
-usage ubx_launch OPTIONS -c <conf file>
-   -c           configuration file to launch
-   -nodename    name to give to node
-   -validate    dont run, just validate configuration file
-   -webif	create and start a webinterface block
-   -h           show this.
+microblx function block model system launcher
+   usage: ubx_launch OPTIONS -c <conf file>
+      -c               .usc model file to launch
+      -nodename        name to give to node
+      -validate        don't run, just validate configuration file
+      -webif <port>    create and start a webinterface block. Optional port defaults to 8888.
+      -h               show this.
 ]=])
 end
 

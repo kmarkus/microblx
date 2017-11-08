@@ -12,11 +12,10 @@ return bd.system
 {
    imports = {
       "stdtypes.so",
-      "webif.so",
       "ptrig.so",
       "random.so",
       "mqueue.so",
-      "file_logger.so",
+      "logger.so",
    },
 
    blocks = {
