@@ -1,7 +1,7 @@
 /* This simple example shows how to build a C-only system without
  * using the scripting layer. */
 
-#include "ubx.h"
+#include <ubx.h>
 
 #define WEBIF_PORT	"33000"
 
@@ -16,11 +16,11 @@ int main(int argc, char **argv)
 	ubx_node_init(&ni, "c-only");
 
 	/* load the standard types */
-	if(ubx_module_load(&ni, "std_types/stdtypes/stdtypes.so") != 0)
+	if(ubx_module_load(&ni, "/usr/lib/microblx/0.1/stdtypes.so") != 0)
 		goto out;
 
 	/* load the web-interface block */
-	if(ubx_module_load(&ni, "std_blocks/webif/webif.so") != 0)
+	if(ubx_module_load(&ni, "/usr/lib/microblx/0.1/webif.so") != 0)
 		goto out;
 
 	/* create a webserver block */
