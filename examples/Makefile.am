@@ -1,24 +1,11 @@
-# Various examples
+# install various examples
 
-systemmodelsdir = $(datadir)/microblx/examples/systemmodels
-systemmodels_SCRIPTS = minimal.usc \
-		       cpp_block_demo.usc \
-                       luablock.usc \
-                       mqueue_test_recv.usc \
-		       mqueue_test_send.usc \
-                       youbot_basic.usc
+install-exec-hook:
+	install -d $(DESTDIR)$(datadir)/microblx/examples
+	cp -r systemmodels $(DESTDIR)$(datadir)/microblx/examples
+	cp -r blockmodels $(DESTDIR)$(datadir)/microblx/examples
+	cp -r C-examples $(DESTDIR)$(datadir)/microblx/examples
+	cp -r scripts $(DESTDIR)$(datadir)/microblx/examples
 
-systemmodelscompdir = $(datadir)/microblx/examples/systemmodels/composition
-systemmodelscomp_SCRIPTS = composition/rndchain.usc \
-			   composition/rndchain1.usc
-
-blockmodelsdir = $(datadir)/microblx/examples/blockmodels
-blockmodels = block_model_example.lua
-
-scriptsdir = $(datadir)/microblx/examples/scripts
-scripts_SCRIPTS = block_model_example.lua \
-                  trig_rnd_to_hexdump.lua \
-		  youbot_test.lua
-
-cexamplesdir = $(datadir)/microblx/examples/C
-cexamples_SCRIPTS = c-only.c
+uninstall-hook:
+	rm -rf $(DESTDIR)$(datadir)/microblx/examples
