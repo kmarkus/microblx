@@ -40,7 +40,7 @@ logger_conf=[[
 ]]
 
 file_log1=ubx.block_create(ni, "logging/file_logger", "file_log1",
-			   {filename=os.date("%Y%m%d_%H%M%S")..'_report.dat',
+			   {filename='/tmp/trig_rnd_hexdump_lua.log',
 			    separator=',',
 			    timestamp=1,
 			    report_conf=logger_conf})
