@@ -113,6 +113,7 @@ end
 
 --- init: parse config and create port and connections.
 function init(b)
+   local err
    b=ffi.cast("ubx_block_t*", b)
    ubx.ffi_load_types(b.ni)
 
@@ -132,7 +133,12 @@ function init(b)
 
    rconf = report_conf_to_portlist(rconf_str, b)
 
-   fd=io.open(filename, 'w+') -- trunc
+   fd, err = io.open(filename, 'w+') -- trunc
+
+   if fd==nil then
+      error(red("file_logger: failed to open logfile "..filename..": "..err))
+   end
+
    fd:setvbuf("line")
    return true
 end

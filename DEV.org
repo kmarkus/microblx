@@ -3,7 +3,6 @@
 
 
 * Next steps
-
 ** TODO pkg-config support for libubx
 ** TODO update ubx_genblock autotools module gen
 ** TODO install examples to /share/microblx/
