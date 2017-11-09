@@ -9,7 +9,8 @@ output is hexdump'ed (using the `hexdump` interaction block) and also
 logged using a `file_logger` block.
 
 ```sh
-$ luajit examples/trig_rnd_to_hexdump.lua
+$ cd /usr/share/microblx/
+$ ubx_launch -webif -c examples/systemmodels/trig_rnd_hexdump.usc
 ...
 ```
 
