@@ -1,8 +1,9 @@
 #!/usr/bin/env luajit
 
 ffi = require("ffi")
-ubx = require "ubx"
+ubx = require("ubx")
 bd = require("blockdiagram")
+utils = require("utils")
 ts = tostring
 
 function usage()

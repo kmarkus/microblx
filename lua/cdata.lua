@@ -25,9 +25,10 @@
 -- OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 -- SUCH DAMAGE.
 
-local ffi=require "ffi"
-local reflect=require "reflect"
-local string=string
+local ffi = require("ffi")
+local reflect = require("reflect")
+local utils = require("utils")
+local string = string
 
 local M={}
 
