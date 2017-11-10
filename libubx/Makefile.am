@@ -1,7 +1,7 @@
+# libubx: the microblx library
+
 lib_LTLIBRARIES = libubx.la
 
-#=======================================
-# libubx : The microblx library
 libubx_includes = ubx.h uthash.h uthash_ffi.h \
                   ubx_types.h ubx_proto.h md5.h
 
@@ -18,3 +18,5 @@ libubx_la_SOURCES = $(libubx_includes) \
 
 ubx_proto.h: md5.c ubx.c
 	cproto md5.c ubx.c -I${top_srcdir}/ -I${top_srcdir}/libubx/ > $@
+
+pkgconfig_DATA = ubx1.pc

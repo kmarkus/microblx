@@ -11,6 +11,7 @@ AC_PROG_CC
 AC_PROG_CXX
 
 PKG_PROG_PKG_CONFIG
+PKG_INSTALLDIR
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -64,6 +65,7 @@ PKG_CHECK_MODULES(LFDS, lfds6 >= 6.1.1)
 # files to generate via autotools
 AC_CONFIG_FILES([Makefile
 libubx/Makefile
+libubx/ubx1.pc
 std_blocks/Makefile
 std_blocks/cppdemo/Makefile
 std_blocks/hexdump/Makefile
