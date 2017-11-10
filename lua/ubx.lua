@@ -121,7 +121,7 @@ local function setup_enums()
 end
 
 -- load ubx_types and library
-ffi.cdef(read_file("/usr/include/uthash_ffi.h"))
+ffi.cdef(read_file("/usr/include/ubx_uthash_ffi.h"))
 ffi.cdef(read_file("/usr/include/ubx_types.h"))
 ffi.cdef(read_file("/usr/include/ubx_proto.h"))
 local ubx=ffi.load("/usr/lib/libubx.so")
