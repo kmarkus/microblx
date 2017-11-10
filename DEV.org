@@ -1,11 +1,14 @@
 # ubx: fiveC compliant function block composition
 #+STARTUP: overview hidestars
-
+#+SEQ_TODO: TODO(t) STARTED(s!) WAITING(w@) | DONE(d!) CANCELLED(c@)
 
 * Next steps
-** TODO pkg-config support for libubx
 ** TODO update ubx_genblock autotools module gen
-** TODO install examples to /share/microblx/
+** DONE pkg-config support for libubx
+   :LOGBOOK:  
+   - State "DONE"       from "TODO"       [2017-11-10 Fri 21:08]
+   :END:      
+** DONE install examples to /share/microblx/
 ** DONE install blocks into prefix/lib/ubx/VERSION/ and update module loader to honour it.
 ** DONE install tools into .../bin/
 ** TODO add SPDX license identifier to each ubx module
@@ -74,7 +77,6 @@
    CLOSED: [2014-01-23 Do 20:52]
    - full name: package/struct foo or package/foo_t or
    - partial hash of name: 0a407a4f51ff2bb1f92a6ae611cb63fb
-
 
 ** DONE add md5 hash support
    CLOSED: [2013-12-18 Mi 19:42]
@@ -173,7 +175,6 @@
    - above wasn't necessary, but only clang++ works for now because
      gcc doesn't support non-trivial designated initializers.
 
-
 ** DONE rename ubx -> microblx
    CLOSED: [2013-08-10 Sat 14:07]
 
@@ -231,10 +232,8 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
    CLOSED: [2013-06-24 Mon 21:42]
    - and test by writing data from the lua shell
 
-
 ** DONE implement a nice high level lua library.
    CLOSED: [2013-06-24 Mon 21:42]
-
 
 
 ** DONE extend the webserver with luajit support.
@@ -246,10 +245,8 @@ Problem is that struct name parsing stops at '_' !! Add Unit tests!
    if realloc fails the original block is untouched and NULL is
    returned. Then we need to "unroll".
 
-
 ** DONE add functions to change life-cycle state and check that the FSM is respected.
    CLOSED: [2013-06-12 Wed 12:54]
-
 
 ** DONE Implement ubx_type_register/unregister
    CLOSED: [2013-06-11 Tue 13:09]
