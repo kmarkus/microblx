@@ -2,12 +2,29 @@
 #+STARTUP: overview hidestars
 #+SEQ_TODO: TODO(t) STARTED(s!) WAITING(w@) | DONE(d!) CANCELLED(c@)
 
-* Next steps
-** TODO update ubx_genblock autotools module gen
+* Next release (1.0)
+** TODO update ubx_genblock to generate clean autotools modules
+** TODO data_value iblock
+   - a block which just contains a (read-only) value.
+   - useful for multiple readers
+
+** TODO update docs
+   - cookbook for common patterns
+** TODO cleanup this file, prepare an cleaned up backlog
+** TODO add a performance test to catch regressions
+** TODO add travis ci support
+** TODO move out external code
+*** TODO uthash
+*** TODO lunit
+** TODO get yocto meta-microblx layer working on embedded hw
+** DONE make an intermediate release
+   :LOGBOOK:
+   - State "DONE"       from "TODO"       [2017-11-10 Fri 21:35]
+   :END:
 ** DONE pkg-config support for libubx
-   :LOGBOOK:  
+   :LOGBOOK:
    - State "DONE"       from "TODO"       [2017-11-10 Fri 21:08]
-   :END:      
+   :END:
 ** DONE install examples to /share/microblx/
 ** DONE install blocks into prefix/lib/ubx/VERSION/ and update module loader to honour it.
 ** DONE install tools into .../bin/
