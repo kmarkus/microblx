@@ -3,8 +3,8 @@ local bd = require("blockdiagram")
 return bd.system
 {
    imports = {
-      "stdtypes.so",
-      "cppdemo.so",
+      "stdtypes",
+      "cppdemo",
    },
 
    blocks = {
