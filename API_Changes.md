@@ -3,12 +3,20 @@ API Changes
 
 This file tracks user visible API changes.
 
+ * support for type registration in C++ added
+
+ * introduce `ubx_ilaunch` for interactive mode. Renamed non
+   interactive version to `ubx_launch`
+
  * `file2carr.lua` renamed to `ubx_tocarr`
 
  * install core modules into `$(prefix)/lib/microblx/<major.minor>/`
 
  * [9ff5615f9d] removed std Lua modules provided by separate package
    uutils (see README.md).
+
+ * [469e930b8a] Clang dependency removed: compiling with gcc works
+   when using initialization as demonstrated in std_blocks/cppdemo.
 
  * [4213621d55] merged support for autotools build
 
