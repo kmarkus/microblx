@@ -1,6 +1,7 @@
 return block 
 {
       name="myblock",
+      license="MIT",
       meta_data="",
       port_cache=true,
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env luajit
+-- -*- lua -*-
 
 utils=require "utils"
 umf=require "umf"
@@ -73,7 +74,9 @@ block_spec = ObjectSpec {
    dict={
       name=StringSpec{},
       meta_data=StringSpec{},
+      license=StringSpec{},
       cpp=BoolSpec{},
+      configure_ac=BoolSpec{},
       port_cache=BoolSpec{},
       types=types_spec,
       configurations=configurations_spec,
@@ -89,7 +92,7 @@ block_spec = ObjectSpec {
 	 optional={ "start", "stop", "step" },
       },
    },
-   optional={ 'meta_data', 'cpp', 'types', 'configurations', 'ports' },
+   optional={ 'meta_data', 'cpp', 'types', 'configurations', 'ports', 'configure_ac' },
 }
 
 --- Validate a block model.
@@ -104,8 +107,7 @@ ubx_genblock: generate the code for an empty microblx block.
 Usage: genblock [OPTIONS]
    -c           block specification file
    -check       only check block specification, don't generate
-   -force       force regeneration of all files
-		and the type header files
+   -force       force regeneration of all files and the type header files
    -d		output directory (will be created)
    -h           show this.
 ]])
@@ -178,30 +180,95 @@ function generate_rd_wr_helpers(bm)
    return table.concat(filter_dupes(res), "\n")
 end
 
+--- Generate configure.ac
+-- @param bm block model
+-- @param fd file to write to (optional, default: io.stdout)
+function generate_configure_ac(fd, bm)
+
+   local res, str = utils.preproc([[
+m4_define([package_version_major],[0])
+m4_define([package_version_minor],[1])
+m4_define([package_version_micro],[0])
+
+AC_INIT([$(bm.name)], [package_version_major.package_version_minor.package_version_micro])
+AM_INIT_AUTOMAKE([foreign -Wall])
+
+# compilers
+@ if bm.cpp then
+AC_PROG_CXX
+@ else
+AC_PROG_CC
+@ end
+
+PKG_PROG_PKG_CONFIG
+PKG_INSTALLDIR
+
+AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIR([m4])
+
+# Check if the `install` program is present
+AC_PROG_INSTALL
+
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+LT_INIT(disable-static)
+
+AC_SUBST([UBX_VER], [package_version_major.package_version_minor])
+
+PKG_CHECK_MODULES(UBX, ubx0 >= 0.1.0)
+
+PKG_CHECK_VAR(UBX_VER, ubx0, Version,,
+   AC_MSG_FAILURE([Unable to identify microblx version.])
+)
+
+AC_SUBST([UBX_VER])
+
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT
+
+]], { bm=bm, table=table} )
+
+   if not res then error(str) end
+   fd:write(str)
+end
+
+
 --- Generate Makefile.am
 -- @param bm block model
 -- @param fd file to write to (optional, default: io.stdout)
 function generate_automakefile(fd, bm)
+
+   -- Generate the BUILT_SOURCES directive
+   local function gen_built_sources()
+	 if not bm.types then return "" end
+	 local tab = { "BUILT_SOURCES = types/" .. bm.types[1].name..".h.hexarr" }
+	 for i=2,#bm.types do
+	    tab[#tab+1] = "                types/" .. bm.types[i].name..".h.hexarr"
+	 end
+	 return table.concat(tab, "\\\n")
+   end
+
    fd = fd or io.stdout
-   local str = utils.expand(
+   local res, str = utils.preproc(
       [[
-pkglib_LTLIBRARIES = $block_name.la
 
-TYPES:=$(wildcard types/*.h)
-HEXARRS:=$(TYPES:%=%.hexarr)
+ubxmoddir = $(libdir)/microblx/@UBX_VER@
+ubxmod_LTLIBRARIES = $(bm.name).la
 
-BUILT_SOURCES = $(HEXARRS)
+$(gen_built_sources())
+
 CLEANFILES = $(BUILT_SOURCES)
 
-%.h.hexarr: %.h
-	/usr/share/lua/5.1/ubx_tocarr $<
+$(bm.name)_la_includes = $(top_srcdir)/libubx/ubx.h
+$(bm.name)_la_SOURCES = $(bm.name)_la_includes) $(bm.name).c
+$(bm.name)_la_LDFLAGS = -module -avoid-version -shared -export-dynamic @UBX_LIBS@
+$(bm.name)_la_CPPFLAGS = -I$(top_srcdir)/libubx @UBX_CFLAGS@
 
-$block_name_la_includes = /usr/include/ubx.h
-$block_name_la_SOURCES = $block_name_la_includes \
-                     $(HEXARRS) \
-                     $block_name.c
-$block_name_la_LDFLAGS = -module -avoid-version
-]], { block_name=bm.name })
+%.h.hexarr: %.h
+	ubx_tocarr $<
+
+]], { bm=bm, libdir="$(libdir)", gen_built_sources=gen_built_sources, table=table })
+
+   if not res then error(str) end
    fd:write(str)
 end
 
@@ -235,6 +302,8 @@ function generate_block_if(fd, bm)
  */
 
 #include "ubx.h"
+
+UBX_MODULE_LICENSE_SPDX($(bm.license))
 
 /* includes types and type metadata */
 @ for _,t in ipairs(bm.types or {}) do
@@ -485,11 +554,11 @@ function generate_bd_system(fd, bm, outdir)
 return bd.system
 {
    imports = {
-      "std_types/stdtypes/stdtypes.so",
-      "std_blocks/ptrig/ptrig.so",
-      "std_blocks/lfds_buffers/lfds_cyclic.so",
-      "std_blocks/logging/file_logger.so",
-      "$(outdir)/$(bm.name).so",
+      "stdtypes",
+      "ptrig",
+      "lfds_cyclic",
+      "logger",
+      "$(bm.name)",
    },
 
    blocks = {
@@ -600,6 +669,7 @@ if block_model.cpp then h_ext = '.hpp' end
 
 -- static part
 local codegen_tab = {
+   { fun=generate_configure_ac, funargs={ block_model }, file="configure.ac", overwrite=false },
    { fun=generate_automakefile, funargs={ block_model }, file="Makefile.am", overwrite=false },
    { fun=generate_block_if, funargs={ block_model } , file=block_model.name..h_ext, overwrite=true },
    { fun=generate_block_body, funargs={ block_model }, file=block_model.name..c_ext, overwrite=false },

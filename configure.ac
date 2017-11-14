@@ -65,7 +65,7 @@ PKG_CHECK_MODULES(LFDS, lfds6 >= 6.1.1)
 # files to generate via autotools
 AC_CONFIG_FILES([Makefile
 libubx/Makefile
-libubx/ubx1.pc
+libubx/ubx0.pc
 std_blocks/Makefile
 std_blocks/cppdemo/Makefile
 std_blocks/hexdump/Makefile
