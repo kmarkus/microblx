@@ -7,6 +7,9 @@
 #include <iostream>
 #include <ubx.h>
 
+#include "types/cpp_demo_type.h"
+#include "types/cpp_demo_type.h.hexarr"
+
 using namespace std;
 
 /* function block meta-data
@@ -36,6 +39,12 @@ ubx_port_t cppdemo_ports[] = {
 	ubx_port_cpp("bar", NULL, 0, "unsigned int", 1, "In port reading bar unsigned ints"),
 	{ NULL },
 };
+
+/* define a type, registration in module hooks below */
+struct ubx_type_cpp cpp_demo_type("struct cpp_demo_type",
+				  TYPE_CLASS_STRUCT,
+				  sizeof(struct cpp_demo_type),
+				  (void*) &cpp_demo_type_h);
 
 static int cppdemo_init(ubx_block_t *c)
 {
@@ -82,12 +91,14 @@ ubx_block_t cppdemo_comp = ubx_block_cpp(
 static int cppdemo_init(ubx_node_info_t* ni)
 {
 	DBG(" ");
+	ubx_type_register(ni, &cpp_demo_type);
 	return ubx_block_register(ni, &cppdemo_comp);
 }
 
 static void cppdemo_cleanup(ubx_node_info_t *ni)
 {
 	DBG(" ");
+	ubx_type_unregister(ni, "cpp_demo_type");
 	ubx_block_unregister(ni, "cppdemo/cppdemo");
 }
 

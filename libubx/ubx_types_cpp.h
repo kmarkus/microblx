@@ -45,6 +45,20 @@ struct ubx_config_cpp : public ubx_config
 	};
 };
 
+struct ubx_type_cpp : public ubx_type
+{
+	ubx_type_cpp (
+		const char* _name,
+		uint32_t _type_class,
+		unsigned long _size,
+		void* _private_data)
+	{
+		ubx_type::name = _name;
+		ubx_type::type_class = _type_class;
+		ubx_type::size = _size;
+		ubx_type::private_data = _private_data;
+	};
+};
 
 struct ubx_block_cpp : public ubx_block
 {
