@@ -9,19 +9,21 @@ struct ubx_port_cpp : public ubx_port
 	ubx_port_cpp (
 		const char* _name,
 		const char* _in_type_name,
+		unsigned long _in_data_len,
 		const char* _out_type_name,
-		uint32_t _attrs)
+		unsigned long _out_data_len,
+		const char* _doc)
 	{
 		ubx_port::name = _name;
-		ubx_port::doc = NULL;
-		ubx_port::attrs =_attrs;
+		ubx_port::doc = _doc;
+		ubx_port::attrs = 0;
 		ubx_port::state = 0;
 		ubx_port::in_type_name = _in_type_name;
 		ubx_port::out_type_name = _out_type_name;
 		ubx_port::in_type = NULL;
 		ubx_port::out_type = NULL;
-		ubx_port::in_data_len = 0;
-		ubx_port::out_data_len = 0;
+		ubx_port::in_data_len = _in_data_len;
+		ubx_port::out_data_len = _out_data_len;
 		ubx_port::in_interaction = NULL;
 		ubx_port::out_interaction = NULL;
 		ubx_port::stat_writes = 0;
@@ -33,12 +35,12 @@ struct ubx_config_cpp : public ubx_config
 {
 	ubx_config_cpp(
 	const char* _name,
-	const char* _doc,
-	const char* _type_name)
+	const char* _type_name,
+	const char* _doc)
 	{
 		name = _name;
-		doc = _doc;
 		type_name = _type_name;
+		doc = _doc;
 		attrs = 0;
 	};
 };

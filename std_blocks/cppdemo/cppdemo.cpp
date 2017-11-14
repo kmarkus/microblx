@@ -5,10 +5,9 @@
 #define DEBUG 1
 
 #include <iostream>
-using namespace std;
+#include <ubx.h>
 
-#include "ubx.h"
-#include <cstring>
+using namespace std;
 
 /* function block meta-data
  * used by higher level functions.
@@ -26,14 +25,15 @@ char cppdemo_meta[] =
  * if an array is required, then .value = { .len=<LENGTH> } can be used.
  */
 ubx_config_t cppdemo_config[] = {
-	ubx_config_cpp("test_conf", NULL, "double"),
+	ubx_config_cpp("test_conf", "double", "a test config value"),
 	{ NULL },
 };
 
 
 ubx_port_t cppdemo_ports[] = {
-	ubx_port_cpp("foo", "unsigned int", NULL, PORT_DIR_IN),
-	ubx_port_cpp("bar", NULL, "unsigned int", PORT_DIR_OUT),
+	// name, in_type, in_data_len, out_type, out_data_len
+	ubx_port_cpp("foo", "unsigned int", 1, NULL, 0, "Out port writing foo unsigned ints"),
+	ubx_port_cpp("bar", NULL, 0, "unsigned int", 1, "In port reading bar unsigned ints"),
 	{ NULL },
 };
 
@@ -55,6 +55,11 @@ static int cppdemo_start(ubx_block_t *c)
 	return 0; /* Ok */
 }
 
+static void cppdemo_stop(ubx_block_t *c)
+{
+	cout << "cppdemo_stop: hi from " << c->name << endl;
+}
+
 static void cppdemo_step(ubx_block_t *c) {
 	cout << "cppdemo_step: hi from " << c->name << endl;
 }
@@ -70,7 +75,7 @@ ubx_block_t cppdemo_comp = ubx_block_cpp(
 	cppdemo_ports,
 	cppdemo_init,
 	cppdemo_start,
-	NULL,
+	cppdemo_stop,
 	cppdemo_step,
 	cppdemo_cleanup);
 
