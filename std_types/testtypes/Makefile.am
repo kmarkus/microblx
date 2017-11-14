@@ -6,7 +6,7 @@ BUILT_SOURCES = types/test_trig_conf.h.hexarr
 CLEANFILES = $(BUILT_SOURCES)
 
 %.h.hexarr: %.h
-	$(top_srcdir)/tools/file2carr.lua $<
+	$(top_srcdir)/tools/ubx_tocarr $<
 
 # testtypes : The basic types
 testtypes_la_includes = $(top_srcdir)/libubx/ubx.h

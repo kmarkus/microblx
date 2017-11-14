@@ -1,0 +1,36 @@
+#!/usr/bin/env luajit
+
+-- This tool converts the contents of a file to a C array of hex data,
+-- that can be included as a C header. The data is \0 terminated.
+
+local utils = require("utils")
+local fmt = string.format
+
+function filename(path)
+   local t=utils.split(path, '/')
+   return t[#t]
+end
+
+if #arg < 1 then
+   print("ubx_tocarr: convert file contents to a C hex array")
+   print("   usage: ubx_tocarr <file> <array name>")
+   os.exit(1)
+end
+
+outfile=arg[1]..".hexarr"
+structname=arg[2] or string.gsub(filename(arg[1]), "[-.]", "_")
+breaknum = 16	 -- break line after this
+
+fi = assert(io.open(arg[1], "r"))
+fo = assert(io.open(outfile, "w"))
+
+data=fi:read("*a")
+
+fo:write(fmt("static const char %s [] = {\n\t", structname))
+
+for i=1,#data do
+   fo:write(fmt("0x%.2x, ", string.byte(data, i)))
+   if i % breaknum == 0 then fo:write("\n\t") end
+end
+
+fo:write("0x00 \n};\n")

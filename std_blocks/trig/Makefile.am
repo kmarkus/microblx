@@ -11,7 +11,7 @@ BUILT_SOURCES = types/trig_config.h.hexarr \
 CLEANFILES = $(BUILT_SOURCES)
 
 %.h.hexarr: %.h
-	$(top_srcdir)/tools/file2carr.lua $<
+	$(top_srcdir)/tools/ubx_tocarr $<
 
 trig_la_includes = $(top_srcdir)/libubx/ubx.h $(top_srcdir)/libubx/ubx_types.h
 trig_la_SOURCES = $(trig_la_includes) trig.c

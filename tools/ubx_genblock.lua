@@ -194,7 +194,7 @@ BUILT_SOURCES = $(HEXARRS)
 CLEANFILES = $(BUILT_SOURCES)
 
 %.h.hexarr: %.h
-	/usr/share/lua/5.1/file2carr.lua $<
+	/usr/share/lua/5.1/ubx_tocarr $<
 
 $block_name_la_includes = /usr/include/ubx.h
 $block_name_la_SOURCES = $block_name_la_includes \

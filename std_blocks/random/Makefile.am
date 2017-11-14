@@ -13,4 +13,4 @@ random_la_LIBADD = $(top_builddir)/libubx/libubx.la
 random_la_CPPFLAGS = -I$(top_srcdir)/libubx
 
 %.h.hexarr: %.h
-	$(top_srcdir)/tools/file2carr.lua $<
+	$(top_srcdir)/tools/ubx_tocarr $<

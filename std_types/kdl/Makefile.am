@@ -12,7 +12,7 @@ BUILT_SOURCES =  types/kdl_frame.h.hexarr \
 CLEANFILES = $(BUILT_SOURCES)
 
 %.h.hexarr: %.h
-	$(top_srcdir)/tools/file2carr.lua $<
+	$(top_srcdir)/tools/ubx_tocarr $<
 
 kdl_types_la_includes = $(top_srcdir)/libubx/ubx.h
 kdl_types_la_SOURCES = $(kdl_types_la_includes) kdl_types.c

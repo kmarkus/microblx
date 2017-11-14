@@ -238,7 +238,7 @@ with a node (see "Block and type registration" below).
 
 The file `types/random_config.h.hexarr` contains the contents of the
 file `types/random_config.h` converted to an array `const char
-random_config_h []` using the script `tools/file2carr.lua`. This char
+random_config_h []` using the tool `tools/ubx_tocarr`. This char
 array is stored in the `ubx_type_t private_data` field (the third
 argument to the `def_struct_type` macro). At runtime, this type model
 is loaded into the luajit ffi, thereby enabling type reflection

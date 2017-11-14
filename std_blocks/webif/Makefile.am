@@ -16,4 +16,4 @@ webif_la_LIBADD = $(top_builddir)/libubx/libubx.la
 webif_la_CPPFLAGS = -I$(top_srcdir)/libubx
 
 %.lua.hexarr: %.lua
-	$(top_srcdir)/tools/file2carr.lua $<
+	$(top_srcdir)/tools/ubx_tocarr $<
