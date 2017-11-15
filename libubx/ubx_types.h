@@ -69,7 +69,7 @@ typedef struct ubx_type
 	const char* doc;		/* short documentation string */
 	uint32_t type_class;		/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
 	unsigned long size;		/* size in bytes */
-	void* private_data;		/* private data. */
+	const void* private_data;	/* private data. */
 	uint8_t hash[TYPE_HASH_LEN];
 } ubx_type_t;
 

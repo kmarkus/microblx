@@ -345,7 +345,11 @@ UBX_MODULE_LICENSE_SPDX($(bm.license))
 
 ubx_type_t types[] = {
 @ for _,t in ipairs(bm.types or {}) do
+@    if bm.cpp then
+        ubx_type_cpp("struct $(t.name)", TYPE_CLASS_STRUCT, sizeof(struct $(t.name)), &$(t.name)_h),
+@    else
 	def_struct_type(struct $(t.name), &$(t.name)_h),
+@    end
 @ end
 	{ NULL },
 };
@@ -597,13 +601,9 @@ void $(bm.name)_cleanup(ubx_block_t *b)
 void $(bm.name)_step(ubx_block_t *b)
 {
 
-
 	/*
 	struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data;
-
-
 	*/
-
 }
 @ end
 

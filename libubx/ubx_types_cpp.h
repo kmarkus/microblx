@@ -51,7 +51,7 @@ struct ubx_type_cpp : public ubx_type
 		const char* _name,
 		uint32_t _type_class,
 		unsigned long _size,
-		void* _private_data)
+		const void* _private_data)
 	{
 		ubx_type::name = _name;
 		ubx_type::type_class = _type_class;

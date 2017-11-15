@@ -3,7 +3,7 @@
 #+SEQ_TODO: TODO(t) STARTED(s) WAITING(w@) | DONE(d) CANCELLED(c@)
 
 * Next release (1.0)
-** TODO update ubx_genblock with cpp type generation support
+** DONE update ubx_genblock with cpp type generation support
 ** DONE update ubx_types_cpp with support for types
 ** DONE update ubx_genblock to generate clean autotools modules
 ** TODO data_value iblock
