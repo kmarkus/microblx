@@ -5,9 +5,9 @@
 /* #define DEBUG	1 */
 #define COMPILE_IN_LOG_LUA_FILE
 
-#include <luajit-2.0/lauxlib.h>
-#include <luajit-2.0/lualib.h>
-#include <luajit-2.0/lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+#include <lua.h>
 
 #include <stdio.h>
 #include <stdlib.h>
