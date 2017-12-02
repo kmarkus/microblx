@@ -1,5 +1,5 @@
 m4_define([package_version_major],[0])
-m4_define([package_version_minor],[1])
+m4_define([package_version_minor],[2])
 m4_define([package_version_micro],[0])
 
 AC_INIT([microblx], [package_version_major.package_version_minor.package_version_micro])

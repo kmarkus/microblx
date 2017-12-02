@@ -87,8 +87,9 @@
 * release checklist
   - update version in configure.ac
   - git tag
-  - major version: update ubx<major>.pc.in
-  - update code pkg-config checks in ubx_genblock configure.ac template
+  - major version:
+    - update ubx<major>.pc.in
+    - update code pkg-config checks in ubx_genblock configure.ac template
 * archive
 ** DONE [#A] blockdiagram: support for hierarchical composition
    CLOSED: [2014-01-23 Do 20:51]
