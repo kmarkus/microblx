@@ -3,7 +3,7 @@
 #+SEQ_TODO: TODO(t) STARTED(s) WAITING(w@) | DONE(d) CANCELLED(c@)
 
 * Next release (1.0)
-** luajit-2.1.0-beta3 crashes with reflect
+** DONE luajit-2.1.0-beta3 crashes with reflect
 
    $ luajit -l reflect
    Segmentation fault (core dumped)
@@ -12,6 +12,8 @@
    required:
    - https://www.freelists.org/post/luajit/FFI-Add-ffitypeinfo
    - https://github.com/corsix/ffi-reflect/commit/4ee6eb7bd7e51312ec6e2d84c1d650a7efa2a895
+
+   - reflect update fixes the issue.
 
 ** DONE update ubx_genblock with cpp type generation support
 ** DONE update ubx_types_cpp with support for types
