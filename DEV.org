@@ -3,6 +3,16 @@
 #+SEQ_TODO: TODO(t) STARTED(s) WAITING(w@) | DONE(d) CANCELLED(c@)
 
 * Next release (1.0)
+** luajit-2.1.0-beta3 crashes with reflect
+
+   $ luajit -l reflect
+   Segmentation fault (core dumped)
+
+   luajit-2.1 has now built-in typeof, hence ffi is not longer
+   required:
+   - https://www.freelists.org/post/luajit/FFI-Add-ffitypeinfo
+   - https://github.com/corsix/ffi-reflect/commit/4ee6eb7bd7e51312ec6e2d84c1d650a7efa2a895
+
 ** DONE update ubx_genblock with cpp type generation support
 ** DONE update ubx_types_cpp with support for types
 ** DONE update ubx_genblock to generate clean autotools modules

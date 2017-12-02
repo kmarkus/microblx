@@ -1,30 +1,30 @@
--- License: Same as LuaJIT
--- Version: beta 2 (2013-07-06)
--- Author: Peter Cawley (lua@corsix.org)
+--[[ LuaJIT FFI reflection Library ]]--
+--[[ Copyright (C) 2014 Peter Cawley <lua@corsix.org>. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+--]]
 local ffi = require "ffi"
 local bit = require "bit"
 local reflect = {}
 
--- Relevant minimal definitions from lj_ctype.h
-ffi.cdef [[
-  typedef struct CType {
-    uint32_t info;
-    uint32_t size;
-    uint16_t sib;
-    uint16_t next;
-    uint32_t name;
-  } CType;
-  
-  typedef struct CTState {
-    CType *tab;
-    uint32_t top;
-    uint32_t sizetab;
-    void *L;
-    void *g;
-    void *finalizer;
-    void *miscmap;
-  } CTState;
-]]
+local CTState, init_CTState
+local miscmap, init_miscmap
 
 local function gc_str(gcref) -- Convert a GCref (to a GCstr) into a string
   if gcref ~= 0 then
@@ -33,39 +33,71 @@ local function gc_str(gcref) -- Convert a GCref (to a GCstr) into a string
   end
 end
 
+local typeinfo = ffi.typeinfo or function(id)
+  -- ffi.typeof is present in LuaJIT v2.1 since 8th Oct 2014 (d6ff3afc)
+  -- this is an emulation layer for older versions of LuaJIT
+  local ctype = (CTState or init_CTState()).tab[id]
+  return {
+    info = ctype.info,
+    size = bit.bnot(ctype.size) ~= 0 and ctype.size,
+    sib = ctype.sib ~= 0 and ctype.sib,
+    name = gc_str(ctype.name),
+  }
+end
+
 local function memptr(gcobj)
   return tonumber(tostring(gcobj):match"%x*$", 16)
 end
 
--- Acquire a pointer to this Lua universe's CTState
-local CTState do
-  -- Stripped down version of global_State from lj_obj.h.
-  -- All that is needed is for the offset of the ctype_state field to be correct.
-  local global_state_ptr = ffi.typeof [[
-    struct {
-      void* _; // strhash
-      uint32_t _[2]; // strmask, strnum
-      void(*_)(void); // allocf
-      void* _; // allocd
-      uint32_t _[14]; // gc
-      char* _; // tmpbuf
-      uint32_t _[28]; // tmpbuf, nilnode, strempty*, *mask, dispatchmode, mainthref, *tv*, uvhead, hookc*
-      void(*_[3])(void); // hookf, wrapf, panic
-      uint32_t _[5]; // vmstate, bc_*, jit_*
-      uint32_t ctype_state;
-    }*
+init_CTState = function()
+  -- Relevant minimal definitions from lj_ctype.h
+  ffi.cdef [[
+    typedef struct CType {
+      uint32_t info;
+      uint32_t size;
+      uint16_t sib;
+      uint16_t next;
+      uint32_t name;
+    } CType;
+    
+    typedef struct CTState {
+      CType *tab;
+      uint32_t top;
+      uint32_t sizetab;
+      void *L;
+      void *g;
+      void *finalizer;
+      void *miscmap;
+    } CTState;
   ]]
+
+  -- Acquire a pointer to this Lua universe's CTState
   local co = coroutine.create(function()end) -- Any live coroutine will do.
-  local G = ffi.cast(global_state_ptr, ffi.cast("uint32_t*", memptr(co))[2])
-  CTState = ffi.cast("CTState*", G.ctype_state)
+  local uint32_ptr = ffi.typeof("uint32_t*")
+  local G = ffi.cast(uint32_ptr, ffi.cast(uint32_ptr, memptr(co))[2])
+  -- In global_State, `MRef ctype_state` is immediately before `GCRef gcroot[GCROOT_MAX]`.
+  -- We first find (an entry in) gcroot by looking for a metamethod name string.
+  local anchor = ffi.cast("uint32_t", ffi.cast("const char*", "__index"))
+  local i = 0
+  while math.abs(tonumber(G[i] - anchor)) > 64 do
+    i = i + 1
+  end
+  -- We then work backwards looking for something resembling ctype_state.
+  repeat
+    i = i - 1
+    CTState = ffi.cast("CTState*", G[i])
+  until ffi.cast(uint32_ptr, CTState.g) == G
+  
+  return CTState
 end
 
--- Acquire the CTState's miscmap table as a Lua variable
-local miscmap do
+init_miscmap = function()
+  -- Acquire the CTState's miscmap table as a Lua variable
   local t = {}; t[0] = t
   local tvalue = ffi.cast("uint32_t*", memptr(t))[2]
-  ffi.cast("uint32_t*", tvalue)[ffi.abi"le" and 0 or 1] = ffi.cast("uint32_t", ffi.cast("uintptr_t", CTState.miscmap))
+  ffi.cast("uint32_t*", tvalue)[ffi.abi"le" and 0 or 1] = ffi.cast("uint32_t", ffi.cast("uintptr_t", (CTState or init_CTState()).miscmap))
   miscmap = t[0]
+  return miscmap
 end
 
 -- Information for unpacking a `struct CType`.
@@ -189,14 +221,14 @@ local CTCCs = {[0] =
 }
 
 local function refct_from_id(id) -- refct = refct_from_id(CTypeID)
-  local ctype = CTState.tab[id]
+  local ctype = typeinfo(id)
   local CT_code = bit.rshift(ctype.info, 28)
   local CT = CTs[CT_code]
   local what = CT[1]
   local refct = setmetatable({
     what = what,
     typeid = id,
-    name = gc_str(ctype.name),
+    name = ctype.name,
   }, metatables[what])
   
   -- Interpret (most of) the CType::info field
@@ -230,10 +262,7 @@ local function refct_from_id(id) -- refct = refct_from_id(CTypeID)
   
   if CT[3] ~= "" then -- Interpret the CType::size field
     local k = CT[3]
-    refct[k] = ctype.size
-    if k == "size" and bit.bnot(refct[k]) == 0 then
-      refct[k] = "none"
-    end
+    refct[k] = ctype.size or (k == "size" and "none")
   end
   
   if what == "attrib" then
@@ -264,8 +293,8 @@ local function refct_from_id(id) -- refct = refct_from_id(CTypeID)
   end
   
   if CT[4] then -- Merge sibling attributes onto this type.
-    while ctype.sib ~= 0 do
-      local entry = CTState.tab[ctype.sib]
+    while ctype.sib do
+      local entry = typeinfo(ctype.sib)
       if CTs[bit.rshift(entry.info, 28)][1] ~= "attrib" then break end
       if bit.band(entry.info, 0xffff) ~= 0 then break end
       local sib = refct_from_id(ctype.sib)
@@ -279,8 +308,8 @@ end
 
 local function sib_iter(s, refct)
   repeat
-    local ctype = CTState.tab[refct.typeid]
-    if ctype.sib == 0 then return end
+    local ctype = typeinfo(refct.typeid)
+    if not ctype.sib then return end
     refct = refct_from_id(ctype.sib)
   until refct.what ~= "attrib" -- Pure attribs are skipped.
   return refct
@@ -289,7 +318,7 @@ end
 local function siblings(refct)
   -- Follow to the end of the attrib chain, if any.
   while refct.attributes do
-    refct = refct_from_id(refct.attributes.subtype or CTState.tab[refct.typeid].sib)
+    refct = refct_from_id(refct.attributes.subtype or typeinfo(refct.typeid).sib)
   end
 
   return sib_iter, nil, refct
@@ -326,7 +355,7 @@ function reflect.typeof(x) -- refct = reflect.typeof(ct)
 end
 
 function reflect.getmetatable(x) -- mt = reflect.getmetatable(ct)
-  return miscmap[-tonumber(ffi.typeof(x))]
+  return (miscmap or init_miscmap())[-tonumber(ffi.typeof(x))]
 end
 
 return reflect
