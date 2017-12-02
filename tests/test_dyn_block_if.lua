@@ -1,15 +1,20 @@
 #!/usr/bin/luajit
 
+local lu=require"luaunit"
+
 local ffi=require"ffi"
-local lunit=require"lunit"
 local ubx=require"ubx"
 local utils=require"utils"
 local cdata=require"cdata"
 -- require"trace"
 
-local code_str_len = 16*1024*1024
+local assert_true = lu.assert_true
+local assert_false = lu.assert_false
+local assert_equals = lu.assert_equals
+local assert_not_equals = lu.assert_not_equals
+local assert_not_nil = lu.assert_not_nil
 
-module("test_dyn_block_if", lunit.testcase, package.seeall)
+local code_str_len = 16*1024*1024
 
 local ni=ubx.node_create("test_dyn_block_if")
 
@@ -20,11 +25,10 @@ ubx.load_module(ni, "luablock")
 ubx.load_module(ni, "lfds_cyclic")
 
 lb1=ubx.block_create(ni, "lua/luablock", "lb1")
-p_exec_str=ubx.port_get(lb1, "exec_str")
-p_exec_str = ubx.port_clone_conn(lb1, "exec_str", 4, 4, code_str_len, 1)
+assert_not_nil(lb1)
 
-assert(ubx.block_init(lb1)==0)
-assert(ubx.block_start(lb1)==0)
+local p_exec_str=ubx.port_get(lb1, "exec_str")
+local p_exec_str = ubx.port_clone_conn(lb1, "exec_str", 4, 4, code_str_len, 1)
 
 local d1=ubx.data_alloc(ni, "char")
 local d2=ubx.data_alloc(ni, "int")
@@ -40,17 +44,21 @@ function exec_str(str)
    return ubx.data_tolua(d2)
 end
 
-function test_exec_str()
-   assert_equal(0, exec_str("counter=75"))
-   assert_equal(0, exec_str("return counter==75"))
-   -- assert_equal(0, exec_str("print('counter:', counter)"))
-   assert_not_equal(0, exec_str("error('this error is intentional')"))
 
-   assert_equal(0, exec_str([[
-				  function start(b) this=b; return true end
-			    ]]))
-   ubx.block_stop(lb1)
-   ubx.block_start(lb1)
+assert_equals(ubx.block_init(lb1), 0)
+assert_equals(ubx.block_start(lb1), 0)
+assert_equals(0, exec_str([[
+function start(b) this=b; return true end
+]]))
+assert_equals(ubx.block_stop(lb1), 0)
+assert_equals(ubx.block_start(lb1), 0)
+assert_equals(0, exec_str("return this~=nil"))
+
+function test_exec_str()
+   assert_equals(0, exec_str("counter=75"))
+   assert_equals(0, exec_str("return counter==75"))
+   -- assert_equals(0, exec_str("print('counter:', counter)"))
+   assert_not_equals(0, exec_str("error('this error is intentional')"))
 end
 
 function print_pstate(b)
@@ -63,7 +71,7 @@ end
 function test_port_add_rm()
    local ptab_before = ubx.ports_map(lb1, ubx.port_totab)
 
-   assert(0, exec_str([[
+   assert_equals(0, exec_str([[
 			    ubx=require "ubx"
 
 			    for k=1,3 do
@@ -81,9 +89,9 @@ function test_port_add_rm()
    assert_not_nil(ubx.port_get(lb1, "testport2"))
    assert_not_nil(ubx.port_get(lb1, "testport3"))
 
-   assert_equal(0, exec_str("ubx.port_rm(this, 'testport1')"))
-   assert_equal(0, exec_str("ubx.port_rm(this, 'testport3')"))
-   assert_equal(0, exec_str("ubx.port_rm(this, 'testport2')"))
+   assert_equals(0, exec_str("ubx.port_rm(this, 'testport1')"))
+   assert_equals(0, exec_str("ubx.port_rm(this, 'testport3')"))
+   assert_equals(0, exec_str("ubx.port_rm(this, 'testport2')"))
 
    local ptab_after = ubx.ports_map(lb1, ubx.port_totab)
    assert_true(utils.table_cmp(ptab_before, ptab_after), "interface not the same after removing all added ports")
@@ -92,7 +100,7 @@ end
 function test_config_add_rm()
    local ptab_before = ubx.configs_map(lb1, ubx.config_totab)
 
-   assert(0, exec_str([[
+   assert_equals(0, exec_str([[
 			    ubx=require "ubx"
 
 			    for k=1,3 do
@@ -111,12 +119,14 @@ function test_config_add_rm()
    assert_not_nil(ubx.config_get(lb1, "testconfig2"))
    assert_not_nil(ubx.config_get(lb1, "testconfig3"))
 
-   assert_equal(0, exec_str("ubx.config_rm(this, 'testconfig1')"))
-   assert_equal(0, exec_str("ubx.config_rm(this, 'testconfig3')"))
-   assert_equal(0, exec_str("ubx.config_rm(this, 'testconfig2')"))
+   assert_equals(0, exec_str("ubx.config_rm(this, 'testconfig1')"))
+   assert_equals(0, exec_str("ubx.config_rm(this, 'testconfig3')"))
+   assert_equals(0, exec_str("ubx.config_rm(this, 'testconfig2')"))
 
    local ptab_after = ubx.configs_map(lb1, ubx.config_totab)
 
    assert_true(utils.table_cmp(ptab_before, ptab_after), "interface comparison failed")
 
 end
+
+os.exit( lu.LuaUnit.run() )

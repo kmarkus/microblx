@@ -1,10 +1,18 @@
+--
+-- testsuite for testing ffi cdata to Lua conversion and vice versa
+--
+
+local lu=require"luaunit"
+
 local ffi=require"ffi"
-local lunit=require"lunit"
 local ubx=require"ubx"
 local utils=require"utils"
 local cdata=require"cdata"
 
-module("cdata_tolua_test", lunit.testcase, package.seeall)
+local assert_true = lu.assert_true
+local assert_false = lu.assert_false
+local assert_equals = lu.assert_equals
+local assert_not_equals = lu.assert_not_equals
 
 local ni=ubx.node_create("cdata_tolua_test")
 
@@ -76,14 +84,14 @@ function test_int()
    local init=33
    local i = ffi.new("unsigned int", init)
    local val=cdata.tolua(i)
-   assert_equal(val, init, "F: table->int rountrip comparison error")
+   assert_equals(val, init, "F: table->int rountrip comparison error")
 end
 
 function test_int_inv()
    local init=33
    local i = ffi.new("unsigned int", init)
    local val=cdata.tolua(i)
-   assert_not_equal(init, val-1, "G: table->int rountrip comparison error")
+   assert_not_equals(init, val-1, "G: table->int rountrip comparison error")
 end
 
 function test_ubx_data()
@@ -109,7 +117,7 @@ function test_ubx_data_basic()
    ubx.data_set(ubx_data_int, init, false)
 
    local val = ubx.data_tolua(ubx_data_int)
-   assert_equal(init, val, "J: table->ubx_data(int) rountrip comparison error")
+   assert_equals(init, val, "J: table->ubx_data(int) rountrip comparison error")
 end
 
 function test_pointer_to_prim()
@@ -117,12 +125,12 @@ function test_pointer_to_prim()
    local i = ffi.new("unsigned int[1]", init )
    local ip = ffi.new("unsigned int*", i)
 
-   assert_equal(init, tonumber(i[0]), "K: init failed")
-   assert_equal(tonumber(i[0]), tonumber(ip[0]), "L: mismatch between int and int*")
+   assert_equals(init, tonumber(i[0]), "K: init failed")
+   assert_equals(tonumber(i[0]), tonumber(ip[0]), "L: mismatch between int and int*")
 
    local val = cdata.tolua(ip)
 
-   assert_equal(init, val, "L: mismatch after converting from cdata")
+   assert_equals(init, val, "L: mismatch after converting from cdata")
 
 end
 
@@ -138,5 +146,7 @@ function test_void_pointer_to_prim()
    local init = 0xdeafbeaf
    local vp = ffi.new("void *", ffi.cast('void *', init))
    local val = cdata.tolua(vp)
-   assert_equal(init, val, "L: mismatch after converting from cdata")
+   assert_equals(init, val, "L: mismatch after converting from cdata")
 end
+
+os.exit( lu.LuaUnit.run() )

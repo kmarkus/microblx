@@ -13,7 +13,6 @@
 
 #include "ubx.h"
 
-#define LUA_BLOCK_FILE 		"/home/mk/prog/c/microblx/std_blocks/luablock/luablock.lua"
 #define EXEC_STR_BUFF_SIZE	16*1024*1024
 
 ubx_port_t lua_ports[] = {

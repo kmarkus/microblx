@@ -23,7 +23,8 @@ Dependencies
  - `luajit`, `libluajit-5.1-dev` (>=2.0.0-beta11, for scripting (optional, but recommended)
  - `uutils` Lua modules (https://github.com/kmarkus/uutils)
  - `liblfds`(v6.1.1, for liblfds_cyclic buffer)
- - gcc (v4.6 or newer) or clang
+ - `lua-unit` https://github.com/bluebird75/luaunit (only for running unit tests)
+ - gcc or clang
  - only for development: `cproto` to generate C prototype header file
 
 

@@ -1,16 +1,18 @@
 #!/usr/bin/luajit
 
+local lu=require"luaunit"
 local ffi=require"ffi"
-local lunit=require"lunit"
 local ubx=require"ubx"
 local utils=require"utils"
 local cdata=require"cdata"
+
+assert_equals = lu.assert_equals
+assert_true = lu.assert_true
+
 -- require"trace"
 -- require"strict"
 
 local code_str_len = 16*1024*1024
-
-module("test_struct_comm", lunit.testcase, package.seeall)
 
 local ni = ubx.node_create("test_struct_comm")
 
@@ -67,12 +69,12 @@ end
 
 
 lb1=ubx.block_create(ni, "lua/luablock", "lb1", { lua_str=lua_testcomp } )
-assert(ubx.block_init(lb1)==0)
+assert_equals(ubx.block_init(lb1), 0)
 
 local p_pos_out = ubx.port_clone_conn(lb1, "pos_in", 4)
 local p_pos_in = ubx.port_clone_conn(lb1, "pos_out", 4)
 
-assert(ubx.block_start(lb1)==0)
+assert_equals(ubx.block_start(lb1), 0)
 
 local _vin=ubx.data_alloc(ni, "struct kdl_vector")
 local _vout=ubx.data_alloc(ni, "struct kdl_vector")
@@ -82,13 +84,15 @@ vcdout = ubx.data_to_cdata(_vout)
 ubx.data_set(_vin, {x=1,y=2,z=3})
 
 function test_comm()
-   for i=1,10 do
+   for i=1,100000 do
       vcdin.x=vcdin.x*i; vcdin.y=vcdin.y*i; vcdin.z=vcdin.z*i;
       ubx.port_write(p_pos_out, _vin)
       ubx.cblock_step(lb1)
       assert_true(ubx.port_read(p_pos_in, _vout) > 0, "test block produced no output")
-      assert_equal(vcdin.x*2, vcdout.x)
-      assert_equal(vcdin.y*2, vcdout.y)
-      assert_equal(vcdin.z*2, vcdout.z)
+      assert_equals(vcdin.x*2, vcdout.x)
+      assert_equals(vcdin.y*2, vcdout.y)
+      assert_equals(vcdin.z*2, vcdout.z)
    end
 end
+
+os.exit( lu.LuaUnit.run() )

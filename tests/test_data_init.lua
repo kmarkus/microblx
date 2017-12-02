@@ -1,8 +1,9 @@
-ffi=require"ffi"
-lunit=require"lunit"
-ubx=require"ubx"
+local lu = require"luaunit"
+local ffi=require"ffi"
+local lunit=require"lunit"
+local ubx=require"ubx"
 
-module("data_init_test", lunit.testcase, package.seeall)
+local assert_equals = lu.assert_equals
 
 local ni=ubx.node_create("data_init_test")
 
@@ -14,7 +15,7 @@ function test_scalar_assignment()
    local d=ubx.data_alloc(ni, "unsigned int")
    ubx.data_set(d, 33)
    local numptr = ffi.cast("unsigned int*", d.data)
-   assert_equal(33, numptr[0])
+   assert_equals(33, numptr[0])
    -- ubx.data_free(ni, d)
 end
 
@@ -23,7 +24,7 @@ function test_string_assignment()
    local d=ubx.data_alloc(ni, "char", 30)
    ubx.data_set(d, teststr)
    local chrptr = ffi.cast("char*", d.data)
-   assert_equal(teststr, ffi.string(chrptr))
+   assert_equals(teststr, ffi.string(chrptr))
    -- ubx.data_free(ni, d)
 end
 
@@ -31,9 +32,9 @@ function test_simple_struct_assignment()
    local d=ubx.data_alloc(ni, "struct kdl_vector")
    ubx.data_set(d, {x=444,y=55.3, z=-34})
    local vptr = ffi.cast("struct kdl_vector*", d.data)
-   assert_equal(444, vptr.x)
-   assert_equal(55.3, vptr.y)
-   assert_equal(-34, vptr.z)
+   assert_equals(444, vptr.x)
+   assert_equals(55.3, vptr.y)
+   assert_equals(-34, vptr.z)
    -- ubx.data_free(ni, d)
 end
 
@@ -50,21 +51,21 @@ function test_composite_struct_assignment()
 
    ubx.data_set(d, conf)
    local vptr = ffi.cast("struct kdl_frame*", d.data)
-   assert_equal(444, vptr.p.x)
-   assert_equal(55.3, vptr.p.y)
-   assert_equal(-34, vptr.p.z)
+   assert_equals(444, vptr.p.x)
+   assert_equals(55.3, vptr.p.y)
+   assert_equals(-34, vptr.p.z)
 
-   assert_equal(1, vptr.M.data[0])
-   assert_equal(11, vptr.M.data[3])
-   assert_equal(111, vptr.M.data[6])
+   assert_equals(1, vptr.M.data[0])
+   assert_equals(11, vptr.M.data[3])
+   assert_equals(111, vptr.M.data[6])
 
-   assert_equal(2, vptr.M.data[1])
-   assert_equal(22, vptr.M.data[4])
-   assert_equal(222, vptr.M.data[7])
+   assert_equals(2, vptr.M.data[1])
+   assert_equals(22, vptr.M.data[4])
+   assert_equals(222, vptr.M.data[7])
 
-   assert_equal(3, vptr.M.data[2])
-   assert_equal(33, vptr.M.data[5])
-   assert_equal(333, vptr.M.data[8])
+   assert_equals(3, vptr.M.data[2])
+   assert_equals(33, vptr.M.data[5])
+   assert_equals(333, vptr.M.data[8])
 end
 
 function test_simple_struct_assignment2()
@@ -78,13 +79,13 @@ function test_simple_struct_assignment2()
    ubx.data_set(d, conf)
 
    local ptr = ffi.cast("struct test_trig_conf*", d.data)
-   assert_equal("block_name1", ffi.string(ptr[0].name))
-   assert_equal("block_name2", ffi.string(ptr[1].name))
-   assert_equal("block_name3", ffi.string(ptr[2].name))
+   assert_equals("block_name1", ffi.string(ptr[0].name))
+   assert_equals("block_name2", ffi.string(ptr[1].name))
+   assert_equals("block_name3", ffi.string(ptr[2].name))
 
-   assert_equal(0, tonumber(ptr[0].benchmark))
-   assert_equal(1, tonumber(ptr[1].benchmark))
-   assert_equal(0, tonumber(ptr[2].benchmark))
+   assert_equals(0, tonumber(ptr[0].benchmark))
+   assert_equals(1, tonumber(ptr[1].benchmark))
+   assert_equals(0, tonumber(ptr[2].benchmark))
 
    -- ubx.data_free(ni, d)
 end
@@ -100,15 +101,17 @@ function test_data_resize()
    ubx.data_set(d, conf, true)
 
    local ptr = ffi.cast("struct test_trig_conf*", d.data)
-   assert_equal("block_name1", ffi.string(ptr[0].name))
-   assert_equal("block_name2", ffi.string(ptr[1].name))
-   assert_equal("block_name3", ffi.string(ptr[2].name))
+   assert_equals("block_name1", ffi.string(ptr[0].name))
+   assert_equals("block_name2", ffi.string(ptr[1].name))
+   assert_equals("block_name3", ffi.string(ptr[2].name))
 
-   assert_equal(0, tonumber(ptr[0].benchmark))
-   assert_equal(1, tonumber(ptr[1].benchmark))
-   assert_equal(0, tonumber(ptr[2].benchmark))
+   assert_equals(0, tonumber(ptr[0].benchmark))
+   assert_equals(1, tonumber(ptr[1].benchmark))
+   assert_equals(0, tonumber(ptr[2].benchmark))
 
-   assert_equal(d.len, 3)
+   assert_equals(tonumber(d.len), 3)
 
    -- ubx.data_free(ni, d)
 end
+
+os.exit( lu.LuaUnit.run() )

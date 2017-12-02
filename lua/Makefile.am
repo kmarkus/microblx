@@ -6,8 +6,4 @@ luajitmod_SCRIPTS = ubx.lua \
 		blockdiagram.lua \
 		cdata_tolua_test.lua \
 		cdata_layout.lua \
-		luaffi-introspection.lua \
-		lunit-console.lua \
-		lunit.lua
-
-bin_SCRIPTS = lunit
+		luaffi-introspection.lua

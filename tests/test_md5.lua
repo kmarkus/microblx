@@ -1,21 +1,21 @@
 
-local ffi=require"ffi"
-local lunit=require"lunit"
-local ubx=require"ubx"
-local utils=require"utils"
+local luaunit=require("luaunit")
+local ffi=require("ffi")
+local ubx=require("ubx")
+local utils=require("utils")
 
-module("md5_test", lunit.testcase, package.seeall)
+local assert_equals = luaunit.assert_equals
 
 -- $ echo -n "microblx rocks" | md5sum
 -- 825a27eaa56c18fd1f4c9c077b497704  -
 function test_md5sum_microblx_rocks()
    local res = ubx.md5("microblx rocks")
-   assert_equal("825a27eaa56c18fd1f4c9c077b497704", res)
+   assert_equals("825a27eaa56c18fd1f4c9c077b497704", res)
 end
 
 function test_md5sum_empty()
    local res = ubx.md5("")
-   assert_equal("d41d8cd98f00b204e9800998ecf8427e", res)
+   assert_equals("d41d8cd98f00b204e9800998ecf8427e", res)
 end
 
 
@@ -30,6 +30,7 @@ Only this, and nothing more.'
 
 function test_md5sum_poe()
    local res = ubx.md5(poe)
-   assert_equal("306e4af7c5a27f50705e051b2753ab29", res)
+   assert_equals("306e4af7c5a27f50705e051b2753ab29", res)
 end
 
+os.exit( luaunit.LuaUnit.run() )

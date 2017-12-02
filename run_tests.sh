@@ -1,5 +1,5 @@
-#!/bin/sh
-export LUA_PATH="$LUA_PATH;`pwd`/lua/?.lua"
-LJIT=`which luajit`
+#!/bin/bash
 
-lunit -i $LJIT tests/test_*
+for t in tests/test_*; do
+    luajit $t
+done
