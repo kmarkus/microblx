@@ -5,56 +5,65 @@ What is it?
 -----------
 
 Microblx is an lightweight, dynamic, reflective, hard real-time safe
-function block framework:
+function block framework. It's Main use-cases are hard real-time
+(embedded) control or signal processing systems.
+
+Main features:
 
  - Pure C, no external dependencies
  - Lua scripting for system configuration and deployment
- - Standard block and type library
+ - Standard function block and type library
+ - Dynamic type handling, no code-generation necessary
  - Webinterface function block to introspect and control blocks
  - Automatic block stub code generation
  - Generic Lua scriptable function block
- - Dynamic type handling, no code-generation
  - Similar to IEC-61508 and IEC-61499 functions blocks
 
 
 Dependencies
 ------------
 
- - `luajit`, `libluajit-5.1-dev` (>=2.0.0-beta11, for scripting (optional, but recommended)
- - `uutils` Lua modules (https://github.com/kmarkus/uutils)
- - `liblfds`(v6.1.1, for liblfds_cyclic buffer)
- - `lua-unit` https://github.com/bluebird75/luaunit (only for running unit tests)
+ - luajit (>=v2.0.0) (apt: `luajit` and `libluajit-5.1-dev`) (not
+   strictly required, but recommended)
+ - `uutils` Lua modules [github](https://github.com/kmarkus/uutils)
+ - `liblfds` lock free data structures (v6.1.1) [github](https://github.com/liblfds/liblfds6.1.1)
+ - `lua-unit` (apt: `lua-unit`, src:
+   [luaunit](https://github.com/bluebird75/luaunit) (to run the tests)
  - gcc or clang
- - only for development: `cproto` to generate C prototype header file
+ - only for development: `cproto` (apt: `cproto`) to generate C prototype header file
 
 
 Building and setting up
 ------------------------
 
-### Building
+### Using yocto
+
+*Note* work-in-progress.
+
+The easiest way to get going is by using the meta-microblx yocto
+layer.
+
+### Building manually
 
 Building to run locally on a PC.
 
-Before building microblx, liblfds611 needs to be built and installed. There
-is a set of patches in the microblx repository to clean up the packaging
-of liblfds. Follow the instructions below:
+Before building microblx, liblfds611 needs to be built and
+installed. There is a set of patches in the microblx repository to
+clean up the packaging of liblfds. Follow the instructions below:
 
-```
-$ cd ~
-$ git clone git@github.com:kmarkus/microblx.git
+Build lfds
+
+```bash
 $ git clone https://github.com/liblfds/liblfds6.1.1.git
+$ git clone git@github.com:kmarkus/microblx.git
 $ cd liblfds6.1.1
 $ git am ~/microblx/liblfds/*.patch
-$ ./bootstrap
-$ ./configure --prefix=/usr
-$ make
-$ sudo make install
 ```
 
-Now build microblx
+Build microblx
 
-```
-$ cd ~/microblx
+```bash
+$ cd ../microblx
 $ ./bootstrap
 $ ./configure --prefix=/usr
 $ make
@@ -64,53 +73,26 @@ $ sudo make install
 Some blocks have external dependencies and may fail. Check for a
 README in the respective subdirectory.
 
-Running:
+Run a demo example:
 
-luajit /usr/share/lua/5.1/trig_rnd_to_hexdump.lua
+```bash
+$ ubx_ilaunch -webif -c /usr/share/microblx/examples/systemmodels/trig_rnd_hexdump.usc
+```
+browser to localhost:8888 to inspect the system.
 
 Documentation
 -------------
 
  - [Quickstart](/doc/quickstart.md)
  - [User manual](/doc/manual.md)
+ - [FAQ](/doc/FAQ.md)
  - [API Changes](/API_Changes.md)
 
 
-Community
----------
+Getting help
+------------
 
-Feel free to ask questions on the microblx mailing list:
-
- http://lists.mech.kuleuven.be/mailman/listinfo/microblx
-
-
-FAQ
----
-
-### I get module XZY not found
-
-Did you source the `env.sh` script or setup your environment
-otherwise?
-
-### My script immedately crashes/finishes
-
-This can have several reasons:
-
-* You forgot the `-i` option to `luajit`: in that case the script is
-  executed and once completed will immedately exit. The system will be
-  shut down / cleaned up rather rougly.
-
-* You ran the wrong Lua executable (e.g. a standard Lua instead of
-  `luajit`).
-
-### Real-time priorities
-
-To run with real-time priorities, give the luajit binary
-`cap_sys_nice` capabilities, e.g:
-
-```
-$ sudo setcap cap_sys_nice+ep /usr/local/bin/luajit-2.0.2
-```
+Please post any problems via the github issue tracker.
 
 License
 -------
