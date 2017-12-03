@@ -51,16 +51,20 @@ Before building microblx, liblfds611 needs to be built and
 installed. There is a set of patches in the microblx repository to
 clean up the packaging of liblfds. Follow the instructions below:
 
-Build lfds
+First build lfds:
 
 ```bash
 $ git clone https://github.com/liblfds/liblfds6.1.1.git
 $ git clone git@github.com:kmarkus/microblx.git
 $ cd liblfds6.1.1
 $ git am ~/microblx/liblfds/*.patch
+$ ./bootstrap
+$ ./configure --prefix=/usr
+$ make
+$ sudo make install
 ```
 
-Build microblx
+Now build microblx:
 
 ```bash
 $ cd ../microblx
