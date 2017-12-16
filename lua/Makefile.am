@@ -6,4 +6,5 @@ luajitmod_SCRIPTS = ubx.lua \
 		blockdiagram.lua \
 		cdata_tolua_test.lua \
 		cdata_layout.lua \
-		luaffi-introspection.lua
+		luaffi-introspection.lua \
+		umf.lua
