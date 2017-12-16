@@ -124,7 +124,7 @@ end
 ffi.cdef(read_file("/usr/include/ubx_uthash_ffi.h"))
 ffi.cdef(read_file("/usr/include/ubx_types.h"))
 ffi.cdef(read_file("/usr/include/ubx_proto.h"))
-local ubx=ffi.load("/usr/lib/libubx.so")
+local ubx=ffi.load("/usr/lib/libubx.so.0")
 
 setmetatable(M, { __index=function(t,k) return ubx["ubx_"..k] end })
 
