@@ -815,7 +815,7 @@ int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* doc,
 }
 
 /**
- * ubx_clear_config_data - free a config's extra memory
+ * ubx_config_free_data - free a config's extra memory
  *
  * @param c config whose data to free
  */
