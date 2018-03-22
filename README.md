@@ -38,10 +38,9 @@ Building and setting up
 
 ### Using yocto
 
-*Note* work-in-progress.
-
-The easiest way to get going is by using the meta-microblx yocto
-layer.
+The best way to use microblx on an embedded system is by using the
+[meta-microblx](https://github.com/kmarkus/meta-microblx) yocto
+layer. Please see the README in that repository for further steps.
 
 ### Building manually
 
