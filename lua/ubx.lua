@@ -121,13 +121,42 @@ local function setup_enums()
 end
 
 -- load ubx_types and library
-ffi.cdef(read_file("/usr/include/ubx_uthash_ffi.h"))
-ffi.cdef(read_file("/usr/include/ubx_types.h"))
-ffi.cdef(read_file("/usr/include/ubx_proto.h"))
-local ubx=ffi.load("/usr/lib/libubx.so.0")
 
-setmetatable(M, { __index=function(t,k) return ubx["ubx_"..k] end })
+local load_files = {
+   "include/ubx_uthash_ffi.h",
+   "include/ubx_types.h",
+   "include/ubx_proto.h",
+   "lib/libubx.so.0"
+}
 
+-- possible file prefixes for above headers and libraries
+local prefixes = { "/usr", "/usr/local" }
+
+local function find_prefix()
+   for _,pf in ipairs(prefixes) do
+      local match=true
+      utils.foreach(
+	 function(f)
+	    match = match and utils.file_exists(pf.."/"..f)
+	 end, load_files )
+      if match == true then
+	 print("using prefix: "..green(pf))
+	 return pf
+      end
+   end
+   error("failed to load ubx files\n"..table.concat(load_files, '\n')
+	    .. " under the prefixes\n"..table.concat(prefixes, '\n'))
+end
+
+local ubx = nil
+local function load_ubx_ffi(prefix)
+   ffi.cdef(read_file(prefix.."/include/ubx_uthash_ffi.h"))
+   ffi.cdef(read_file(prefix.."/include/ubx_types.h"))
+   ffi.cdef(read_file(prefix.."/include/ubx_proto.h"))
+   ubx=ffi.load(prefix.."/lib/libubx.so.0")
+   setmetatable(M, { __index=function(t,k) return ubx["ubx_"..k] end })
+   M.ubx=ubx
+end
 
 ffi.cdef [[
 void *malloc(size_t size);
@@ -136,7 +165,8 @@ void *calloc(size_t nmemb, size_t size);
 void *realloc(void *ptr, size_t size);
 ]]
 
-M.ubx=ubx
+local prefix=find_prefix()
+load_ubx_ffi(prefix)
 setup_enums()
 
 --- Safely convert a char* to a lua string.
@@ -218,7 +248,7 @@ end
 -- @param libfile module file to load
 function M.load_module(ni, libfile)
    local ver = string.sub(M.safe_tostr(ubx.ubx_version()), 1, 3)
-   local modpath = "/usr/lib/microblx/"..ver.."/"..libfile
+   local modpath = prefix.."/lib/microblx/"..ver.."/"..libfile
    if string.sub(modpath, -3) ~= '.so' then modpath = modpath .. ".so" end
 
    local res = ubx.ubx_module_load(ni, modpath)
