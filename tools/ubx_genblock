@@ -253,29 +253,29 @@ function generate_automakefile(fd, bm)
    local res, str = utils.preproc(
       [[
 
-ubxmoddir = $(libdir)/microblx/@UBX_VER@
+ubxmoddir = ${libdir}/microblx/@UBX_VER@
 ubxmod_LTLIBRARIES = $(bm.name).la
 
 $(gen_built_sources())
 
 CLEANFILES = $(BUILT_SOURCES)
 
-$(bm.name)_la_includes = $(top_srcdir)/libubx/ubx.h
+$(bm.name)_la_includes = ${top_srcdir}/libubx/ubx.h
 @ if bm.cpp then
-$(bm.name)_la_SOURCES = $(bm.name)_la_includes) $(bm.name).cpp
+$(bm.name)_la_SOURCES = ${$(bm.name)_la_includes} $(bm.name).cpp
 @ else
-$(bm.name)_la_SOURCES = $(bm.name)_la_includes) $(bm.name).c
+$(bm.name)_la_SOURCES = ${$(bm.name)_la_includes} $(bm.name).c
 @ end
 $(bm.name)_la_LDFLAGS = -module -avoid-version -shared -export-dynamic @UBX_LIBS@
 @ if bm.cpp then
-$(bm.name)_la_CPPFLAGS = -I$(top_srcdir)/libubx @UBX_CFLAGS@
+$(bm.name)_la_CPPFLAGS = -I${top_srcdir}/libubx @UBX_CFLAGS@
 @ else
-$(bm.name)_la_CFLAGS = -I$(top_srcdir)/libubx @UBX_CFLAGS@
+$(bm.name)_la_CFLAGS = -I${top_srcdir}/libubx @UBX_CFLAGS@
 @ end
 %.h.hexarr: %.h
 	ubx_tocarr $<
 
-]], { bm=bm, libdir="$(libdir)", gen_built_sources=gen_built_sources, table=table })
+]], { bm=bm, gen_built_sources=gen_built_sources, table=table })
 
    if not res then error(str) end
    fd:write(str)
