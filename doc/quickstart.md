@@ -9,9 +9,7 @@ output is hexdump'ed (using the `hexdump` interaction block) and also
 logged using a `file_logger` block.
 
 ```sh
-$ cd /usr/share/microblx/
-$ ubx_launch -webif -c examples/systemmodels/trig_rnd_hexdump.usc
-...
+$ ubx_ilaunch -webif -c /usr/share/microblx/examples/systemmodels/trig_rnd_hexdump.usc
 ```
 
 Browse to http://localhost:8888
@@ -27,18 +25,28 @@ Explore:
 Create your first block
 -----------------------
 
-### Generate block
+NOTE: the following assumes that microblx has been installed with
+`--prefix=/usr/`.
+
+### Generate a block
 
 ```sh
-$ tools/ubx_genblock.lua -d std_blocks/myblock -c examples/block_model_example.lua
-     generating ...
+$ ubx_genblock -d myblock -c /usr/share/microblx/examples/blockmodels/block_model_example.lua 
+    generating myblock/configure.ac
+	generating myblock/Makefile.am
+	generating myblock/myblock.h
+	generating myblock/myblock.c
+	generating myblock/myblock.usc
+	generating myblock/types/vector.h
+	generating myblock/types/robot_data.h
 ```
 
 Run `ubx_genblock -h` for full options.
 
 The following files are generated:
 
- - `Makefile` standard makefile (you can edit this file)
+ - `configure.ac` autoconf input file
+ - `Makefile.am` automake input file
  - `myblock.h` block interface and module registration code (don't edit)
  - `myblock.c` module body (edit and implement functions)
  - `myblock.usc` simple microblx system composition file, see below (can be extended)
@@ -49,13 +57,17 @@ The following files are generated:
 ### Compile the block
 
 ```sh
-$ make    # could also be run inside std_blocks/myblock
+$ cd myblock/
+$ autoreconf --install
+$ ./configure --prefix=/usr/
+$ make
+$ make install
 ```
 
 ### Launch block using ubx_launch
 
 ```sh
-$ tools/ubx_launch -webif -c std_blocks/myblock/myblock.usc
+$ ubx_ilaunch -webif -c myblock.usc
 ```
 
 Run `ubx_launch -h` for full options.
