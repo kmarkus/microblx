@@ -435,7 +435,7 @@ function TableSpec.check(self, obj, vres)
 
       -- check all non optionals are defined
       for _,nopt_field in ipairs(nopts) do
-	 if not dct[nopt_field] then
+	 if dct[nopt_field]==nil then
 	    add_msg(vres, "err", "non-optional field '"..nopt_field.."' missing")
 	    ret=false
 	 end
