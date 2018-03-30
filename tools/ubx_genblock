@@ -385,11 +385,12 @@ ubx_port_t $(bm.name)_ports[] = {
 	{ NULL },
 };
 
+@ if bm.port_cache then
 /* declare a struct port_cache */
 struct $(bm.name)_port_cache {
-@ for _,t in ipairs(bm.ports or {}) do
+@    for _,t in ipairs(bm.ports or {}) do
 	ubx_port_t* $(t.name);
-@ end
+@    end
 };
 
 /* declare a helper function to update the port cache this is necessary
@@ -399,11 +400,11 @@ struct $(bm.name)_port_cache {
  */
 static void update_port_cache(ubx_block_t *b, struct $(bm.name)_port_cache *pc)
 {
-@ for _,t in ipairs(bm.ports or {}) do
+@    for _,t in ipairs(bm.ports or {}) do
 	pc->$(t.name) = ubx_port_get(b, "$(t.name)");
-@ end
+@    end
 }
-
+@ end -- if bm.port_cache
 
 /* for each port type, declare convenience functions to read/write from ports */
 $(generate_rd_wr_helpers(bm))
@@ -566,7 +567,9 @@ int $(bm.name)_init(ubx_block_t *b)
 		goto out;
 	}
 	b->private_data=inf;
+@ if bm.port_cache then
 	update_port_cache(b, &inf->ports);
+@ end
 	ret=0;
 out:
 	return ret;
