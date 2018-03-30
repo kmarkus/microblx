@@ -363,9 +363,9 @@ char $(bm.name)_meta[] =
 /* declaration of block configuration */
 ubx_config_t $(bm.name)_config[] = {
 @ for _,c in ipairs(bm.configurations or {}) do
-@       c.doc=doublequote(c.doc) or 'NULL'
+@       c.doc = c.doc or ''
 @    if bm.cpp then
-	ubx_config_cpp("$(c.name)", "$(c.type_name)", $(c.doc)),
+	ubx_config_cpp("$(c.name)", "$(c.type_name)", "$(c.doc)"),
 @    else
 	{ .name="$(c.name)", .type_name = "$(c.type_name)", .doc="$(c.doc)" },
 @    end
