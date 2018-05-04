@@ -1,5 +1,5 @@
 
-ubxmoddir = $(libdir)/@PACKAGE@/@UBX_VER@
+ubxmoddir = $(ubx_moddir)
 ubxmod_LTLIBRARIES = webif.la
 
 BUILT_SOURCES = webif.lua.hexarr

@@ -1,5 +1,5 @@
 
-ubxmoddir = $(libdir)/@PACKAGE@/@UBX_VER@
+ubxmoddir = $(ubx_moddir)
 ubxmod_LTLIBRARIES = simple_fifo.la
 
 simple_fifo_la_includes = $(top_srcdir)/libubx/ubx.h

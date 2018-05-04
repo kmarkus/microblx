@@ -1,6 +1,6 @@
 # hexdump : hexdump block
 
-ubxmoddir = $(libdir)/@PACKAGE@/@UBX_VER@
+ubxmoddir = $(ubx_moddir)
 ubxmod_LTLIBRARIES = hexdump.la
 
 hexdump_la_includes = $(top_srcdir)/libubx/ubx.h

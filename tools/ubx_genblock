@@ -253,7 +253,7 @@ function generate_automakefile(fd, bm)
    local res, str = utils.preproc(
       [[
 
-ubxmoddir = ${libdir}/microblx/@UBX_VER@
+ubxmoddir = $(ubx_moddir)
 ubxmod_LTLIBRARIES = $(bm.name).la
 
 $(gen_built_sources())

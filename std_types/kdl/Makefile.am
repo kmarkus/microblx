@@ -1,5 +1,5 @@
 
-ubxmoddir = $(libdir)/@PACKAGE@/@UBX_VER@
+ubxmoddir = $(ubx_moddir)
 ubxmod_LTLIBRARIES = kdl_types.la
 
 BUILT_SOURCES =  types/kdl_frame.h.hexarr \

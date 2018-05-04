@@ -1,6 +1,6 @@
 # trig: simple trigger block
 
-ubxmoddir = $(libdir)/@PACKAGE@/@UBX_VER@
+ubxmoddir = $(ubx_moddir)
 
 ubxmod_LTLIBRARIES = trig.la
 
