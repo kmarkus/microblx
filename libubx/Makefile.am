@@ -17,8 +17,12 @@ libubx_la_SOURCES = $(libubx_includes) \
 
 libubx_la_LDFLAGS = -version-info $(UBX_LT_VER)
 
+BUILT_SOURCES = ubx_proto.h
+
+CLEANFILES = $(BUILT_SOURCES)
+
 ubx_proto.h: md5.c ubx.c
-	cproto md5.c ubx.c -I${top_srcdir}/ -I${top_srcdir}/libubx/ > $@
+	cproto $(srcdir)/md5.c $(srcdir)/ubx.c -I$(top_builddir)/ -I${top_srcdir}/ -I${top_srcdir}/libubx/ > $(srcdir)/$@
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = ubx0.pc

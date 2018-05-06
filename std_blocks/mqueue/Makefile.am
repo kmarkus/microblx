@@ -1,6 +1,6 @@
 # mqueue: message queue iblock
 
-ubxmoddir = $(libdir)/@PACKAGE@/@UBX_VER@
+ubxmoddir = $(ubx_moddir)
 ubxmod_LTLIBRARIES = mqueue.la
 
 mqueue_la_includes = $(top_srcdir)/libubx/ubx.h

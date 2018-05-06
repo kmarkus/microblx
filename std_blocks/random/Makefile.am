@@ -1,6 +1,6 @@
 # random : Random number generator block
 
-ubxmoddir = $(libdir)/@PACKAGE@/@UBX_VER@
+ubxmoddir = $(ubx_moddir)
 ubxmod_LTLIBRARIES = random.la
 
 BUILT_SOURCES = types/random_config.h.hexarr
