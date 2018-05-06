@@ -1,3 +1,2 @@
-SUBDIRS = kdl \
-          stdtypes \
+SUBDIRS = stdtypes \
           testtypes
