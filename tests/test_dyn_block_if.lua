@@ -20,7 +20,6 @@ local ni=ubx.node_create("test_dyn_block_if")
 
 ubx.load_module(ni, "stdtypes")
 ubx.load_module(ni, "testtypes")
-ubx.load_module(ni, "kdl_types")
 ubx.load_module(ni, "luablock")
 ubx.load_module(ni, "lfds_cyclic")
 

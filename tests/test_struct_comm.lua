@@ -17,7 +17,7 @@ local code_str_len = 16*1024*1024
 local ni = ubx.node_create("test_struct_comm")
 
 ubx.load_module(ni, "stdtypes")
-ubx.load_module(ni, "kdl_types")
+ubx.load_module(ni, "testtypes")
 ubx.load_module(ni, "luablock")
 ubx.load_module(ni, "lfds_cyclic")
 

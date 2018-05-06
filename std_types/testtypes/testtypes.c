@@ -9,11 +9,23 @@
 #include "types/test_trig_conf.h"
 #include "types/test_trig_conf.h.hexarr"
 
+#include "types/kdl_vector.h"
+#include "types/kdl_vector.h.hexarr"
+
+#include "types/kdl_rotation.h"
+#include "types/kdl_rotation.h.hexarr"
+
+#include "types/kdl_frame.h"
+#include "types/kdl_frame.h.hexarr"
+
 
 /* declare types */
 ubx_type_t types[] = {
 	def_basic_ctype(char[50]),
 	def_struct_type(struct test_trig_conf, &test_trig_conf_h),
+	def_struct_type(struct kdl_vector, &kdl_vector_h),
+	def_struct_type(struct kdl_rotation, &kdl_rotation_h),
+	def_struct_type(struct kdl_frame, &kdl_frame_h),
 	{ NULL },
 };
 

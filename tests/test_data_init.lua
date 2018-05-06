@@ -9,7 +9,6 @@ local ni=ubx.node_create("data_init_test")
 
 ubx.load_module(ni, "stdtypes")
 ubx.load_module(ni, "testtypes")
-ubx.load_module(ni, "kdl_types")
 
 function test_scalar_assignment()
    local d=ubx.data_alloc(ni, "unsigned int")

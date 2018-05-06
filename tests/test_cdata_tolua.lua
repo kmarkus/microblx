@@ -18,7 +18,6 @@ local ni=ubx.node_create("cdata_tolua_test")
 
 ubx.load_module(ni, "stdtypes")
 ubx.load_module(ni, "testtypes")
-ubx.load_module(ni, "kdl_types")
 
 function test_vector()
    local init = {x=1,y=2,z=3}
