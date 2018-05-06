@@ -85,7 +85,6 @@ std_blocks/random/Makefile
 std_blocks/simple_fifo/Makefile
 std_blocks/webif/Makefile
 std_types/Makefile
-std_types/kdl/Makefile
 std_types/stdtypes/Makefile
 std_types/testtypes/Makefile
 examples/Makefile
