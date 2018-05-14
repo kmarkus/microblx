@@ -1428,9 +1428,7 @@ ubx_data_t* ubx_config_get_data(ubx_block_t* b, const char *name)
  *
  * @param b ubx_block
  * @param name name of the requested configuration value
- * @param *len outvalue, the length of the region pointed to (in bytes)
- *
- * @return the array length of the ubx_data
+ * @param *len outvalue, the the array length of the ubx_data
  */
 void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *len)
 {
