@@ -735,8 +735,8 @@ void ubx_port_free_data(ubx_port_t* p)
 	if(p->out_type_name) free((char*) p->out_type_name);
 	if(p->in_type_name) free((char*) p->in_type_name);
 
-	if(p->in_interaction) free((char*) p->in_interaction);
-	if(p->out_interaction) free((char*) p->out_interaction);
+	if(p->in_interaction) free((struct ubx_block_t*) p->in_interaction);
+	if(p->out_interaction) free((struct ubx_block_t*) p->out_interaction);
 
 	if(p->doc) free((char*) p->doc);
 	if(p->name) free((char*) p->name);
