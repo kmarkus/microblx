@@ -1,6 +1,5 @@
 local lu = require"luaunit"
 local ffi=require"ffi"
-local lunit=require"lunit"
 local ubx=require"ubx"
 
 local assert_equals = lu.assert_equals
