@@ -1,0 +1,89 @@
+{
+   "configurations" : [
+      {
+         "name" : "rnd",
+         "config" : {
+            "min_max_config" : {
+               "min" : 127,
+               "max" : 256
+            }
+         }
+      },
+      {
+         "config" : {
+            "buffer_len" : 3,
+            "type_name" : "unsigned int"
+         },
+         "name" : "fifo1"
+      },
+      {
+         "name" : "logger1",
+         "config" : {
+            "filename" : "/tmp/trig_rnd_hexdump_usc.log",
+            "report_conf" : "{ { blockname='rnd', portname='rnd', buff_len=3 },\n { blockname='fifo1' } }",
+            "separator" : ","
+         }
+      },
+      {
+         "config" : {
+            "trig_blocks" : [
+               {
+                  "b" : "#rnd",
+                  "num_steps" : 1,
+                  "measure" : 0
+               },
+               {
+                  "measure" : 0,
+                  "b" : "#logger1",
+                  "num_steps" : 1
+               }
+            ],
+            "period" : {
+               "usec" : 100000,
+               "sec" : 0
+            }
+         },
+         "name" : "ptrig1"
+      }
+   ],
+   "connections" : [
+      {
+         "tgt" : "hexdump1",
+         "src" : "rnd.rnd"
+      },
+      {
+         "src" : "rnd.rnd",
+         "tgt" : "fifo1"
+      }
+   ],
+   "imports" : [
+      "stdtypes",
+      "ptrig",
+      "logger",
+      "random",
+      "lfds_cyclic",
+      "hexdump"
+   ],
+   "blocks" : [
+      {
+         "type" : "random/random",
+         "name" : "rnd"
+      },
+      {
+         "type" : "hexdump/hexdump",
+         "name" : "hexdump1"
+      },
+      {
+         "type" : "lfds_buffers/cyclic",
+         "name" : "fifo1"
+      },
+      {
+         "name" : "ptrig1",
+         "type" : "std_triggers/ptrig"
+      },
+      {
+         "name" : "logger1",
+         "type" : "logging/file_logger"
+      }
+   ]
+}

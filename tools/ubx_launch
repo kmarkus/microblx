@@ -5,18 +5,39 @@ ffi = require("ffi")
 ubx = require("ubx")
 bd = require("blockdiagram")
 utils = require("utils")
+json = require("cjson")
 ts = tostring
 
 function usage()
    print( [=[
 microblx function block model system launcher
    usage: ubx_launch OPTIONS -c <conf file>
-      -c               .usc model file to launch
+      -c               .usc or .json model file to launch
       -nodename        name to give to node
       -validate        don't run, just validate configuration file
       -webif <port>    create and start a webinterface block. Optional port defaults to 8888.
       -h               show this.
 ]=])
+end
+
+--- read model file from usc or json
+-- @param fn filename
+-- @return suc, model
+function read_model(fn)
+   local function read_json()
+      local f = assert(io.open(fn, "r"))
+      local data = json.decode(f:read("*all"))
+      return bd.system(data)
+   end
+   local ext = string.match(fn, "^.+%.(.+)$")
+   if ext == 'json' then
+      return pcall(read_json, fn)
+   elseif ext == 'usc' or ext == 'lua' then
+      return pcall(dofile, conf_file)
+   end
+
+   print("ubx_launch error: unknown extension "..tostring(ext))
+   os.exit(1)
 end
 
 local opttab=utils.proc_args(arg)
@@ -33,7 +54,7 @@ else
    conf_file = opttab['-c'][1]
 end
 
-local suc, model = pcall(dofile, conf_file)
+local suc, model = read_model(conf_file)
 
 if not suc then
    print(model)
