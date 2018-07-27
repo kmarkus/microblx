@@ -3,6 +3,7 @@
 #+SEQ_TODO: TODO(t) STARTED(s) WAITING(w@) | DONE(d) CANCELLED(c@)
 
 * Next release (1.0)
+** TODO non recursive make
 ** DONE luajit-2.1.0-beta3 crashes with reflect
 
    $ luajit -l reflect
@@ -32,7 +33,7 @@
     :LOGBOOK:  
     - State "DONE"       from "TODO"       [2017-11-10 Fri 22:06]
     :END:      
-*** TODO lunit
+*** DONE lunit
 *** TODO lfds
 ** TODO get yocto meta-microblx layer working on embedded hw
 ** TODO move youbot stuff out
@@ -62,7 +63,7 @@
    node_info. Could be via: port->block-node_info.
 
 ** TODO blockdiagram: figure out how to add behavior aka apps
-** TODO tools: add ubx_info <module>
+** TODO tools: add ubx_modinfo <module>
    pretty print contents of a module
 ** TODO create rotating zero copy ptr example
    - consider kdbus' memfd's
