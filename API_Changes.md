@@ -3,14 +3,22 @@ API Changes
 
 This file tracks user visible API changes.
 
+ * v0.3.3
+   - ubx_launch start directive e5a716c4c096020ec0767a7eb87c3952977919a2
+   - ubx_launch JSON support 4cc5fc83ae966153289c4dc9733d77737f7342e1
+   - various smaller cleanups
+
  * support for type registration in C++ added
+   0736a5172e7fb2a93dc7c9f42c525c0e5626ae0e
 
- * introduce `ubx_ilaunch` for interactive mode. Renamed non
-   interactive version to `ubx_launch`
+ * introduce `ubx_ilaunch` for interactive mode
+   1725f6172d92730044928ffaf984ec8b57be8bcb. Renamed non interactive
+   version to `ubx_launch`.
 
- * `file2carr.lua` renamed to `ubx_tocarr`
+ * `file2carr.lua` renamed to `ubx_tocarr` a3eee190b93423a49a678d20b239bc1dd30a3444
 
  * install core modules into `$(prefix)/lib/microblx/<major.minor>/`
+   51e1bbb6c79dc3aa9081802334c54f2c5bab1270
 
  * [9ff5615f9d] removed std Lua modules provided by separate package
    uutils (see README.md).
