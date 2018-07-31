@@ -294,12 +294,38 @@ function M.block_get(ni, bname)
    return b
 end
 
+--- Bring a block to the given state
+-- @param ni node_info handle
+-- @param name block name
+-- @param tgtstate desired state name ('active', 'inactive', 'preinit')
+function M.block_tostate(b, tgtstate)
+
+   if b.block_state == tgtstate then return end
+
+   -- starting it up
+   if (b.block_state == ffi.C.BLOCK_STATE_PREINIT and
+       (tgtstate == 'inactive' or tgtstate == 'active')) then
+      M.block_init(b)
+   end
+
+   if (b.block_state == ffi.C.BLOCK_STATE_INACTIVE and tgtstate == 'active') then
+      M.block_start(b)
+   end
+
+   -- shutting it down
+   if (b.block_state == ffi.C.BLOCK_STATE_ACTIVE and
+       (tgtstate == 'inactive' or tgtstate == 'preinit')) then
+      M.block_stop(b)
+   end
+
+   if (b.block_state == ffi.C.BLOCK_STATE_INACTIVE and tgtstate == 'preinit') then
+      M.block_cleanup(b)
+   end
+end
+
 --- Unload a block: bring it to state preinit and call ubx_block_rm
 function M.block_unload(ni, name)
-   local b=M.block_get(ni, name)
-   if b==nil then error("no block "..tostring(name).." found") end
-   if b.block_state==ffi.C.BLOCK_STATE_ACTIVE then M.block_stop(b) end
-   if b.block_state==ffi.C.BLOCK_STATE_INACTIVE then M.block_cleanup(b) end
+   M.block_tostate(ni, name, 'preinit')
    if M.block_rm(ni, name) ~= 0 then error("block_unload: ubx_block_rm failed for '"..name.."'") end
 end
 
@@ -1378,7 +1404,7 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
    if len1 ~= len2 then print(yellow("WARNING: conn_lfds_cyclic "
 					..bname1.."."..pname1.. " and "
 					..bname2.."."..pname2.." have different array len ("
-				        ..tostring(len1).." vs "..tostring(len2).."). Using minimum!"), true)
+					..tostring(len1).." vs "..tostring(len2).."). Using minimum!"), true)
    end
 
    if type(element_num) ~= 'number' or element_num < 1 then
