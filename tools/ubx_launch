@@ -1,14 +1,13 @@
 #!/usr/bin/env luajit
 -- -*- lua -*-
 
-ffi = require("ffi")
-ubx = require("ubx")
-bd = require("blockdiagram")
-utils = require("utils")
-json = require("cjson")
-ts = tostring
+local ubx = require("ubx")
+local bd = require("blockdiagram")
+local utils = require("utils")
+local json = require("cjson")
+local ts = tostring
 
-function usage()
+local function usage()
    print( [=[
 microblx function block model system launcher
    usage: ubx_launch OPTIONS -c <conf file>
@@ -23,25 +22,30 @@ end
 --- read model file from usc or json
 -- @param fn filename
 -- @return suc, model
-function read_model(fn)
+local function read_model(fn)
+
    local function read_json()
       local f = assert(io.open(fn, "r"))
       local data = json.decode(f:read("*all"))
       return bd.system(data)
    end
-   local ext = string.match(fn, "^.+%.(.+)$")
-   if ext == 'json' then
-      return pcall(read_json, fn)
-   elseif ext == 'usc' or ext == 'lua' then
-      return pcall(dofile, conf_file)
-   end
 
-   print("ubx_launch error: unknown extension "..tostring(ext))
-   os.exit(1)
+   local ext = string.match(fn, "^.+%.(.+)$")
+   local suc, mod
+   if ext == 'json' then
+      suc, mod = pcall(read_json, fn)
+   elseif ext == 'usc' or ext == 'lua' then
+      suc, mod = pcall(dofile, fn)
+   else
+      print("ubx_launch error: unknown extension "..tostring(ext))
+      os.exit(1)
+   end
+   return suc, mod
 end
 
 local opttab=utils.proc_args(arg)
 local nodename="node-"..os.date("%Y%m%d_%H%M%S")
+local conf_file
 
 if #arg==1 or opttab['-h'] then
    usage(); os.exit(1)

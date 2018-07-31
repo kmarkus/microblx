@@ -1,25 +1,25 @@
 local ubx = require "ubx"
 local umf = require "umf"
-local strict = require "strict"
 local utils = require "utils"
-local ac = require "ansicolors"
 local ts = tostring
 local M={}
+
 local strict = require "strict"
 
--- color handling via ubx
-red=ubx.red; blue=ubx.blue; cyan=ubx.cyan; white=ubx.cyan; green=ubx.green; yellow=ubx.yellow; magenta=ubx.magenta
+local red=ubx.red
+local blue=ubx.blue
+local cyan=ubx.cyan
+local green=ubx.green
+local yellow=ubx.yellow
+local magenta=ubx.magenta
 
-AnySpec=umf.AnySpec
-NumberSpec=umf.NumberSpec
-StringSpec=umf.StringSpec
-TableSpec=umf.TableSpec
-ObjectSpec=umf.ObjectSpec
+local AnySpec=umf.AnySpec
+local NumberSpec=umf.NumberSpec
+local StringSpec=umf.StringSpec
+local TableSpec=umf.TableSpec
+local ObjectSpec=umf.ObjectSpec
 
-uoo_type = umf.uoo_type
-instance_of = umf.instance_of
-
-system = umf.class("system")
+local system = umf.class("system")
 
 function system:init()
    local function create_parent_links(subsys) subsys._parent=self end
@@ -27,7 +27,7 @@ function system:init()
 end
 
 --- imports spec
-imports_spec = TableSpec
+local imports_spec = TableSpec
 {
    name='imports',
    array = { StringSpec{} },
@@ -38,7 +38,7 @@ imports_spec = TableSpec
 }
 
 -- blocks
-blocks_spec = TableSpec
+local blocks_spec = TableSpec
 {
    name='blocks',
    array = {
@@ -53,7 +53,7 @@ blocks_spec = TableSpec
 }
 
 -- connections
-connections_spec = TableSpec
+local connections_spec = TableSpec
 {
    name='connections',
    array = {
@@ -73,7 +73,7 @@ connections_spec = TableSpec
 }
 
 -- configuration
-configs_spec = TableSpec
+local configs_spec = TableSpec
 {
    name='configurations',
    array = {
@@ -88,7 +88,7 @@ configs_spec = TableSpec
 
 --- system spec
 
-system_spec = ObjectSpec
+local system_spec = ObjectSpec
 {
    name='system',
    type=system,
@@ -111,7 +111,7 @@ system_spec = ObjectSpec
 -- add self include reference
 system_spec.dict.include.array[#system_spec.dict.include.array+1] = system_spec
 
-function is_system(s)
+local function is_system(s)
    return umf.uoo_type(s) == 'instance' and umf.instance_of(system, s)
 end
 
@@ -121,9 +121,9 @@ function system:validate(verbose)
 end
 
 --- Load system from file.
--- @param file name of file
+-- @param file name of file (usc or json)
 -- @return system
-function load(file)
+local function load(file)
    local sys = dofile(file)
    if not is_system(sys) then
       error("blockdiagram.load: no valid system in file '" .. tostring(file) .. "' found.")
