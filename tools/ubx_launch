@@ -4,7 +4,6 @@
 local ubx = require("ubx")
 local bd = require("blockdiagram")
 local utils = require("utils")
-local json = require("cjson")
 local ts = tostring
 
 local function usage()
@@ -17,30 +16,6 @@ microblx function block model system launcher
       -webif <port>    create and start a webinterface block. Optional port defaults to 8888.
       -h               show this.
 ]=])
-end
-
---- read model file from usc or json
--- @param fn filename
--- @return suc, model
-local function read_model(fn)
-
-   local function read_json()
-      local f = assert(io.open(fn, "r"))
-      local data = json.decode(f:read("*all"))
-      return bd.system(data)
-   end
-
-   local ext = string.match(fn, "^.+%.(.+)$")
-   local suc, mod
-   if ext == 'json' then
-      suc, mod = pcall(read_json, fn)
-   elseif ext == 'usc' or ext == 'lua' then
-      suc, mod = pcall(dofile, fn)
-   else
-      print("ubx_launch error: unknown extension "..tostring(ext))
-      os.exit(1)
-   end
-   return suc, mod
 end
 
 local opttab=utils.proc_args(arg)
@@ -58,7 +33,7 @@ else
    conf_file = opttab['-c'][1]
 end
 
-local suc, model = read_model(conf_file)
+local suc, model = bd.load(conf_file)
 
 if not suc then
    print(model)

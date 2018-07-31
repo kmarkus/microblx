@@ -1,6 +1,7 @@
 local ubx = require "ubx"
 local umf = require "umf"
 local utils = require "utils"
+local json = require("cjson")
 local ts = tostring
 local M={}
 
@@ -120,15 +121,32 @@ function system:validate(verbose)
    return umf.check(self, system_spec, verbose)
 end
 
---- Load system from file.
--- @param file name of file (usc or json)
--- @return system
-local function load(file)
-   local sys = dofile(file)
-   if not is_system(sys) then
-      error("blockdiagram.load: no valid system in file '" .. tostring(file) .. "' found.")
+--- read blockdiagram system file from usc or json file
+-- @param fn file name of file (usc or json)
+-- @return true or error msg, system model
+local function load(fn)
+
+   local function read_json()
+      local f = assert(io.open(fn, "r"))
+      local data = json.decode(f:read("*all"))
+      return system(data)
    end
-   return sys
+
+   local ext = string.match(fn, "^.+%.(.+)$")
+   local suc, mod
+   if ext == 'json' then
+      suc, mod = pcall(read_json, fn)
+   elseif ext == 'usc' or ext == 'lua' then
+      suc, mod = pcall(dofile, fn)
+   else
+      error("ubx_launch error: unknown extension "..tostring(ext))
+   end
+
+   if not is_system(mod) then
+      error("blockdiagram.load: no valid system in file '" .. tostring(fn) .. "' found.")
+   end
+
+   return suc, mod
 end
 
 --- Launch a blockdiagram system
