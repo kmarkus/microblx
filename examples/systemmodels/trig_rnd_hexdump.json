@@ -85,5 +85,6 @@
          "name" : "logger1",
          "type" : "logging/file_logger"
       }
-   ]
+   ],
+   "start" : [ "ptrig1" ]
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for t in tests/test_*; do
+for t in tests/test_*.lua; do
     echo "running $t"
     luajit $t
 done

@@ -87,6 +87,15 @@ local configs_spec = TableSpec
    }
 }
 
+-- start
+local start_spec = TableSpec
+{
+   name='start',
+   array = { StringSpec },
+   sealed='both'
+}
+
+
 --- system spec
 
 local system_spec = ObjectSpec
@@ -104,9 +113,10 @@ local system_spec = ObjectSpec
       blocks=blocks_spec,
       connections=connections_spec,
       configurations=configs_spec,
+      start=start_spec,
       _parent=AnySpec{},
    },
-   optional={ 'include', 'imports', 'blocks', 'connections', 'configurations', '_parent' },
+   optional={ 'include', 'imports', 'blocks', 'connections', 'configurations', 'start', '_parent' },
 }
 
 -- add self include reference
@@ -183,7 +193,7 @@ function system.launch(self, t)
 
    --- Generate an order list of all modules to be imported
    -- @param blockdiagram.system
-   -- @reteurn list of imports
+   -- @return list of imports
    local function make_import_list(c)
       local res = {}
 
@@ -198,7 +208,7 @@ function system.launch(self, t)
    -- Preprocess configs
    -- @param ni node_info
    -- @param c configuration
-   -- Substitue #blockanme with corresponding ubx_block_t ptrs
+   -- Substitute #blockanme with corresponding ubx_block_t ptrs
    local function preproc_configs(ni, c)
       local ret=true
       local function subs_blck_ptrs(val, tab, key)
@@ -244,6 +254,7 @@ function system.launch(self, t)
       self.blocks = self.blocks or {}
       self.configurations = self.configurations or {}
       self.connections = self.connections or {}
+      self.start = self.start or {}
 
       log("launching block diagram system in node "..ts(t.nodename))
 
@@ -347,6 +358,25 @@ function system.launch(self, t)
 		       end, self.connections)
 
 	 log("creating connections completed")
+
+	 if not t.nostart and #self.start > 0 then
+	    log("activating "..ts(#self.blocks).." blocks... ")
+	    utils.foreach(
+	       function (bmodel)
+		  -- skip the blocks in the start table
+		  if utils.table_has(self.start, bmodel.name) then return end
+		  local b = ubx.block_get(ni, bmodel.name)
+		  log("    activating", green(bmodel.name))
+		  ubx.block_tostate(b, 'active')
+	       end, self.blocks)
+	    -- start the start table blocks in order
+	    for _,trigname in ipairs(self.start) do
+	       local b = ubx.block_get(ni, trigname)
+	       log("    activating", green(trigname))
+	       ubx.block_tostate(b, 'active')
+	    end
+	    log("activating blocks completed")
+	 end
       end
       ind_log=ind_log-1
    end
