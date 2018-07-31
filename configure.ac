@@ -1,6 +1,6 @@
 m4_define([package_version_major],[0])
 m4_define([package_version_minor],[3])
-m4_define([package_version_micro],[2])
+m4_define([package_version_micro],[3])
 
 m4_define([libubx_if_current], [2])  dnl inc if interface added or removed
 m4_define([libubx_if_revision], [3]) dnl always inc
