@@ -13,6 +13,7 @@ microblx function block model system launcher
       -c               .usc or .json model file to launch
       -nodename        name to give to node
       -nostart         instantiate and configure, but don't start
+      -t               time to run in seconds
       -validate        don't run, just validate configuration file
       -webif <port>    create and start a webinterface block. Optional port defaults to 8888.
       -h               show this.
@@ -70,7 +71,18 @@ if opttab['-webif'] then
 end
 
 if not opttab['-i'] then
-   while true do
-      ubx.clock_mono_sleep(60)
+   local duration = 0
+   if not (opttab['-t'] and opttab['-t'][1]) then
+      print("no time given (-t option)")
+      os.exit(1)
+   else
+      duration = tonumber(opttab['-t'][1])
+   end
+   if duration then
+      ubx.clock_mono_sleep(duration)
+   else
+      while true do
+         ubx.clock_mono_sleep(60)
+      end
    end
 end
