@@ -325,7 +325,8 @@ end
 
 --- Unload a block: bring it to state preinit and call ubx_block_rm
 function M.block_unload(ni, name)
-   M.block_tostate(ni, name, 'preinit')
+   local b = M.block_get(ni, name)
+   M.block_tostate(b, 'preinit')
    if M.block_rm(ni, name) ~= 0 then error("block_unload: ubx_block_rm failed for '"..name.."'") end
 end
 
