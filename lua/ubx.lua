@@ -295,9 +295,8 @@ function M.block_get(ni, bname)
 end
 
 --- Bring a block to the given state
--- @param ni node_info handle
--- @param name block name
--- @param tgtstate desired state name ('active', 'inactive', 'preinit')
+-- @param b block
+-- @param tgtstate desired state ('active', 'inactive', 'preinit')
 function M.block_tostate(b, tgtstate)
 
    if b.block_state == tgtstate then return end
