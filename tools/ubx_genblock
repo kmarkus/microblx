@@ -215,6 +215,7 @@ m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT(disable-static)
 
 AC_SUBST([UBX_VER], [package_version_major.package_version_minor])
+AC_SUBST([ubx_moddir], [$libdir/$PACKAGE/$UBX_VER])
 
 PKG_CHECK_MODULES(UBX, ubx0 >= 0.1.0)
 
@@ -253,7 +254,7 @@ function generate_automakefile(fd, bm)
    local res, str = utils.preproc(
       [[
 
-ubxmoddir = $(ubx_moddir)
+ubxmoddir = ${ubx_moddir}
 ubxmod_LTLIBRARIES = $(bm.name).la
 
 $(gen_built_sources())
