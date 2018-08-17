@@ -72,13 +72,15 @@ end
 
 if not opttab['-i'] then
    local duration = 0
-   if not (opttab['-t'] and opttab['-t'][1]) then
-      print("no time given (-t option)")
-      os.exit(1)
-   else
-      duration = tonumber(opttab['-t'][1])
+   if opttab['-t'] then
+      if not opttab['-t'][1] then
+         print("no time given (-t option)")
+         os.exit(1)
+      else
+         duration = tonumber(opttab['-t'][1])
+      end
    end
-   if duration then
+   if (duration > 0) then
       ubx.clock_mono_sleep(duration)
    else
       while true do
