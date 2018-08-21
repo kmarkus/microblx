@@ -1,6 +1,6 @@
-/* md5.c */
+/* ./md5.c */
 void md5(const unsigned char *input, int len, unsigned char output[16]);
-/* ubx.c */
+/* ./ubx.c */
 int checktype(ubx_node_info_t *ni, ubx_type_t *required, const char *tcheck_str, const char *portname, int isrd);
 const char *block_state_tostr(int state);
 const char *get_typename(ubx_data_t *data);
@@ -59,4 +59,5 @@ void ubx_ts_sub(struct ubx_timespec *ts1, struct ubx_timespec *ts2, struct ubx_t
 void ubx_ts_add(struct ubx_timespec *ts1, struct ubx_timespec *ts2, struct ubx_timespec *out);
 void ubx_ts_div(struct ubx_timespec *ts, long div, struct ubx_timespec *out);
 double ubx_ts_to_double(struct ubx_timespec *ts);
+uint64_t ubx_ts_to_ns(struct ubx_timespec *ts);
 const char *ubx_version(void);

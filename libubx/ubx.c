@@ -2200,6 +2200,18 @@ double ubx_ts_to_double(struct ubx_timespec *ts)
 }
 
 /**
+ * ubx_ts_to_ns - convert ubx_timespec to uint64_t [ns]
+ *
+ * @param ts
+ *
+ * @return time in nanoseconds
+ */
+uint64_t ubx_ts_to_ns(struct ubx_timespec *ts)
+{
+	return ts->sec * (uint64_t)NSEC_PER_SEC + ts->nsec;
+}
+
+/**
  * ubx_version - return ubx version
  *
  * @return version string major.minor.patchlevel
