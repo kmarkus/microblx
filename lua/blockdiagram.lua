@@ -159,6 +159,32 @@ local function load(fn)
    return suc, mod
 end
 
+--- Pulldown a blockdiagram system
+-- @param self system specification to load
+-- @param t configuration table
+function system.pulldown(self, t)
+   local log
+   local ind_log = -1
+   local ind_mul = 4
+   if t.verbose then
+      log=function(first, ...)
+	 print(string.rep(' ', ind_log*ind_mul)..tostring(first), ...)
+      end
+   else log=function() end end
+
+   if not t.nostart and #self.start > 0 then
+      log("deactivating "..ts(#self.blocks).." blocks... ")
+      -- stop the start table blocks in reverse order
+      for i = #self.start, 1, -1 do
+         log("    deactivating", green(self.start[i]))
+         ubx.block_unload(ni, self.start[i])
+      end
+      log("    deactivating remaining blocks... ")
+      ubx.node_cleanup(ni)
+      log("deactivating blocks completed")
+   end
+end
+
 --- Launch a blockdiagram system
 -- @param self system specification to load
 -- @param t configuration table

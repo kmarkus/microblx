@@ -88,3 +88,7 @@ if not opttab['-i'] then
       end
    end
 end
+
+model:pulldown{nodename=nodename,
+	       verbose=true,
+               nostart=opttab['-nostart']}
