@@ -939,7 +939,7 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 
 	/* copy configuration */
 	if(prot->configs) {
-		for(i=0; prot->configs[i].name!=NULL; i++); /* compute length */
+		i = get_num_configs(prot);
 
 		if((newb->configs = calloc(i+1, sizeof(ubx_config_t)))==NULL)
 			goto out_free;
@@ -954,7 +954,7 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 
 	/* do we have ports? */
 	if(prot->ports) {
-		for(i=0; prot->ports[i].name!=NULL; i++); /* find number of ports */
+		i = get_num_ports(prot);
 
 		if((newb->ports = calloc(i+1, sizeof(ubx_port_t)))==NULL)
 			goto out_free;
