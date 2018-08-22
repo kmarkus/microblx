@@ -384,25 +384,25 @@ function system.launch(self, t)
 		       end, self.connections)
 
 	 log("creating connections completed")
+      end
 
-	 if not t.nostart and #self.start > 0 then
-	    log("activating "..ts(#self.blocks).." blocks... ")
-	    utils.foreach(
-	       function (bmodel)
-		  -- skip the blocks in the start table
-		  if utils.table_has(self.start, bmodel.name) then return end
-		  local b = ubx.block_get(ni, bmodel.name)
-		  log("    activating", green(bmodel.name))
-		  ubx.block_tostate(b, 'active')
-	       end, self.blocks)
-	    -- start the start table blocks in order
-	    for _,trigname in ipairs(self.start) do
-	       local b = ubx.block_get(ni, trigname)
-	       log("    activating", green(trigname))
+      if not t.nostart and #self.start > 0 then
+	 log("activating "..ts(#self.blocks).." blocks... ")
+	 utils.foreach(
+	    function (bmodel)
+	       -- skip the blocks in the start table
+	       if utils.table_has(self.start, bmodel.name) then return end
+	       local b = ubx.block_get(ni, bmodel.name)
+	       log("    activating", green(bmodel.name))
 	       ubx.block_tostate(b, 'active')
-	    end
-	    log("activating blocks completed")
+	    end, self.blocks)
+	 -- start the start table blocks in order
+	 for _,trigname in ipairs(self.start) do
+	    local b = ubx.block_get(ni, trigname)
+	    log("    activating", green(trigname))
+	    ubx.block_tostate(b, 'active')
 	 end
+	 log("activating blocks completed")
       end
       ind_log=ind_log-1
    end
