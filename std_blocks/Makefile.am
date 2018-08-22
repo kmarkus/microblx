@@ -7,5 +7,6 @@ SUBDIRS = cppdemo \
           ptrig \
           trig \
           random \
+          ramp \
           simple_fifo \
           webif

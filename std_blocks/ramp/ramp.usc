@@ -1,0 +1,24 @@
+local bd = require("blockdiagram")                                                          
+return bd.system
+{
+   imports = {
+      "stdtypes",
+      "ramp",
+   },
+
+   blocks = {
+      { name="ramp_1", type="ramp" },
+   },
+
+   configurations = {
+      { name="ramp_1",
+	config = {
+	   start = 10,
+	   slope = 0.25
+	}
+      }
+   },
+
+   start = { "ramp_1" }
+
+}
