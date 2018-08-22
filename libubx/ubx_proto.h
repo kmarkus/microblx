@@ -36,11 +36,13 @@ int ubx_ports_connect_uni(ubx_port_t *out_port, ubx_port_t *in_port, ubx_block_t
 int ubx_port_disconnect_out(ubx_port_t *out_port, ubx_block_t *iblock);
 int ubx_port_disconnect_in(ubx_port_t *in_port, ubx_block_t *iblock);
 int ubx_ports_disconnect_uni(ubx_port_t *out_port, ubx_port_t *in_port, ubx_block_t *iblock);
+unsigned int get_num_configs(ubx_block_t *b);
 ubx_config_t *ubx_config_get(ubx_block_t *b, const char *name);
 ubx_data_t *ubx_config_get_data(ubx_block_t *b, const char *name);
 void *ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *len);
 int ubx_config_add(ubx_block_t *b, const char *name, const char *meta, const char *type_name, unsigned long len);
 int ubx_config_rm(ubx_block_t *b, const char *name);
+unsigned int get_num_ports(ubx_block_t *b);
 int ubx_port_add(ubx_block_t *b, const char *name, const char *doc, const char *in_type_name, unsigned long in_data_len, const char *out_type_name, unsigned long out_data_len, uint32_t state);
 int ubx_port_rm(ubx_block_t *b, const char *name);
 ubx_port_t *ubx_port_get(ubx_block_t *b, const char *name);
