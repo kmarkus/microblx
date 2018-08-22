@@ -242,7 +242,7 @@ function generate_automakefile(fd, bm)
 
    -- Generate the BUILT_SOURCES directive
    local function gen_built_sources()
-	 if not bm.types then return "" end
+	 if not bm.types or #bm.types < 1 then return "" end
 	 local tab = { "BUILT_SOURCES = types/" .. bm.types[1].name..".h.hexarr" }
 	 for i=2,#bm.types do
 	    tab[#tab+1] = "                types/" .. bm.types[i].name..".h.hexarr"
