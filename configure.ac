@@ -1,10 +1,10 @@
 m4_define([package_version_major],[0])
 m4_define([package_version_minor],[3])
-m4_define([package_version_micro],[3])
+m4_define([package_version_micro],[4])
 
-m4_define([libubx_if_current], [2])  dnl inc if interface added or removed
-m4_define([libubx_if_revision], [3]) dnl always inc
-m4_define([libubx_if_age], [2])      dnl inc only if API changes are backwards compatible
+m4_define([libubx_if_current], [3])  dnl inc if IF added, removed or changed
+m4_define([libubx_if_revision], [0]) dnl always inc if src changed, zero if current is inc'ed
+m4_define([libubx_if_age], [3])      dnl inc if API changes are backwards compatible, zero otherwise
 
 AC_INIT([microblx], [package_version_major.package_version_minor.package_version_micro])
 #AC_CONFIG_SRCDIR([libubx/ubx.c])
