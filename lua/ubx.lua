@@ -1400,6 +1400,12 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
       error("conn_lfds_cyclic: block ".. bname2.."'s port "..pname2.." is not an inport")
    end
 
+   if p1.out_type ~= p2.in_type then
+      error("conn_lfds_cyclic: port type mismatch:\n"..
+	       "\t"..bname1.."."..pname1.. " of type " ..M.safe_tostr(p1.out_type_name).."\n"..
+	       "\t"..bname2.."."..pname2.. " of type " ..M.safe_tostr(p2.in_type_name))
+   end
+
    len1, len2 = tonumber(p1.out_data_len), tonumber(p2.in_data_len)
 
    if len1 ~= len2 then print(yellow("WARNING: conn_lfds_cyclic "
