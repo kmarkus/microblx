@@ -38,7 +38,7 @@ local utils= require "utils"
 local ts=tostring
 local ac=require "ansicolors"
 local time=require"time"
-require "strict"
+-- require "strict"
 
 local M={}
 
