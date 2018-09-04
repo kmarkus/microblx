@@ -38,7 +38,7 @@ local utils= require "utils"
 local ts=tostring
 local ac=require "ansicolors"
 local time=require"time"
---require "strict"
+require "strict"
 
 local M={}
 
@@ -476,13 +476,14 @@ end
 
 --- Allocate a new ubx_data with a given dimensionality.
 -- This data will be automatically garbage collected.
+-- @param ni node_info
 -- @param ubx_type of data to allocate
 -- @param num desired type array length
 -- @return ubx_data_t
-function M.__data_alloc(typ, num)
+function M.__data_alloc(ni, typ, num)
    num=num or 1
    local d = ubx.__ubx_data_alloc(typ, num)
-   if d==nil then error(M.safe_tostr(ni.name)..": data_alloc: unkown type '"..type_name.."'") end
+   if d==nil then error(M.safe_tostr(ni.name)..": data_alloc: unkown type '"..M.safe_tostr(typ.name).."'") end
    ffi.gc(d, function(dat) ubx.ubx_data_free(ni, dat) end)
    return d
 end
@@ -495,7 +496,7 @@ end
 -- @return ubx_data_t
 function M.data_alloc(ni, type_name, num)
    local t = M.type_get(ni, type_name)
-   return M.__data_alloc(t, num)
+   return M.__data_alloc(ni, t, num)
 end
 
 M.data_free = ubx.ubx_data_free
