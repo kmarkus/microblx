@@ -31,6 +31,7 @@ end
 local imports_spec = TableSpec
 {
    name='imports',
+   sealed='both',
    array = { StringSpec{} },
    postcheck=function(self, obj, vres)
       -- extra checks
@@ -82,17 +83,18 @@ local configs_spec = TableSpec
       {
 	 name='configuration',
 	 dict = { name=StringSpec{}, config=AnySpec{} },
+	 sealed='both'
       },
-      sealed='both'
-   }
+   },
+   sealed='both'
 }
 
 -- start
 local start_spec = TableSpec
 {
    name='start',
+   sealed='both',
    array = { StringSpec },
-   sealed='both'
 }
 
 
@@ -176,8 +178,8 @@ function system.pulldown(self, t)
       log("deactivating "..ts(#self.blocks).." blocks... ")
       -- stop the start table blocks in reverse order
       for i = #self.start, 1, -1 do
-         log("    deactivating", green(self.start[i]))
-         ubx.block_unload(ni, self.start[i])
+	 log("    deactivating", green(self.start[i]))
+	 ubx.block_unload(ni, self.start[i])
       end
       log("    deactivating remaining blocks... ")
       ubx.node_cleanup(ni)
