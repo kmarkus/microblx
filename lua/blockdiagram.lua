@@ -1,7 +1,7 @@
 local ubx = require "ubx"
 local umf = require "umf"
 local utils = require "utils"
-local json = require("cjson")
+local has_json, json = pcall(require, "cjson")
 local ts = tostring
 local M={}
 
@@ -147,6 +147,9 @@ local function load(fn)
    local ext = string.match(fn, "^.+%.(.+)$")
    local suc, mod
    if ext == 'json' then
+      if not has_json then
+	 error("no cjson library found, unable to load json")
+      end
       suc, mod = pcall(read_json, fn)
    elseif ext == 'usc' or ext == 'lua' then
       suc, mod = pcall(dofile, fn)
