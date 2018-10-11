@@ -72,6 +72,7 @@ extern "C"
 #include <ubx_proto.h>
 
 #include <config.h>
+
 /*
  * Debug stuff
  */
@@ -102,8 +103,11 @@ extern "C"
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
+#define _QUOTE(x) #x
+#define QUOTE(x) _QUOTE(x)
+
 #define UBX_MODULE_LICENSE_SPDX(l) \
-__attribute__ ((visibility("default"))) char __ubx_module_license_spdx[] = #l;
+__attribute__ ((visibility("default"))) char __ubx_module_license_spdx[] = QUOTE(l);
 
 /* module init, cleanup */
 #define UBX_MODULE_INIT(initfn) \
@@ -117,7 +121,7 @@ __attribute__ ((visibility("default"))) void __ubx_cleanup_module(ubx_node_info_
 
 #define def_struct_type(typename, hexdata) \
 {					\
-	.name=#typename,		\
+	.name=QUOTE(typename),		\
 	.type_class=TYPE_CLASS_STRUCT,	\
 	.size=sizeof(typename),		\
 	.private_data=(void*) hexdata,	\
@@ -151,7 +155,7 @@ static void function_name(ubx_port_t* port, typename *outval)	\
 {							\
  ubx_data_t val;					\
  if(port==NULL) { ERR("port is NULL"); return; }	\
- checktype(port->block->ni, port->out_type, #typename, port->name, 0);	\
+ checktype(port->block->ni, port->out_type, QUOTE(typename), port->name, 0); \
  val.data = outval;					\
  val.type = port->out_type;				\
  val.len=1;						\
@@ -166,7 +170,7 @@ static int32_t function_name(ubx_port_t* port, typename *inval) \
 {							\
  ubx_data_t val;					\
  if(port==NULL) { ERR("port is NULL"); return -1; }	\
- checktype(port->block->ni, port->in_type, #typename, port->name, 1);	\
+ checktype(port->block->ni, port->in_type, QUOTE(typename), port->name, 1); \
  val.type=port->in_type;				\
  val.data = inval;					\
  val.len = 1;						\
@@ -179,7 +183,7 @@ static void function_name(ubx_port_t* port, typename (*outval)[arrlen]) \
 {							\
  ubx_data_t val;					\
  if(port==NULL) { ERR("port is NULL"); return; }	\
- checktype(port->block->ni, port->out_type, #typename, port->name, 0);	\
+ checktype(port->block->ni, port->out_type, QUOTE(typename), port->name, 0); \
  val.data = outval;					\
  val.type = port->out_type;				\
  val.len=arrlen;					\
@@ -191,7 +195,7 @@ static int32_t function_name(ubx_port_t* port, typename (*inval)[arrlen])	\
 {							\
  ubx_data_t val;					\
  if(port==NULL) { ERR("port is NULL"); return -1; }	\
- checktype(port->block->ni, port->in_type, #typename, port->name, 1); \
+ checktype(port->block->ni, port->in_type, QUOTE(typename), port->name, 1); \
  val.type = port->in_type;				\
  val.data = inval;					\
  val.len = arrlen;					\
