@@ -1,4 +1,3 @@
-
 #include "ramp.h"
 #include <math.h>
 
@@ -8,8 +7,8 @@
  */
 struct ramp_info
 {
-	double cur;
-	double slope;
+	RAMP_T cur;
+	RAMP_T slope;
 	
 	/* this is to have fast access to ports for reading and writing, without
 	 * needing a hash table lookup */
@@ -32,8 +31,8 @@ int ramp_init(ubx_block_t *b)
 	b->private_data=inf;
 	update_port_cache(b, &inf->ports);
 
-	inf->cur = *((double*) ubx_config_get_data_ptr(b, "start", &len));
-	inf->slope = *((double*) ubx_config_get_data_ptr(b, "slope", &len));
+	inf->cur = *((RAMP_T*) ubx_config_get_data_ptr(b, "start", &len));
+	inf->slope = *((RAMP_T*) ubx_config_get_data_ptr(b, "slope", &len));
 
 	inf->slope = (fabs(inf->slope) > 10e-6) ? inf->slope : 1;
 	
@@ -46,7 +45,10 @@ out:
 int ramp_start(ubx_block_t *b)
 {
 	struct ramp_info *inf = (struct ramp_info*) b->private_data;
-	DBG("start=%f, slope=%f", inf->cur, inf->slope);
+	DBG("%s: start=%g, slope=%g",
+	    b->name,
+	    (double) inf->cur,
+	    (double) inf->slope);
 	return 0;
 }
 
@@ -68,7 +70,7 @@ void ramp_step(ubx_block_t *b)
 	struct ramp_info *inf = (struct ramp_info*) b->private_data;
 
 	inf->cur += inf->slope;
-	DBG("cur: %f", inf->cur);
+	DBG("%s: cur: %g", b->name, (double) inf->cur);
 	write_out(inf->ports.out, &inf->cur);
 }
 

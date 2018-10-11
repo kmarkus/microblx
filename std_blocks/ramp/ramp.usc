@@ -1,24 +1,51 @@
-local bd = require("blockdiagram")                                                          
+-- -*- lua -*-
+
+local bd = require("blockdiagram")
 return bd.system
 {
    imports = {
       "stdtypes",
-      "ramp",
+      "ramp_float",
+      "ramp_double",
+      "ramp_uint8",
+      "ramp_uint16",
+      "ramp_uint32",
+      "ramp_uint64",
+      "ramp_int8",
+      "ramp_int16",
+      "ramp_int32",
+      "ramp_int64",
+
    },
 
    blocks = {
-      { name="ramp_1", type="ramp" },
+      { name="float_ramp", type="ramp_float" },
+      { name="double_ramp", type="ramp_double" },
+      { name="uint8_ramp", type="ramp_uint8" },
+      { name="uint16_ramp", type="ramp_uint16" },
+      { name="uint32_ramp", type="ramp_uint32" },
+      { name="uint64_ramp", type="ramp_uint64" },
+      { name="int8_ramp", type="ramp_int8" },
+      { name="int16_ramp", type="ramp_int16" },
+      { name="int32_ramp", type="ramp_int32" },
+      { name="int64_ramp", type="ramp_int64" },
    },
 
    configurations = {
-      { name="ramp_1",
-	config = {
-	   start = 10,
-	   slope = 0.25
-	}
-      }
+      { name="float_ramp", config = { start = 10, slope = 0.25 } },
+      { name="double_ramp", config = { start = 999.9, slope = 0.1 } },
+      { name="uint8_ramp", config = { start = 1, slope = 1 } },
+      { name="uint16_ramp", config = { start = 1 } },
+      { name="uint32_ramp", config = { start = 1, slope = 100 } },
+      { name="uint64_ramp", config = { start = 1, slope = 1000 } },
+      { name="int8_ramp", config = { start = -100, slope = 1 } },
+      { name="int16_ramp", config = { start = 1 } },
+      { name="int32_ramp", config = { start = -10 , slope = -100 } },
+      { name="int64_ramp", config = { start = -1000, slope = 1 } }
    },
 
-   start = { "ramp_1" }
-
+   start = { "float_ramp", "double_ramp",
+	     "uint8_ramp", "uint16_ramp", "uint32_ramp", "uint64_ramp",
+	     "int8_ramp", "int16_ramp", "int32_ramp", "int64_ramp",
+   }
 }
