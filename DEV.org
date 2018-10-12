@@ -103,6 +103,7 @@
   - major version:
     - update ubx<major>.pc.in
     - update code pkg-config checks in ubx_genblock configure.ac template
+    - ubx.lua: ffi load of libubx.so.0
 * archive
 ** DONE [#A] blockdiagram: support for hierarchical composition
    CLOSED: [2014-01-23 Do 20:51]
