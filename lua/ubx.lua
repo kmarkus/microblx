@@ -140,7 +140,6 @@ local function find_prefix()
 	    match = match and utils.file_exists(pf.."/"..f)
 	 end, load_files )
       if match == true then
-	 print("using prefix: "..green(pf))
 	 return pf
       end
    end
@@ -168,6 +167,8 @@ void *realloc(void *ptr, size_t size);
 local prefix=find_prefix()
 load_ubx_ffi(prefix)
 setup_enums()
+
+function M.get_prefix() return prefix end
 
 --- Safely convert a char* to a lua string.
 -- @param charptr C style string char* or char[]
