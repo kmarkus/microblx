@@ -181,7 +181,7 @@ function system.pulldown(self, t)
       log("deactivating "..ts(#self.blocks).." blocks... ")
       -- stop the start table blocks in reverse order
       for i = #self.start, 1, -1 do
-	 log("    deactivating", green(self.start[i]))
+	 log("    deactivating " .. green(self.start[i]))
 	 ubx.block_unload(ni, self.start[i])
       end
       log("    deactivating remaining blocks... ")
@@ -404,7 +404,7 @@ function system.launch(self, t)
 	 -- start the start table blocks in order
 	 for _,trigname in ipairs(self.start) do
 	    local b = ubx.block_get(ni, trigname)
-	    log("    activating", green(trigname))
+	    log("    activating ".. green(trigname))
 	    ubx.block_tostate(b, 'active')
 	 end
 	 log("activating blocks completed")
