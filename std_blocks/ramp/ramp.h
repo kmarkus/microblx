@@ -111,7 +111,7 @@ void ramp_mod_cleanup(ubx_node_info_t *ni)
 	for(tptr=types; tptr->name!=NULL; tptr++)
 		ubx_type_unregister(ni, tptr->name);
 
-	ubx_block_unregister(ni, "ramp_" QUOTE(RAMP_T));
+	ubx_block_unregister(ni, "ramp_" QUOTE(BLOCK_NAME));
 }
 
 /* declare module init and cleanup functions, so that the ubx core can
