@@ -40,7 +40,7 @@ local function sys1_gen_connections()
       res[#res+1] = { src="uint32_ramp"..tostring(i)..".out",
 		      tgt="sink"..tostring(i)..".in" }
    end
-   return res   
+   return res
 end
 
 local function sys1_gen_configurations()
@@ -48,11 +48,11 @@ local function sys1_gen_configurations()
    for i=1,NUM_BLOCKS do
       res[#res+1] = { name="uint32_ramp"..tostring(i), config = {} }
    end
-   
+
    for i=1,NUM_BLOCKS do
       res[#res+1] = { name="sink"..tostring(i), config = { lua_str=luablock}}
    end
-   return res   
+   return res
 end
 
 local sys1 = bd.system {
@@ -63,7 +63,7 @@ local sys1 = bd.system {
 }
 
 function test_launch()
-   return sys1:launch{nodename="sys1", verbose=false, nostart=true}
+   return sys1:launch{nodename="sys1", verbose=false }
 end
 
 os.exit( luaunit.LuaUnit.run() )
