@@ -169,16 +169,17 @@ static void rnd_step(ubx_block_t *b) {
  */
 ubx_block_t random_comp = {
 	.name = "random/random",
-	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = rnd_meta,
-	.configs = rnd_config,
+	.type = BLOCK_TYPE_COMPUTATION,
+
 	.ports = rnd_ports,
+	.configs = rnd_config,
 
 	/* ops */
 	.init = rnd_init,
 	.start = rnd_start,
-	.step = rnd_step,
 	.cleanup = rnd_cleanup,
+	.step = rnd_step,
 };
 
 /**
