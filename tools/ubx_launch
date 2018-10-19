@@ -1,7 +1,7 @@
 #!/usr/bin/env luajit
 -- -*- lua -*-
 
-local ubx = require("ubx")
+ubx = require("ubx")
 local bd = require("blockdiagram")
 local utils = require("utils")
 local ts = tostring
@@ -21,7 +21,7 @@ microblx function block model system launcher
 end
 
 local opttab=utils.proc_args(arg)
-local nodename="node-"..os.date("%Y%m%d_%H%M%S")
+local nodename
 local conf_file
 
 if #arg==1 or opttab['-h'] then
@@ -35,7 +35,8 @@ else
    conf_file = opttab['-c'][1]
 end
 
-local suc, model = bd.load(conf_file)
+local suc
+suc, model = bd.load(conf_file)
 
 if not suc then
    print(model)
@@ -89,8 +90,6 @@ if not opttab['-i'] then
          ubx.clock_mono_sleep(60)
       end
    end
+   model:pulldown(ni)
 end
 
-model:pulldown{nodename=nodename,
-	       verbose=true,
-               nostart=opttab['-nostart']}
