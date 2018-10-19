@@ -179,27 +179,42 @@ end
 --- Pulldown a blockdiagram system
 -- @param self system specification to load
 -- @param t configuration table
-function system.pulldown(self, t)
-   local log
-   local ind_log = -1
-   local ind_mul = 4
-   if t.verbose then
-      log=function(first, ...)
-	 print(string.rep(' ', ind_log*ind_mul)..tostring(first), ...)
-      end
-   else log=function() end end
-
-   if not t.nostart and #self.start > 0 then
+function system.pulldown(self, ni)
+   if #self.start > 0 then
       log("deactivating "..ts(#self.blocks).." blocks... ")
       -- stop the start table blocks in reverse order
       for i = #self.start, 1, -1 do
 	 log("    deactivating " .. green(self.start[i]))
 	 ubx.block_unload(ni, self.start[i])
       end
-      log("    deactivating remaining blocks... ")
-      ubx.node_cleanup(ni)
-      log("deactivating blocks completed")
    end
+   log("    deactivating remaining blocks")
+   ubx.node_cleanup(ni)
+   log("deactivating blocks completed")
+end
+
+
+--- Start up a system
+-- @param self system specification to load
+-- @param t configuration table
+-- @return ni node_info handle
+function system.startup(self, ni)
+   log("activating "..ts(#self.blocks).." blocks... ")
+   utils.foreach(
+      function (bmodel)
+	 -- skip the blocks in the start table
+	 if utils.table_has(self.start, bmodel.name) then return end
+	 local b = ubx.block_get(ni, bmodel.name)
+	 log("    activating ".. green(bmodel.name))
+	 ubx.block_tostate(b, 'active')
+      end, self.blocks)
+   -- start the start table blocks in order
+   for _,trigname in ipairs(self.start) do
+      local b = ubx.block_get(ni, trigname)
+      log("    activating ".. green(trigname))
+      ubx.block_tostate(b, 'active')
+   end
+   log("activating blocks completed")
 end
 
 --- Launch a blockdiagram system
@@ -394,24 +409,9 @@ function system.launch(self, t)
 	 log("creating connections completed")
       end
 
-      if not t.nostart and #self.start > 0 then
-	 log("activating "..ts(#self.blocks).." blocks... ")
-	 utils.foreach(
-	    function (bmodel)
-	       -- skip the blocks in the start table
-	       if utils.table_has(self.start, bmodel.name) then return end
-	       local b = ubx.block_get(ni, bmodel.name)
-	       log("    activating", green(bmodel.name))
-	       ubx.block_tostate(b, 'active')
-	    end, self.blocks)
-	 -- start the start table blocks in order
-	 for _,trigname in ipairs(self.start) do
-	    local b = ubx.block_get(ni, trigname)
-	    log("    activating ".. green(trigname))
-	    ubx.block_tostate(b, 'active')
-	 end
-	 log("activating blocks completed")
-      end
+      -- startup
+      if not t.nostart then system.startup(self, ni) end
+
       ind_log=ind_log-1
    end
 
