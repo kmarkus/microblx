@@ -1648,6 +1648,36 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* doc,
 }
 
 /**
+ * ubx_outport_add - add an output port
+ *
+ * @param b
+ * @param name
+ * @param out_type_name
+ * @param out_data_len
+ * @return < 0 in case of error, 0 otherwise
+ */
+int ubx_outport_add(ubx_block_t* b, const char* name, const char* doc,
+		    const char* out_type_name, unsigned long out_data_len)
+{
+	return ubx_port_add(b, name, doc, NULL, 0, out_type_name, out_data_len, 1);
+}
+
+/**
+ * ubx_inport_add - add an input-port
+ *
+ * @param b
+ * @param name
+ * @param in_type_name
+ * @param in_data_len
+ * @return < 0 in case of error, 0 otherwise
+ */
+int ubx_inport_add(ubx_block_t* b, const char* name, const char* doc,
+		   const char* in_type_name, unsigned long in_data_len)
+{
+	return ubx_port_add(b, name, doc, in_type_name, in_data_len, NULL, 0, 1);
+}
+
+/**
  * ubx_port_rm - remove a port from a block.
  *
  * @param b

@@ -44,6 +44,8 @@ int ubx_config_add(ubx_block_t *b, const char *name, const char *meta, const cha
 int ubx_config_rm(ubx_block_t *b, const char *name);
 unsigned int get_num_ports(ubx_block_t *b);
 int ubx_port_add(ubx_block_t *b, const char *name, const char *doc, const char *in_type_name, unsigned long in_data_len, const char *out_type_name, unsigned long out_data_len, uint32_t state);
+int ubx_outport_add(ubx_block_t *b, const char *name, const char *doc, const char *out_type_name, unsigned long out_data_len);
+int ubx_inport_add(ubx_block_t *b, const char *name, const char *doc, const char *in_type_name, unsigned long in_data_len);
 int ubx_port_rm(ubx_block_t *b, const char *name);
 ubx_port_t *ubx_port_get(ubx_block_t *b, const char *name);
 int ubx_block_init(ubx_block_t *b);

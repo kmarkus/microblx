@@ -439,6 +439,8 @@ local ubx_block_mt = {
       p = M.block_port_get,
       port_get = M.block_port_get,
       port_add = ubx.ubx_port_add,
+      inport_add = ubx.ubx_inport_add,
+      outport_add = ubx.ubx_outport_add,
       port_rm = ubx.ubx_port_rm,
 
       c = M.block_config_get,
