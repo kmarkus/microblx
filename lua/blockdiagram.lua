@@ -418,6 +418,8 @@ function system.launch(self, t)
    -- fire it up
    t = t or {}
    t.nodename = t.nodename or "node-"..os.date("%Y%m%d_%H%M%S")
+   verbose = t.verbose
+
    local ni = ubx.node_create(t.nodename)
 
    -- import modules
