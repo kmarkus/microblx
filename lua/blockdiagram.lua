@@ -14,6 +14,18 @@ local green=ubx.green
 local yellow=ubx.yellow
 local magenta=ubx.magenta
 
+
+local ind_log = -1
+local ind_mul = 4
+local verbose = true
+
+local function log(first, ...)
+   if verbose then
+      print(string.rep(' ', ind_log*ind_mul)..tostring(first), ...)
+   end
+end
+
+
 local AnySpec=umf.AnySpec
 local NumberSpec=umf.NumberSpec
 local StringSpec=umf.StringSpec
@@ -199,15 +211,6 @@ function system.launch(self, t)
       self:validate(true)
       os.exit(1)
    end
-
-   local log
-   local ind_log = -1
-   local ind_mul = 4
-   if t.verbose then
-      log=function(first, ...)
-	 print(string.rep(' ', ind_log*ind_mul)..tostring(first), ...)
-      end
-   else log=function() end end
 
    --- Generate a list of all blockdiagram.blocks to be created
    -- @param blockdiagram.system
