@@ -3,6 +3,12 @@
 #+SEQ_TODO: TODO(t) STARTED(s) WAITING(w@) | DONE(d) CANCELLED(c@)
 
 * Next release (1.0)
+** TODO remove port state (?)
+   - this is not used, and its also questionable who should control
+     this. At least remove it from the ubx_port_add function, because
+     for sure the block (who uses this function) should NOT be doing
+     it.
+
 ** TODO non recursive make
 ** DONE luajit-2.1.0-beta3 crashes with reflect
 
