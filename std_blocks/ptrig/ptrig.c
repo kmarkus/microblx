@@ -370,7 +370,7 @@ static int ptrig_init(ubx_block_t *b)
 static int ptrig_start(ubx_block_t *b)
 {
 	DBG(" ");
-
+	int ret = -1;
 	struct ptrig_inf *inf;
 	ubx_data_t* trig_list_data;
 
@@ -386,6 +386,11 @@ static int ptrig_start(ubx_block_t *b)
 	tstat_init(&inf->global_tstats, "##global##");
 
 	inf->blk_tstats = calloc(inf->trig_list_len, sizeof(struct ptrig_tstat));
+
+	if(!inf->blk_tstats) {
+		ERR("failed to alloc blk_stats");
+		goto out;
+	}
 
 	for(int i=0; i<inf->trig_list_len; i++) {
 		tstat_init(&inf->blk_tstats[i],
@@ -404,8 +409,10 @@ static int ptrig_start(ubx_block_t *b)
 	pthread_mutex_unlock(&inf->mutex);
 
 	assert(inf->p_tstats = ubx_port_get(b, "tstats"));
+	ret = 0;
 
-	return 0;
+out:
+	return ret;
 }
 
 static void ptrig_stop(ubx_block_t *b)
