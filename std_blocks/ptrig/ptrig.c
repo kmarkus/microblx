@@ -39,7 +39,7 @@ char ptrig_meta[] =
 ubx_port_t ptrig_ports[] = {
 	{ .name="tstats",
 	  .out_type_name="struct ptrig_tstat",
-	  .doc="out port for global and per block timing statistics"
+	  .doc="out port for totals and per block timing statistics"
 	},
 	{ NULL },
 };
@@ -67,7 +67,7 @@ ubx_config_t ptrig_config[] = {
 	  .doc="trigger conf: which block and how to trigger"
 	},
 	{ .name="tstats_enabled", .type_name = "int",
-	  .doc="enable global timing statistics over all blocks",
+	  .doc="enable timing statistics over all blocks",
 	},
 	{ .name="tstats_output_rate",
 	  .type_name = "unsigned int",
@@ -383,7 +383,7 @@ static int ptrig_start(ubx_block_t *b)
 	inf->trig_list_len = trig_list_data->len;
 
 	/* preparing timing statistics */
-	tstat_init(&inf->global_tstats, "##global##");
+	tstat_init(&inf->global_tstats, "##total##");
 
 	inf->blk_tstats = calloc(inf->trig_list_len, sizeof(struct ptrig_tstat));
 
