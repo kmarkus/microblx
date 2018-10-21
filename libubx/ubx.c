@@ -2112,6 +2112,11 @@ int ubx_clock_mono_nanosleep(struct ubx_timespec* uts)
 	ts.tv_sec += uts->sec;
 	ts.tv_nsec += uts->nsec;
 
+	if(ts.tv_nsec >= NSEC_PER_SEC) {
+		ts.tv_sec+=ts.tv_nsec / NSEC_PER_SEC;
+		ts.tv_nsec=ts.tv_nsec % NSEC_PER_SEC;
+	}
+
 	for (;;) {
 		ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 		if (ret != EINTR) {
