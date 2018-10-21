@@ -183,7 +183,8 @@ static int trigger_steps(struct ptrig_inf *inf)
 
 	/* output stats - TODO throttling */
 	for(i=0; i<inf->trig_list_len; i++) {
-		write_tstat(inf->p_tstats, &inf->blk_tstats[i]);
+		if(inf->trig_list[i].measure)
+			write_tstat(inf->p_tstats, &inf->blk_tstats[i]);
 	}
 
 	ret=0;
@@ -382,7 +383,7 @@ static int ptrig_start(ubx_block_t *b)
 	inf->trig_list_len = trig_list_data->len;
 
 	/* preparing timing statistics */
-	tstat_init(&inf->global_tstats, "__global__");
+	tstat_init(&inf->global_tstats, "##global##");
 
 	inf->blk_tstats = calloc(inf->trig_list_len, sizeof(struct ptrig_tstat));
 
