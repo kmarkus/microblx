@@ -8,7 +8,9 @@ m4_define([libubx_if_age], [4])      dnl inc if API changes are backwards compat
 
 AC_INIT([microblx], [package_version_major.package_version_minor.package_version_micro])
 #AC_CONFIG_SRCDIR([libubx/ubx.c])
-AM_INIT_AUTOMAKE([foreign -Wall])
+AM_INIT_AUTOMAKE([foreign -Wall -Wextra])
+
+AC_SUBST([AM_CFLAGS], [-Wall -Wextra -Werror])
 
 # compilers
 AC_PROG_CC
