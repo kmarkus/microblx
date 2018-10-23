@@ -44,11 +44,8 @@ out:
 /* start */
 int ramp_start(ubx_block_t *b)
 {
-	struct ramp_info *inf = (struct ramp_info*) b->private_data;
 	DBG("%s: start=%g, slope=%g",
-	    b->name,
-	    (double) inf->cur,
-	    (double) inf->slope);
+	    b->name, (double) inf->cur, (double) inf->slope);
 	return 0;
 }
 

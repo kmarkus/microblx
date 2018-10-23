@@ -157,7 +157,7 @@ int trig_start(ubx_block_t *b)
 	inf->trig_list = trig_list_data->data;
 	inf->trig_list_len = trig_list_data->len;
 
-	assert(inf->p_tstats = ubx_port_get(b, "tstats"));
+	inf->p_tstats = ubx_port_get(b, "tstats");
 
 	return 0;
 }

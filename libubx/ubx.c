@@ -682,7 +682,7 @@ int ubx_data_assign(ubx_data_t *tgt, ubx_data_t *src)
 		goto out;
 	}
 
-	if(tgt->len != tgt->len) {
+	if(src->len != tgt->len) {
 		ERR("length mismatch: %lu <-> %lu", tgt->len, src->len);
 		goto out;
 	}

@@ -41,6 +41,10 @@ ubx_port_t ptrig_ports[] = {
 	  .out_type_name="struct ptrig_tstat",
 	  .doc="out port for totals and per block timing statistics"
 	},
+	{ .name="shutdown",
+	  .in_type_name="int",
+	  .doc="in port for stopping ptrig"
+	},
 	{ NULL },
 };
 
@@ -325,7 +329,6 @@ static int ptrig_init(ubx_block_t *b)
 	int ret = EOUTOFMEM;
 	const char* threadname;
 	struct ptrig_inf* inf;
-	int i;
 
 	if((b->private_data=calloc(1, sizeof(struct ptrig_inf)))==NULL) {
 		ERR("failed to alloc");
@@ -408,7 +411,7 @@ static int ptrig_start(ubx_block_t *b)
 	pthread_cond_signal(&inf->active_cond);
 	pthread_mutex_unlock(&inf->mutex);
 
-	assert(inf->p_tstats = ubx_port_get(b, "tstats"));
+	inf->p_tstats = ubx_port_get(b, "tstats");
 	ret = 0;
 
 out:

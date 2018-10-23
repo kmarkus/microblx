@@ -122,7 +122,7 @@ static int cyclic_init(ubx_block_t *i)
 	}
 
 	/* cache port ptrs */
-	assert(bbi->p_overruns = ubx_port_get(i, "overruns"));
+	bbi->p_overruns = ubx_port_get(i, "overruns");
 
 	ret=0;
 	goto out;
