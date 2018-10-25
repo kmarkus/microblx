@@ -75,8 +75,7 @@ ubx_config_t ptrig_config[] = {
 	},
 	{ .name="tstats_output_rate",
 	  .type_name = "unsigned int",
-	  .doc="output tstatso only on every \
-		tstats_output_rate'th trigger (0 to disable)"
+	  .doc="output tstats only on every tstats_output_rate'th trigger (0 to disable)"
 	},
 	{ NULL },
 };
