@@ -112,7 +112,7 @@ static int cyclic_init(ubx_block_t *i)
 	}
 
 	DBG("%s: allocating ringbuffer with %lu elements of type %s [%lu] bytes.",
-	    i->name, bbi->buffer_len, type_name, ,bbi->data_len);
+	    i->name, bbi->buffer_len, type_name, bbi->data_len);
 
 	if(lfds611_ringbuffer_new(&bbi->rbs, bbi->buffer_len, cyclic_data_elem_init, bbi)==0) {
 		ERR("%s: allocating ringbuffer with %lu elements of type %s [%lu] bytes failed.",
