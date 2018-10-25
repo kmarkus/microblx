@@ -2,7 +2,7 @@
 -- -*- lua -*-
 
 ubx = require("ubx")
-local bd = require("blockdiagram")
+bd = require("blockdiagram")
 local utils = require("utils")
 local ts = tostring
 

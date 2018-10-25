@@ -3,6 +3,10 @@
 #+SEQ_TODO: TODO(t) STARTED(s) WAITING(w@) | DONE(d) CANCELLED(c@)
 
 * Next release (1.0)
+** TODO add help() to ubx_launch
+** TODO proper tostring meta method for ubx_types
+** TODO add possibility to identify trigger blocks
+   - useful for shutting down
 ** TODO remove port state (?)
    - this is not used, and its also questionable who should control
      this. At least remove it from the ubx_port_add function, because

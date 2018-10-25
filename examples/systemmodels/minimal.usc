@@ -1,4 +1,5 @@
 -- -*- mode: lua; -*-
+local bd = require("blockdiagram")
 
 return bd.system {
    imports={

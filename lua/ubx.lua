@@ -38,7 +38,7 @@ local utils= require "utils"
 local ts=tostring
 local ac=require "ansicolors"
 local time=require"time"
--- require "strict"
+require "strict"
 
 local M={}
 
@@ -344,6 +344,48 @@ end
 
 function M.num_types(ni) return ubx.ubx_num_types(ni) end
 
+--- Pretty print a node
+-- @param ni node_info
+function M.node_pp(ni)
+   print(green(M.safe_tostr(ni.name), true))
+
+   print("  modules:", true)
+   M.modules_foreach(ni,
+		     function (m)
+			print("    "..magenta(M.safe_tostr(m.id))..
+				 " ["..red(M.safe_tostr(m.spdx_license_id)).."]")
+		     end
+   )
+
+   print("  types:")
+   M.types_foreach(ni,
+		   function (t)
+		      print("    "..magenta(M.safe_tostr(t.name))..
+			       " ["..yellow("size: "..tonumber(t.size))..", "..
+			       red(utils.str_to_hexstr(ffi.string(t.hash, 4))).."] "..
+			       red(M.safe_tostr(t.doc)))
+		   end
+   )
+
+   print("  prototypes:")
+   M.blocks_map(ni,
+		function (b)
+		   print("    "..M.block_tostr(b))
+		end, M.is_proto)
+
+   print("  iblocks:")
+   M.blocks_map(ni,
+		function (b)
+		   print("    "..M.block_tostr(b))
+		end, M.is_iblock_instance)
+
+   print("  cblocks:")
+   M.blocks_map(ni,
+		function (b)
+		   print("    "..M.block_tostr(b))
+		end, M.is_cblock_instance)
+
+end
 
 -- add Lua OO methods
 local ubx_node_info_mt = {
@@ -362,6 +404,7 @@ local ubx_node_info_mt = {
       cleanup = M.node_cleanup,
       b = M.block_get,
       block_get = M.block_get,
+      pp = M.node_pp,
    },
 }
 ffi.metatype("struct ubx_node_info", ubx_node_info_mt)
@@ -371,34 +414,42 @@ ffi.metatype("struct ubx_node_info", ubx_node_info_mt)
 --                           Block API
 ------------------------------------------------------------------------------
 
-function block_state_color(sstr)
+local function block_state_color(sstr)
    if sstr == 'preinit' then return blue(sstr, true)
    elseif sstr == 'inactive' then return red(sstr)
    elseif sstr == 'active' then return green(sstr, true)
    else
-      error(red("unknown state"..ts(s)))
+      error(red("unknown state "..ts(sstr)))
    end
 end
 
---- Convert a block to a Lua table.
+--- Convert block to lua table
+-- @param b block to convert to table
+-- @return table
 function M.block_totab(b)
    if b==nil then error("NULL block") end
-   local res = {}
-   res.name=M.safe_tostr(b.name)
-   res.meta_data=M.safe_tostr(b.meta_data)
-   res.block_type=M.block_type_tostr[b.type]
-   res.state=M.block_state_tostr[b.block_state]
-   if b.prototype~=nil then res.prototype=M.safe_tostr(b.prototype) else res.prototype="<prototype>" end
 
-   if b.type==ffi.C.BLOCK_TYPE_COMPUTATION then
-      res.stat_num_steps=tonumber(b.stat_num_steps)
-   elseif b.type==ffi.C.BLOCK_TYPE_INTERACTION then
-      res.stat_num_reads=tonumber(b.stat_num_reads)
-      res.stat_num_writes=tonumber(b.stat_num_writes)
+   local res = {}
+   res.name = M.safe_tostr(b.name)
+   res.meta_data = M.safe_tostr(b.meta_data)
+   res.block_type=M.block_type_tostr[b.type]
+   res.state = M.block_state_tostr[b.block_state]
+
+   if b.prototype~=nil then
+      res.prototype = M.safe_tostr(b.prototype)
+   else
+      res.prototype=false
    end
 
-   res.ports=M.ports_map(b, M.port_totab)
-   res.configs=M.configs_map(b, M.config_totab)
+   res.ports = M.ports_map(b, M.port_totab)
+   res.configs = M.configs_map(b, M.config_totab)
+
+   if M.is_cblock(b) then
+      res.stat_num_steps = tonumber(b.stat_num_steps)
+   elseif M.is_iblock(b) then
+      res.stat_num_reads = tonumber(b.stat_num_reads)
+      res.stat_num_writes = tonumber(b.stat_num_writes)
+   end
 
    return res
 end
@@ -406,11 +457,43 @@ end
 --- Pretty print a block.
 -- @param b block to convert to string.
 -- @return string
-function M.block_tostr(b)
+function M.block_pp(b)
+   local res = {}
    local bt=M.block_totab(b)
-   local fmt="%s (type=%s, state=%s, prototype=%s)"
-   local res=fmt:format(green(bt.name), bt.block_type, block_state_color(bt.state), blue(bt.prototype), bt.stat_num_steps)
-   return res
+   local fmt = "%s (type=%s, state=%s, prototype=%s)"
+
+   res[#res+1] = fmt:format(green(bt.name), bt.block_type,
+			    block_state_color(bt.state),
+			    blue(bt.prototype), bt.stat_num_steps)
+
+   if #bt.ports > 0 then
+      res[#res+1] = ("  ports:")
+      utils.foreach(function(p) res[#res+1] = "    "..M.port_tabtostr(p) end, bt.ports)
+   end
+
+   if #bt.configs > 0 then
+      res[#res+1] = ("  configs:")
+      utils.foreach(function(c) res[#res+1] = "    "..M.config_tabtostr(c) end, bt.configs)
+   end
+
+   return table.concat(res, '\n')
+end
+
+--- Convert a block to a string (short form)
+-- @param b ubx_block_t
+function M.block_tostr(b)
+
+   if b.prototype==nil then
+      return ("%s [%s]"):format(
+	 green(M.safe_tostr(b.name)),
+	 M.block_type_tostr[b.type])
+   end
+
+   return ("%s [%s, %s, %s]"):format(
+      green(M.safe_tostr(b.name)),
+      M.block_type_tostr[b.type],
+      block_state_color(M.block_state_tostr[b.block_state]),
+      blue(M.safe_tostr(b.prototype)))
 end
 
 function M.block_port_get (b, n)
@@ -436,6 +519,7 @@ local ubx_block_mt = {
       get_block_state = function (b) return M.block_state_tostr[b.block_state] end,
       get_block_type = function (b) return M.block_type_tostr[b.type] end,
 
+      pp = M.block_pp,
       p = M.block_port_get,
       port_get = M.block_port_get,
       port_add = ubx.ubx_port_add,
@@ -697,7 +781,7 @@ ffi.metatype("struct ubx_data", ubx_data_mt)
 
 --- Convert a ubx_type to a Lua table
 function M.ubx_type_totab(t)
-   if t==nil then error("NULL type"); return end
+   if t==nil then error("NULL type") end
    local res = {}
    res.name=M.safe_tostr(t.name)
    res.class=M.type_class_tostr[t.type_class]
@@ -804,20 +888,23 @@ function M.config_totab(c)
    if c==nil then return "NULL config" end
    local res = {}
    res.name = M.safe_tostr(c.name)
+
    res.doc = M.safe_tostr(c.doc)
    res.type_name = M.safe_tostr(c.type_name)
    res.value = M.data_tolua(c.value)
    return res
 end
 
+function M.config_tabtostr(ctab)
+   return blue(ctab.name, true)
+      .." ["..magenta(ctab.type_name).."] "
+      ..yellow(utils.tab2str((ctab.value)))
+      .." "..red("// "..ctab.doc)
+end
+
 function M.config_tostr(c)
    local ctab = M.config_totab(c)
-   local doc = ""
-   local tstr = M.type_tostr(c.value.type)
-
-   if ctab.doc then doc=red("// "..ctab.doc) end
-
-   return blue(ctab.name, true).." <"..tstr.."> "..yellow(tostring(c.value))
+   return M.config_tabtostr(ctab)
 end
 
 -- add Lua OO methods
@@ -981,30 +1068,33 @@ function M.port_totab(p)
    return ptab
 end
 
-function M.port_tostr(port)
+function M.port_tabtostr(pt)
+   assert(type(pt) == 'table')
+
    local in_str=""
    local out_str=""
    local doc=""
 
+   if pt.in_type_name then
+      in_str = "[in: "..magenta(pt.in_type_name)
+      if pt.in_data_len > 1 then in_str = in_str.."["..ts(pt.in_data_len).."]" end
+      in_str = in_str.." #conn: "..ts(#pt.connections.incoming).."]"
+   end
+
+   if pt.out_type_name then
+      out_str = "[out: "..magenta(pt.out_type_name)
+      if pt.out_data_len > 1 then out_str = out_str.."["..ts(pt.out_data_len).."]" end
+      out_str = out_str.." #conn: "..ts(#pt.connections.outgoing).."]"
+   end
+
+   if pt.doc then doc = red(" // "..pt.doc) end
+
+   return cyan(pt.name, true).." "..in_str.." "..out_str..doc
+end
+
+function M.port_tostr(port)
    local p = M.port_totab(port)
-
-   -- print(utils.tab2str(p))
-
-   if p.in_type_name then
-      in_str = "in: "..p.in_type_name
-      if p.in_data_len > 1 then in_str = in_str.."["..ts(p.in_data_len).."]" end
-      in_str = in_str.." #conn: "..ts(#p.connections.incoming)
-   end
-
-   if p.out_type_name then
-      out_str = "out: "..p.out_type_name
-      if p.out_data_len > 1 then out_str = out_str.."["..ts(p.out_data_len).."]" end
-      out_str = out_str.." #conn: "..ts(#p.connections.outgoing)
-   end
-
-   if p.doc then doc = red(" // "..p.doc) end
-
-   return cyan(p.name, true) .. ": "..in_str..out_str..doc
+   return M.port_tabtostr(p)
 end
 
 -- add Lua OO methods
@@ -1027,7 +1117,7 @@ ffi.metatype("struct ubx_port", ubx_port_mt)
 
 
 ------------------------------------------------------------------------------
---                   Usefull stuff: foreach, pretty printing
+--                   Useful stuff: foreach, pretty printing
 ------------------------------------------------------------------------------
 
 --- Call a function on every known type.
@@ -1111,14 +1201,6 @@ function M.blocks_map(ni, fun, pred)
    return res
 end
 
-function M.cblocks_foreach(ni, fun, pred)
-   pred = pred or function() return true end
-   M.blocks_foreach(ni, fun, function(b)
-				if not M.is_cblock(b) then return end
-				return pred(b)
-			     end)
-end
-
 --- Apply a function to each module of a node.
 -- @param ni node
 -- @param fun function to apply to each module
@@ -1133,6 +1215,14 @@ function M.modules_foreach(ni, fun, pred)
       m=ffi.cast(ubx_module_t_ptr, m.hh.next)
    end
 end
+
+function M.modules_map(ni, fun, pred)
+   local res = {}
+   local function mod_apply(m) res[#res+1] = fun(m) end
+   M.modules_foreach(ni, mod_apply, pred)
+   return res
+end
+
 
 --- Convert the current system to a dot-file
 -- @param ni
