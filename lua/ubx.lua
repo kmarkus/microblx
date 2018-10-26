@@ -1230,7 +1230,7 @@ end
 function M.node_todot(ni)
 
    --- Generate a list of block nodes in graphviz dot syntax
-   function gen_dot_nodes(blocks)
+   local function gen_dot_nodes(blocks)
       local function block2color(b)
 	 if b.state == 'preinit' then return "blue"
 	 elseif b.state == 'inactive' then return "red"
@@ -1249,7 +1249,7 @@ function M.node_todot(ni)
    end
 
    --- Add trigger edges
-   function gen_dot_trigger_edges(b, res)
+   local function gen_dot_trigger_edges(b, res)
 
       if not (b.prototype=="std_triggers/ptrig" or
 	      b.prototype=="std_triggers/trig") then return end
@@ -1267,7 +1267,7 @@ function M.node_todot(ni)
    end
 
    --- Generate edges
-   function gen_dot_edges(blocks)
+   local function gen_dot_edges(blocks)
       local res = {}
       for _,b in ipairs(blocks) do
 	 for _,p in ipairs(b.ports) do

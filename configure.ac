@@ -8,7 +8,7 @@ m4_define([libubx_if_age], [4])      dnl inc if API changes are backwards compat
 
 AC_INIT([microblx], [package_version_major.package_version_minor.package_version_micro])
 #AC_CONFIG_SRCDIR([libubx/ubx.c])
-AM_INIT_AUTOMAKE([foreign -Wall -Wextra])
+AM_INIT_AUTOMAKE([foreign -Wall])
 
 AC_SUBST([AM_CFLAGS], [-Wall -Wextra -Werror])
 
@@ -84,6 +84,7 @@ std_blocks/mqueue/Makefile
 std_blocks/ptrig/Makefile
 std_blocks/trig/Makefile
 std_blocks/random/Makefile
+std_blocks/const/Makefile
 std_blocks/ramp/Makefile
 std_blocks/simple_fifo/Makefile
 std_blocks/webif/Makefile
