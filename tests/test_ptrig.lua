@@ -8,7 +8,7 @@ local assert_equals = luaunit.assert_equals
 local count_num_trigs = [[
 local ubx=require "ubx"
 
-local ramp_cnt, test_result
+local p_ramp_cnt, p_test_result
 
 function init(b)
    ubx.inport_add(b, "ramp_cnt", "ramp counter in", "uint64_t", 1)
@@ -21,10 +21,10 @@ end
 local trig_cnt = 0
 local test_result = 999
 
-function step(block)
+function step(b)
    trig_cnt=trig_cnt+1
 
-   local n, res = p_ramp_cnt:read()
+   local _, res = p_ramp_cnt:read()
    if trig_cnt ~= res:tolua() then
       test_result = -1
    end
@@ -32,9 +32,9 @@ function step(block)
    ubx.port_write(p_test_result, test_result)
 end
 
-function cleanup(block)
-   ubx.port_rm(block, "ramp_cnt")
-   ubx.port_rm(block, "test_result")
+function cleanup(b)
+   ubx.port_rm(b, "ramp_cnt")
+   ubx.port_rm(b, "test_result")
 end
 ]]
 
@@ -64,7 +64,7 @@ function test_count_num_trigs()
    local p_result = ubx.port_clone_conn(ni:b("tester"), "test_result")
    sys1:startup(ni)
    ubx.clock_mono_sleep(1)
-   ni:b("trig"):stop()
+   ni:b("trig"):do_stop()
    local _, res = p_result:read()
    assert_equals(res:tolua(), 999)
    sys1:pulldown(ni)
@@ -78,7 +78,7 @@ end
 local dur_test_block_tmpl = [[
 local ubx=require "ubx"
 
-function step(block)
+function step(b)
    ubx.clock_mono_sleep($SEC, $NSEC)
 end
 ]]
@@ -101,6 +101,7 @@ local sys2 = bd.system {
       { name="tb2", config = { lua_str=gen_dur_test_block(0, 50*1000*1000) } },
       { name="tb3", config = { lua_str=gen_dur_test_block(0, 100*1000*1000) } },
       { name="trig", config = { period = {sec=0, usec=100000 },
+				tstats_print_on_stop = 1,
 				trig_blocks={
 				   { b="#tb1", num_steps=1, measure=1 },
 				   { b="#tb2", num_steps=1, measure=1 },
@@ -114,12 +115,14 @@ function test_tstats()
 
    sys2:startup(ni)
    ubx.clock_mono_sleep(3)
-   ni:b("trig"):stop()
+   ni:b("trig"):do_stop()
+
    while true do
       local cnt, res = p_tstats:read()
       if cnt <= 0 then break end
       print(res)
    end
+
    -- give ptrig some time to shutdown cleanly
    ubx.clock_mono_sleep(1)
    sys2:pulldown(ni)

@@ -77,8 +77,15 @@ ubx_config_t ptrig_config[] = {
 	  .type_name = "unsigned int",
 	  .doc="output tstats only on every tstats_output_rate'th trigger (0 to disable)"
 	},
+	{ .name="tstats_print_on_stop",
+	  .type_name = "int",
+	  .doc="print tstats in stop()",
+	},
 	{ NULL },
 };
+
+
+const char* tstat_global_id = "##total##";
 
 /* instance state */
 struct ptrig_inf {
@@ -141,6 +148,19 @@ void tstat_update(struct ptrig_tstat *stats,
 
 	ubx_ts_add(&stats->total, &dur, &stats->total);
 	stats->cnt++;
+}
+
+void tstat_print(struct ptrig_tstat *stats)
+{
+	struct ubx_timespec avg;
+
+	ubx_ts_div(&stats->total, stats->cnt, &avg);
+
+	MSG("%s: min:%f, max:%f, avg:%f",
+	    stats->block_name,
+	    ubx_ts_to_double(&stats->min),
+	    ubx_ts_to_double(&stats->max),
+	    ubx_ts_to_double(&avg));
 }
 
 /* trigger the configured blocks */
@@ -372,7 +392,7 @@ static int ptrig_init(ubx_block_t *b)
 static int ptrig_start(ubx_block_t *b)
 {
 	DBG(" ");
-	int ret = -1;
+	int len, ret = -1;
 	struct ptrig_inf *inf;
 	ubx_data_t* trig_list_data;
 
@@ -385,7 +405,7 @@ static int ptrig_start(ubx_block_t *b)
 	inf->trig_list_len = trig_list_data->len;
 
 	/* preparing timing statistics */
-	tstat_init(&inf->global_tstats, "##total##");
+	tstat_init(&inf->global_tstats, tstat_global_id);
 
 	inf->blk_tstats = calloc(inf->trig_list_len, sizeof(struct ptrig_tstat));
 
@@ -399,11 +419,11 @@ static int ptrig_start(ubx_block_t *b)
 			   inf->trig_list[i].b->name);
 	}
 
-	inf->tstats_enabled = *((int*) ubx_config_get_data(b, "tstats_enabled"));
-	// TODO: rename to global?
-	// TODO: add additional blk_tstats_enable
-	// TODO: remove "measure"
-	DBG("tstats enabled");
+	inf->tstats_enabled = *((int*) ubx_config_get_data_ptr(b, "tstats_enabled", &len));
+
+	if(inf->tstats_enabled) {
+		DBG("tstats enabled");
+	}
 
 	pthread_mutex_lock(&inf->mutex);
 	inf->state=BLOCK_STATE_ACTIVE;
@@ -421,11 +441,27 @@ static void ptrig_stop(ubx_block_t *b)
 {
 	DBG(" ");
 	struct ptrig_inf *inf;
+	int len, *tstats_print_on_stop;
+
 	inf = (struct ptrig_inf*) b->private_data;
 
 	pthread_mutex_lock(&inf->mutex);
 	inf->state=BLOCK_STATE_INACTIVE;
 	pthread_mutex_unlock(&inf->mutex);
+
+	tstats_print_on_stop = (int*) ubx_config_get_data_ptr(b, "tstats_print_on_stop", &len);
+
+	if(*tstats_print_on_stop) {
+
+		if(inf->tstats_enabled)
+			tstat_print(&inf->global_tstats);
+
+		for(int i=0; i<inf->trig_list_len; i++) {
+			if(inf->trig_list[i].measure) {
+				tstat_print(&inf->blk_tstats[i]);
+			}
+		}
+	}
 
 	free(inf->blk_tstats);
 }
