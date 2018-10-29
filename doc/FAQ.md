@@ -1,6 +1,14 @@
 Frequently asked questions
 ==========================
 
+# fix "error object is not a string"
+
+This is most of the time happens when the `strict` module being loaded
+(also indirectly, e.g. via ubx.lua) in a luablock. It is caused by the
+C code looking up a non-existing global hook function. Solution:
+either define all hooks or disable the strict module for the luablock.
+
+
 # `blockXY`.so or `liblfds611.so.0`: cannot open shared object file: No such file or directory
 
 Often this means that the location of the shared object file is not in
