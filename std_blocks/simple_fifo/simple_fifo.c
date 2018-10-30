@@ -31,7 +31,7 @@ ubx_config_t fifo_config[] = {
 /* interaction private data */
 struct fifo_block_info {
 	int mode;	 		/* circular, ... */
-	unsigned long size;		/* size in bytes */
+	long int size;			/* size in bytes */
 	uint8_t *buff;
 	uint8_t *rdptr;
 	uint8_t *wrptr;
@@ -97,9 +97,9 @@ static void fifo_cleanup(ubx_block_t *i)
 	free(bbi);
 }
 
-#define empty_space(bbi)						\
-	((bbi->wrptr >= bbi->rdptr)					\
-	 ? (bbi->size - (bbi->wrptr - bbi->rdptr))			\
+#define empty_space(bbi)				\
+	((bbi->wrptr >= bbi->rdptr)			\
+	 ? (bbi->size - (bbi->wrptr - bbi->rdptr))	\
 	 : (bbi->rdptr - bbi->wrptr))
 
 #define used_space(bbi)					\
@@ -111,7 +111,7 @@ static void fifo_cleanup(ubx_block_t *i)
 static void fifo_write(ubx_block_t *i, ubx_data_t* msg)
 {
 	int ret;
-	long len, empty, len2=0;
+	long int len, empty, len2=0;
 	struct fifo_block_info *bbi;
 
 	bbi = (struct fifo_block_info*) i->private_data;
@@ -123,7 +123,7 @@ static void fifo_write(ubx_block_t *i, ubx_data_t* msg)
 
 	len = data_size(msg);
 
-	if (len > bbi->size) {
+	if(len > bbi->size) {
 		ERR("can't store %ld bytes of data in a %ld size buffer", len, bbi->size);
 		goto out_unlock;
 	}
