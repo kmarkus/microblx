@@ -47,7 +47,7 @@ static int const_int_init(ubx_block_t *i)
 	inf->type = ubx_type_get(i->ni, "int");
 
 	if(inf->type == NULL) {
-		ERR("%s: failed to lookup type int");
+		ERR("failed to lookup type int");
 		ret = EINVALID_CONFIG;
 		goto out;
 	}
@@ -59,7 +59,7 @@ out:
 static int const_int_start(ubx_block_t *i)
 {
 	DBG("");
-	int len;
+	unsigned int len;
 	struct blk_inf *inf;
 	inf = (struct blk_inf*) i->private_data;
 	inf->value = (int*) ubx_config_get_data_ptr(i, "value", &len);

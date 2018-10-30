@@ -7,10 +7,7 @@ m4_define([libubx_if_revision], [0]) dnl always inc if src changed, zero if curr
 m4_define([libubx_if_age], [4])      dnl inc if API changes are backwards compatible, zero otherwise
 
 AC_INIT([microblx], [package_version_major.package_version_minor.package_version_micro])
-#AC_CONFIG_SRCDIR([libubx/ubx.c])
 AM_INIT_AUTOMAKE([foreign -Wall])
-
-AC_SUBST([AM_CFLAGS], [-Wall -Wextra -Werror])
 
 # compilers
 AC_PROG_CC
@@ -31,6 +28,7 @@ LT_INIT(disable-static)
 AC_SUBST([UBX_VER], [package_version_major.package_version_minor])
 AC_SUBST([UBX_LT_VER], [libubx_if_current:libubx_if_revision:libubx_if_age])
 AC_SUBST([ubx_moddir], [$libdir/$PACKAGE/$UBX_VER])
+AC_SUBST([UBX_CFLAGS], ["-Wall -Wextra -Werror"])
 
 AC_ARG_ENABLE([ptrig-tstat-block],
   AS_HELP_STRING([--disable-ptrig-tstat-block], [Disable ptrig block-level timing statistics]),

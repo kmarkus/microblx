@@ -1,5 +1,7 @@
 # libubx: the microblx library
 
+AM_CFLAGS = $(UBX_CFLAGS)
+
 lib_LTLIBRARIES = libubx.la
 
 libubx_includes = ubx.h ubx_uthash_ffi.h \
