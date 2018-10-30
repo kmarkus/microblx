@@ -103,6 +103,7 @@ struct ptrig_inf {
 
 	/* timing statistics */
 	int tstats_enabled;
+	int tstats_print_on_stop;
 
 	struct ptrig_tstat global_tstats;
 	struct ptrig_tstat *blk_tstats;
@@ -161,6 +162,24 @@ void tstat_print(struct ptrig_tstat *stats)
 	    ubx_ts_to_double(&stats->min),
 	    ubx_ts_to_double(&stats->max),
 	    ubx_ts_to_double(&avg));
+}
+
+/* print tstats */
+void ptrig_tstats_print(struct ptrig_inf *inf)
+{
+	if(!inf->tstats_print_on_stop)
+		goto out;
+
+	if(inf->tstats_enabled)
+		tstat_print(&inf->global_tstats);
+
+	for(int i=0; i<inf->trig_list_len; i++) {
+		if(inf->trig_list[i].measure) {
+			tstat_print(&inf->blk_tstats[i]);
+		}
+	}
+out:
+	return;
 }
 
 /* trigger the configured blocks */
@@ -239,6 +258,7 @@ static void* thread_startup(void *arg)
 		pthread_mutex_lock(&inf->mutex);
 
 		while(inf->state != BLOCK_STATE_ACTIVE) {
+			ptrig_tstats_print(inf);
 			pthread_cond_wait(&inf->active_cond, &inf->mutex);
 		}
 		pthread_mutex_unlock(&inf->mutex);
@@ -407,7 +427,11 @@ static int ptrig_start(ubx_block_t *b)
 	/* preparing timing statistics */
 	tstat_init(&inf->global_tstats, tstat_global_id);
 
-	inf->blk_tstats = calloc(inf->trig_list_len, sizeof(struct ptrig_tstat));
+	/* this is freed in cleanup hook */
+	inf->blk_tstats = reallocarray(
+		inf->blk_tstats,
+		inf->trig_list_len,
+		sizeof(struct ptrig_tstat));
 
 	if(!inf->blk_tstats) {
 		ERR("failed to alloc blk_stats");
@@ -419,7 +443,11 @@ static int ptrig_start(ubx_block_t *b)
 			   inf->trig_list[i].b->name);
 	}
 
-	inf->tstats_enabled = *((int*) ubx_config_get_data_ptr(b, "tstats_enabled", &len));
+	inf->tstats_print_on_stop =
+		*(int*) ubx_config_get_data_ptr(b, "tstats_print_on_stop", &len);
+
+	inf->tstats_enabled =
+		*((int*) ubx_config_get_data_ptr(b, "tstats_enabled", &len));
 
 	if(inf->tstats_enabled) {
 		DBG("tstats enabled");
@@ -441,29 +469,12 @@ static void ptrig_stop(ubx_block_t *b)
 {
 	DBG(" ");
 	struct ptrig_inf *inf;
-	int len, *tstats_print_on_stop;
 
 	inf = (struct ptrig_inf*) b->private_data;
 
 	pthread_mutex_lock(&inf->mutex);
 	inf->state=BLOCK_STATE_INACTIVE;
 	pthread_mutex_unlock(&inf->mutex);
-
-	tstats_print_on_stop = (int*) ubx_config_get_data_ptr(b, "tstats_print_on_stop", &len);
-
-	if(*tstats_print_on_stop) {
-
-		if(inf->tstats_enabled)
-			tstat_print(&inf->global_tstats);
-
-		for(int i=0; i<inf->trig_list_len; i++) {
-			if(inf->trig_list[i].measure) {
-				tstat_print(&inf->blk_tstats[i]);
-			}
-		}
-	}
-
-	free(inf->blk_tstats);
 }
 
 static void ptrig_cleanup(ubx_block_t *b)
@@ -483,6 +494,8 @@ static void ptrig_cleanup(ubx_block_t *b)
 		ERR2(ret, "pthread_join failed");
 
 	pthread_attr_destroy(&inf->attr);
+
+	free(inf->blk_tstats);
 	free(b->private_data);
 }
 
