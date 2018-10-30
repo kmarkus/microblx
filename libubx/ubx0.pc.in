@@ -9,5 +9,5 @@ Description: microblx real-time function blocks
 URL: https://github.com/kmarkus/microblx
 # Requires: lfds6 >= 6.1.1
 Version: @VERSION@
-Cflags: -I${includedir}
+Cflags: -I${includedir} -Wall -Wextra
 Libs: -L${libdir} -lubx
