@@ -19,4 +19,4 @@ logger_la_SOURCES = $(logger_la_includes) \
 
 logger_la_LDFLAGS = -module -avoid-version -shared -export-dynamic $(LUAJIT_LIBS)
 logger_la_LIBADD = $(top_builddir)/libubx/libubx.la
-logger_la_CFLAGS = -I$(top_srcdir)/libubx $(LUAJIT_CFLAGS)
+logger_la_CFLAGS = -I$(top_srcdir)/libubx $(LUAJIT_CFLAGS) @UBX_CFLAGS@
