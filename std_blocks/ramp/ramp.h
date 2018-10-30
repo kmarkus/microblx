@@ -60,7 +60,6 @@ def_write_fun(write_out, RAMP_T)
 /* block operation forward declarations */
 int ramp_init(ubx_block_t *b);
 int ramp_start(ubx_block_t *b);
-void ramp_stop(ubx_block_t *b);
 void ramp_cleanup(ubx_block_t *b);
 void ramp_step(ubx_block_t *b);
 
@@ -75,8 +74,6 @@ ubx_block_t ramp_block = {
 
 	/* ops */
 	.init = ramp_init,
-	.start = ramp_start,
-	.stop = ramp_stop,
 	.cleanup = ramp_cleanup,
 	.step = ramp_step,
 };
