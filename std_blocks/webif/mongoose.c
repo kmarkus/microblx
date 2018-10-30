@@ -1775,7 +1775,7 @@ static void convert_uri_to_file_name(struct mg_connection *conn, char *buf,
   const char *rewrite, *uri = conn->request_info.uri;
   char *p;
   int match_len;
-  char gz_path[PATH_MAX];
+  char gz_path[PATH_MAX+4];
   char const* accept_encoding;
 
   // Using buf_len - 1 because memmove() for PATH_INFO may shift part
