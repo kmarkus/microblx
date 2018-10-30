@@ -10,6 +10,7 @@ local function usage()
    print( [=[
 microblx function block model system launcher
    usage: ubx_launch OPTIONS -c <conf file>
+      -b               listen on given block state to shutdown
       -c               .usc or .json model file to launch
       -nodename        name to give to node
       -nostart         instantiate and configure, but don't start
@@ -20,9 +21,14 @@ microblx function block model system launcher
 ]=])
 end
 
+local function isempty(s)
+  return s == nil or s == ''
+end
+
 local opttab=utils.proc_args(arg)
 local nodename
 local conf_file
+local monitorblock
 
 if #arg==1 or opttab['-h'] then
    usage(); os.exit(1)
@@ -37,6 +43,9 @@ end
 
 local suc
 suc, model = bd.load(conf_file)
+if (opttab['-b'] and opttab['-b'][1]) then
+   monitorblock = opttab['-b'][1]
+end
 
 if not suc then
    print(model)
@@ -85,6 +94,12 @@ if not opttab['-i'] then
    end
    if (duration > 0) then
       ubx.clock_mono_sleep(duration)
+   elseif not isempty(monitorblock) then
+      ubx.clock_mono_sleep(1)
+      local monblock = ni:block_get(monitorblock)
+      while (monblock:get_block_state() == 'active') do
+         ubx.clock_mono_sleep(1)
+      end
    else
       while true do
          ubx.clock_mono_sleep(60)
