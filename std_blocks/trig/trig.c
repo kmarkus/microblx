@@ -69,7 +69,8 @@ inline void tsnorm(struct timespec *ts)
 /* trigger the configured blocks */
 int do_trigger(struct trig_inf *inf)
 {
-	int i, steps, ret=-1;
+	int ret=-1;
+	unsigned int i, steps;
 	struct ubx_timespec ts_start, ts_end, ts_dur;
 
 	ubx_clock_mono_gettime(&ts_start);

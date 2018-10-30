@@ -1,5 +1,7 @@
 # trig: simple trigger block
 
+AM_CFLAGS = -I$(top_srcdir)/libubx $(UBX_CFLAGS)
+
 ubxmoddir = $(ubx_moddir)
 
 ubxmod_LTLIBRARIES = trig.la
@@ -17,4 +19,3 @@ trig_la_includes = $(top_srcdir)/libubx/ubx.h $(top_srcdir)/libubx/ubx_types.h
 trig_la_SOURCES = $(trig_la_includes) trig.c
 trig_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
 trig_la_LIBADD = $(top_builddir)/libubx/libubx.la
-trig_la_CPPFLAGS = -I$(top_srcdir)/libubx
