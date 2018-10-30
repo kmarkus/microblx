@@ -3,8 +3,9 @@
 #+SEQ_TODO: TODO(t) STARTED(s) WAITING(w@) | DONE(d) CANCELLED(c@)
 
 * Next release (1.0)
+** TODO predefine helper functions for basic types for both config and ports
 ** TODO add help() to ubx_launch
-** TODO proper tostring meta method for ubx_types
+** DONE proper tostring meta method for ubx_types
 ** TODO add possibility to identify trigger blocks
    - useful for shutting down
 ** TODO remove port state (?)
@@ -46,7 +47,7 @@
 *** DONE lunit
 *** TODO lfds
 ** TODO get yocto meta-microblx layer working on embedded hw
-** TODO move youbot stuff out
+** DONE move youbot stuff out
 ** DONE make an intermediate release
    :LOGBOOK:
    - State "DONE"       from "TODO"       [2017-11-10 Fri 21:35]
