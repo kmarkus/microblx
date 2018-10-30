@@ -2,7 +2,7 @@
 void md5(const unsigned char *input, int len, unsigned char output[16]);
 /* ./ubx.c */
 int checktype(ubx_node_info_t *ni, ubx_type_t *required, const char *tcheck_str, const char *portname, int isrd);
-const char *block_state_tostr(int state);
+const char *block_state_tostr(unsigned int state);
 const char *get_typename(ubx_data_t *data);
 int ubx_module_load(ubx_node_info_t *ni, const char *lib);
 void ubx_module_unload(ubx_node_info_t *ni, const char *lib);
@@ -18,7 +18,7 @@ int ubx_resolve_types(ubx_block_t *b);
 ubx_data_t *__ubx_data_alloc(ubx_type_t *typ, unsigned long array_len);
 ubx_data_t *ubx_data_alloc(ubx_node_info_t *ni, const char *typname, unsigned long array_len);
 int ubx_data_resize(ubx_data_t *d, unsigned int newlen);
-void ubx_data_free(ubx_node_info_t *ni, ubx_data_t *d);
+void ubx_data_free(ubx_data_t *d);
 int data_copy(ubx_data_t *dest, void *src, size_t size);
 int ubx_data_assign(ubx_data_t *tgt, ubx_data_t *src);
 unsigned int data_size(ubx_data_t *d);

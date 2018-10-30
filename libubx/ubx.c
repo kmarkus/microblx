@@ -47,7 +47,7 @@ const char *block_states[] = {	"preinit", "inactive", "active" };
  *
  * @return const char pointer to string name.
  */
-const char* block_state_tostr(int state)
+const char* block_state_tostr(unsigned int state)
 {
 	if(state>=sizeof(block_states))
 		return "invalid";
@@ -616,7 +616,7 @@ int ubx_data_resize(ubx_data_t *d, unsigned int newlen)
  * @param ni
  * @param d
  */
-void ubx_data_free(ubx_node_info_t *ni, ubx_data_t* d)
+void ubx_data_free(ubx_data_t* d)
 {
 	free(d->data);
 	free(d);

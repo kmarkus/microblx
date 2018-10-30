@@ -214,7 +214,7 @@ static void luablock_cleanup(ubx_block_t *b)
 	struct luablock_info* inf = (struct luablock_info*) b->private_data;
 	call_hook(b, "cleanup", 0, 0);
 	lua_close(inf->L);
-	ubx_data_free(b->ni, inf->exec_str_buff);
+	ubx_data_free(inf->exec_str_buff);
 	free(b->private_data);
 }
 

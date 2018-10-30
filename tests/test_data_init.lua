@@ -14,7 +14,7 @@ function test_scalar_assignment()
    ubx.data_set(d, 33)
    local numptr = ffi.cast("unsigned int*", d.data)
    assert_equals(33, numptr[0])
-   -- ubx.data_free(ni, d)
+   -- ubx.data_free(d)
 end
 
 function test_string_assignment()
@@ -23,7 +23,7 @@ function test_string_assignment()
    ubx.data_set(d, teststr)
    local chrptr = ffi.cast("char*", d.data)
    assert_equals(teststr, ffi.string(chrptr))
-   -- ubx.data_free(ni, d)
+   -- ubx.data_free(d)
 end
 
 function test_simple_struct_assignment()
@@ -33,7 +33,7 @@ function test_simple_struct_assignment()
    assert_equals(444, vptr.x)
    assert_equals(55.3, vptr.y)
    assert_equals(-34, vptr.z)
-   -- ubx.data_free(ni, d)
+   -- ubx.data_free(d)
 end
 
 function test_composite_struct_assignment()
@@ -85,7 +85,7 @@ function test_simple_struct_assignment2()
    assert_equals(1, tonumber(ptr[1].benchmark))
    assert_equals(0, tonumber(ptr[2].benchmark))
 
-   -- ubx.data_free(ni, d)
+   -- ubx.data_free(d)
 end
 
 function test_data_resize()
@@ -109,7 +109,7 @@ function test_data_resize()
 
    assert_equals(tonumber(d.len), 3)
 
-   -- ubx.data_free(ni, d)
+   -- ubx.data_free(d)
 end
 
 os.exit( lu.LuaUnit.run() )
