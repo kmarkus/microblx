@@ -40,7 +40,12 @@ struct luablock_info {
 	ubx_data_t* exec_str_buff;
 };
 
-
+const char* predef_hooks = \
+	"function init(b) return true end\n"
+	"function start(b) return true end\n"
+	"function step(b) end\n"
+	"function stop(b) end\n"
+	"function cleanup(b) end\n";
 
 /**
  * @brief: call a hook with fname.
@@ -89,6 +94,7 @@ int call_hook(ubx_block_t* b, const char *fname, int require_fun, int require_re
 	return ret;
 }
 
+
 /**
  * init_lua_state - initalize lua_State and execute lua_file.
  *
@@ -107,6 +113,11 @@ static int init_lua_state(struct luablock_info* inf, const char* lua_file, const
 	}
 
 	luaL_openlibs(inf->L);
+
+	if((ret=luaL_dostring(inf->L, predef_hooks))!=0) {
+		ERR("failed to predefine hooks");
+		goto out;
+	}
 
 	if(lua_file) {
 		if((ret=luaL_dofile(inf->L, lua_file))!=0) {
