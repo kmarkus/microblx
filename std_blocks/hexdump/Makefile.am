@@ -1,5 +1,7 @@
 # hexdump : hexdump block
 
+AM_CFLAGS = -I$(top_srcdir)/libubx $(UBX_CFLAGS)
+
 ubxmoddir = $(ubx_moddir)
 ubxmod_LTLIBRARIES = hexdump.la
 
@@ -8,4 +10,4 @@ hexdump_la_SOURCES = $(hexdump_la_includes) \
                      hexdump.c
 hexdump_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
 hexdump_la_LIBADD = $(top_builddir)/libubx/libubx.la
-hexdump_la_CPPFLAGS = -I$(top_srcdir)/libubx
+
