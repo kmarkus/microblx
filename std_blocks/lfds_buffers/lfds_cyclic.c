@@ -65,6 +65,7 @@ int cyclic_data_elem_init(void **user_data, void *user_state)
 
 void cyclic_data_elem_del(void *user_data, void *user_state)
 {
+	(void) user_state;
 	free(user_data);
 }
 
@@ -190,7 +191,7 @@ static void cyclic_write(ubx_block_t *i, ubx_data_t* msg)
 /* where to check whether the msg->data len is long enough? */
 static int cyclic_read(ubx_block_t *i, ubx_data_t* msg)
 {
-	int ret;
+	int ret = 0;
 	unsigned long readlen, readsz;
 	struct cyclic_block_info *bbi;
 	struct lfds611_freelist_element *elem;
