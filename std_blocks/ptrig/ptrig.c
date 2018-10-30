@@ -173,7 +173,7 @@ void ptrig_tstats_print(struct ptrig_inf *inf)
 	if(inf->tstats_enabled)
 		tstat_print(&inf->global_tstats);
 
-	for(int i=0; i<inf->trig_list_len; i++) {
+	for(unsigned int i=0; i<inf->trig_list_len; i++) {
 		if(inf->trig_list[i].measure) {
 			tstat_print(&inf->blk_tstats[i]);
 		}
@@ -185,7 +185,8 @@ out:
 /* trigger the configured blocks */
 static int trigger_steps(struct ptrig_inf *inf)
 {
-	int i, steps, ret=-1;
+	int ret=-1;
+	unsigned int i, steps;
 
 	struct ubx_timespec ts_start, ts_end, blk_ts_start, blk_ts_end;
 
@@ -412,7 +413,8 @@ static int ptrig_init(ubx_block_t *b)
 static int ptrig_start(ubx_block_t *b)
 {
 	DBG(" ");
-	int len, ret = -1;
+	int ret = -1;
+	unsigned int len;
 	struct ptrig_inf *inf;
 	ubx_data_t* trig_list_data;
 
@@ -438,7 +440,7 @@ static int ptrig_start(ubx_block_t *b)
 		goto out;
 	}
 
-	for(int i=0; i<inf->trig_list_len; i++) {
+	for(unsigned int i=0; i<inf->trig_list_len; i++) {
 		tstat_init(&inf->blk_tstats[i],
 			   inf->trig_list[i].b->name);
 	}
