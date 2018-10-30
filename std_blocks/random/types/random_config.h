@@ -1,5 +1,5 @@
 
 struct random_config {
-	int min;
-	int max;
+	unsigned int min;
+	unsigned int max;
 };

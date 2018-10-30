@@ -61,8 +61,8 @@ ubx_port_t rnd_ports[] = {
  * below.
  */
 struct random_info {
-	int min;
-	int max;
+	unsigned int min;
+	unsigned int max;
 };
 
 /* convenience functions to read/write from the ports these fill a
@@ -156,7 +156,7 @@ static void rnd_step(ubx_block_t *b) {
 	inf=(struct random_info*) b->private_data;
 
 	ubx_port_t* rand_port = ubx_port_get(b, "rnd");
-	rand_val = random();
+	rand_val = (unsigned int) random();
 	rand_val = (rand_val > inf->max) ? (rand_val%inf->max) : rand_val;
 	rand_val = (rand_val < inf->min) ? ((inf->min + rand_val)%inf->max) : rand_val;
 
