@@ -1,3 +1,13 @@
+--
+-- blockdiagram: DSL for specifying and launching microblx system
+-- compositions
+--
+-- Copyright (C) 2013 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
+-- Copyright (C) 2014-2018 Markus Klotzbuecher <mk@mkio.de>
+--
+-- SPDX-License-Identifier: LGPL-2.1-or-later
+--
+
 local ubx = require "ubx"
 local umf = require "umf"
 local utils = require "utils"

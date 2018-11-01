@@ -17,8 +17,7 @@ char fifometa[] =
 	"               Although functional, it does not scale well to multiple"
 	"               reader/writers. For that case, the lfds_* versions should"
 	"               be preferred.]],"
-	"  version=0.01,"
-	"  real-time=false,"
+	"  realtime=false,"
 	"}";
 
 /* configuration */

@@ -20,7 +20,7 @@
 #include "mongoose.h"
 #include "ubx.h"
 
-UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
+UBX_MODULE_LICENSE_SPDX(GPL-2.0)
 
 #ifdef COMPILE_IN_WEBIF_LUA_FILE
 #include "webif.lua.hexarr"
@@ -39,8 +39,7 @@ ubx_config_t webif_conf[] = {
 
 char wi_meta[] =
 	"{ doc='A microblx webinterface',"
-	"  license='MIT',"
-	"  real-time=false,"
+	"  realtime=false,"
 	"}";
 
 struct webif_info {

@@ -17,7 +17,7 @@ using namespace std;
  */
 char cppdemo_meta[] =
 	"{ doc='A cppdemo number generator function block',"
-	"  real-time=true,"
+	"  realtime=true,"
 	"}";
 
 /* configuration

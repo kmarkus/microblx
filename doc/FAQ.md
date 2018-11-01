@@ -23,7 +23,7 @@ passing something like `--prefix=/usr/` to `./configure`
 
 # Real-time priorities
 
-To run with real-time priorities, give the luajit binary
+To run with realtime priorities, give the luajit binary
 `cap_sys_nice` capabilities, e.g:
 
 ```

@@ -1,6 +1,9 @@
 /*
  * uthash stuff
+ *
+ * SPDX-License-Identifier: BSD-1-Clause
  */
+
 typedef struct UT_hash_bucket {
    struct UT_hash_handle *hh_head;
    unsigned count;

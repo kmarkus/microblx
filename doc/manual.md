@@ -104,8 +104,7 @@ defined, the port will be an in-, out- or a bidirectional port.
 ```C
 char rnd_meta[] =
 	"{ doc='A random number generator function block',"
-	"  license='LGPL',"
-	"  real-time=true,"
+	"  realtime=true,"
 	"}";
 ```
 
@@ -114,10 +113,7 @@ keys are supported so far:
 
 - `doc:` short descriptive documentation of the block
 
-- `license`: license of the block. This will be used by deployment
-  tools to validate whether the resulting license are compatible.
-  
-- `real-time`: is the block real-time safe, i.e. there are is no
+- `realtime`: is the block real-time safe, i.e. there are is no
   memory allocation / deallocation and other non deterministic
   function calls in the `step` function.
 

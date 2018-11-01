@@ -30,8 +30,7 @@ ubx_config_t lua_conf[] = {
 
 char luablock_meta[] =
 	"{ doc='A generic luajit based block',"
-	"  license='MIT',"
-	"  real-time=false,"
+	"  realtime=false,"
 	"}";
 
 struct luablock_info {

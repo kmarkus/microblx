@@ -358,7 +358,7 @@ ubx_type_t types[] = {
 /* block meta information */
 char $(bm.name)_meta[] =
 	" { doc='',"
-	"   real-time=true,"
+	"   realtime=true,"
 	"}";
 
 /* declaration of block configuration */

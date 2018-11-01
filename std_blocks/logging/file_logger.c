@@ -22,8 +22,7 @@
 
 char file_logger_meta[] =
 	"{ doc='A reporting block that writes to a file',"
-	"  license='MIT',"
-	"  real-time=false,"
+	"  realtime=false,"
 	"}";
 
 ubx_config_t file_logger_conf[] = {

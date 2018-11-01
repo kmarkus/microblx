@@ -1,11 +1,11 @@
-MICROBLX: real-time, embedded, reflective function blocks
+MICROBLX: realtime, embedded, reflective function blocks
 =========================================================
 
 What is it?
 -----------
 
-Microblx is an lightweight, dynamic, reflective, hard real-time safe
-function block framework. Primary use-cases are hard real-time
+Microblx is an lightweight, dynamic, reflective, hard realtime safe
+function block framework. Primary use-cases are hard realtime
 (embedded) control or signal processing systems.
 
 Main features:

@@ -32,7 +32,7 @@ ubx_type_t random_config_type = def_struct_type(struct random_config, &random_co
  */
 char rnd_meta[] =
 	"{ doc='A random number generator function block',"
-	"  real-time=true,"
+	"  realtime=true,"
 	"}";
 
 /* configuration

@@ -12,7 +12,7 @@
 
 #include <ubx.h>
 
-UBX_MODULE_LICENSE_SPDX(MIT)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
 
 /* includes types and type metadata */
 
@@ -22,8 +22,8 @@ ubx_type_t types[] = {
 
 /* block meta information */
 char ramp_meta[] =
-	" { doc='',"
-	"   real-time=true,"
+	" { doc='Ramp generator block',"
+	"   realtime=true,"
 	"}";
 
 /* declaration of block configuration */

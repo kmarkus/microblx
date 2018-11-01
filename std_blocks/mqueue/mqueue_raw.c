@@ -13,8 +13,7 @@
 
 char mqueue_meta[] =
 	"{ doc='POSIX mqueue interaction',"
-	"  license='MIT',"
-	"  real-time=true,"
+	"  realtime=true,"
 	"}";
 
 ubx_config_t mqueue_config[] = {

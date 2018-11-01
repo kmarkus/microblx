@@ -24,7 +24,7 @@
 /* trig metadata */
 char trig_meta[] =
 	"{ doc='simple, activity-less trigger',"
-	"  real-time=true,"
+	"  realtime=true,"
 	"}";
 
 ubx_port_t trig_ports[] = {
