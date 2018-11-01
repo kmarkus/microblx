@@ -5,15 +5,16 @@ What is it?
 -----------
 
 Microblx is an lightweight, dynamic, reflective, hard real-time safe
-function block framework. It's Main use-cases are hard real-time
+function block framework. Primary use-cases are hard real-time
 (embedded) control or signal processing systems.
 
 Main features:
 
- - Pure C, no external dependencies
+ - Core in C, few external dependencies
+ - No code generation, dynamic type handling
  - Lua scripting for system configuration and deployment
+ - C, C++ or Lua support for implementing function blocks
  - Standard function block and type library
- - Dynamic type handling, no code-generation necessary
  - Webinterface function block to introspect and control blocks
  - Automatic block stub code generation
  - Generic Lua scriptable function block
@@ -68,20 +69,17 @@ Now build microblx:
 ```bash
 $ cd ../microblx
 $ ./bootstrap
-$ ./configure --prefix=/usr
+$ ./configure
 $ make
 $ sudo make install
 ```
 
-Some blocks have external dependencies and may fail. Check for a
-README in the respective subdirectory.
-
-Run a demo example:
+Run the example system:
 
 ```bash
 $ ubx_ilaunch -webif -c /usr/share/microblx/examples/systemmodels/trig_rnd_hexdump.usc
 ```
-browser to localhost:8888 to inspect the system.
+browse to http://localhost:8888 to inspect the system.
 
 Documentation
 -------------
@@ -96,6 +94,13 @@ Getting help
 ------------
 
 Please post any problems via the github issue tracker.
+
+Contributing
+------------
+
+Contributions should conform to the Linux kernel (coding
+style)[https://www.kernel.org/doc/html/latest/process/coding-style.html]. The
+preferred way of submitting patches is via a github merge request.
 
 License
 -------
