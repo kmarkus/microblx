@@ -2,8 +2,10 @@ local luaunit=require("luaunit")
 local ubx=require("ubx")
 local utils=require("utils")
 local bd = require("blockdiagram")
+local time = require("time")
 
 local assert_equals = luaunit.assert_equals
+local assert_true = luaunit.assert_true
 
 local count_num_trigs = [[
 local ubx=require "ubx"
@@ -87,6 +89,13 @@ local function gen_dur_test_block(sec, nsec)
    return utils.expand(dur_test_block_tmpl, { SEC=sec, NSEC=nsec})
 end
 
+local block_dur_us = {
+   tb1 = 10*1000,
+   tb2 = 50*1000,
+   tb3 = 100*1000,
+   ['##total##'] = 160*1000
+}
+
 
 local sys2 = bd.system {
    imports = { "stdtypes", "ptrig", "lfds_cyclic", "luablock" },
@@ -97,11 +106,12 @@ local sys2 = bd.system {
       { name="trig", type="std_triggers/ptrig" },
    },
    configurations = {
-      { name="tb1", config = { lua_str=gen_dur_test_block(0, 10*1000*1000) } },
-      { name="tb2", config = { lua_str=gen_dur_test_block(0, 50*1000*1000) } },
-      { name="tb3", config = { lua_str=gen_dur_test_block(0, 100*1000*1000) } },
+      { name="tb1", config = { lua_str=gen_dur_test_block(0, block_dur_us.tb1*1000) } },
+      { name="tb2", config = { lua_str=gen_dur_test_block(0, block_dur_us.tb2*1000) } },
+      { name="tb3", config = { lua_str=gen_dur_test_block(0, block_dur_us.tb3*1000) } },
       { name="trig", config = { period = {sec=0, usec=100000 },
-				tstats_print_on_stop = 1,
+				tstats_enabled=1,
+				-- tstats_print_on_stop = 1,
 				trig_blocks={
 				   { b="#tb1", num_steps=1, measure=1 },
 				   { b="#tb2", num_steps=1, measure=1 },
@@ -109,9 +119,27 @@ local sys2 = bd.system {
    },
 }
 
+
+local eps = 0.05 -- 5%
+
 function test_tstats()
+
+   local function check_tstat(res)
+      local min_us = time.ts2us(res.min)
+      local max_us = time.ts2us(res.max)
+
+      assert_true(min_us > block_dur_us[res.block_name],
+		  res.block_name..
+		     ": tstat.min ("..min_us.. " lower than allowed minimal dur ("..
+		     block_dur_us[res.block_name]..")")
+      assert_true(max_us < block_dur_us[res.block_name]*(1+eps),
+		  res.block_name..
+		     ": tstat.max ("..max_us..") larger than allowed max dur ("..
+		     block_dur_us[res.block_name]*(1+eps)..")")
+   end
+
    local ni = sys2:launch{ nostart=true, verbose=false }
-   local p_tstats = ubx.port_clone_conn(ni:b("trig"), "tstats", 10)
+   local p_tstats = ubx.port_clone_conn(ni:b("trig"), "tstats", 4)
 
    sys2:startup(ni)
    ubx.clock_mono_sleep(3)
@@ -120,7 +148,7 @@ function test_tstats()
    while true do
       local cnt, res = p_tstats:read()
       if cnt <= 0 then break end
-      print(res)
+      check_tstat(res:tolua())
    end
 
    -- give ptrig some time to shutdown cleanly
