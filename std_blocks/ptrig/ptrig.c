@@ -15,8 +15,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <time.h>
+
+#include <pthread.h>
 #include <limits.h>	/* PTHREAD_STACK_MIN */
 
 #include "ubx.h"
@@ -157,8 +158,9 @@ void tstat_print(struct ptrig_tstat *stats)
 
 	ubx_ts_div(&stats->total, stats->cnt, &avg);
 
-	MSG("%s: min:%f, max:%f, avg:%f",
+	MSG("%s: cnt: %lu, min:%f, max:%f, avg:%f",
 	    stats->block_name,
+	    stats->cnt,
 	    ubx_ts_to_double(&stats->min),
 	    ubx_ts_to_double(&stats->max),
 	    ubx_ts_to_double(&avg));
