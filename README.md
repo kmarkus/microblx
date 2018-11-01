@@ -98,8 +98,8 @@ Please post any problems via the github issue tracker.
 Contributing
 ------------
 
-Contributions should conform to the Linux kernel (coding
-style)[https://www.kernel.org/doc/html/latest/process/coding-style.html]. The
+Contributions should conform to the Linux kernel [coding
+style](https://www.kernel.org/doc/html/latest/process/coding-style.html). The
 preferred way of submitting patches is via a github merge request.
 
 License
