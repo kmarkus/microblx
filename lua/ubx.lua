@@ -101,7 +101,7 @@ local load_files = {
    "include/ubx_uthash_ffi.h",
    "include/ubx_types.h",
    "include/ubx_proto.h",
-   "lib/libubx.so"
+   "lib/libubx.so.5"
 }
 
 -- possible file prefixes for above headers and libraries
@@ -127,7 +127,7 @@ local function load_ubx_ffi(prefix)
    ffi.cdef(read_file(prefix.."/include/ubx_uthash_ffi.h"))
    ffi.cdef(read_file(prefix.."/include/ubx_types.h"))
    ffi.cdef(read_file(prefix.."/include/ubx_proto.h"))
-   ubx=ffi.load(prefix.."/lib/libubx.so")
+   ubx=ffi.load(prefix.."/lib/libubx.so.5")
    setmetatable(M, { __index=function(t,k) return ubx["ubx_"..k] end })
    M.ubx=ubx
 end
