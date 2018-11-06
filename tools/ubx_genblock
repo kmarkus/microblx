@@ -214,16 +214,14 @@ AC_PROG_INSTALL
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT(disable-static)
 
-AC_SUBST([UBX_VER], [package_version_major.package_version_minor])
-AC_SUBST([ubx_moddir], [$libdir/microblx/$UBX_VER])
+PKG_CHECK_MODULES(UBX, ubx0 >= 0.4.0)
 
-PKG_CHECK_MODULES(UBX, ubx0 >= 0.1.0)
-
-PKG_CHECK_VAR(UBX_VER, ubx0, Version,,
-   AC_MSG_FAILURE([Unable to identify microblx version.])
-)
-
-AC_SUBST([UBX_VER])
+PKG_CHECK_VAR([ubx_moddir], [ubx0], [ubx_moddir])
+  AC_MSG_CHECKING([ubx module directory])
+  AS_IF([test "x$ubx_moddir" = "x"], [
+  AC_MSG_FAILURE([Unable to identify ubx module path.])
+])
+AC_MSG_RESULT([$ubx_moddir])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
@@ -581,6 +579,7 @@ out:
 int $(bm.name)_start(ubx_block_t *b)
 {
 	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
+        MSG("%s", b->name);
 	int ret = 0;
 	return ret;
 }
@@ -591,12 +590,15 @@ int $(bm.name)_start(ubx_block_t *b)
 void $(bm.name)_stop(ubx_block_t *b)
 {
 	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
+        MSG("%s", b->name);
 }
 @ end
 
 /* cleanup */
 void $(bm.name)_cleanup(ubx_block_t *b)
 {
+	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
+        MSG("%s", b->name);
 	free(b->private_data);
 }
 
@@ -604,10 +606,8 @@ void $(bm.name)_cleanup(ubx_block_t *b)
 /* step */
 void $(bm.name)_step(ubx_block_t *b)
 {
-
-	/*
-	struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data;
-	*/
+	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
+        MSG("%s", b->name);
 }
 @ end
 
