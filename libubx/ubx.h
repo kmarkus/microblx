@@ -106,25 +106,7 @@ __attribute__ ((visibility("default"))) void __ubx_cleanup_module(ubx_node_info_
 	.private_data=(void*) hexdata,	\
 }
 
-int checktype(ubx_node_info_t* ni, ubx_type_t *required, const char *tcheck_str, const char *portname, int isrd)
-{
-#ifdef CONFIG_TYPECHECK_EXTRA
-	ubx_type_t *tcheck = ubx_type_get(ni, tcheck_str);
-
-	assert(ni!=NULL);
-	assert(required!=NULL);
-	assert(tcheck_str!=NULL);
-	assert(portname!=NULL);
-
-	if (required != tcheck) {
-		ERR("port %s type error during %s: is '%s' but should be '%s'",
-		    portname, (isrd==1) ? "read" : "write", tcheck_str, required->name);
-		return -1;
-	}
-#endif
-	return 0;
-}
-
+int checktype(ubx_node_info_t* ni, ubx_type_t *required, const char *tcheck_str, const char *portname, int isrd);
 
 /* normally the user would have to box/unbox his value himself. This
  * generate a strongly typed, automatic boxing version for
