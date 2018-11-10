@@ -193,7 +193,7 @@ typedef struct ubx_block
 	union {
 		/* COMP_TYPE_COMPUTATION */
 		struct {
-			void(*step) (struct ubx_block*);
+			void(*step) (struct ubx_block* cblock);
 
 			/* statistics, todo step duration */
 			unsigned long stat_num_steps;
@@ -203,8 +203,8 @@ typedef struct ubx_block
 		struct {
 			/* read and write: these are implemented by interactions and
 			 * called by the ports read/write */
-			int(*read)(struct ubx_block* interaction, ubx_data_t* value);
-			void(*write)(struct ubx_block* interaction, ubx_data_t* value);
+			int(*read)(struct ubx_block* iblock, ubx_data_t* value);
+			void(*write)(struct ubx_block* iblock, ubx_data_t* value);
 			unsigned long stat_num_reads;
 			unsigned long stat_num_writes;
 		};
