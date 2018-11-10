@@ -8,6 +8,9 @@
  *
  */
 
+#ifndef _UBX_H
+#define _UBX_H
+
 #define CONFIG_DUMPABLE		1	/* enable for dumps even when running with priviledges */
 /* #define CONFIG_MLOCK_ALL	1 */
 #define CONFIG_PARANOIA		1	/* enable extra checks */
@@ -167,3 +170,5 @@ static int32_t function_name(ubx_port_t* port, typename (*inval)[arrlen])	\
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* _UBX_H */
