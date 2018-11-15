@@ -305,7 +305,11 @@ int ubx_block_register(ubx_node_info_t *ni, ubx_block_t* block)
 ubx_block_t* ubx_block_get(ubx_node_info_t *ni, const char *name)
 {
 	ubx_block_t *tmpc=NULL;
+
+	if(name==NULL) goto out;
+
 	HASH_FIND_STR(ni->blocks, name, tmpc);
+out:
 	return tmpc;
 }
 
@@ -483,7 +487,7 @@ int ubx_resolve_types(ubx_block_t* b)
 				    config_ptr->type_name, config_ptr->name, b->name);
 				goto out;
 			}
-			config_ptr->value.type=typ;
+			config_ptr->type = typ;
 		}
 	}
 
@@ -503,7 +507,7 @@ int ubx_resolve_types(ubx_block_t* b)
  *
  * @return ubx_data_t* or NULL in case of error.
  */
-ubx_data_t* __ubx_data_alloc(ubx_type_t* typ, unsigned long array_len)
+ubx_data_t* __ubx_data_alloc(const ubx_type_t* typ, const unsigned long array_len)
 {
 	ubx_data_t* d = NULL;
 
@@ -596,12 +600,16 @@ int ubx_data_resize(ubx_data_t *d, unsigned int newlen)
  */
 void ubx_data_free(ubx_data_t* d)
 {
-	free(d->data);
-	free(d);
+	d->refcnt--;
+
+	if(d->refcnt < 0) {
+		free(d->data);
+		free(d);
+	}
 }
 
 /**
- * Copy the size bytes of src into the dest data's buffer.
+ * Copy size bytes of src into the dest data's buffer.
  *
  * @param dest destination ubx_data_t pointer
  * @param src src data pointer
@@ -638,14 +646,14 @@ int data_copy(ubx_data_t *dest, void *src, size_t size)
 
 
 /**
- * Assign a ubx_data_t value to an second.
+ * Copy the value of an ubx_data_t to a second
  *
  * @param tgt
  * @param src
  *
  * @return 0 if OK, else -1
  */
-int ubx_data_assign(ubx_data_t *tgt, ubx_data_t *src)
+int ubx_data_copy(ubx_data_t *tgt, ubx_data_t *src)
 {
 	int ret=-1;
 
@@ -670,6 +678,7 @@ int ubx_data_assign(ubx_data_t *tgt, ubx_data_t *src)
  out:
 	return ret;
 }
+
 
 /**
  * Calculate the size in bytes of a ubx_data_t buffer.
@@ -802,7 +811,7 @@ static void ubx_config_free_data(ubx_config_t *c)
 	if(c->name) free((char*) c->name);
 	if(c->doc) free((char*) c->doc);
 	if(c->type_name) free((char*) c->type_name);
-	if(c->value.data) free(c->value.data);
+	if(c->value) ubx_data_free(c->value);
 	memset(c, 0x0, sizeof(ubx_config_t));
 }
 
@@ -811,7 +820,7 @@ static void ubx_config_free_data(ubx_config_t *c)
  *
  * @param cnew pointer to (allocated) ubx_config
  * @param name name of configuration
- * @param type_name name of contained type
+ * @param type ubx_type_t of configuration value
  * @param len array size of data
  *
  * @return less than zero if an error occured, 0 otherwise.
@@ -822,7 +831,7 @@ static int ubx_clone_config_data(ubx_config_t *cnew,
 				 const char* name,
 				 const char* doc,
 				 const ubx_type_t* type,
-				 unsigned long len)
+				 const unsigned long len)
 {
 	memset(cnew, 0x0, sizeof(ubx_config_t));
 
@@ -836,11 +845,7 @@ static int ubx_clone_config_data(ubx_config_t *cnew,
 	if((cnew->type_name=strdup(type->name))==NULL)
 		goto out_err;
 
-	cnew->value.type = type;
-	cnew->value.len=(len==0) ? 1 : len;
-
-	/* alloc actual buffer */
-	cnew->value.data = calloc(cnew->value.len, cnew->value.type->size);
+	cnew->value = __ubx_data_alloc(type, (len==0) ? 1 : len);
 
 	return 0; /* all ok */
 
@@ -849,6 +854,34 @@ static int ubx_clone_config_data(ubx_config_t *cnew,
 	return -1;
 }
 
+/**
+ * ubx_config_assign - assign a ubx_data
+ *
+ * this will increment the ubx_data refcnt.
+ *
+ * @param config
+ * @param data ubx_data_t to assign
+ *
+ * @return
+ */
+int ubx_config_assign(ubx_config_t *c, ubx_data_t *d)
+{
+	int ret = -1;
+
+	if(c->type != d->type) {
+		ERR("refusing to assign a type %s data to a type %s config",
+		    d->type->name, c->type_name);
+		goto out;
+	}
+
+	if(c->value)
+		ubx_data_free(c->value);
+
+	d->refcnt++;
+	c->value = d;
+out:
+	return ret;
+}
 
 /**
  * ubx_block_free - free all memory related to a block
@@ -922,9 +955,10 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 		if((newb->configs = calloc(i+1, sizeof(ubx_config_t)))==NULL)
 			goto out_free;
 
-		for(srcconf=prot->configs, tgtconf=newb->configs; srcconf->name!=NULL; srcconf++,tgtconf++) {
-			if(ubx_clone_config_data(tgtconf, srcconf->name, srcconf->doc,
-						 srcconf->value.type, srcconf->value.len) != 0)
+		for(srcconf=prot->configs, tgtconf=newb->configs;
+		    srcconf->name!=NULL; srcconf++,tgtconf++) {
+			if(ubx_clone_config_data(tgtconf, srcconf->name,
+						 srcconf->doc, srcconf->type, 1) != 0)
 				goto out_free;
 		}
 	}
@@ -1395,7 +1429,7 @@ ubx_data_t* ubx_config_get_data(ubx_block_t* b, const char *name)
 
 	if((conf=ubx_config_get(b, name))==NULL)
 		goto out;
-	data=&conf->value;
+	data=conf->value;
  out:
 	return data;
 }
@@ -1439,7 +1473,11 @@ void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *le
  *
  * @return 0 if Ok, !=0 otherwise.
  */
-int ubx_config_add(ubx_block_t* b, const char* name, const char* meta, const char *type_name, unsigned long len)
+int ubx_config_add(ubx_block_t* b,
+		   const char* name,
+		   const char* meta,
+		   const char* type_name,
+		   const unsigned long len)
 {
 	ubx_type_t* typ;
 	ubx_config_t* carr;

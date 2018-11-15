@@ -866,7 +866,9 @@ function M.config_totab(c)
 
    res.doc = M.safe_tostr(c.doc)
    res.type_name = M.safe_tostr(c.type_name)
-   res.value = M.data_tolua(c.value)
+   if c.value ~= nil then
+      res.value = M.data_tolua(c.value)
+   end
    return res
 end
 
