@@ -271,7 +271,7 @@ function system.launch(self, t)
    local function preproc_configs(ni, c)
       local ret=true
       local function subs_blck_ptrs(val, tab, key)
-	 local name=string.match(val, ".*#([%w_]+)")
+	 local name=string.match(val, ".*#([%w_-]+)")
 	 if not name then return end
 	 local ptr=ubx.block_get(ni, name)
 	 if ptr==nil then
