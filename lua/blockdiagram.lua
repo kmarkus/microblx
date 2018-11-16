@@ -8,9 +8,6 @@
 -- SPDX-License-Identifier: LGPL-2.1-or-later
 --
 
--- node configuration
-_NC = nil
-
 local ubx = require "ubx"
 local umf = require "umf"
 local utils = require "utils"
@@ -19,6 +16,9 @@ local ts = tostring
 local M={}
 
 local strict = require "strict"
+
+-- node configuration
+_NC = nil
 
 local red=ubx.red
 local blue=ubx.blue
