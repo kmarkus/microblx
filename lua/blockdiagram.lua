@@ -8,6 +8,9 @@
 -- SPDX-License-Identifier: LGPL-2.1-or-later
 --
 
+-- node configuration
+_NC = nil
+
 local ubx = require "ubx"
 local umf = require "umf"
 local utils = require "utils"
@@ -23,7 +26,6 @@ local cyan=ubx.cyan
 local green=ubx.green
 local yellow=ubx.yellow
 local magenta=ubx.magenta
-
 
 local ind_log = -1
 local ind_mul = 4
@@ -100,6 +102,28 @@ local connections_spec = TableSpec
 local configs_spec = TableSpec
 {
    name='configurations',
+
+   -- node_config
+   dict = {
+      node = TableSpec {
+	 name='node configs',
+	 sealed='both',
+	 dict = {
+	    __other = {
+	       TableSpec {
+		  name = 'node config',
+		  sealed='both',
+		  dict = {
+		     type = StringSpec{},
+		     config = AnySpec{},
+		  }
+	       }
+	    }
+	 }
+      },
+   },
+
+   -- regular block configs
    array = {
       TableSpec
       {
@@ -108,6 +132,7 @@ local configs_spec = TableSpec
 	 sealed='both'
       },
    },
+   optional = { 'node' },
    sealed='both'
 }
 
@@ -227,6 +252,23 @@ function system.startup(self, ni)
    log("activating blocks completed")
 end
 
+--- Instantiate ubx_data for node configuration
+-- @param node_config bd.configurations.node field
+-- @return table of initialized config_name=ubx_data pairs
+local function create_node_config(ni, node_config)
+   local res = {}
+   local function __create_nc(cfg, name)
+      local d = ubx.data_alloc(ni, cfg.type, 1)
+      ubx.data_set(d, cfg.config, true)
+      res[name]=d
+      log("    "..blue(name)..
+	     "["..magenta(cfg.type).."] "..
+	     yellow(utils.tab2str(cfg.config)))
+   end
+   utils.foreach(__create_nc, node_config)
+   return res
+end
+
 --- Launch a blockdiagram system
 -- @param self system specification to load
 -- @param t configuration table
@@ -289,15 +331,34 @@ function system.launch(self, t)
       return ret
    end
 
-   --- Configure a the given block with a config (file or table)
+   --- Configure a the given block with a config
+   -- (scalar, table or node cfg reference '&ndcfg'
    -- @param c blockdiagram.config
    -- @param b ubx_block_t
-   local function apply_conf(c, b)
-      if type(c.config)=='string' then
-	 log("    "..green(c.name).." (from file"..yellow(c.config)..")")
-      else
-	 log("    "..green(c.name).." with "..yellow(utils.tab2str(c.config))..")")
-	 ubx.set_config_tab(b, c.config)
+   local function apply_conf(blkconf, b)
+      local function check_noderef(val)
+	 if type(val) ~= 'string' then return end
+	 return string.match(val, "^%s*&([%w_]+)")
+      end
+
+      for name,val in pairs(blkconf.config) do
+
+	 -- check for references to node configs
+	 local nodecfg = check_noderef(val)
+
+	 if nodecfg then
+	    if not _NC[nodecfg] then
+	       error("invalid node config reference '"..red(val).."'")
+	    end
+	    local blkcfg = ubx.block_config_get(b, name)
+	    ubx.config_assign(blkcfg, _NC[nodecfg])
+	    log("    "..green(blkconf.name.."."..blue(name))..
+		   " -> node cfg "..yellow(nodecfg))
+	 else -- regular config
+	    log("    "..green(blkconf.name).."."..blue(name)
+		   .." with "..yellow(utils.tab2str(val))..")")
+	    ubx.set_config(b, name, val)
+	 end
       end
    end
 
@@ -334,11 +395,12 @@ function system.launch(self, t)
       if #self.configurations > 0 then
 	 log("configuring "..ts(#self.configurations).." blocks... ")
 
-	 utils.foreach(
+	 utils.imap(
 	    function(c)
 	       local b = ubx.block_get(ni, c.name)
 	       if b==nil then
-		  log(red("    no block named "..c.name.." ignoring configuration "..utils.tab2str(c.config)))
+		  log(red("    no block named "..c.name..
+			     " ignoring configuration "..utils.tab2str(c.config)))
 	       elseif b:get_block_state()~='preinit' then return
 	       else
 		  -- apply this config to and then find configs for
@@ -450,6 +512,11 @@ function system.launch(self, t)
 		 end, blocks)
    log("instantiating blocks completed")
 
+   if self.configurations.node then
+      log("creating node configuration...")
+      _NC = create_node_config(ni, self.configurations.node)
+      log("creating node configuration completed")
+   end
    -- configure and connect
    __launch(self, t, ni)
    return ni
