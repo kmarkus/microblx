@@ -3,6 +3,30 @@ API Changes
 
 This file tracks user visible API changes.
 
+## v0.4.1
+
+- static initialization of block configuration array length has
+  changed during the refactoring for node config support:
+
+```C
+/* old way */
+ubx_config_t blk_conf[] = {
+	{ .name="foo", .type_name="char", .value = { .len=32 }
+    { NULL }
+};
+```
+
+```C
+/* new way */
+ubx_config_t blk_conf[] = {
+	{ .name="foo", .type_name="char", .data_len=32 }
+    { NULL }
+};
+```
+
+  if you didn't use this (probably true for most blocks), there's
+  nothing to change.
+
 ## v0.4.0
 
 - `ubx_launch`: shutdown option `-b` added to shutdown when a
