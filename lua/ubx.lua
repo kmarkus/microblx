@@ -792,7 +792,7 @@ ffi.metatype("struct ubx_type", ubx_type_mt)
 ------------------------------------------------------------------------------
 
 function M.config_set(c, val)
-   return M.data_set(c.value, val)
+   return M.data_set(c.value, val, true)
 end
 
 --- Set a configuration value
@@ -890,7 +890,7 @@ local ubx_config_mt = {
    __index = {
       get_name = function (c) return M.safe_tostr(c.name) end,
       get_doc = function (c) return M.safe_tostr(c.doc) end,
-      set = M.set_config,
+      set = M.config_set,
       totab = M.config_totab,
       tolua = function (c) return M.data_tolua(c.value) end,
       data = function (c) return c.value end,
