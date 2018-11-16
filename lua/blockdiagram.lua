@@ -338,7 +338,7 @@ function system.launch(self, t)
    local function apply_conf(blkconf, b)
       local function check_noderef(val)
 	 if type(val) ~= 'string' then return end
-	 return string.match(val, "^%s*&([%w_]+)")
+	 return string.match(val, "^%s*&([%w_-]+)")
       end
 
       for name,val in pairs(blkconf.config) do
