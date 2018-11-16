@@ -146,7 +146,8 @@ typedef struct ubx_config
 	const char* doc;
 	const char* type_name;
 	ubx_type_t *type;
-	ubx_data_t *value;
+	ubx_data_t *value;		/* reference to actual value */
+	unsigned long data_len;		/* array size of value */
 	uint32_t attrs;
 } ubx_config_t;
 

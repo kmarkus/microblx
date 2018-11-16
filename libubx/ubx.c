@@ -845,7 +845,7 @@ static int ubx_clone_config_data(ubx_config_t *cnew,
 	if((cnew->type_name=strdup(type->name))==NULL)
 		goto out_err;
 
-	cnew->value = __ubx_data_alloc(type, (len==0) ? 1 : len);
+	cnew->value = __ubx_data_alloc(type, (len<=0) ? 1 : len);
 
 	return 0; /* all ok */
 
@@ -957,8 +957,11 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 
 		for(srcconf=prot->configs, tgtconf=newb->configs;
 		    srcconf->name!=NULL; srcconf++,tgtconf++) {
-			if(ubx_clone_config_data(tgtconf, srcconf->name,
-						 srcconf->doc, srcconf->type, 1) != 0)
+			if(ubx_clone_config_data(tgtconf,
+						 srcconf->name,
+						 srcconf->doc,
+						 srcconf->type,
+						 srcconf->data_len) != 0)
 				goto out_free;
 		}
 	}

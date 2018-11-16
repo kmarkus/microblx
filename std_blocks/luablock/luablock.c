@@ -23,8 +23,8 @@ ubx_port_t lua_ports[] = {
 def_write_fun(write_int, int)
 
 ubx_config_t lua_conf[] = {
-	{ .name="lua_file", .type_name="char", .value = { .len=32 } },
-	{ .name="lua_str", .type_name="char", .value = { .len=32 } },
+	{ .name="lua_file", .type_name="char", .data_len=32 },
+	{ .name="lua_str", .type_name="char", .data_len=32 },
 	{ NULL }
 };
 
