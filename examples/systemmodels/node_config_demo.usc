@@ -1,0 +1,40 @@
+-- -*- mode: lua; -*-
+
+local bd = require("blockdiagram")
+
+return bd.system
+{
+   imports = {
+      "stdtypes",
+      "random",
+      "ptrig",
+      "lfds_cyclic"
+   },
+
+   blocks = {
+      { name="b1", type="random/random" },
+      { name="b2", type="random/random" },
+      { name="ptrig1", type="std_triggers/ptrig" },
+   },
+
+   configurations = {
+      -- node config
+      node = {
+	 global_rnd_conf = {
+	    type = "struct random_config",
+	    config = { min=333, max=999 },
+	 },
+      },
+
+      { name="b1", config = { min_max_config = "&global_rnd_conf"} },
+      { name="b2", config = { min_max_config = "&global_rnd_conf"} },
+
+      { name="ptrig1",
+	config = {
+	   period = {sec=1, usec=0 },
+	   trig_blocks={
+	      { b="#b1", num_steps=1, measure=0 },
+	      { b="#b2", num_steps=1, measure=0 } } } }
+   },
+   start = { "ptrig1" }
+}

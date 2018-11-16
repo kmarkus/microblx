@@ -66,8 +66,8 @@ ubx_config_t ptrig_config[] = {
 	  .doc="stacksize as per pthread_attr_setstacksize(3)"
 	},
 	{ .name="sched_priority", .type_name = "int" },
-	{ .name="sched_policy", .type_name = "char", .value = { .len=12 } },
-	{ .name="thread_name", .type_name = "char", .value = { .len=12 } },
+	{ .name="sched_policy", .type_name = "char", .data_len=12 },
+	{ .name="thread_name", .type_name = "char", .data_len=12 },
 	{ .name="trig_blocks", .type_name = "struct ptrig_config",
 	  .doc="trigger conf: which block and how to trigger"
 	},

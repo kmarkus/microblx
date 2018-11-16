@@ -64,6 +64,7 @@ typedef struct ubx_type_ref
 
 typedef struct ubx_data
 {
+	int refcnt;		/* reference counting, num refs = refcnt + 1 */
 	const ubx_type_t* type;	/* link to ubx_type */
 	unsigned long len;	/* if length> 1 then length of array, else ignored */
 	void* data;		/* buffer with size (type->size * length) */
@@ -144,8 +145,10 @@ typedef struct ubx_config
 	const char* name;
 	const char* doc;
 	const char* type_name;
+	ubx_type_t *type;
+	ubx_data_t *value;		/* reference to actual value */
+	unsigned long data_len;		/* array size of value */
 	uint32_t attrs;
-	ubx_data_t value;
 } ubx_config_t;
 
 enum {

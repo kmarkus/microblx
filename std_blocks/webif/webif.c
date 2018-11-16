@@ -32,7 +32,7 @@ UBX_MODULE_LICENSE_SPDX(GPL-2.0)
 static struct ubx_node_info *global_ni;
 
 ubx_config_t webif_conf[] = {
-	{ .name="port", .type_name="char", .value = { .len=10 },
+	{ .name="port", .type_name="char", .data_len=10,
 	  .doc="Port to listen on (default: " WEBIF_DEFAULT_PORT ")" },
 	{ NULL }
 };
