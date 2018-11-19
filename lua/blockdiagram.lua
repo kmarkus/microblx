@@ -37,6 +37,10 @@ local function log(first, ...)
    end
 end
 
+local function err_exit(code, msg)
+   utils.stderr(red(msg))
+   os.exit(code)
+end
 
 local AnySpec=umf.AnySpec
 local NumberSpec=umf.NumberSpec
@@ -195,17 +199,17 @@ local function load(fn)
    local suc, mod
    if ext == 'json' then
       if not has_json then
-	 error("no cjson library found, unable to load json")
+	 err_exit(1, "no cjson library found, unable to load json")
       end
       suc, mod = pcall(read_json, fn)
    elseif ext == 'usc' or ext == 'lua' then
       suc, mod = pcall(dofile, fn)
    else
-      error("ubx_launch error: unknown extension "..tostring(ext))
+      err_exit(1, "ubx_launch error: unknown extension "..tostring(ext))
    end
 
    if not is_system(mod) then
-      error("blockdiagram.load: no valid system in file '" .. tostring(fn) .. "' found.")
+      err_exit(1, "failed to load "..ts(fn).."\n"..ts(mod))
    end
 
    return suc, mod
@@ -348,7 +352,7 @@ function system.launch(self, t)
 
 	 if nodecfg then
 	    if not _NC[nodecfg] then
-	       error("invalid node config reference '"..red(val).."'")
+	       err_exit(1, "invalid node config reference '"..val.."'")
 	    end
 	    local blkcfg = ubx.block_config_get(b, name)
 	    ubx.config_assign(blkcfg, _NC[nodecfg])
@@ -380,8 +384,7 @@ function system.launch(self, t)
 
       log("    preprocessing configs")
       if not preproc_configs(ni, self.configurations) then
-	 log(red("    failed"))
-	 os.exit(1)
+	 err_exit(1, "    failed")
       end
 
       -- launch subsystems
@@ -431,49 +434,63 @@ function system.launch(self, t)
 			     -- src="iblock", tgt="block.port"
 			     local ib = ubx.block_get(ni, bnamesrc)
 
-			     if ib==nil then  log(red("unkown block "..bnamesrc)); os.exit(1) end
+			     if ib==nil then
+				err_exit(1, "unkown block "..ts(bnamesrc))
+			     end
+
 			     if not ubx.is_iblock_instance(ib) then
-				log(red(ts(bnamesrc).." not a valid iblock instance"))
-				os.exit(1)
+				err_exit(1, ts(bnamesrc).." not a valid iblock instance")
 			     end
 
 			     local btgt = ubx.block_get(ni, bnametgt)
 			     local ptgt = ubx.port_get(btgt, pnametgt)
 
 			     if ubx.port_connect_in(ptgt, ib) ~= 0 then
-				log(red("failed to connect interaction "..bnamesrc..
-					   " to port "..ts(bnametgt).."."..ts(pnametgt)))
+				err_exit(1, "failed to connect interaction "..bnamesrc..
+					    " to port "..ts(bnametgt).."."..ts(pnametgt))
 			     end
-			     log("    "..green(bnamesrc).." (iblock) -> "..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
+			     log("    "..green(bnamesrc).." (iblock) -> "
+				    ..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
 
 			  elseif pnametgt==nil then
 			     -- src="block.port", tgt="iblock"
 			     local ib = ubx.block_get(ni, bnametgt)
 
-			     if ib==nil then log(red("unkown block "..ts(bnametgt))); os.exit(1) end
+			     if ib==nil then
+				err_exit(1, "unkown block "..ts(bnametgt))
+			     end
 
 			     if not ubx.is_iblock_instance(ib) then
-				log(red(ts(bnametgt).." not a valid iblock instance"))
-				os.exit(1)
+				err_exit(1, ts(bnametgt).." not a valid iblock instance")
 			     end
 
 			     local bsrc = ubx.block_get(ni, bnamesrc)
 			     local psrc = ubx.port_get(bsrc, pnamesrc)
 
 			     if ubx.port_connect_out(psrc, ib) ~= 0 then
-				log(red("failed to connect "..ts(bnamesrc).."."..ts(pnamesrc)..
-					   " to "..ts(bnametgt)).." (iblock)")
+				err_exit(1, "failed to connect "
+					    ..ts(bnamesrc).."." ..ts(pnamesrc).." to "
+					    ..ts(bnametgt).." (iblock)")
 			     end
 			     log("    "..green(ts(bnamesrc)).."."..cyan(ts(pnamesrc)).." -> "..green(bnametgt).." (iblock)")
 			  else
 			     -- standard connection between two cblocks
 			     local bufflen = c.buffer_length or 1
-			     log("    "..green(ts(bnamesrc))..'.'..cyan(ts(pnamesrc)).." -["..
-				    yellow(ts(bufflen), true).."]".."-> "..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
+
+			     log("    "..green(ts(bnamesrc))..'.'..cyan(ts(pnamesrc))
+				    .." -["..yellow(ts(bufflen), true).."]".."-> "
+				    ..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
+
 			     local bsrc = ubx.block_get(ni, bnamesrc)
 			     local btgt = ubx.block_get(ni, bnametgt)
-			     if bsrc==nil then log(red("ERR: no block named "..bnamesrc.. " found")); return end
-			     if btgt==nil then log(red("ERR: no block named "..bnametgt.. " found")); return end
+
+			     if bsrc==nil then
+				err_exit(1, "ERR: no block named "..bnamesrc.. " found")
+			     end
+
+			     if btgt==nil then
+				err_exit(1, "ERR: no block named "..bnametgt.. " found")
+			     end
 			     ubx.conn_lfds_cyclic(bsrc, pnamesrc, btgt, pnametgt, bufflen)
 			  end
 		       end, self.connections)
