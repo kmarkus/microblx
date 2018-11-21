@@ -3,16 +3,29 @@ API Changes
 
 This file tracks user visible API changes.
 
-## v0.4.1
+## v0.5.0
 
-- static initialization of block configuration array length has
+- support for node configuration in C and via the `ubx_launch`
+  DSL. Using the node (global) configuration mechanism multiple block
+  configurations can be setup to refer to the same configuration
+  value. This way, only one "screw" needs to be turned to change the
+  configuration for all blocks, and the required memory is only
+  allocated once.
+
+  Note that it is transparent to the blocks whether they are
+  configured individually or via a node config.
+
+  For an example, take a look at
+  [node_config_demo.usc](examples/systemmodels/node_config_demo.usc)
+
+- the static initialization of block configuration array length has
   changed during the refactoring for node config support:
 
 ```C
 /* old way */
 ubx_config_t blk_conf[] = {
 	{ .name="foo", .type_name="char", .value = { .len=32 }
-    { NULL }
+	{ NULL }
 };
 ```
 
@@ -20,11 +33,11 @@ ubx_config_t blk_conf[] = {
 /* new way */
 ubx_config_t blk_conf[] = {
 	{ .name="foo", .type_name="char", .data_len=32 }
-    { NULL }
+	{ NULL }
 };
 ```
 
-  if you didn't use this (probably true for most blocks), there's
+  if you didn't use this (probably the case for most blocks), there's
   nothing to change.
 
 ## v0.4.0
