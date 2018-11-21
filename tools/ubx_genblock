@@ -214,7 +214,7 @@ AC_PROG_INSTALL
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT(disable-static)
 
-PKG_CHECK_MODULES(UBX, ubx0 >= 0.4.0)
+PKG_CHECK_MODULES(UBX, ubx0 >= 0.5.0)
 
 PKG_CHECK_VAR([ubx_moddir], [ubx0], [ubx_moddir])
   AC_MSG_CHECKING([ubx module directory])
