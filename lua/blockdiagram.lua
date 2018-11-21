@@ -529,7 +529,7 @@ function system.launch(self, t)
 		 end, blocks)
    log("instantiating blocks completed")
 
-   if self.configurations.node then
+   if self.configurations and self.configurations.node then
       log("creating node configuration...")
       _NC = create_node_config(ni, self.configurations.node)
       log("creating node configuration completed")
