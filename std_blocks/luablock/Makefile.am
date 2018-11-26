@@ -1,6 +1,6 @@
 # luablock: luajit scriptable ubx block
 
-ubxmoddir = $(ubx_moddir)
+ubxmoddir = $(UBX_MODDIR)
 ubxmod_LTLIBRARIES = luablock.la
 
 luablock_la_includes = $(top_srcdir)/libubx/ubx.h

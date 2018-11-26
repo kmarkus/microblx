@@ -1,6 +1,6 @@
 # cppdemo : dummy block to illustrate C++ blocks
 
-ubxmoddir = $(ubx_moddir)
+ubxmoddir = $(UBX_MODDIR)
 ubxmod_LTLIBRARIES = cppdemo.la
 
 BUILT_SOURCES = types/cpp_demo_type.h.hexarr

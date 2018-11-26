@@ -1,6 +1,6 @@
 # logger: logger block
 
-ubxmoddir = $(ubx_moddir)
+ubxmoddir = $(UBX_MODDIR)
 ubxmod_LTLIBRARIES = logger.la
 
 BUILT_SOURCES = file_logger.lua.hexarr

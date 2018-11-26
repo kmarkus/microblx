@@ -2,7 +2,7 @@
 
 AM_CFLAGS = -I$(top_srcdir)/libubx $(UBX_CFLAGS)
 
-ubxmoddir = $(ubx_moddir)
+ubxmoddir = $(UBX_MODDIR)
 ubxmod_LTLIBRARIES = random.la
 
 BUILT_SOURCES = types/random_config.h.hexarr

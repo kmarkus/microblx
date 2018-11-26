@@ -1,7 +1,7 @@
 
 AM_CFLAGS = -I$(top_srcdir)/libubx $(UBX_CFLAGS)
 
-ubxmoddir = $(ubx_moddir)
+ubxmoddir = $(UBX_MODDIR)
 ubxmod_LTLIBRARIES = simple_fifo.la
 
 simple_fifo_la_includes = $(top_srcdir)/libubx/ubx.h

@@ -1,6 +1,6 @@
 # stdtypes : The standard types
 
-ubxmoddir = $(ubx_moddir)
+ubxmoddir = $(UBX_MODDIR)
 ubxmod_LTLIBRARIES = stdtypes.la
 
 stdtypes_la_includes = $(top_srcdir)/libubx/ubx.h

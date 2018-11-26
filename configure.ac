@@ -27,7 +27,7 @@ LT_INIT(disable-static)
 
 AC_SUBST([UBX_VER], [package_version_major.package_version_minor])
 AC_SUBST([UBX_LT_VER], [libubx_if_current:libubx_if_revision:libubx_if_age])
-AC_SUBST([ubx_moddir], [$libdir/$PACKAGE/$UBX_VER])
+AC_SUBST([UBX_MODDIR], [$libdir/$PACKAGE/$UBX_VER])
 AC_SUBST([UBX_CFLAGS], ["-Wall -Wextra -Werror"])
 
 AC_ARG_ENABLE([ptrig-tstat-block],

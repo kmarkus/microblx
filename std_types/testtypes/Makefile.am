@@ -1,5 +1,5 @@
 
-ubxmoddir = $(ubx_moddir)
+ubxmoddir = $(UBX_MODDIR)
 ubxmod_LTLIBRARIES = testtypes.la
 
 BUILT_SOURCES = types/test_trig_conf.h.hexarr \

@@ -1,5 +1,5 @@
 
-ubxmoddir = $(ubx_moddir)
+ubxmoddir = $(UBX_MODDIR)
 ubxmod_LTLIBRARIES = lfds_cyclic.la
 
 # lfds_cyclic : A lock free interaction block

@@ -1,4 +1,4 @@
-ubxmoddir = $(ubx_moddir)
+ubxmoddir = $(UBX_MODDIR)
 
 AM_CFLAGS = -I$(top_srcdir)/libubx $(UBX_CFLAGS)
 

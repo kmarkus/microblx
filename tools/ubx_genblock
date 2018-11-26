@@ -216,12 +216,12 @@ LT_INIT(disable-static)
 
 PKG_CHECK_MODULES(UBX, ubx0 >= 0.5.0)
 
-PKG_CHECK_VAR([ubx_moddir], [ubx0], [ubx_moddir])
+PKG_CHECK_VAR([UBX_MODDIR], [ubx0], [UBX_MODDIR])
   AC_MSG_CHECKING([ubx module directory])
-  AS_IF([test "x$ubx_moddir" = "x"], [
+  AS_IF([test "x$UBX_MODDIR" = "x"], [
   AC_MSG_FAILURE([Unable to identify ubx module path.])
 ])
-AC_MSG_RESULT([$ubx_moddir])
+AC_MSG_RESULT([$UBX_MODDIR])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
@@ -252,7 +252,7 @@ function generate_automakefile(fd, bm)
    local res, str = utils.preproc(
       [[
 
-ubxmoddir = ${ubx_moddir}
+ubxmoddir = ${UBX_MODDIR}
 ubxmod_LTLIBRARIES = $(bm.name).la
 
 $(gen_built_sources())

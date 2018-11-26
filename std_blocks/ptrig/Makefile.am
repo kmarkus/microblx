@@ -2,7 +2,7 @@
 
 AM_CFLAGS = -I$(top_srcdir)/libubx $(UBX_CFLAGS)
 
-ubxmoddir = $(ubx_moddir)
+ubxmoddir = $(UBX_MODDIR)
 ubxmod_LTLIBRARIES = ptrig.la
 
 BUILT_SOURCES = types/ptrig_config.h.hexarr \
