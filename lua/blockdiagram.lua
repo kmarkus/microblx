@@ -102,30 +102,28 @@ local connections_spec = TableSpec
    sealed='both',
 }
 
+   -- node_config
+local node_config_spec = TableSpec {
+   name='node configs',
+   sealed='both',
+   dict = {
+      __other = {
+	 TableSpec {
+	    name = 'node config',
+	    sealed='both',
+	    dict = {
+	       type = StringSpec{},
+	       config = AnySpec{},
+	    }
+	 }
+      }
+   }
+}
+
 -- configuration
 local configs_spec = TableSpec
 {
    name='configurations',
-
-   -- node_config
-   dict = {
-      node = TableSpec {
-	 name='node configs',
-	 sealed='both',
-	 dict = {
-	    __other = {
-	       TableSpec {
-		  name = 'node config',
-		  sealed='both',
-		  dict = {
-		     type = StringSpec{},
-		     config = AnySpec{},
-		  }
-	       }
-	    }
-	 }
-      },
-   },
 
    -- regular block configs
    array = {
@@ -165,6 +163,7 @@ local system_spec = ObjectSpec
       imports=imports_spec,
       blocks=blocks_spec,
       connections=connections_spec,
+      node_configurations=node_config_spec,
       configurations=configs_spec,
       start=start_spec,
       _parent=AnySpec{},
@@ -529,10 +528,10 @@ function system.launch(self, t)
 		 end, blocks)
    log("instantiating blocks completed")
 
-   if self.configurations and self.configurations.node then
-      log("creating node configuration...")
-      _NC = create_node_config(ni, self.configurations.node)
-      log("creating node configuration completed")
+   if self.node_configurations then
+      log("creating node configurations...")
+      _NC = create_node_config(ni, self.node_configurations)
+      log("creating node configurations completed")
    end
    -- configure and connect
    __launch(self, t, ni)

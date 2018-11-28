@@ -1,0 +1,69 @@
+{
+  "imports": [
+    "stdtypes",
+    "random",
+    "ptrig",
+    "lfds_cyclic"
+  ],
+  "start": [
+    "ptrig1"
+  ],
+  "node_configurations": {
+    "global_rnd_conf": {
+      "type": "struct random_config",
+      "config": {
+        "min": 333,
+        "max": 999
+      }
+    }
+  },
+  "blocks": [
+    {
+      "name": "b1",
+      "type": "random/random"
+    },
+    {
+      "name": "b2",
+      "type": "random/random"
+    },
+    {
+      "name": "ptrig1",
+      "type": "std_triggers/ptrig"
+    }
+  ],
+  "configurations": [
+    {
+      "name": "b1",
+      "config": {
+        "min_max_config": "&global_rnd_conf"
+      }
+    },
+    {
+      "name": "b2",
+      "config": {
+        "min_max_config": "&global_rnd_conf"
+      }
+    },
+    {
+      "name": "ptrig1",
+      "config": {
+        "trig_blocks": [
+          {
+            "b": "#b1",
+            "num_steps": 1,
+            "measure": 0
+          },
+          {
+            "b": "#b2",
+            "num_steps": 1,
+            "measure": 0
+          }
+        ],
+        "period": {
+          "usec": 0,
+          "sec": 1
+        }
+      }
+    }
+  ]
+}

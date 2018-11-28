@@ -17,14 +17,15 @@ return bd.system
       { name="ptrig1", type="std_triggers/ptrig" },
    },
 
-   configurations = {
-      -- node config
-      node = {
-	 global_rnd_conf = {
-	    type = "struct random_config",
-	    config = { min=333, max=999 },
-	 },
+   -- node config
+   node_configurations = {
+      global_rnd_conf = {
+	 type = "struct random_config",
+	 config = { min=333, max=999 },
       },
+   },
+
+   configurations = {
 
       { name="b1", config = { min_max_config = "&global_rnd_conf"} },
       { name="b2", config = { min_max_config = "&global_rnd_conf"} },
