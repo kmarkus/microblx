@@ -19,14 +19,15 @@ local sys1 = bd.system {
       { name="rand3", type="random/random" },
    },
 
+   node_configurations={
+      ramp_start = { type="uint64_t", config=10 },
+      ramp_slope = { type="uint64_t", config=345 },
+      rand_conf = { type="struct random_config",
+		    config={ min=222, max=333 },
+      }
+   },
+
    configurations = {
-      node={
-	 ramp_start = { type="uint64_t", config=10 },
-	 ramp_slope = { type="uint64_t", config=345 },
-	 rand_conf = { type="struct random_config",
-		       config={ min=222, max=333 },
-	 }
-      },
       { name="ramp1", config = { start="&ramp_start", slope="&ramp_slope" } },
       { name="ramp2", config = { start="&ramp_start", slope="&ramp_slope" } },
       { name="ramp3", config = { start="&ramp_start", slope="&ramp_slope" } },
@@ -55,7 +56,7 @@ test_scalar.teardown = teardown
 function test_scalar.test_initial_node_conf_rampstart()
    for i=1,3 do
       local blkcfg = ni:b("ramp"..i):c("start"):tolua()
-      local nodecfg = sys1.configurations.node.ramp_start.config
+      local nodecfg = sys1.node_configurations.ramp_start.config
       assert_equals(blkcfg, nodecfg, "ramp_start: nodecfg != blkconfig")
    end
 end
@@ -92,7 +93,7 @@ test_struct.teardown = teardown
 function test_struct.test_initial_node_conf_struct()
    for i=1,3 do
       local blkcfg = ni:b("rand"..i):c("min_max_config"):tolua()
-      local nodecfg = sys1.configurations.node.rand_conf.config
+      local nodecfg = sys1.node_configurations.rand_conf.config
       assert_equals(blkcfg.min, nodecfg.min, "rand cfg: nodecfg != blkconfig")
       assert_equals(blkcfg.max, nodecfg.max, "rand cfg: nodecfg != blkconfig")
    end

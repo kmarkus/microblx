@@ -134,7 +134,6 @@ local configs_spec = TableSpec
 	 sealed='both'
       },
    },
-   optional = { 'node' },
    sealed='both'
 }
 
@@ -168,7 +167,8 @@ local system_spec = ObjectSpec
       start=start_spec,
       _parent=AnySpec{},
    },
-   optional={ 'include', 'imports', 'blocks', 'connections', 'configurations', 'start', '_parent' },
+   optional={ 'include', 'imports', 'blocks', 'connections',
+	      'node_configurations', 'configurations', 'start', '_parent' },
 }
 
 -- add self include reference
