@@ -3,6 +3,15 @@ API Changes
 
 This file tracks user visible API changes.
 
+## v0.5.1
+
+- blockdiagram, ubx_launch: moved node config from `configurations` to
+  a separate top level section `node_configurations`. This avoids that
+  `configurations` becomes a hybrid dictionary/array which causes
+  problems when importing from json.
+
+- pkg-config: `ubx_moddir` renamed to `UBX_MODDIR` for consistency.
+
 ## v0.5.0
 
 - support for node configuration in C and via the `ubx_launch`
