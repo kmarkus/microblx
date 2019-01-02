@@ -24,7 +24,7 @@ ubx_config_t const_int_config[] = {
 
 struct blk_inf {
 	ubx_type_t *type;
-	int* value;
+	const int* value;
 };
 
 
@@ -60,8 +60,16 @@ static int const_int_start(ubx_block_t *i)
 	DBG("");
 	unsigned int len;
 	struct blk_inf *inf;
+
 	inf = (struct blk_inf*) i->private_data;
-	inf->value = (int*) ubx_config_get_data_ptr(i, "value", &len);
+
+	len = cfg_getptr_int(i, "value", &inf->value);
+
+	if(len != 1) {
+		ERR("%s: config 'value' unconfigured or wrong size %u", i->name, len);
+		return EINVALID_CONFIG;
+	}
+
 	return 0;
 }
 
