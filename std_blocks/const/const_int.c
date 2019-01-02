@@ -10,12 +10,11 @@
 /* #define DEBUG 1 */
 #include "ubx.h"
 
-/* mongoose is GPLv2, thus the block is too */
-UBX_MODULE_LICENSE_SPDX(GPL-2.0)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
 
 char const_int_meta[] =
 	"{ doc='const int interaction',"
-	"  realtime=false,"
+	"  realtime=true,"
 	"}";
 
 ubx_config_t const_int_config[] = {

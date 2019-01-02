@@ -1366,6 +1366,14 @@ out:
 /*
  * Configuration
  */
+
+/**
+ * get_num_configs - get the number of configs of a block
+ *
+ * @param b block
+ *
+ * @return number of configs of block b
+ */
 unsigned int get_num_configs(ubx_block_t* b)
 {
 	unsigned int n;
@@ -1569,10 +1577,19 @@ int ubx_config_rm(ubx_block_t* b, const char* name)
 }
 
 
+
+
 /*
  * Ports
  */
 
+/**
+ * get_num_ports - get the number of ports of a block
+ *
+ * @param b block
+ *
+ * @return number of ports of block b
+ */
 unsigned int get_num_ports(ubx_block_t* b)
 {
 	unsigned int n;
