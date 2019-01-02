@@ -516,11 +516,6 @@ ubx_data_t* __ubx_data_alloc(const ubx_type_t* typ, const unsigned long array_le
 		goto out;
 	}
 
-	if(array_len == 0) {
-		ERR("invalid array_len 0");
-		goto out;
-	}
-
 	if((d=calloc(1, sizeof(ubx_data_t)))==NULL)
 		goto out_nomem;
 
@@ -845,7 +840,7 @@ static int ubx_clone_config_data(ubx_config_t *cnew,
 	if((cnew->type_name=strdup(type->name))==NULL)
 		goto out_err;
 
-	cnew->value = __ubx_data_alloc(type, (len<=0) ? 1 : len);
+	cnew->value = __ubx_data_alloc(type, len);
 
 	return 0; /* all ok */
 

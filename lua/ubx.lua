@@ -730,7 +730,17 @@ function M.data_set(d, val, resize)
       end
       --ffi.copy(d_cdata, val, #val)
       ffi.copy(d_cdata, val)
-   elseif val_type=='number' then d_cdata[0]=val
+   elseif val_type=='number' then
+      if d.len ~= 1 then
+	 if resize then
+	    M.data_resize(d, 1)
+	    d_cdata = M.data_to_cdata(d)
+	 else
+	    error("data_set: can't assign scalar number to array of len "..
+		     tostring(d.len).. ". set resize flag?"..tostring(resize))
+	 end
+      end
+      d_cdata[0]=val
    else
       error("data_set: don't know how to assign "..
 	    tostring(val).." to ffi type "..tostring(d_cdata))
