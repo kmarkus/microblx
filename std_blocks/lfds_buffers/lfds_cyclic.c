@@ -74,7 +74,8 @@ void cyclic_data_elem_del(void *user_data, void *user_state)
 static int cyclic_init(ubx_block_t *i)
 {
 	int ret = -1;
-	unsigned int len;
+	long int len;
+	const uint32_t *val;
 	const char *type_name;
 	struct cyclic_block_info* bbi;
 
@@ -86,21 +87,34 @@ static int cyclic_init(ubx_block_t *i)
 
 	bbi = (struct cyclic_block_info*) i->private_data;
 
-	/* read/check configuration */
-	bbi->buffer_len = *((uint32_t*) ubx_config_get_data_ptr(i, "buffer_len", &len));
-	if(bbi->buffer_len==0) {
-		ERR("invalid configuration buffer_len=0");
+	/* read and check buffer_len config */
+	len = cfg_getptr_uint32(i, "buffer_len", &val);
+
+	if(len != 1) {
+		ERR("%s: config 'buffer_len' %s", i->name,
+		    (len==0) ? "unconfigured" : "invalid");
+		goto out_free_priv_data;
+	}
+
+	if(*val == 0) {
+		ERR("%s: config buffer_len=0", i->name);
 		ret = EINVALID_CONFIG;
 		goto out_free_priv_data;
 	}
 
-	bbi->data_len = *((uint32_t*) ubx_config_get_data_ptr(i, "data_len", &len));
-	bbi->data_len = (bbi->data_len == 0) ? 1 : bbi->data_len;
+	bbi->buffer_len = *val;
 
-	type_name = (char*) ubx_config_get_data_ptr(i, "type_name", &len);
+	/* read and check data_len config */
+	if((len = cfg_getptr_uint32(i, "data_len", &val)) < 0)
+		goto out_free_priv_data;
 
-	if (type_name == NULL || len <= 0) {
-		ERR("%s: invalid or missing type name", i->name);
+	bbi->data_len = (len>0) ? *val : 1;
+
+	len = cfg_getptr_char(i, "type_name", &type_name);
+
+	if (len <= 0 || type_name == NULL) {
+		ERR("%s: config 'type_name' %s", i->name,
+		    (len==0) ? "unconfigured" : "invalid");
 		goto out_free_priv_data;
 	}
 
@@ -115,8 +129,11 @@ static int cyclic_init(ubx_block_t *i)
 	DBG("%s: allocating ringbuffer with %lu elements of type %s [%lu] bytes.",
 	    i->name, bbi->buffer_len, type_name, bbi->data_len);
 
-	if(lfds611_ringbuffer_new(&bbi->rbs, bbi->buffer_len, cyclic_data_elem_init, bbi)==0) {
-		ERR("%s: allocating ringbuffer with %lu elements of type %s [%lu] bytes failed.",
+	if(lfds611_ringbuffer_new(&bbi->rbs,
+				  bbi->buffer_len,
+				  cyclic_data_elem_init, bbi)==0) {
+		ERR("%s: allocating ringbuffer with %lu elements \
+			 of type %s [%lu] bytes failed.",
 		    i->name, bbi->buffer_len, type_name, bbi->data_len);
 		ret = EOUTOFMEM;
 		goto out_free_priv_data;
@@ -160,7 +177,8 @@ static void cyclic_write(ubx_block_t *i, ubx_data_t* msg)
 	}
 
 	if (msg->len > bbi->data_len) {
-		ERR("%s: message array length too large: is: %ld, capacity: %ld", i->name, msg->len, bbi->data_len);
+		ERR("%s: message array length too large: is: %lu, capacity: %lu",
+		    i->name, msg->len, bbi->data_len);
 		goto out;
 	}
 
@@ -169,7 +187,8 @@ static void cyclic_write(ubx_block_t *i, ubx_data_t* msg)
 	if(ret) {
 		bbi->overruns++;
 		write_ulong(bbi->p_overruns, &bbi->overruns);
-		DBG("%s: buffer overrun (#%ld), overwriting old data.", i->name, bbi->overruns);
+		DBG("%s: buffer overrun (#%ld), overwriting old data.",
+		    i->name, bbi->overruns);
 	};
 
 	/* write */
