@@ -1428,18 +1428,13 @@ ubx_data_t* ubx_config_get_data(ubx_block_t* b, const char *name)
 	ubx_config_t *conf;
 	ubx_data_t *data=NULL;
 
-	if(b==NULL) {
-		ERR("block is NULL");
-		goto out;
-	}
-
 	if((conf=ubx_config_get(b, name))==NULL)
 		goto out;
+
 	data=conf->value;
  out:
 	return data;
 }
-
 
 /**
  * Return the pointer to a configurations ubx_data_t->data pointer.
@@ -1453,11 +1448,6 @@ void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *le
 	ubx_data_t *d;
 	void *ret = NULL;
 	*len=0;
-
-	if(b==NULL) {
-		ERR("block is NULL");
-		goto out;
-	}
 
 	if((d = ubx_config_get_data(b, name))==NULL)
 		goto out;
