@@ -1459,6 +1459,25 @@ void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *le
 }
 
 /**
+ * ubx_config_data_len - return array length of a configuration
+ *
+ * @param b
+ * @param cfg_name name of configuration
+ *
+ * @return array length of the given configuration value
+ */
+int ubx_config_data_len(ubx_block_t *b, const char *cfg_name)
+{
+	ubx_data_t *d = ubx_config_get_data(b, cfg_name);
+
+	if(!d)
+		return -1;
+
+	return d->len;
+}
+
+
+/**
  * ubx_config_add - add a new ubx_config value to an existing block.
  *
  * @param b
