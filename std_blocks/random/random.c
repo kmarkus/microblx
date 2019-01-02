@@ -119,16 +119,22 @@ static int rnd_start(ubx_block_t *b)
 {
 	DBG("in");
 	uint32_t seed, ret;
-	unsigned int clen;
+	unsigned int len;
 	struct random_config* rndconf;
 	struct random_info* inf;
 
 	inf=(struct random_info*) b->private_data;
 
 	/* get and store min_max_config */
-	rndconf = (struct random_config*) ubx_config_get_data_ptr(b, "min_max_config", &clen);
-	inf->min = rndconf->min;
-	inf->max = (rndconf->max == 0) ? INT_MAX : rndconf->max;
+	rndconf = (struct random_config*) ubx_config_get_data_ptr(b, "min_max_config", &len);
+
+	if(len > 0) {
+		inf->min = rndconf->min;
+		inf->max = rndconf->max;
+	} else {
+		inf->min = 0;
+		inf->max = INT_MAX;
+	}
 
 	/* seed is allowed to change at runtime, check if new one available */
 	ubx_port_t* seed_port = ubx_port_get(b, "seed");
