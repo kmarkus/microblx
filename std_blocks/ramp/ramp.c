@@ -9,7 +9,7 @@ struct ramp_info
 {
 	RAMP_T cur;
 	RAMP_T slope;
-	
+
 	/* this is to have fast access to ports for reading and writing, without
 	 * needing a hash table lookup */
 	struct ramp_port_cache ports;
@@ -31,11 +31,32 @@ int ramp_init(ubx_block_t *b)
 	b->private_data=inf;
 	update_port_cache(b, &inf->ports);
 
-	inf->cur = *((RAMP_T*) ubx_config_get_data_ptr(b, "start", &len));
-	inf->slope = *((RAMP_T*) ubx_config_get_data_ptr(b, "slope", &len));
+	/* handle start configuration */
+	len = ubx_config_data_len(b, "start");
+
+	if(len==0) {
+		inf->cur = 0; /* unconfigured, set a default */
+	} else if (len == 1) {
+		inf->cur = *((RAMP_T*) ubx_config_get_data_ptr(b, "start", &len));
+	} else {
+		ERR("invalid array len %u of config %s.start", len, b->name);
+		goto out;
+	}
+
+	/* handle slope configuration */
+	len = ubx_config_data_len(b, "slope");
+
+	if(len==0) {
+		inf->cur = 1; /* set a default */
+	} else if (len == 1) {
+		inf->slope = *((RAMP_T*) ubx_config_get_data_ptr(b, "slope", &len));
+	} else {
+		ERR("invalid array len %u of config %s.slope", len, b->name);
+		goto out;
+	}
 
 	inf->slope = (fabs(inf->slope) > 10e-6) ? inf->slope : 1;
-	
+
 	ret=0;
 out:
 	return ret;
