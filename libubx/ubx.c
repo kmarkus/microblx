@@ -2295,3 +2295,21 @@ int checktype(ubx_node_info_t* ni, ubx_type_t *required, const char *tcheck_str,
 #endif
 	return 0;
 }
+
+/* typed, somewhat safer config convenience accessor functions */
+def_cfg_getptr_fun(cfg_getptr_char, char)
+def_cfg_getptr_fun(cfg_getptr_int, int)
+def_cfg_getptr_fun(cfg_getptr_uint, unsigned int)
+
+def_cfg_getptr_fun(cfg_getptr_uint8, uint8_t)
+def_cfg_getptr_fun(cfg_getptr_uint16, uint16_t)
+def_cfg_getptr_fun(cfg_getptr_uint32, uint32_t)
+def_cfg_getptr_fun(cfg_getptr_uint64, uint64_t)
+
+def_cfg_getptr_fun(cfg_getptr_int8, int8_t)
+def_cfg_getptr_fun(cfg_getptr_int16, int16_t)
+def_cfg_getptr_fun(cfg_getptr_int32, int32_t)
+def_cfg_getptr_fun(cfg_getptr_int64, int64_t)
+
+def_cfg_getptr_fun(cfg_getptr_float, float)
+def_cfg_getptr_fun(cfg_getptr_double, double)

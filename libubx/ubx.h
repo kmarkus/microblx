@@ -166,6 +166,33 @@ static int32_t function_name(ubx_port_t* port, typename (*inval)[arrlen])	\
  return __port_read(port, &val);			\
 }							\
 
+#define def_cfg_getptr_fun(function_name, typename)		\
+long int function_name(ubx_block_t* b, const char* cfg_name, const typename** valptr) \
+{								\
+  unsigned int len;						\
+  unsigned long ret = -1;					\
+  ubx_config_t *c;						\
+  ubx_type_t *t;						\
+								\
+  if((c = ubx_config_get(b, cfg_name)) == NULL)			\
+    goto out;							\
+								\
+  if((t = ubx_type_get(b->ni, QUOTE(typename))) == NULL) {	\
+    ERR("unknown type %s", QUOTE(typename));			\
+    goto out;							\
+  }								\
+								\
+  if(t != c->type) {						\
+    ERR("mismatch: expected %s but %s.%s config is of type %s",	\
+	t->name, b->name, cfg_name, c->type->name);		\
+    goto out;							\
+  }								\
+								\
+  *valptr = (typename*) ubx_config_get_data_ptr(b, cfg_name, &len);	\
+  ret = len;							\
+out:								\
+  return ret;							\
+}
 
 #ifdef __cplusplus
 }
