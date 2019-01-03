@@ -31,6 +31,8 @@ return bd.system
 				   separator=",",
 				   report_conf = logger_report_conf, } },
       { name="ptrig1", config = { period = {sec=0, usec=100000 },
+				  sched_policy="SCHED_OTHER",
+				  sched_priority=0,
 				  trig_blocks={ { b="#rnd", num_steps=1, measure=0 },
 						{ b="#logger1", num_steps=1, measure=0 } } } }
    },

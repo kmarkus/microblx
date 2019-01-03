@@ -66,8 +66,8 @@ ubx_config_t ptrig_config[] = {
 	  .doc="stacksize as per pthread_attr_setstacksize(3)"
 	},
 	{ .name="sched_priority", .type_name = "int" },
-	{ .name="sched_policy", .type_name = "char", .data_len=12 },
-	{ .name="thread_name", .type_name = "char", .data_len=12 },
+	{ .name="sched_policy", .type_name = "char" },
+	{ .name="thread_name", .type_name = "char" },
 	{ .name="trig_blocks", .type_name = "struct ptrig_config",
 	  .doc="trigger conf: which block and how to trigger"
 	},
@@ -97,10 +97,10 @@ struct ptrig_inf {
 	pthread_mutex_t mutex;
 	pthread_cond_t active_cond;
 
-	struct ptrig_config *trig_list;
+	const struct ptrig_config *trig_list;
 	unsigned int trig_list_len;
 
-	struct ptrig_period period;
+	struct ptrig_period* period;
 
 	/* timing statistics */
 	int tstats_enabled;
@@ -190,6 +190,7 @@ static int trigger_steps(struct ptrig_inf *inf)
 	int ret=-1;
 	unsigned int i, steps;
 
+
 	struct ubx_timespec ts_start, ts_end, blk_ts_start, blk_ts_end;
 
 	if(inf->tstats_enabled) {
@@ -273,8 +274,8 @@ static void* thread_startup(void *arg)
 
 		trigger_steps(inf);
 
-		ts.tv_sec += inf->period.sec;
-		ts.tv_nsec += inf->period.usec*NSEC_PER_USEC;
+		ts.tv_sec += inf->period->sec;
+		ts.tv_nsec += inf->period->usec*NSEC_PER_USEC;
 		tsnorm(&ts);
 
 		if((ret=clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL))) {
@@ -288,55 +289,56 @@ static void* thread_startup(void *arg)
 	pthread_exit(NULL);
 }
 
-static void ptrig_handle_config(ubx_block_t *b)
+int ptrig_handle_config(ubx_block_t *b)
 {
-	int ret;
+	int ret = -1;
 	unsigned int tmplen, schedpol;
-	char *schedpol_str;
-	size_t stacksize;
+	const char *schedpol_str;
+	size_t *stacksize;
+	const int *prio;
 	struct sched_param sched_param; /* prio */
 	struct ptrig_inf *inf=(struct ptrig_inf*) b->private_data;
 
 	/* period */
-	inf->period = *((struct ptrig_period*)
-			ubx_config_get_data_ptr(b, "period", &tmplen));
+	inf->period = (struct ptrig_period*)
+		ubx_config_get_data_ptr(b, "period", &tmplen);
+
+	if(tmplen <= 0) {
+		ERR("%s: config 'period' not configured", b->name);
+		goto out;
+	}
 
 	/* stacksize */
-	stacksize = *((int*)
-		      ubx_config_get_data_ptr(b, "stacksize", &tmplen));
+	stacksize = (size_t*)
+		ubx_config_get_data_ptr(b, "stacksize", &tmplen);
 
-	if(stacksize != 0) {
-		if(stacksize<PTHREAD_STACK_MIN) {
-			ERR("%s: stacksize less than %d", b->name, PTHREAD_STACK_MIN);
+	if(tmplen > 0) {
+		if(*stacksize<PTHREAD_STACK_MIN) {
+			ERR("%s: stacksize (%zd) less than PTHREAD_STACK_MIN (%d)",
+			    b->name, *stacksize, PTHREAD_STACK_MIN);
 		} else {
-			if(pthread_attr_setstacksize(&inf->attr, stacksize))
+			if(pthread_attr_setstacksize(&inf->attr, *stacksize))
 				ERR2(errno, "pthread_attr_setstacksize failed");
 		}
 	}
 
 	/* schedpolicy */
-	schedpol_str = (char*)
-		ubx_config_get_data_ptr(b, "sched_policy", &tmplen);
+	tmplen = cfg_getptr_char(b, "sched_policy", &schedpol_str);
 
-	schedpol_str =
-		(strncmp(schedpol_str, "", tmplen) == 0)
-		? "SCHED_OTHER" : schedpol_str;
-
-	if (strncmp(schedpol_str, "SCHED_OTHER", tmplen) == 0) {
-		schedpol=SCHED_OTHER;
-	} else if (strncmp(schedpol_str, "SCHED_FIFO", tmplen) == 0) {
-		schedpol = SCHED_FIFO;
-	} else if (strncmp(schedpol_str, "SCHED_RR", tmplen) == 0) {
-		schedpol = SCHED_RR;
+	if(tmplen > 0) {
+		if (strncmp(schedpol_str, "SCHED_OTHER", tmplen) == 0) {
+			schedpol = SCHED_OTHER;
+		} else if (strncmp(schedpol_str, "SCHED_FIFO", tmplen) == 0) {
+			schedpol = SCHED_FIFO;
+		} else if (strncmp(schedpol_str, "SCHED_RR", tmplen) == 0) {
+			schedpol = SCHED_RR;
+		} else {
+			ERR("%s: sched_policy config: illegal value %s",
+			    b->name, schedpol_str);
+			goto out;
+		}
 	} else {
-		ERR("%s: sched_policy config: illegal value %s", b->name, schedpol_str);
-		schedpol=SCHED_OTHER;
-	}
-
-	if((schedpol==SCHED_FIFO || schedpol==SCHED_RR) &&
-	   sched_param.sched_priority > 0) {
-		ERR("%s sched_priority is %d with %s policy",
-		    b->name, sched_param.sched_priority, schedpol_str);
+		schedpol = SCHED_OTHER;
 	}
 
 	if(pthread_attr_setschedpolicy(&inf->attr, schedpol)) {
@@ -350,8 +352,16 @@ static void ptrig_handle_config(ubx_block_t *b)
 		ERR2(ret, "failed to set PTHREAD_EXPLICIT_SCHED.");
 
 	/* priority */
-	sched_param.sched_priority =
-		*((int*) ubx_config_get_data_ptr(b, "sched_priority", &tmplen));
+	tmplen = cfg_getptr_int(b, "sched_priority", &prio);
+	sched_param.sched_priority = (tmplen > 0) ? *prio : 0;
+
+
+	if(((schedpol==SCHED_FIFO ||
+	     schedpol==SCHED_RR) && sched_param.sched_priority == 0) ||
+	   (schedpol==SCHED_OTHER && sched_param.sched_priority > 0)) {
+		ERR("%s sched_priority is %d with %s policy",
+		    b->name, sched_param.sched_priority, schedpol_str);
+	}
 
 	if(pthread_attr_setschedparam(&inf->attr, &sched_param))
 		ERR("failed to set sched_policy.sched_priority to %d",
@@ -362,6 +372,10 @@ static void ptrig_handle_config(ubx_block_t *b)
 	    b->name, inf->period.sec, inf->period.usec,
 	    schedpol_str, sched_param.sched_priority,
 	    (unsigned long) stacksize);
+
+	ret = 0;
+out:
+	return ret;
 }
 
 /* init */
@@ -386,7 +400,10 @@ static int ptrig_init(ubx_block_t *b)
 	pthread_attr_init(&inf->attr);
 	pthread_attr_setdetachstate(&inf->attr, PTHREAD_CREATE_JOINABLE);
 
-	ptrig_handle_config(b);
+	if(ptrig_handle_config(b) != 0) {
+		ret = EINVALID_CONFIG;
+		goto out_err;
+	}
 
 	if((ret=pthread_create(&inf->tid, &inf->attr, thread_startup, b))!=0) {
 		ERR2(ret, "pthread_create failed");
@@ -394,9 +411,9 @@ static int ptrig_init(ubx_block_t *b)
 	}
 
 #ifdef CONFIG_PTHREAD_SETNAME
-	/* setup thread name */
-	threadname = (char*) ubx_config_get_data_ptr(b, "thread_name", &tmplen);
-	threadname = (strncmp(threadname, "", tmplen)==0) ? b->name : threadname;
+	tmplen = cfg_getptr_char(b, "thread_name", &threadname);
+
+	threadname = (tmplen>0) ? threadname : b->name;
 
 	if(pthread_setname_np(inf->tid, threadname))
 		ERR("failed to set thread_name to %s", threadname);
@@ -416,17 +433,19 @@ static int ptrig_start(ubx_block_t *b)
 {
 	DBG(" ");
 	int ret = -1;
+	const int *val;
 	unsigned int len;
 	struct ptrig_inf *inf;
-	ubx_data_t* trig_list_data;
 
 	inf = (struct ptrig_inf*) b->private_data;
 
-	trig_list_data = ubx_config_get_data(b, "trig_blocks");
+	inf->trig_list =
+		(const struct ptrig_config*)
+		ubx_config_get_data_ptr(b, "trig_blocks", &inf->trig_list_len);
 
-	/* make a copy? */
-	inf->trig_list = trig_list_data->data;
-	inf->trig_list_len = trig_list_data->len;
+
+	if(inf->trig_list == NULL)
+		goto out;
 
 	/* preparing timing statistics */
 	tstat_init(&inf->global_tstats, tstat_global_id);
@@ -447,11 +466,11 @@ static int ptrig_start(ubx_block_t *b)
 			   inf->trig_list[i].b->name);
 	}
 
-	inf->tstats_print_on_stop =
-		*(int*) ubx_config_get_data_ptr(b, "tstats_print_on_stop", &len);
+	len = cfg_getptr_int(b, "tstats_print_on_stop", &val);
+	inf->tstats_print_on_stop = (len > 0) ? *val : 0;
 
-	inf->tstats_enabled =
-		*((int*) ubx_config_get_data_ptr(b, "tstats_enabled", &len));
+	len = cfg_getptr_int(b, "tstats_enabled", &val);
+	inf->tstats_enabled = (len > 0) ? *val : 0;
 
 	if(inf->tstats_enabled) {
 		DBG("tstats enabled");

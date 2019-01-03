@@ -120,7 +120,7 @@ local sys2 = bd.system {
 }
 
 
-local eps = 0.05 -- 5%
+local eps = 0.08 -- 8%
 
 function test_tstats()
 
