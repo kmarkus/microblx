@@ -48,7 +48,8 @@ enum {
 /* init */
 static int fifo_init(ubx_block_t *i)
 {
-	int ret = -1;
+	int len, ret = -1;
+	const uint32_t *val;
 	struct fifo_block_info* bbi;
 
 	if((i->private_data = calloc(1, sizeof(struct fifo_block_info)))==NULL) {
@@ -59,12 +60,13 @@ static int fifo_init(ubx_block_t *i)
 	bbi = (struct fifo_block_info*) i->private_data;
 	pthread_mutex_init(&bbi->mutex, NULL);
 
-	bbi->size = *((uint32_t*) ubx_config_get_data(i, "fifo_size"));
+	len = cfg_getptr_uint32(i, "fifo_size", &val);
+
+	bbi->size = (len>0) ? *val : 16;
 
 	if(bbi->size==0) {
-		/* goto out; */
-		bbi->size=16;
-		ERR("invalid fifosize 0, setting to %ld TODO: FIXME!", bbi->size);
+		ERR("%s: invalid config fifo_size 0", i->name);
+		goto out_free_priv_data;
 	}
 
 	if((bbi->buff=malloc(bbi->size))==NULL) {
