@@ -124,11 +124,14 @@ function init(b)
       return false
    end
 
+   if b:c("filename"):isnull() then
+      print("filename config unset"); return false;
+   end
+
    filename = ubx.data_tolua(ubx.config_get_data(b, "filename"))
    separator = ubx.data_tolua(ubx.config_get_data(b, "separator"))
    timestamp = ubx.data_tolua(ubx.config_get_data(b, "timestamp"))
 
-   -- print(('file_logger.init: reporting to file="%s", sep="%s", conf=%s'):format(filename, separator, rconf_str))
    print(('file_logger: reporting to file="%s", sep="%s"'):format(filename, separator))
 
    rconf = report_conf_to_portlist(rconf_str, b)
