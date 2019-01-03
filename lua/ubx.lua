@@ -153,6 +153,13 @@ function M.safe_tostr(charptr)
    return ffi.string(charptr)
 end
 
+-- basic predicates
+function M.is_node_info(x) return ffi.istype("ubx_node_info_t", x) end
+function M.is_block(x) return ffi.istype("ubx_block_t", x) end
+function M.is_config(x) return ffi.istype("ubx_config_t", x) end
+function M.is_port(x) return ffi.istype("ubx_port_t", x) end
+function M.is_data(x) return ffi.istype("ubx_data_t", x) end
+
 function M.is_proto(b) return b.prototype==nil end	 --- Is protoype block predicate.
 function M.is_instance(b) return b.prototype~=nil end	 --- Is instance block predicate.
 function M.is_cblock(b) return b.type==ffi.C.BLOCK_TYPE_COMPUTATION end  --- Is computational block predicate.
@@ -166,6 +173,7 @@ function M.is_iblock_proto(b) return M.is_iblock(b) and M.is_proto(b) end --- Is
 function M.is_outport(p) return p.out_type_name ~= nil end
 function M.is_inport(p) return p.in_type_name ~= nil end
 function M.is_inoutport(p) return M.is_outport(p) and M.is_inport(p) end
+
 
 ------------------------------------------------------------------------------
 --                           OS API
@@ -642,6 +650,14 @@ function M.data_tostr(d)
    return utils.tab2str(M.data_tolua(d))
 end
 
+--- Check if a ubx_data_t is null
+-- @param d ubx_data_t
+-- @return true or false
+function M.data_isnull(d)
+   assert(M.is_data(d))
+   return d.len==0
+end
+
 --- Convert an ubx_type_t to a FFI ctype object.
 -- Only works for TYPE_CLASS_BASIC and TYPE_CLASS_STRUCT
 -- @param ubx_type_t
@@ -759,6 +775,7 @@ local ubx_data_mt = {
       cdata = M.data_to_cdata,
       resize = M.data_resize,
       set = M.data_set,
+      isnull = M.data_isnull,
    },
 }
 ffi.metatype("struct ubx_data", ubx_data_mt)
@@ -801,6 +818,17 @@ ffi.metatype("struct ubx_type", ubx_type_mt)
 --                           Config handling
 ------------------------------------------------------------------------------
 
+--- Check if a configuration value is null
+-- @param c config
+-- @return true or false
+function M.config_isnull(c)
+   assert(M.is_config(c))
+   return M.data_isnull(c.value)
+end
+
+--- Set a configuration value
+-- @param c config
+-- @param val value to assign (must follow luajit FFI initialization rules)
 function M.config_set(c, val)
    return M.data_set(c.value, val, true)
 end
@@ -904,6 +932,7 @@ local ubx_config_mt = {
       totab = M.config_totab,
       tolua = function (c) return M.data_tolua(c.value) end,
       data = function (c) return c.value end,
+      isnull = M.config_isnull,
    },
 }
 
