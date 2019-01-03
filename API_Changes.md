@@ -3,6 +3,35 @@ API Changes
 
 This file tracks user visible API changes.
 
+## v0.6.0
+
+- configurations are not initalized to size 1 by default. This was
+  useful back in the day when most configurations were of len 1, but
+  this is not true anymore and it makes in cumbersome to distinguish
+  between unconfigured and configurations with value 0. This is mainly
+  visible through `ubx_config_get_data_ptr`, which may now return
+  `NULL` and len=0. Blocks must handle this case.
+
+- `cfg_getptr_[char|int|...]` convenience functions added. These
+  functions allow retrieving configuration in a somewhat more typesafe
+  manner. Example:
+
+  ```C
+  long int len;
+  uint32_t *val;
+
+  len = cfg_getptr_uint32(b, "myconf", &val);
+
+  if(len == 0)
+	  /* myconf unconfigured */
+  else if(len > 1)
+	  /* myconfig configured, use val */
+  else
+	  /* len < 0, error */
+  ```
+
+- removed unused and deprecated `lfds_cyclic_raw` block.
+
 ## v0.5.1
 
 - blockdiagram, ubx_launch: moved node config from `configurations` to
