@@ -32,7 +32,8 @@ UBX_MODULE_LICENSE_SPDX(GPL-2.0)
 static struct ubx_node_info *global_ni;
 
 ubx_config_t webif_conf[] = {
-	{ .name="port", .type_name="char", .data_len=10,
+	{ .name="port",
+	  .type_name="char",
 	  .doc="Port to listen on (default: " WEBIF_DEFAULT_PORT ")" },
 	{ NULL }
 };
@@ -191,8 +192,8 @@ static void wi_cleanup(ubx_block_t *c)
 
 static int wi_start(ubx_block_t *c)
 {
-	char *port_num;
-	unsigned int port_num_len;
+	const char *port_num;
+	long int len;
 	struct webif_info *inf;
 
 	DBG("in");
@@ -200,10 +201,10 @@ static int wi_start(ubx_block_t *c)
 	inf=(struct webif_info*) c->private_data;
 
 	/* read port config and set default if undefined */
-	port_num = (char *) ubx_config_get_data_ptr(c, "port", &port_num_len);
+	if((len = cfg_getptr_char(c, "port", &port_num)) < 0)
+		goto out_err;
 
-	if(port_num_len == 0 || strlen(port_num)==0)
-		port_num = WEBIF_DEFAULT_PORT;
+	port_num = (len > 0) ? port_num : WEBIF_DEFAULT_PORT;
 
 	DBG("starting mongoose on port %s using %s thread(s)", port_num, MONGOOSE_NR_THREADS);
 
