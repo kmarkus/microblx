@@ -58,7 +58,7 @@ out:
 static int const_int_start(ubx_block_t *i)
 {
 	DBG("");
-	unsigned int len;
+	long int len;
 	struct blk_inf *inf;
 
 	inf = (struct blk_inf*) i->private_data;
@@ -66,7 +66,7 @@ static int const_int_start(ubx_block_t *i)
 	len = cfg_getptr_int(i, "value", &inf->value);
 
 	if(len != 1) {
-		ERR("%s: config 'value' unconfigured or wrong size %u", i->name, len);
+		ERR("%s: config 'value' unconfigured or wrong size %lu", i->name, len);
 		return EINVALID_CONFIG;
 	}
 
