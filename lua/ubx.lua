@@ -726,12 +726,20 @@ function M.data_set(d, val, resize)
    if val_type=='table' then
       for k,v in pairs(val) do
 	 if type(k)~='number' then
+	    if d.len < 1 then
+	       if resize then
+		  M.data_resize(d, 1)
+		  d_cdata = M.data_to_cdata(d)
+	       else
+		  error("data_set: can't assign to null ubx_data_t")
+	       end
+	    end
 	    d_cdata[k]=v
 	 else
 	    local idx -- starting from zero
 	    if val[0] == nil then idx=k-1 else idx=k end
 	    if idx >= d.len and not resize then
-	       error("data_set: attempt to index beyond bounds, index="..tostring(idx)..", len="..tostring(d.len))
+	       error("data_set: attempt to index beyond bounds, index="..tostring(idx)..", len="..tostring(d.len)..". use resize=true?")
 	    elseif idx >= d.len and resize then
 	       M.data_resize(d, idx+1)
 	       d_cdata = M.data_to_cdata(d) -- pointer could have changed in realloc!
