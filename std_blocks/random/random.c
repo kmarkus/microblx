@@ -126,7 +126,8 @@ static int rnd_start(ubx_block_t *b)
 	inf=(struct random_info*) b->private_data;
 
 	/* get and store min_max_config */
-	rndconf = (struct random_config*) ubx_config_get_data_ptr(b, "min_max_config", &len);
+	rndconf = (struct random_config*)
+		ubx_config_get_data_ptr(b, "min_max_config", &len);
 
 	if(len > 0) {
 		inf->min = rndconf->min;
