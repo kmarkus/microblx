@@ -135,33 +135,74 @@ life-cycle finite state machine:
 
 ![Block lifecycle FSM](figures/life_cycle.png?raw=true)
 
-
-**How to store the current state of the block in a thread-safe way?**
-
-Because multiple instances of a block may exists, **NO** global
-variables may be used to store the state of a block. Instead, the
-`ubx_block_t` defines a `void*` pointer which can be used to store
-that information. For example, the random block can store
-
-
-**What to do in these functions?**
-
-In most cases:
+They are typically used for the following:
 
 - `init`: initialize the block, allocate memory, drivers: check if the
    device is there and return non-zero if not.
-   
 - `start`: become operational, open device, last checks. Cache
    pointers to ports, read configuration.
- 
 - `step`: read from ports, compute, write to ports
- 
 - `stop`: stop/close device. (often not used).
-
 - `cleanup`: free all memory, release all resources.
 
 
-**Shall I read configuration values in init or start?**
+#### Storing block local state
+
+As multiple instances of a block may exists, **NO** global variables
+may be used to store the state of a block. Instead, the `ubx_block_t`
+defines a `void* private_data` pointer which can be used to store
+local information. Allocate this in the `init` hook:
+
+```C
+if ((b->private_data = calloc(1, sizeof(struct random_info)))==NULL) {
+	ERR("Failed to alloc memory");
+	goto out_err;
+}
+
+```
+
+and retrieve it in the other hooks:
+
+```C
+struct block_info inf*;
+
+inf = (struct random_info*) b->private_data;
+```
+
+#### Reading configuration values
+
+The following example from the `random` block shows how to retrieve a
+struct configuration called `min_max_config`:
+
+```C
+struct random_config* rndconf;
+
+/*...*/
+
+rndconf = (struct random_config*)
+	ubx_config_get_data_ptr(b, "min_max_config", &len);
+
+```
+
+`ubx_config_get_data_ptr` returns the pointer to the actual
+data. `len` will be set to the array lenghth: 0 if unconfigured, >0 if
+configured.
+
+For basic types there are several predefined and somewhat type safe
+convenince functions `cfg_getptr_*`. For example, to retrieve a scalar
+`uint32_t` and to use a default 47 if unconfigured:
+
+```C
+long int len;
+uint32_t *value;
+
+if ((len = cfg_getptr_int(b, "myconfig", &value)) < 0)
+	goto out_err;
+
+value = (len > 0) ? *value : 47;
+```
+
+#### When to read configuration: init vs start?
 
 It depends: if needed for initalization (e.g. a char array describing
 which device file to open), then read in `init`. If it's not needed in
@@ -172,7 +213,9 @@ This choice affects reconfiguration: in the first case the block has
 to be reconfigured by a `stop`, `cleanup`, `init`, `start` sequence,
 while in the latter case only a `stop`, `start` sequence is necessary.
 
-**How to read and write from ports?**
+#### Reading from and writing to ports
+
+The following helper macros are available to support
 
 ```C
 def_read_fun(read_uint, unsigned int)
