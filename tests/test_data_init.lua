@@ -17,10 +17,27 @@ function test_scalar_assignment()
    -- ubx.data_free(d)
 end
 
+function test_scalar_assignment_zero_data()
+   local d=ubx.data_alloc(ni, "unsigned int", 0)
+   ubx.data_set(d, 33, true)
+   local numptr = ffi.cast("unsigned int*", d.data)
+   assert_equals(33, numptr[0])
+   -- ubx.data_free(d)
+end
+
 function test_string_assignment()
    local teststr="my beautiful string"
    local d=ubx.data_alloc(ni, "char", 30)
    ubx.data_set(d, teststr)
+   local chrptr = ffi.cast("char*", d.data)
+   assert_equals(teststr, ffi.string(chrptr))
+   -- ubx.data_free(d)
+end
+
+function test_string_assignment_zero_data()
+   local teststr="my beautiful string"
+   local d=ubx.data_alloc(ni, "char", 0)
+   ubx.data_set(d, teststr, true)
    local chrptr = ffi.cast("char*", d.data)
    assert_equals(teststr, ffi.string(chrptr))
    -- ubx.data_free(d)
@@ -36,11 +53,21 @@ function test_simple_struct_assignment()
    -- ubx.data_free(d)
 end
 
+function test_simple_struct_assignment_zero_data()
+   local d=ubx.data_alloc(ni, "struct kdl_vector", 0)
+   ubx.data_set(d, {x=444,y=55.3, z=-34}, true)
+   local vptr = ffi.cast("struct kdl_vector*", d.data)
+   assert_equals(444, vptr.x)
+   assert_equals(55.3, vptr.y)
+   assert_equals(-34, vptr.z)
+   -- ubx.data_free(d)
+end
+
 function test_composite_struct_assignment()
    local d=ubx.data_alloc(ni, "struct kdl_frame")
    local conf = {
       p={ x=444, y=55.3, z=-34 },
-      M={ data={ 
+      M={ data={
 	     [0]=1,   [1]=2,   [2]=3,
 	     [3]=11,  [4]=22,  [5]=33,
 	     [6]=111, [7]=222, [8]=333 }
@@ -48,6 +75,36 @@ function test_composite_struct_assignment()
    }
 
    ubx.data_set(d, conf)
+   local vptr = ffi.cast("struct kdl_frame*", d.data)
+   assert_equals(444, vptr.p.x)
+   assert_equals(55.3, vptr.p.y)
+   assert_equals(-34, vptr.p.z)
+
+   assert_equals(1, vptr.M.data[0])
+   assert_equals(11, vptr.M.data[3])
+   assert_equals(111, vptr.M.data[6])
+
+   assert_equals(2, vptr.M.data[1])
+   assert_equals(22, vptr.M.data[4])
+   assert_equals(222, vptr.M.data[7])
+
+   assert_equals(3, vptr.M.data[2])
+   assert_equals(33, vptr.M.data[5])
+   assert_equals(333, vptr.M.data[8])
+end
+
+function test_composite_struct_assignment_zero_data()
+   local d=ubx.data_alloc(ni, "struct kdl_frame", 0)
+   local conf = {
+      p={ x=444, y=55.3, z=-34 },
+      M={ data={
+	     [0]=1,   [1]=2,   [2]=3,
+	     [3]=11,  [4]=22,  [5]=33,
+	     [6]=111, [7]=222, [8]=333 }
+      }
+   }
+
+   ubx.data_set(d, conf, true)
    local vptr = ffi.cast("struct kdl_frame*", d.data)
    assert_equals(444, vptr.p.x)
    assert_equals(55.3, vptr.p.y)
@@ -89,7 +146,7 @@ function test_simple_struct_assignment2()
 end
 
 function test_data_resize()
-   local d=ubx.data_alloc(ni, "struct test_trig_conf", 1)
+   local d=ubx.data_alloc(ni, "struct test_trig_conf", 0)
    local conf = {
       { name="block_name1", benchmark=0 },
       { name="block_name2", benchmark=1 },
