@@ -30,8 +30,8 @@ struct mqueue_info {
 	struct mqueue_msg *msg;
 
 	const ubx_type_t* type;		/* type of contained elements */
-	unsigned long data_len;		/* buffer size of each element */
-	unsigned long buffer_len;	/* number of elements */
+	uint32_t data_len;		/* buffer size of each element */
+	uint32_t buffer_len;		/* number of elements */
 
 	unsigned long cnt_send_err;
 	unsigned long cnt_recv_err;
@@ -41,7 +41,8 @@ struct mqueue_info {
 static int mqueue_init(ubx_block_t *i)
 {
 	int ret=-1;
-	unsigned int tmplen;
+	long int len;
+	const uint32_t *val;
 	const char* chrptr;
 
 	struct mqueue_info* mqi;
@@ -56,22 +57,39 @@ static int mqueue_init(ubx_block_t *i)
 	mqi = (struct mqueue_info*) i->private_data;
 
 	/* config buffer_len */
-	mqi->buffer_len = *((unsigned long*) ubx_config_get_data_ptr(i, "buffer_len", &tmplen));
-	if(mqi->buffer_len==0) {
-		ERR("invalid configuration buffer_len=0");
+	len = cfg_getptr_uint32(i, "buffer_len", &val);
+
+	if(len < 0) {
+		ERR("%s: failed to get buffer_len config", i->name);
+		goto out_free_info;
+	} else if (len == 0) {
+		ERR("%s: config buffer_len unconfigured", i->name);
 		ret = EINVALID_CONFIG;
 		goto out_free_info;
+	} else {
+		if(*val==0) {
+			ERR("%s: illegal value buffer_len=0", i->name);
+			ret = EINVALID_CONFIG;
+			goto out_free_info;
+		}
+
+		mqi->buffer_len =*val;
 	}
+
 	mqa.mq_maxmsg = mqi->buffer_len;
 
 	/* config data_len */
-	mqi->data_len = *((uint32_t*) ubx_config_get_data_ptr(i, "data_len", &tmplen));
-	mqi->data_len = (mqi->data_len == 0) ? 1 : mqi->data_len;
+	if((len = cfg_getptr_uint32(i, "data_len", &val)) < 0) {
+		ERR("%s: failed to read 'data_len' config", i->name);
+		goto out_free_info;
+	}
+
+	mqi->data_len = (len>0) ? *val : 1;
 
 	/* config type_name */
-	chrptr = (const char*) ubx_config_get_data_ptr(i, "type_name", &tmplen);
+	len = cfg_getptr_char(i, "type_name", &chrptr);
 
-	if (chrptr == NULL || tmplen <= 0) {
+	if (len <= 0 || chrptr == NULL) {
 		ERR("%s: invalid or missing type name", i->name);
 		goto out_free_info;
 	}
@@ -88,10 +106,10 @@ static int mqueue_init(ubx_block_t *i)
 	}
 
 	/* retrive mq_name config */
-	chrptr = (char*) ubx_config_get_data_ptr(i, "mq_name", &tmplen);
+	len = cfg_getptr_char(i, "mq_name", &chrptr);
 
-	if(strcmp(chrptr, "")==0) {
-		ERR("%s: mq_name is empty", i->name);
+	if(len <= 0) {
+		ERR("%s: 'mq_name' unconfigured", i->name);
 		goto out_free_info;
 	}
 
@@ -101,8 +119,6 @@ static int mqueue_init(ubx_block_t *i)
 	}
 
 	mqi->mq_name = strdup(chrptr);
-
-
 
 	if (mqa.mq_msgsize <= 0) {
 		ERR("%s: invalid value for mq_msgsize: %ld", i->name, mqa.mq_msgsize);
