@@ -1437,23 +1437,24 @@ ubx_data_t* ubx_config_get_data(ubx_block_t* b, const char *name)
 }
 
 /**
- * Return the pointer to a configurations ubx_data_t->data pointer.
+ * ubx_config_get_data_ptr - get pointer to and length of configuration data
  *
  * @param b ubx_block
  * @param name name of the requested configuration value
- * @param *len outvalue, the the array length of the ubx_data
+ * @param ptr if successfull, this ptr will be set to the ubx_data_t.
+ *
+ * @return lenght of configuration (>0), 0 if unconfigured, < 0 in case of error
  */
-void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *len)
+long int ubx_config_get_data_ptr(ubx_block_t *b, const char *name, void **ptr)
 {
 	ubx_data_t *d;
-	void *ret = NULL;
-	*len=0;
+	long int ret = -1;
 
 	if((d = ubx_config_get_data(b, name))==NULL)
 		goto out;
 
-	ret = d->data;
-	*len = d->len;
+	*ptr = d->data;
+	ret = d->len;
  out:
 	return ret;
 }
@@ -1466,7 +1467,7 @@ void* ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *le
  *
  * @return array length of the given configuration value
  */
-int ubx_config_data_len(ubx_block_t *b, const char *cfg_name)
+long int ubx_config_data_len(ubx_block_t *b, const char *cfg_name)
 {
 	ubx_data_t *d = ubx_config_get_data(b, cfg_name);
 

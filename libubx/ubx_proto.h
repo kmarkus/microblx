@@ -39,8 +39,8 @@ int ubx_ports_disconnect_uni(ubx_port_t *out_port, ubx_port_t *in_port, ubx_bloc
 unsigned int get_num_configs(ubx_block_t *b);
 ubx_config_t *ubx_config_get(ubx_block_t *b, const char *name);
 ubx_data_t *ubx_config_get_data(ubx_block_t *b, const char *name);
-void *ubx_config_get_data_ptr(ubx_block_t *b, const char *name, unsigned int *len);
-int ubx_config_data_len(ubx_block_t *b, const char *cfg_name);
+long int ubx_config_get_data_ptr(ubx_block_t *b, const char *name, void **ptr);
+long int ubx_config_data_len(ubx_block_t *b, const char *cfg_name);
 int ubx_config_add(ubx_block_t *b, const char *name, const char *meta, const char *type_name, const unsigned long len);
 int ubx_config_rm(ubx_block_t *b, const char *name);
 unsigned int get_num_ports(ubx_block_t *b);

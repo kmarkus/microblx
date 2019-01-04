@@ -169,8 +169,7 @@ static int32_t function_name(ubx_port_t* port, typename (*inval)[arrlen])	\
 #define def_cfg_getptr_fun(function_name, typename)		\
 long int function_name(ubx_block_t* b, const char* cfg_name, const typename** valptr) \
 {								\
-  unsigned int len;						\
-  unsigned long ret = -1;					\
+  long int ret = -1;						\
   ubx_config_t *c;						\
   ubx_type_t *t;						\
 								\
@@ -188,8 +187,7 @@ long int function_name(ubx_block_t* b, const char* cfg_name, const typename** va
     goto out;							\
   }								\
 								\
-  *valptr = (typename*) ubx_config_get_data_ptr(b, cfg_name, &len);	\
-  ret = len;							\
+  ret = ubx_config_get_data_ptr(b, cfg_name, (void**) valptr); \
 out:								\
   return ret;							\
 }
