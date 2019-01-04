@@ -382,7 +382,7 @@ out:
 /* init */
 static int ptrig_init(ubx_block_t *b)
 {
-	unsigned int tmplen;
+	long int len;
 	int ret = EOUTOFMEM;
 	const char* threadname;
 	struct ptrig_inf* inf;
@@ -412,9 +412,9 @@ static int ptrig_init(ubx_block_t *b)
 	}
 
 #ifdef CONFIG_PTHREAD_SETNAME
-	tmplen = cfg_getptr_char(b, "thread_name", &threadname);
+	len = cfg_getptr_char(b, "thread_name", &threadname);
 
-	threadname = (tmplen>0) ? threadname : b->name;
+	threadname = (len>0) ? threadname : b->name;
 
 	if(pthread_setname_np(inf->tid, threadname))
 		ERR("failed to set thread_name to %s", threadname);
