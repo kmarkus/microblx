@@ -23,8 +23,8 @@ ubx_port_t lua_ports[] = {
 def_write_fun(write_int, int)
 
 ubx_config_t lua_conf[] = {
-	{ .name="lua_file", .type_name="char", .data_len=32 },
-	{ .name="lua_str", .type_name="char", .data_len=32 },
+	{ .name="lua_file", .type_name="char" },
+	{ .name="lua_str", .type_name="char" },
 	{ NULL }
 };
 
@@ -140,8 +140,9 @@ static int init_lua_state(struct luablock_info* inf, const char* lua_file, const
 
 static int luablock_init(ubx_block_t *b)
 {
-	char *lua_file, *lua_str;
-	unsigned int lua_file_len, lua_str_len;
+	const char *lua_file = NULL;
+	const char *lua_str = NULL;
+	long int len;
 
 	int ret = -EOUTOFMEM;
 	struct luablock_info* inf;
@@ -151,11 +152,15 @@ static int luablock_init(ubx_block_t *b)
 
 	b->private_data = inf;
 
-	lua_file = (char *) ubx_config_get_data_ptr(b, "lua_file", &lua_file_len);
-	lua_file = (!strncmp(lua_file, "", lua_file_len)) ? NULL : lua_file;
+	if((len = cfg_getptr_char(b, "lua_file", &lua_file)) < 0)
+		goto out_free1;
 
-	lua_str = (char *) ubx_config_get_data_ptr(b, "lua_str", &lua_str_len);
-	lua_str = (!strncmp(lua_str, "", lua_str_len)) ? NULL : lua_str;
+	lua_file = (len > 0) ? lua_file : NULL;
+
+	if((len = cfg_getptr_char(b, "lua_str", &lua_str)) < 0)
+		goto out_free1;
+
+	lua_str = (len > 0) ? lua_str : NULL;
 
 	if((inf->exec_str_buff = ubx_data_alloc(b->ni, "char", EXEC_STR_BUFF_SIZE)) == NULL) {
 		ERR("failed to allocate exec_str buffer");

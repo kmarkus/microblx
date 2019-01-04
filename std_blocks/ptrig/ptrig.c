@@ -292,7 +292,8 @@ static void* thread_startup(void *arg)
 int ptrig_handle_config(ubx_block_t *b)
 {
 	int ret = -1;
-	unsigned int tmplen, schedpol;
+	unsigned int schedpol;
+	long int tmplen;
 	const char *schedpol_str;
 	size_t *stacksize;
 	const int *prio;
@@ -300,8 +301,7 @@ int ptrig_handle_config(ubx_block_t *b)
 	struct ptrig_inf *inf=(struct ptrig_inf*) b->private_data;
 
 	/* period */
-	inf->period = (struct ptrig_period*)
-		ubx_config_get_data_ptr(b, "period", &tmplen);
+	tmplen = ubx_config_get_data_ptr(b, "period", (void**) &inf->period);
 
 	if(tmplen <= 0) {
 		ERR("%s: config 'period' not configured", b->name);
@@ -309,8 +309,7 @@ int ptrig_handle_config(ubx_block_t *b)
 	}
 
 	/* stacksize */
-	stacksize = (size_t*)
-		ubx_config_get_data_ptr(b, "stacksize", &tmplen);
+	tmplen = ubx_config_get_data_ptr(b, "stacksize", (void**) &stacksize);
 
 	if(tmplen > 0) {
 		if(*stacksize<PTHREAD_STACK_MIN) {
@@ -434,18 +433,17 @@ static int ptrig_start(ubx_block_t *b)
 	DBG(" ");
 	int ret = -1;
 	const int *val;
-	unsigned int len;
+	long int len;
 	struct ptrig_inf *inf;
 
 	inf = (struct ptrig_inf*) b->private_data;
 
-	inf->trig_list =
-		(const struct ptrig_config*)
-		ubx_config_get_data_ptr(b, "trig_blocks", &inf->trig_list_len);
+	len = ubx_config_get_data_ptr(b, "trig_blocks", (void**) &inf->trig_list);
 
-
-	if(inf->trig_list == NULL)
+	if(len < 0)
 		goto out;
+
+	inf->trig_list_len = len;
 
 	/* preparing timing statistics */
 	tstat_init(&inf->global_tstats, tstat_global_id);

@@ -19,8 +19,9 @@ struct ramp_info
 int ramp_init(ubx_block_t *b)
 {
 	int ret = -1;
+	long int len;
+	const RAMP_T *val;
 	struct ramp_info *inf;
-	unsigned int len;
 
 	/* allocate memory for the block local state */
 	if ((inf = (struct ramp_info*)calloc(1, sizeof(struct ramp_info)))==NULL) {
@@ -28,33 +29,21 @@ int ramp_init(ubx_block_t *b)
 		ret=EOUTOFMEM;
 		goto out;
 	}
+
 	b->private_data=inf;
 	update_port_cache(b, &inf->ports);
 
 	/* handle start configuration */
-	len = ubx_config_data_len(b, "start");
-
-	if(len==0) {
-		inf->cur = 0; /* unconfigured, set a default */
-	} else if (len == 1) {
-		inf->cur = *((RAMP_T*) ubx_config_get_data_ptr(b, "start", &len));
-	} else {
-		ERR("invalid array len %u of config %s.start", len, b->name);
+	if((len = ubx_config_get_data_ptr(b, "start", (void**) &val)) < 0)
 		goto out;
-	}
+
+	inf->cur = (len > 0) ? *val : 0;
 
 	/* handle slope configuration */
-	len = ubx_config_data_len(b, "slope");
-
-	if(len==0) {
-		inf->cur = 1; /* set a default */
-	} else if (len == 1) {
-		inf->slope = *((RAMP_T*) ubx_config_get_data_ptr(b, "slope", &len));
-	} else {
-		ERR("invalid array len %u of config %s.slope", len, b->name);
+	if((len = ubx_config_get_data_ptr(b, "slope", (void**) &val)) < 0)
 		goto out;
-	}
 
+	inf->slope = (len > 0) ? *val : 1;
 	inf->slope = (fabs(inf->slope) > 10e-6) ? inf->slope : 1;
 
 	ret=0;
@@ -77,4 +66,3 @@ void ramp_step(ubx_block_t *b)
 	DBG("%s: cur: %g", b->name, (double) inf->cur);
 	write_out(inf->ports.out, &inf->cur);
 }
-
