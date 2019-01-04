@@ -301,23 +301,25 @@ int ptrig_handle_config(ubx_block_t *b)
 	struct ptrig_inf *inf=(struct ptrig_inf*) b->private_data;
 
 	/* period */
-	tmplen = ubx_config_get_data_ptr(b, "period", (void**) &inf->period);
-
-	if(tmplen <= 0) {
-		ERR("%s: config 'period' not configured", b->name);
+	if((tmplen = ubx_config_get_data_ptr(b, "period", (void**) &inf->period)) <= 0) {
+		ERR("%s: config 'period' unconfigured", b->name);
 		goto out;
 	}
 
 	/* stacksize */
-	tmplen = ubx_config_get_data_ptr(b, "stacksize", (void**) &stacksize);
+	if((tmplen = ubx_config_get_data_ptr(b, "stacksize", (void**) &stacksize)) < 0)
+		goto out;
 
 	if(tmplen > 0) {
 		if(*stacksize<PTHREAD_STACK_MIN) {
 			ERR("%s: stacksize (%zd) less than PTHREAD_STACK_MIN (%d)",
 			    b->name, *stacksize, PTHREAD_STACK_MIN);
-		} else {
-			if(pthread_attr_setstacksize(&inf->attr, *stacksize))
-				ERR2(errno, "pthread_attr_setstacksize failed");
+			goto out;
+		}
+
+		if(pthread_attr_setstacksize(&inf->attr, *stacksize)) {
+			ERR2(errno, "pthread_attr_setstacksize failed");
+			goto out;
 		}
 	}
 
