@@ -610,7 +610,7 @@ end
 -- @return Lua data
 function M.data_tolua(d)
    if d==nil then error("ubx_data_t argument is nil") end
-   if d.data==nil then return nil end
+   if M.data_isnull(d) then return nil end
 
    if not(d.type.type_class==ubx.TYPE_CLASS_BASIC or
 	  d.type.type_class==ubx.TYPE_CLASS_STRUCT) then
