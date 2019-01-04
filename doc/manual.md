@@ -175,18 +175,21 @@ The following example from the `random` block shows how to retrieve a
 struct configuration called `min_max_config`:
 
 ```C
+long int len;
 struct random_config* rndconf;
 
 /*...*/
 
-rndconf = (struct random_config*)
-	ubx_config_get_data_ptr(b, "min_max_config", &len);
+if((len = ubx_config_get_data_ptr(b, "min_max_config", &rndconf)) < 0)
+	goto err;
 
+if(len==0)
+	/* set a default or fail */
 ```
 
 `ubx_config_get_data_ptr` returns the pointer to the actual
 data. `len` will be set to the array lenghth: 0 if unconfigured, >0 if
-configured.
+configured and <0 in case of error.
 
 For basic types there are several predefined and somewhat type safe
 convenince functions `cfg_getptr_*`. For example, to retrieve a scalar

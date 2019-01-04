@@ -5,6 +5,17 @@ This file tracks user visible API changes.
 
 ## v0.6.0
 
+- switch len and ptr* `ubx_config_get_data_ptr` to be streamlined with
+  the new `cfg_getptr_*` utilities and to allow reporting errors. The
+  new prototype is:
+
+```C
+ `long int ubx_config_get_data_ptr(ubx_block_t *b, const char *name,
+ void **ptr)
+ ```
+  len < 0 signifies and error, 0 that the config is unset and > 0
+  means configured and array lenght of `len`.
+
 - configurations are not initalized to size 1 by default. This was
   useful back in the day when most configurations were of len 1, but
   this is not true anymore and it makes in cumbersome to distinguish
