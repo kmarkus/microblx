@@ -62,7 +62,13 @@ local function report_conf_to_portlist(rc, this)
 	 local type_name = ubx.data_tolua(ubx.config_get_data(b, "type_name"))
 	 local data_len = ubx.data_tolua(ubx.config_get_data(b, "data_len"))
 
-	 ubx.port_add(this, p_rep_name, "reporting iblock "..bname, type_name, data_len, nil, 0, 0)
+	 if type_name == nil then
+	    error(b.name..": can't report block without 'type_name' config")
+	 end
+
+	 data_len = data_len or 1
+
+	 ubx.inport_add(this, p_rep_name, "reporting iblock "..bname, type_name, data_len)
 	 local p = ubx.port_get(this, p_rep_name)
 	 ubx.port_connect_in(p, b)
 
