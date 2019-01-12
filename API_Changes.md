@@ -5,6 +5,8 @@ This file tracks user visible API changes.
 
 ## v0.6.0
 
+- updated all blocks to new config handling
+
 - switch len and ptr* `ubx_config_get_data_ptr` to be streamlined with
   the new `cfg_getptr_*` utilities and to allow reporting errors. The
   new prototype is:
