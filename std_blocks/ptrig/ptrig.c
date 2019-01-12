@@ -324,7 +324,8 @@ int ptrig_handle_config(ubx_block_t *b)
 	}
 
 	/* schedpolicy */
-	tmplen = cfg_getptr_char(b, "sched_policy", &schedpol_str);
+	if((tmplen = cfg_getptr_char(b, "sched_policy", &schedpol_str)) < 0)
+		goto out;
 
 	if(tmplen > 0) {
 		if (strncmp(schedpol_str, "SCHED_OTHER", tmplen) == 0) {
@@ -353,9 +354,10 @@ int ptrig_handle_config(ubx_block_t *b)
 		ERR2(ret, "failed to set PTHREAD_EXPLICIT_SCHED.");
 
 	/* priority */
-	tmplen = cfg_getptr_int(b, "sched_priority", &prio);
-	sched_param.sched_priority = (tmplen > 0) ? *prio : 0;
+	if((tmplen = cfg_getptr_int(b, "sched_priority", &prio)) < 0)
+		goto out;
 
+	sched_param.sched_priority = (tmplen > 0) ? *prio : 0;
 
 	if(((schedpol==SCHED_FIFO ||
 	     schedpol==SCHED_RR) && sched_param.sched_priority == 0) ||
@@ -412,7 +414,8 @@ static int ptrig_init(ubx_block_t *b)
 	}
 
 #ifdef CONFIG_PTHREAD_SETNAME
-	len = cfg_getptr_char(b, "thread_name", &threadname);
+	if((len = cfg_getptr_char(b, "thread_name", &threadname)) < 0)
+		goto out_err;
 
 	threadname = (len>0) ? threadname : b->name;
 
@@ -466,10 +469,14 @@ static int ptrig_start(ubx_block_t *b)
 			   inf->trig_list[i].b->name);
 	}
 
-	len = cfg_getptr_int(b, "tstats_print_on_stop", &val);
+	if((len = cfg_getptr_int(b, "tstats_print_on_stop", &val)) < 0)
+		goto out;
+
 	inf->tstats_print_on_stop = (len > 0) ? *val : 0;
 
-	len = cfg_getptr_int(b, "tstats_enabled", &val);
+	if((len = cfg_getptr_int(b, "tstats_enabled", &val)) < 0)
+		goto out;
+
 	inf->tstats_enabled = (len > 0) ? *val : 0;
 
 	if(inf->tstats_enabled) {
