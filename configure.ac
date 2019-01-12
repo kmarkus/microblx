@@ -1,8 +1,8 @@
 m4_define([package_version_major],[0])
-m4_define([package_version_minor],[5])
-m4_define([package_version_micro],[1])
+m4_define([package_version_minor],[6])
+m4_define([package_version_micro],[0])
 
-m4_define([libubx_if_current], [6])  dnl inc if IF added, removed or changed
+m4_define([libubx_if_current], [7])  dnl inc if IF added, removed or changed
 m4_define([libubx_if_revision], [0]) dnl always inc if src changed, zero if current is inc'ed
 m4_define([libubx_if_age], [0])      dnl inc if API changes are backwards compatible, zero otherwise
 
