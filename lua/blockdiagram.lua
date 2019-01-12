@@ -359,7 +359,7 @@ function system.launch(self, t)
 		   " -> node cfg "..yellow(nodecfg))
 	 else -- regular config
 	    log("    "..green(blkconf.name).."."..blue(name)
-		   .." with "..yellow(utils.tab2str(val))..")")
+		   .." with "..yellow(utils.tab2str(val)))
 	    ubx.set_config(b, name, val)
 	 end
       end
