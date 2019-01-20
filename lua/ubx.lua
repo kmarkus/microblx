@@ -281,29 +281,37 @@ end
 --- Bring a block to the given state
 -- @param b block
 -- @param tgtstate desired state ('active', 'inactive', 'preinit')
+-- @return 0 if OK, nonzero otherwise
 function M.block_tostate(b, tgtstate)
+   local ret
 
-   if b.block_state == tgtstate then return end
+   if b.block_state == tgtstate then return 0 end
 
    -- starting it up
    if (b.block_state == ffi.C.BLOCK_STATE_PREINIT and
        (tgtstate == 'inactive' or tgtstate == 'active')) then
-      M.block_init(b)
+      ret = M.block_init(b)
+      if ret ~= 0 then return ret end
    end
 
    if (b.block_state == ffi.C.BLOCK_STATE_INACTIVE and tgtstate == 'active') then
-      M.block_start(b)
+      ret = M.block_start(b)
+      if ret ~= 0 then return ret end
    end
 
    -- shutting it down
    if (b.block_state == ffi.C.BLOCK_STATE_ACTIVE and
        (tgtstate == 'inactive' or tgtstate == 'preinit')) then
-      M.block_stop(b)
+      ret = M.block_stop(b)
+      if ret ~= 0 then return ret end
    end
 
    if (b.block_state == ffi.C.BLOCK_STATE_INACTIVE and tgtstate == 'preinit') then
-      M.block_cleanup(b)
+      ret = M.block_cleanup(b)
+      if ret ~= 0 then return ret end
    end
+
+   return 0
 end
 
 --- Unload a block: bring it to state preinit and call ubx_block_rm

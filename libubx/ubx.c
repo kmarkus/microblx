@@ -1814,7 +1814,7 @@ ubx_port_t* ubx_port_get(ubx_block_t* b, const char *name)
  * @param ni
  * @param b
  *
- * @return 0 if state was changed, -1 otherwise.
+ * @return 0 if state was changed, non-zero otherwise.
  */
 int ubx_block_init(ubx_block_t* b)
 {
@@ -1831,9 +1831,10 @@ int ubx_block_init(ubx_block_t* b)
 		goto out;
 	}
 
-	if(b->init==NULL) goto out_ok;
+	if(b->init==NULL)
+		goto out_ok;
 
-	if(b->init(b)!=0) {
+	if((ret = b->init(b)) !=0) {
 		ERR("block '%s' init function failed.", b->name);
 		goto out;
 	}
@@ -1851,7 +1852,7 @@ int ubx_block_init(ubx_block_t* b)
  * @param ni
  * @param b
  *
- * @return 0 if state was changed, -1 otherwise.
+ * @return 0 if state was changed, non-zero otherwise.
  */
 int ubx_block_start(ubx_block_t* b)
 {
@@ -1862,15 +1863,16 @@ int ubx_block_start(ubx_block_t* b)
 		goto out;
 	}
 
-	if(b->block_state!=BLOCK_STATE_INACTIVE) {
+	if(b->block_state != BLOCK_STATE_INACTIVE) {
 		ERR("block '%s' not in state inactive, but in %s",
 		    b->name, block_state_tostr(b->block_state));
 		goto out;
 	}
 
-	if(b->start==NULL) goto out_ok;
+	if(b->start==NULL)
+		goto out_ok;
 
-	if(b->start(b)!=0) {
+	if((ret = b->start(b)) !=0) {
 		ERR("block '%s' start function failed.", b->name);
 		goto out;
 	}
@@ -1905,7 +1907,8 @@ int ubx_block_stop(ubx_block_t* b)
 		goto out;
 	}
 
-	if(b->stop==NULL) goto out_ok;
+	if(b->stop==NULL)
+		goto out_ok;
 
 	b->stop(b);
 
@@ -1922,7 +1925,7 @@ int ubx_block_stop(ubx_block_t* b)
  * @param ni
  * @param b
  *
- * @return 0 if state was changed, -1 otherwise.
+ * @return 0 if state was changed, non-zero otherwise.
  */
 int ubx_block_cleanup(ubx_block_t* b)
 {
@@ -1939,7 +1942,8 @@ int ubx_block_cleanup(ubx_block_t* b)
 		goto out;
 	}
 
-	if(b->cleanup==NULL) goto out_ok;
+	if(b->cleanup==NULL)
+		goto out_ok;
 
 	b->cleanup(b);
 
@@ -1977,7 +1981,8 @@ int ubx_cblock_step(ubx_block_t* b)
 		goto out;
 	}
 
-	if(b->step==NULL) goto out;
+	if(b->step==NULL)
+		goto out;
 
 	b->step(b);
 	b->stat_num_steps++;

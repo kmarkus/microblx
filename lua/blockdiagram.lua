@@ -219,16 +219,16 @@ end
 -- @param t configuration table
 function system.pulldown(self, ni)
    if #self.start > 0 then
-      log("deactivating "..ts(#self.blocks).." blocks... ")
+      log("stopping "..ts(#self.blocks).." blocks... ")
       -- stop the start table blocks in reverse order
       for i = #self.start, 1, -1 do
-	 log("    deactivating " .. green(self.start[i]))
+	 log("    stopping " .. green(self.start[i]))
 	 ubx.block_unload(ni, self.start[i])
       end
    end
-   log("    deactivating remaining blocks")
+   log("    stopping remaining blocks")
    ubx.node_cleanup(ni)
-   log("deactivating blocks completed")
+   log("stopping blocks completed")
 end
 
 
@@ -237,22 +237,30 @@ end
 -- @param t configuration table
 -- @return ni node_info handle
 function system.startup(self, ni)
-   log("activating "..ts(#self.blocks).." blocks... ")
+   log("starting "..ts(#self.blocks).." blocks... ")
    utils.foreach(
       function (bmodel)
+
 	 -- skip the blocks in the start table
 	 if utils.table_has(self.start, bmodel.name) then return end
 	 local b = ubx.block_get(ni, bmodel.name)
-	 log("    activating ".. green(bmodel.name))
-	 ubx.block_tostate(b, 'active')
+	 log("    starting ".. green(bmodel.name))
+
+	 local ret = ubx.block_tostate(b, 'active')
+	 if ret ~= 0 then
+	    err_exit(ret, "failed to start block "..bmodel.name..": ", ret)
+	 end
       end, self.blocks)
    -- start the start table blocks in order
    for _,trigname in ipairs(self.start) do
       local b = ubx.block_get(ni, trigname)
-      log("    activating ".. green(trigname))
-      ubx.block_tostate(b, 'active')
+      log("    starting ".. green(trigname))
+      local ret = ubx.block_tostate(b, 'active')
+      if ret ~= 0 then
+	 err_exit(ret, "failed to start block "..trigname..": ", ret)
+      end
    end
-   log("activating blocks completed")
+   log("starting blocks completed")
 end
 
 --- Instantiate ubx_data for node configuration
@@ -320,11 +328,10 @@ function system.launch(self, t)
 	 if not name then return end
 	 local ptr=ubx.block_get(ni, name)
 	 if ptr==nil then
-	    log(red("error: failed to resolve block #"..name.." for ubx_block_t* conversion"))
-	    ret=false
+	    err_exit(-1, "error: failed to resolve block #"..
+		     name.." for ubx_block_t* conversion")
 	 elseif ubx.is_proto(ptr) then
-	    log(red("error: block #"..name.." is a proto block"))
-	    ret=false
+	    err_exit("error: block #"..name.." is a proto block")
 	 end
 	 log(magenta("    resolved block #"..name))
 	 tab[key]=ptr
@@ -415,7 +422,12 @@ function system.launch(self, t)
 				   end, walker.configurations)
 		     walker = walker._parent
 		  end
-		  ubx.block_init(b)
+		  -- configure the block
+		  local ret = ubx.block_init(b)
+		  if ret ~= 0 then
+		     err_exit(ret, "failed to initialize block "..c.name..
+				 ": "..tonumber(ret))
+		  end
 	       end
 	    end, self.configurations)
 	 log("configuring blocks completed")
