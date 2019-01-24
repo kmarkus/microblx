@@ -372,7 +372,7 @@ int ptrig_handle_config(ubx_block_t *b)
 
 	DBG("%s config: period=%lus:%luus, policy=%s, \
 	     prio=%d, stacksize=%lu (0=default size)",
-	    b->name, inf->period.sec, inf->period.usec,
+	    b->name, inf->period->sec, inf->period->usec,
 	    schedpol_str, sched_param.sched_priority,
 	    (unsigned long) stacksize);
 
