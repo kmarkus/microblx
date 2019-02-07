@@ -1,7 +1,7 @@
 ![microblx logo](/doc/figures/microblx-logo.png)
 
-MICROBLX: realtime, embedded, reflective function blocks
-=========================================================
+MICROBLX: hard realtime, embedded, reflective function blocks
+=============================================================
 
 What is it?
 -----------
