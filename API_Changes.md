@@ -3,6 +3,11 @@ API Changes
 
 This file tracks user visible API changes.
 
+## v0.6.1
+
+- ubx_launch, blockdiagram: exit and complain loudly if launching a
+  blockdiagram fails
+
 ## v0.6.0
 
 - updated all blocks to new config handling
