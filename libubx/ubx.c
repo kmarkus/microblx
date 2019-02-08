@@ -531,6 +531,7 @@ ubx_data_t* __ubx_data_alloc(const ubx_type_t* typ, const unsigned long array_le
  out_nomem:
 	ERR("memory allocation failed");
 	if(d) free(d);
+	d = NULL;
 
  out:
 	return d;
