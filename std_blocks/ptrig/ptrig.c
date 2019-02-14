@@ -454,10 +454,9 @@ static int ptrig_start(ubx_block_t *b)
 	tstat_init(&inf->global_tstats, tstat_global_id);
 
 	/* this is freed in cleanup hook */
-	inf->blk_tstats = reallocarray(
+	inf->blk_tstats = realloc(
 		inf->blk_tstats,
-		inf->trig_list_len,
-		sizeof(struct ptrig_tstat));
+		inf->trig_list_len * sizeof(struct ptrig_tstat));
 
 	if(!inf->blk_tstats) {
 		ERR("failed to alloc blk_stats");
