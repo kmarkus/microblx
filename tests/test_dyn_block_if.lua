@@ -2,10 +2,8 @@
 
 local lu=require"luaunit"
 
-local ffi=require"ffi"
 local ubx=require"ubx"
 local utils=require"utils"
-local cdata=require"cdata"
 -- require"trace"
 
 local assert_true = lu.assert_true
@@ -87,6 +85,10 @@ function test_port_add_rm()
    assert_not_nil(ubx.port_get(lb1, "testport1"))
    assert_not_nil(ubx.port_get(lb1, "testport2"))
    assert_not_nil(ubx.port_get(lb1, "testport3"))
+
+   assert_not_nil(ubx.port_get(lb1, "testport1").block, "testport1 is missing block ptr")
+   assert_not_nil(ubx.port_get(lb1, "testport2").block, "testport2 is missing block ptr")
+   assert_not_nil(ubx.port_get(lb1, "testport3").block, "testport3 is missing block ptr")
 
    assert_equals(0, exec_str("ubx.port_rm(this, 'testport1')"))
    assert_equals(0, exec_str("ubx.port_rm(this, 'testport3')"))
