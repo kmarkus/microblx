@@ -1671,11 +1671,11 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* doc,
 	b->ports=parr;
 
 	/* setup port */
-	b->ports[i].block = b;
-
 	ret=ubx_clone_port_data(&b->ports[i], name, doc,
 				in_type, in_data_len,
 				out_type, out_data_len, state);
+
+	b->ports[i].block = b;
 
 	if(ret) {
 		ERR("cloning port data failed");
