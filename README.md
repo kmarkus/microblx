@@ -8,7 +8,7 @@ What is it?
 
 Microblx is an lightweight, dynamic, reflective, hard realtime safe
 function block framework. Primary use-cases are hard realtime
-(embedded) control or signal processing systems.
+(embedded) control or signal processing applications.
 
 Main features:
 
@@ -26,6 +26,7 @@ Main features:
 Dependencies
 ------------
 
+ - uthash (apt: `uthash-dev`)
  - luajit (>=v2.0.0) (apt: `luajit` and `libluajit-5.1-dev`) (not
    strictly required, but recommended)
  - `uutils` Lua modules [github](https://github.com/kmarkus/uutils)
@@ -34,7 +35,7 @@ Dependencies
    [luaunit](https://github.com/bluebird75/luaunit) (to run the tests)
  - gcc or clang
  - only for development: `cproto` (apt: `cproto`) to generate C prototype header file
-
+ - autotools etc. (apt: `automake`, `libtool`, `pkg-config`, `make`)
 
 Building and setting up
 ------------------------
@@ -57,7 +58,7 @@ First build lfds:
 
 ```bash
 $ git clone https://github.com/liblfds/liblfds6.1.1.git
-$ git clone git@github.com:kmarkus/microblx.git
+$ git clone https://github.com/kmarkus/microblx.git
 $ cd liblfds6.1.1
 $ git am ~/microblx/liblfds/*.patch
 $ ./bootstrap
