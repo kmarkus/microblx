@@ -3,6 +3,13 @@ API Changes
 
 This file tracks user visible API changes.
 
+## v0.6.2
+
+- `ubx.lua` use unversioned `libubx.so`
+
+- bugfix in `ubx_port_add` (see 28e6d8acc42)
+
+
 ## v0.6.1
 
 - ubx_launch, blockdiagram: exit and complain loudly if launching a
