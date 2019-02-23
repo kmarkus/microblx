@@ -60,7 +60,7 @@ First build lfds:
 $ git clone https://github.com/liblfds/liblfds6.1.1.git
 $ git clone https://github.com/kmarkus/microblx.git
 $ cd liblfds6.1.1
-$ git am ~/microblx/liblfds/*.patch
+$ git am ../microblx/liblfds/*.patch
 $ ./bootstrap
 $ ./configure --prefix=/usr
 $ make
