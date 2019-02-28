@@ -96,14 +96,21 @@ Documentation
 Getting help
 ------------
 
-Please post any problems via the github issue tracker.
+Please feel free to ask questions or report problems on the microblx
+mailing list:
+
+- https://groups.google.com/forum/#!forum/microblx
+
+You can subscribe by email by sending a mail to
+`microblx+subscribe@googlegroups.com`
 
 Contributing
 ------------
 
 Contributions should conform to the Linux kernel [coding
 style](https://www.kernel.org/doc/html/latest/process/coding-style.html). The
-preferred way of submitting patches is via a github merge request.
+preferred ways of submitting patches via the mailing list or via a
+github merge request.
 
 License
 -------
