@@ -10,6 +10,9 @@
 /* #define DEBUG 1 */
 
 #include "ubx.h"
+#ifdef TSC_TIMERS
+#include <math.h>
+#endif
 
 /*
  * Internal helper functions
@@ -2107,9 +2110,62 @@ void __port_write(ubx_port_t* port, ubx_data_t* data)
 	return;
 }
 
-
 /* OS stuff, for scripting layer */
 
+#ifdef TSC_TIMERS
+/**
+ * rdtscp
+ *
+ * @return current tsc
+ */
+uint64_t rdtscp(void)
+{
+	uint64_t tsc;
+	__asm__ __volatile__(
+		"rdtscp;"
+		"shl $32, %%rdx;"
+		"or %%rdx, %%rax"
+		: "=a"(tsc)
+		:
+		: "%rcx", "%rdx");
+
+	return tsc;
+}
+
+/**
+ * ubx_tsc_gettime - get elapsed using tsc counter
+ *
+ * @param uts
+ *
+ * @return 0 (rdtsc does not fail)
+ */
+int ubx_tsc_gettime(struct ubx_timespec *uts)
+{
+	int ret = -1;
+	double ts, frac, integral;
+
+	if(uts==NULL) {
+		ERR("struct ubx_timespec argument missing");
+		goto out;
+	}
+
+	ts = (double)rdtscp() / CPU_HZ;
+
+	frac = modf(ts, &integral);
+
+	uts->sec = integral;
+	uts->nsec = frac * NSEC_PER_SEC;
+	ret = 0;
+
+out:
+	return ret;
+}
+
+int ubx_gettime(struct ubx_timespec *uts)
+{
+	return ubx_tsc_gettime(uts);
+}
+#else
 /**
  * ubx_clock_mono_gettime - get current time using clock_gettime(CLOCK_MONOTONIC).
  *
@@ -2137,6 +2193,12 @@ int ubx_clock_mono_gettime(struct ubx_timespec* uts)
 out:
 	return ret;
 }
+
+int ubx_gettime(struct ubx_timespec *uts)
+{
+	return ubx_clock_mono_gettime(uts);
+}
+#endif
 
 /**
  * ubx_clock_mono_nanosleep - sleep for specified timespec
