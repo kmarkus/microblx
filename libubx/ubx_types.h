@@ -246,7 +246,6 @@ typedef struct ubx_node_info
 	unsigned long cur_seqid;
 } ubx_node_info_t;
 
-
 /* OS stuff */
 struct ubx_timespec
 {
