@@ -99,6 +99,7 @@ std_blocks/simple_fifo/Makefile
 std_blocks/webif/Makefile
 std_types/Makefile
 std_types/stdtypes/Makefile
+std_types/stattypes/Makefile
 std_types/testtypes/Makefile
 examples/Makefile
 lua/Makefile
