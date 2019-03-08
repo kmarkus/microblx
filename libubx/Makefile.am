@@ -5,17 +5,19 @@ AM_CFLAGS = $(UBX_CFLAGS)
 lib_LTLIBRARIES = libubx.la
 
 libubx_includes = ubx.h ubx_uthash_ffi.h \
-                  ubx_types.h ubx_proto.h md5.h
+                  ubx_types.h ubx_proto.h md5.h \
+                  ubx_tstat.h
 
 include_HEADERS = ubx.h \
                   ubx_types.h \
                   ubx_types_cpp.h \
                   ubx_proto.h \
                   ubx_uthash_ffi.h \
-                  md5.h
+                  md5.h \
+                  ubx_tstat.h
 
 libubx_la_SOURCES = $(libubx_includes) \
-                    md5.c ubx.c
+                    md5.c ubx.c ubx_tstat.c
 
 libubx_la_LDFLAGS = -version-info $(UBX_LT_VER)
 
