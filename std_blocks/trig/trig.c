@@ -1,18 +1,11 @@
 /*
- * A pthread based trigger block
+ * A simple activity-less trigger block
  */
 
 #undef DEBUG
-#define CONFIG_PTHREAD_SETNAME
-
-#ifdef CONFIG_PTHREAD_SETNAME
-#define _GNU_SOURCE
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-#include <limits.h>	/* PTHREAD_STACK_MIN */
 
 #include "ubx.h"
 
