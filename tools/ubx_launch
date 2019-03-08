@@ -12,6 +12,7 @@ microblx function block model system launcher
    usage: ubx_launch OPTIONS -c <conf file>
       -b               listen on given block state to shutdown
       -c               .usc or .json model file to launch
+      -ctype <type>    type of the model file. Either ucs or json. If not specified, auto-detected from extension
       -nodename        name to give to node
       -nostart         instantiate and configure, but don't start
       -t               time to run in seconds
@@ -28,6 +29,7 @@ end
 local opttab=utils.proc_args(arg)
 local nodename
 local conf_file
+local conf_type
 local monitorblock
 
 if #arg==1 or opttab['-h'] then
@@ -41,8 +43,17 @@ else
    conf_file = opttab['-c'][1]
 end
 
+if opttab['-ctype'] then
+    if not opttab['-ctype'][1] then
+        print("-ctype option requires a type argument")
+        os.exit(1)
+    else
+        conf_type = opttab['-ctype'][1]
+    end
+end
+
 local suc
-suc, model = bd.load(conf_file)
+suc, model = bd.load(conf_file, conf_type)
 if (opttab['-b'] and opttab['-b'][1]) then
    monitorblock = opttab['-b'][1]
 end
