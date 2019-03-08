@@ -7,7 +7,7 @@ ubxmod_LTLIBRARIES = ptrig.la
 
 BUILT_SOURCES = types/ptrig_config.h.hexarr \
                 types/ptrig_period.h.hexarr \
-                types/ptrig_tstat.h.hexarr
+                ../../std_types/stattypes/types/ubx_tstat.h.hexarr
 
 CLEANFILES = $(BUILT_SOURCES)
 
