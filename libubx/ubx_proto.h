@@ -1,6 +1,6 @@
-/* ./md5.c */
+/* ../../../../../../../workspace/sources/microblx-latest/libubx/md5.c */
 void md5(const unsigned char *input, int len, unsigned char output[16]);
-/* ./ubx.c */
+/* ../../../../../../../workspace/sources/microblx-latest/libubx/ubx.c */
 const char *block_state_tostr(unsigned int state);
 const char *get_typename(ubx_data_t *data);
 int ubx_module_load(ubx_node_info_t *ni, const char *lib);
@@ -56,7 +56,9 @@ int ubx_block_cleanup(ubx_block_t *b);
 int ubx_cblock_step(ubx_block_t *b);
 uint32_t __port_read(ubx_port_t *port, ubx_data_t *data);
 void __port_write(ubx_port_t *port, ubx_data_t *data);
-int ubx_clock_mono_gettime(struct ubx_timespec *uts);
+uint64_t rdtscp(void);
+int ubx_tsc_gettime(struct ubx_timespec *uts);
+int ubx_gettime(struct ubx_timespec *uts);
 int ubx_clock_mono_nanosleep(struct ubx_timespec *uts);
 int ubx_ts_cmp(struct ubx_timespec *ts1, struct ubx_timespec *ts2);
 void ubx_ts_norm(struct ubx_timespec *ts);
