@@ -6,6 +6,8 @@ BUILT_SOURCES = types/ubx_tstat.h.hexarr
 
 CLEANFILES = $(BUILT_SOURCES)
 
+nobase_include_HEADERS = types/ubx_tstat.h
+
 %.h.hexarr: %.h
 	$(top_srcdir)/tools/ubx_tocarr $<
 
