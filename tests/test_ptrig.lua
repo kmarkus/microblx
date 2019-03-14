@@ -41,7 +41,7 @@ end
 ]]
 
 local sys1 = bd.system {
-   imports = { "stdtypes", "ptrig", "ramp_uint64", "lfds_cyclic", "luablock" },
+   imports = { "stdtypes", "stattypes", "ptrig", "ramp_uint64", "lfds_cyclic", "luablock" },
    blocks = {
       { name="ramp", type="ramp_uint64" },
       { name="tester", type="lua/luablock" },
@@ -98,7 +98,7 @@ local block_dur_us = {
 
 
 local sys2 = bd.system {
-   imports = { "stdtypes", "ptrig", "lfds_cyclic", "luablock" },
+   imports = { "stdtypes", "stattypes", "ptrig", "lfds_cyclic", "luablock" },
    blocks = {
       { name="tb1", type="lua/luablock" },
       { name="tb2", type="lua/luablock" },
