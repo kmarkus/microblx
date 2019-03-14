@@ -1,6 +1,6 @@
-/* ../../../../../../../workspace/sources/microblx-latest/libubx/md5.c */
+/* ./md5.c */
 void md5(const unsigned char *input, int len, unsigned char output[16]);
-/* ../../../../../../../workspace/sources/microblx-latest/libubx/ubx.c */
+/* ./ubx.c */
 const char *block_state_tostr(unsigned int state);
 const char *get_typename(ubx_data_t *data);
 int ubx_module_load(ubx_node_info_t *ni, const char *lib);

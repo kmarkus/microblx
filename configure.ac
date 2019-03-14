@@ -30,28 +30,6 @@ AC_SUBST([UBX_LT_VER], [libubx_if_current:libubx_if_revision:libubx_if_age])
 AC_SUBST([UBX_MODDIR], [$libdir/$PACKAGE/$UBX_VER])
 AC_SUBST([UBX_CFLAGS], ["-Wall -Wextra -Werror"])
 
-AC_ARG_ENABLE([ptrig-tstat-block],
-  AS_HELP_STRING([--disable-ptrig-tstat-block], [Disable ptrig block-level timing statistics]),
-  [ptrig_tstat_block=${enableval}],
-  [ptrig_tstat_block=yes])
-
-AC_ARG_ENABLE([ptrig-tstat],
-  AS_HELP_STRING([--disable-ptrig-tstat], [Disable ptrig timing statistics]),
-  [ptrig_tstat=${enableval}],
-  [ptrig_tstat=yes])
-
-if test "x${ptrig_tstat}" = xno; then
-  ptrig_tstat_block=no
-fi
-
-if test "x${ptrig_tstat_block}" = xyes; then
-  AC_DEFINE([PTRIG_TSTAT_BLOCK], 1, [ptrig tstat block enabled])
-fi
-
-if test "x${ptrig_tstat}" = xyes; then
-   AC_DEFINE([PTRIG_TSTAT], 1, [ptrig tstat enabled])
-fi
-
 AC_ARG_ENABLE([tsc-timers],
   AS_HELP_STRING([--enable-tsc-timers], [Enable TSC timers (POSIX timers disabled)]),
   [enable_tsc_timers=yes],
