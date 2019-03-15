@@ -26,7 +26,7 @@ BUILT_SOURCES = ubx_proto.h
 CLEANFILES = $(BUILT_SOURCES)
 
 ubx_proto.h: md5.c ubx.c
-	/usr/bin/cproto $(srcdir)/md5.c $(srcdir)/ubx.c -I$(top_builddir)/ -I${top_srcdir}/ -I${top_srcdir}/libubx/ > $(srcdir)/$@
+	cproto $(srcdir)/md5.c $(srcdir)/ubx.c -I$(top_builddir)/ -I${top_srcdir}/ -I${top_srcdir}/libubx/ > $(srcdir)/$@
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = ubx0.pc
