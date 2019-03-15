@@ -2042,10 +2042,8 @@ uint32_t __port_read(ubx_port_t* port, ubx_data_t* data)
 	}
 
 	/* port completely unconnected? */
-	if(port->in_interaction==NULL) {
-		ERR("interraction port unconnected");
+	if(port->in_interaction==NULL)
 		goto out;
-	}
 
 	for(iaptr=port->in_interaction; *iaptr!=NULL; iaptr++) {
 		if((*iaptr)->block_state==BLOCK_STATE_ACTIVE) {
