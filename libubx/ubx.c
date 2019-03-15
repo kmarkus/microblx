@@ -2118,7 +2118,7 @@ void __port_write(ubx_port_t* port, ubx_data_t* data)
  *
  * @return current tsc
  */
-uint64_t rdtscp(void)
+static uint64_t rdtscp(void)
 {
 	uint64_t tsc;
 	__asm__ __volatile__(
