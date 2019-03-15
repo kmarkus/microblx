@@ -54,8 +54,8 @@ fi
 
 AC_ARG_ENABLE([tsc-timers],
   AS_HELP_STRING([--enable-tsc-timers], [Enable TSC timers (POSIX timers disabled)]),
-  [],
-  [enable_tsc_timers=yes])
+  [enable_tsc_timers=yes],
+  [])
 
 if test "x${enable_tsc_timers}" = xyes; then
   AC_DEFINE([TSC_TIMERS], 1, [tsc timers enabled])
