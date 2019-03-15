@@ -2139,7 +2139,7 @@ uint64_t rdtscp(void)
  *
  * @return 0 (rdtsc does not fail)
  */
-int ubx_tsc_gettime(struct ubx_timespec *uts)
+static int ubx_tsc_gettime(struct ubx_timespec *uts)
 {
 	int ret = -1;
 	double ts, frac, integral;
@@ -2173,7 +2173,7 @@ int ubx_gettime(struct ubx_timespec *uts)
  *
  * @return < 0 in case of error, 0 otherwise.
  */
-int ubx_clock_mono_gettime(struct ubx_timespec* uts)
+static int ubx_clock_mono_gettime(struct ubx_timespec* uts)
 {
 	int ret=-1;
 	struct timespec ts;
