@@ -184,7 +184,7 @@ function M.is_inoutport(p) return M.is_outport(p) and M.is_inport(p) end
 -- @return struct ubx_timespec with current time
 function M.clock_mono_gettime(ts)
    ts = ts or ffi.new("struct ubx_timespec")
-   ubx.ubx_clock_mono_gettime(ts)
+   ubx.ubx_gettime(ts)
    return ts
 end
 
@@ -262,7 +262,7 @@ function M.block_create(ni, type, name, conf)
 end
 
 -- OS stuff
-M.clock_mono_gettime = ubx.ubx_clock_mono_gettime
+M.clock_mono_gettime = ubx.ubx_gettime
 M.clock_mono_nanosleep = ubx.ubx_clock_mono_nanosleep
 
 function M.clock_mono_sleep(sec, nsec)

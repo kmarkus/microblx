@@ -185,8 +185,9 @@ end
 
 --- read blockdiagram system file from usc or json file
 -- @param fn file name of file (usc or json)
+-- @param file_type optional file type - either \em usc or \em json. If not specified, the type will be auto-detected from the extension of the file
 -- @return true or error msg, system model
-local function load(fn)
+local function load(fn, file_type)
 
    local function read_json()
       local f = assert(io.open(fn, "r"))
@@ -194,17 +195,20 @@ local function load(fn)
       return system(data)
    end
 
-   local ext = string.match(fn, "^.+%.(.+)$")
+   if file_type == nil then
+       file_type = string.match(fn, "^.+%.(.+)$")
+   end
+
    local suc, mod
-   if ext == 'json' then
+   if file_type == 'json' then
       if not has_json then
 	 err_exit(1, "no cjson library found, unable to load json")
       end
       suc, mod = pcall(read_json, fn)
-   elseif ext == 'usc' or ext == 'lua' then
+   elseif file_type == 'usc' or file_type == 'lua' then
       suc, mod = pcall(dofile, fn)
    else
-      err_exit(1, "ubx_launch error: unknown extension "..tostring(ext))
+      err_exit(1, "ubx_launch error: unknown file type "..tostring(file_type))
    end
 
    if not is_system(mod) then

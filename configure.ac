@@ -52,6 +52,17 @@ if test "x${ptrig_tstat}" = xyes; then
    AC_DEFINE([PTRIG_TSTAT], 1, [ptrig tstat enabled])
 fi
 
+AC_ARG_ENABLE([tsc-timers],
+  AS_HELP_STRING([--enable-tsc-timers], [Enable TSC timers (POSIX timers disabled)]),
+  [enable_tsc_timers=yes],
+  [])
+
+if test "x${enable_tsc_timers}" = xyes; then
+  AC_DEFINE([TSC_TIMERS], 1, [tsc timers enabled])
+fi
+
+AC_DEFINE([CPU_HZ], 1600000000, [cpu hz defined])
+
 # check for pthreads
 have_pthreads=no
 AC_SEARCH_LIBS([pthread_create], [pthread], [have_pthreads=yes])
@@ -88,6 +99,7 @@ std_blocks/simple_fifo/Makefile
 std_blocks/webif/Makefile
 std_types/Makefile
 std_types/stdtypes/Makefile
+std_types/stattypes/Makefile
 std_types/testtypes/Makefile
 examples/Makefile
 lua/Makefile

@@ -1,2 +1,3 @@
 SUBDIRS = stdtypes \
+	  stattypes \
           testtypes

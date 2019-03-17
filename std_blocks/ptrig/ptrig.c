@@ -28,8 +28,10 @@
 #include "types/ptrig_period.h"
 #include "types/ptrig_period.h.hexarr"
 
-#include "types/ptrig_tstat.h"
-#include "types/ptrig_tstat.h.hexarr"
+#include "../../std_types/stattypes/types/ubx_tstat.h"
+#include "../../std_types/stattypes/types/ubx_tstat.h.hexarr"
+
+#include "ubx_tstat.h"
 
 /* ptrig metadata */
 char ptrig_meta[] =
@@ -39,7 +41,7 @@ char ptrig_meta[] =
 
 ubx_port_t ptrig_ports[] = {
 	{ .name="tstats",
-	  .out_type_name="struct ptrig_tstat",
+	  .out_type_name="struct ubx_tstat",
 	  .doc="out port for totals and per block timing statistics"
 	},
 	{ .name="shutdown",
@@ -53,7 +55,6 @@ ubx_port_t ptrig_ports[] = {
 ubx_type_t ptrig_types[] = {
 	def_struct_type(struct ptrig_config, &ptrig_config_h),
 	def_struct_type(struct ptrig_period, &ptrig_period_h),
-	def_struct_type(struct ptrig_tstat, &ptrig_tstat_h),
 	{ NULL },
 };
 
@@ -71,6 +72,7 @@ ubx_config_t ptrig_config[] = {
 	{ .name="trig_blocks", .type_name = "struct ptrig_config",
 	  .doc="trigger conf: which block and how to trigger"
 	},
+	{ .name="profile_path", .type_name = "char" },
 	{ .name="tstats_enabled", .type_name = "int",
 	  .doc="enable timing statistics over all blocks",
 	},
@@ -103,83 +105,34 @@ struct ptrig_inf {
 	struct ptrig_period* period;
 
 	/* timing statistics */
+	const char *profile_path;
 	int tstats_enabled;
 	int tstats_print_on_stop;
 
-	struct ptrig_tstat global_tstats;
-	struct ptrig_tstat *blk_tstats;
+	struct ubx_tstat global_tstats;
+	struct ubx_tstat *blk_tstats;
 
 	ubx_port_t *p_tstats;
 };
 
-def_write_fun(write_tstat, struct ptrig_tstat)
+def_write_fun(write_tstat, struct ubx_tstat)
 
 /**
- * initialize a ptrig_tstat structure
+ * print tstats
  */
-void tstat_init(struct ptrig_tstat* ts, const char *block_name)
-{
-	strncpy(ts->block_name, block_name, BLOCK_NAME_MAXLEN);
-
-	ts->min.sec=LONG_MAX;
-	ts->min.nsec=LONG_MAX;
-
-	ts->max.sec=0;
-	ts->max.nsec=0;
-
-	ts->total.sec=0;
-	ts->total.nsec=0;
-}
-
-/**
- * update timing statistics with new information.
- */
-void tstat_update(struct ptrig_tstat *stats,
-		  struct ubx_timespec *start,
-		  struct ubx_timespec *end)
-{
-	struct ubx_timespec dur;
-
-	ubx_ts_sub(end, start, &dur);
-
-	if(ubx_ts_cmp(&dur, &stats->min) == -1)
-		stats->min=dur;
-
-	if(ubx_ts_cmp(&dur, &stats->max) == 1)
-		stats->max=dur;
-
-	ubx_ts_add(&stats->total, &dur, &stats->total);
-	stats->cnt++;
-}
-
-void tstat_print(struct ptrig_tstat *stats)
-{
-	struct ubx_timespec avg;
-
-	ubx_ts_div(&stats->total, stats->cnt, &avg);
-
-	MSG("%s: cnt: %lu, min:%f, max:%f, avg:%f",
-	    stats->block_name,
-	    stats->cnt,
-	    ubx_ts_to_double(&stats->min),
-	    ubx_ts_to_double(&stats->max),
-	    ubx_ts_to_double(&avg));
-}
-
-/* print tstats */
 void ptrig_tstats_print(struct ptrig_inf *inf)
 {
-	if(!inf->tstats_print_on_stop)
+	unsigned int i;
+
+	if (!inf->tstats_print_on_stop)
 		goto out;
 
-	if(inf->tstats_enabled)
-		tstat_print(&inf->global_tstats);
-
-	for(unsigned int i=0; i<inf->trig_list_len; i++) {
-		if(inf->trig_list[i].measure) {
-			tstat_print(&inf->blk_tstats[i]);
-		}
+	if (inf->tstats_enabled) {
+		for (i = 0; i < inf->trig_list_len; i++)
+			if (inf->trig_list[i].measure)
+				tstat_print(inf->profile_path, &inf->blk_tstats[i]);
 	}
+
 out:
 	return;
 }
@@ -190,17 +143,16 @@ static int trigger_steps(struct ptrig_inf *inf)
 	int ret=-1;
 	unsigned int i, steps;
 
-
 	struct ubx_timespec ts_start, ts_end, blk_ts_start, blk_ts_end;
 
 	if(inf->tstats_enabled) {
-		ubx_clock_mono_gettime(&ts_start);
+		ubx_gettime(&ts_start);
 	}
 
 	for(i=0; i<inf->trig_list_len; i++) {
 
 		if(inf->trig_list[i].measure)
-			ubx_clock_mono_gettime(&blk_ts_start);
+			ubx_gettime(&blk_ts_start);
 
 		for(steps=0; steps<inf->trig_list[i].num_steps; steps++) {
 
@@ -209,7 +161,7 @@ static int trigger_steps(struct ptrig_inf *inf)
 
 			/* per block statistics */
 			if(inf->trig_list[i].measure) {
-				ubx_clock_mono_gettime(&blk_ts_end);
+				ubx_gettime(&blk_ts_end);
 				tstat_update(&inf->blk_tstats[i],
 					     &blk_ts_start,
 					     &blk_ts_end);
@@ -220,7 +172,7 @@ static int trigger_steps(struct ptrig_inf *inf)
 
 	/* compute global tstats */
 	if(inf->tstats_enabled) {
-		ubx_clock_mono_gettime(&ts_end);
+		ubx_gettime(&ts_end);
 		tstat_update(&inf->global_tstats, &ts_start, &ts_end);
 
 		/* output global tstats - TODO throttling */
@@ -440,6 +392,7 @@ static int ptrig_start(ubx_block_t *b)
 	const int *val;
 	long int len;
 	struct ptrig_inf *inf;
+	FILE *fp;
 
 	inf = (struct ptrig_inf*) b->private_data;
 
@@ -456,7 +409,7 @@ static int ptrig_start(ubx_block_t *b)
 	/* this is freed in cleanup hook */
 	inf->blk_tstats = realloc(
 		inf->blk_tstats,
-		inf->trig_list_len * sizeof(struct ptrig_tstat));
+		inf->trig_list_len * sizeof(struct ubx_tstat));
 
 	if(!inf->blk_tstats) {
 		ERR("failed to alloc blk_stats");
@@ -466,6 +419,17 @@ static int ptrig_start(ubx_block_t *b)
 	for(unsigned int i=0; i<inf->trig_list_len; i++) {
 		tstat_init(&inf->blk_tstats[i],
 			   inf->trig_list[i].b->name);
+	}
+
+	if ((len = cfg_getptr_char(b, "profile_path", &inf->profile_path)) < 0) {
+		ERR("unable to retrieve profile_path parameter");
+		goto out;
+	}
+	/* truncate the file if it exists */
+	if (len > 0) {
+		fp = fopen(inf->profile_path, "w");
+		if (fp)
+			fclose(fp);
 	}
 
 	if((len = cfg_getptr_int(b, "tstats_print_on_stop", &val)) < 0)

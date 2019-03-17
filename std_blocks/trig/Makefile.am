@@ -8,7 +8,7 @@ ubxmod_LTLIBRARIES = trig.la
 
 BUILT_SOURCES = types/trig_config.h.hexarr \
                 types/trig_period.h.hexarr \
-                types/trig_tstat.h.hexarr
+                ../../std_types/stattypes/types/ubx_tstat.h.hexarr
 
 CLEANFILES = $(BUILT_SOURCES)
 

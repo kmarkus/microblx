@@ -36,6 +36,7 @@ extern "C"
 #include <errno.h>
 #include <time.h>
 #include <assert.h>
+#include <limits.h>
 
 #ifdef CONFIG_DUMPABLE
 #include <sys/prctl.h>
