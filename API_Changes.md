@@ -5,6 +5,15 @@ This file tracks user visible API changes.
 
 ## v0.6.2
 
+- cleanup: headers moved to `include/ubx/`. pkg-config file adapted,
+  so this change should be transparent.
+
+- trig, tstat: timing statistics support generalized for use in
+  non-core blocks.
+
+- support for using TSC timers (x86) as a low-overhead time source for
+  timing statistics.
+
 - `ubx.lua` use unversioned `libubx.so`
 
 - bugfix in `ubx_port_add` (see 28e6d8acc42)
