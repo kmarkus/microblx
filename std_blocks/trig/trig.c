@@ -11,10 +11,10 @@
 
 #include "types/trig_config.h"
 #include "types/trig_config.h.hexarr"
-#include "../../std_types/stattypes/types/ubx_tstat.h"
-#include "../../std_types/stattypes/types/ubx_tstat.h.hexarr"
+#include "types/tstat.h"
+#include "types/tstat.h.hexarr"
 
-#include "ubx_tstat.h"
+#include "tstat_utils.h"
 
 /* trig metadata */
 char trig_meta[] =

@@ -6,12 +6,12 @@
 
 #include "ubx.h"
 
-#include "types/ubx_tstat.h"
-#include "types/ubx_tstat.h.hexarr"
+#include "types/tstat.h"
+#include "types/tstat.h.hexarr"
 
 /* declare types */
 ubx_type_t types[] = {
-	def_struct_type(struct ubx_tstat, &ubx_tstat_h),
+	def_struct_type(struct ubx_tstat, &tstat_h),
 	{ NULL },
 };
 

@@ -1,14 +1,14 @@
 # trig: simple trigger block
 
-AM_CFLAGS = -I$(top_srcdir)/libubx $(UBX_CFLAGS)
-
+AM_CFLAGS = -I$(top_srcdir)/libubx \
+	-I$(top_srcdir)/std_types/stattypes/ $(UBX_CFLAGS)
 ubxmoddir = $(UBX_MODDIR)
 
 ubxmod_LTLIBRARIES = trig.la
 
 BUILT_SOURCES = types/trig_config.h.hexarr \
                 types/trig_period.h.hexarr \
-                ../../std_types/stattypes/types/ubx_tstat.h.hexarr
+                $(top_srcdir)/std_types/stattypes/types/tstat.h.hexarr
 
 CLEANFILES = $(BUILT_SOURCES)
 

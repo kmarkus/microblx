@@ -28,10 +28,10 @@
 #include "types/ptrig_period.h"
 #include "types/ptrig_period.h.hexarr"
 
-#include "../../std_types/stattypes/types/ubx_tstat.h"
-#include "../../std_types/stattypes/types/ubx_tstat.h.hexarr"
+#include "types/tstat.h"
+#include "types/tstat.h.hexarr"
 
-#include "ubx_tstat.h"
+#include "tstat_utils.h"
 
 /* ptrig metadata */
 char ptrig_meta[] =

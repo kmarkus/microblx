@@ -6,7 +6,7 @@ m4_define([libubx_if_current], [7])  dnl inc if IF added, removed or changed
 m4_define([libubx_if_revision], [2]) dnl always inc if src changed, zero if current is inc'ed
 m4_define([libubx_if_age], [1])      dnl inc if API changes are backwards compatible, zero otherwise
 
-AC_INIT([microblx], [package_version_major.package_version_minor.package_version_micro])
+AC_INIT([ubx], [package_version_major.package_version_minor.package_version_micro])
 AM_INIT_AUTOMAKE([foreign -Wall])
 
 # compilers

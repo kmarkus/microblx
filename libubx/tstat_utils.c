@@ -3,7 +3,7 @@
  */
 
 #include "ubx.h"
-#include "../std_types/stattypes/types/ubx_tstat.h"
+#include "types/tstat.h"
 /**
  * initialise a tstat structure
  */

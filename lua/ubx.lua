@@ -98,9 +98,9 @@ end
 -- load ubx_types and library
 
 local load_files = {
-   "include/ubx_uthash_ffi.h",
-   "include/ubx_types.h",
-   "include/ubx_proto.h",
+   "include/ubx/ubx_uthash_ffi.h",
+   "include/ubx/ubx_types.h",
+   "include/ubx/ubx_proto.h",
    "lib/libubx.so"
 }
 
@@ -124,9 +124,9 @@ end
 
 local ubx = nil
 local function load_ubx_ffi(prefix)
-   ffi.cdef(read_file(prefix.."/include/ubx_uthash_ffi.h"))
-   ffi.cdef(read_file(prefix.."/include/ubx_types.h"))
-   ffi.cdef(read_file(prefix.."/include/ubx_proto.h"))
+   ffi.cdef(read_file(prefix.."/include/ubx/ubx_uthash_ffi.h"))
+   ffi.cdef(read_file(prefix.."/include/ubx/ubx_types.h"))
+   ffi.cdef(read_file(prefix.."/include/ubx/ubx_proto.h"))
    ubx=ffi.load(prefix.."/lib/libubx.so")
    setmetatable(M, { __index=function(t,k) return ubx["ubx_"..k] end })
    M.ubx=ubx
@@ -232,7 +232,7 @@ end
 -- @param libfile module file to load
 function M.load_module(ni, libfile)
    local ver = string.sub(M.safe_tostr(ubx.ubx_version()), 1, 3)
-   local modpath = prefix.."/lib/microblx/"..ver.."/"..libfile
+   local modpath = prefix.."/lib/ubx/"..ver.."/"..libfile
    if string.sub(modpath, -3) ~= '.so' then modpath = modpath .. ".so" end
 
    local res = ubx.ubx_module_load(ni, modpath)

@@ -56,8 +56,6 @@ int ubx_block_cleanup(ubx_block_t *b);
 int ubx_cblock_step(ubx_block_t *b);
 uint32_t __port_read(ubx_port_t *port, ubx_data_t *data);
 void __port_write(ubx_port_t *port, ubx_data_t *data);
-uint64_t rdtscp(void);
-int ubx_tsc_gettime(struct ubx_timespec *uts);
 int ubx_gettime(struct ubx_timespec *uts);
 int ubx_clock_mono_nanosleep(struct ubx_timespec *uts);
 int ubx_ts_cmp(struct ubx_timespec *ts1, struct ubx_timespec *ts2);
