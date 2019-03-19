@@ -8,9 +8,8 @@ libubx_includes = ubx.h ubx_uthash_ffi.h \
                   ubx_types.h ubx_proto.h md5.h \
                   tstat_utils.h
 
-include_HEADERS = ubx.h
-
-pkginclude_HEADERS = ubx_types.h \
+pkginclude_HEADERS = ubx.h \
+		  ubx_types.h \
                   ubx_types_cpp.h \
                   ubx_proto.h \
                   ubx_uthash_ffi.h \
