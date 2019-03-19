@@ -14,6 +14,8 @@
 #include <math.h>
 #endif
 
+#include <config.h>
+
 /*
  * Internal helper functions
  */

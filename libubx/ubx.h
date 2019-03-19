@@ -49,12 +49,10 @@ extern "C"
 /* this is needed since no ifdef protection is allowed in ubx_types. */
 #include "ubx_types_cpp.h"
 #else
-#include <ubx_types.h>
+#include "ubx_types.h"
 #endif
 
-#include <ubx_proto.h>
-
-#include <config.h>
+#include "ubx_proto.h"
 
 /*
  * Debug stuff
