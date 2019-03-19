@@ -9,7 +9,11 @@ logger_report_conf = [[
 
 return bd.system
 {
-   imports = { "stdtypes", "ptrig", "logger", "random", "lfds_cyclic", "hexdump" },
+   imports = {
+      "stattypes", "stdtypes", "ptrig",
+      "logger", "random", "lfds_cyclic",
+      "hexdump"
+   },
 
    blocks = {
       { name="rnd", type="random/random" },
