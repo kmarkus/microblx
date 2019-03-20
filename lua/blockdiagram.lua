@@ -183,6 +183,70 @@ function system:validate(verbose)
    return umf.check(self, system_spec, verbose)
 end
 
+--- late checks
+local function lc_unconn_inports(ni, res)
+   local function blk_chk_unconn_inports(b)
+      ubx.ports_foreach(b,
+		      function(p)
+			 if p.in_interaction == nil then
+			    res[#res+1] = yellow("unconnected input port ", true) ..
+			       green(ubx.safe_tostr(b.name)) .. "." ..
+			       cyan(ubx.safe_tostr(p.name))
+			 end
+		      end, ubx.is_inport)
+   end
+   ubx.blocks_map(ni, blk_chk_unconn_inports, ubx.is_cblock_instance)
+end
+
+--- late checks
+local function lc_unconn_outports(ni, res)
+   local function blk_chk_unconn_outports(b)
+      ubx.ports_foreach(b,
+		      function(p)
+			 if p.out_interaction == nil then
+			    res[#res+1] = yellow("unconnected output port ", true) ..
+			       green(ubx.safe_tostr(b.name)) .. "." ..
+			       cyan(ubx.safe_tostr(p.name))
+			 end
+		      end, ubx.is_outport)
+   end
+   ubx.blocks_map(ni, blk_chk_unconn_outports, ubx.is_cblock_instance)
+end
+
+
+-- list of late checks
+M._checks = {
+   unconn_inports = {
+      fun=lc_unconn_inports, desc="warn about unconnected input ports"
+   },
+   unconn_outports = {
+      fun=lc_unconn_outports, desc="warn about unconnected output ports"
+   }
+}
+
+local function late_checks(self, conf, ni)
+   if not conf.checks then return end
+   local res = {}
+   log("starting late validation ("..
+	  table.concat(conf.checks, ", ")..")")
+   utils.foreach(
+      function (chk)
+	 if not M._checks[chk] then
+	    err_exit(-1, "unknown check "..chk)
+	 end
+	 M._checks[chk].fun(ni,res)
+      end,
+      conf.checks or {})
+
+   utils.foreach(function(v) print("    "..v) end, res)
+
+   if #res > 0 and conf.werror then
+      err_exit(-1, "warnings raised and treating warnings as errors")
+   end
+
+   log("late validation completed")
+end
+
 --- read blockdiagram system file from usc or json file
 -- @param fn file name of file (usc or json)
 -- @param file_type optional file type - either \em usc or \em json. If not specified, the type will be auto-detected from the extension of the file
@@ -512,6 +576,9 @@ function system.launch(self, t)
 
 	 log("creating connections completed")
       end
+
+      -- run late checks
+      late_checks(self, t, ni)
 
       -- startup
       if not t.nostart then system.startup(self, ni) end

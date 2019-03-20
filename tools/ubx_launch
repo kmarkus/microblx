@@ -7,19 +7,29 @@ local utils = require("utils")
 local ts = tostring
 
 local function usage()
-   print( [=[
+   print(utils.preproc(
+	    [=[
 microblx function block model system launcher
    usage: ubx_launch OPTIONS -c <conf file>
       -b               listen on given block state to shutdown
       -c               .usc or .json model file to launch
-      -ctype <type>    type of the model file. Either ucs or json. If not specified, auto-detected from extension
+      -ctype <type>    type of the model file. Either ucs or json.
+                       If not specified, auto-detected from extension
       -nodename        name to give to node
       -nostart         instantiate and configure, but don't start
       -t               time to run in seconds
       -validate        don't run, just validate configuration file
-      -webif <port>    create and start a webinterface block. Optional port defaults to 8888.
+      -webif <port>    create and start webinterface block.
+                       The optional port defaults to 8888.
+      -check chk1,...  enable additional warnings
+          available checks:
+@      for k,v in pairs(checks) do
+              $(k): $(v.desc)
+@      end
+
+      -werror          treat warnings as errors
       -h               show this.
-]=])
+]=], {checks=bd._checks, pairs=pairs, table=table}))
 end
 
 local function isempty(s)
@@ -31,6 +41,7 @@ local nodename
 local conf_file
 local conf_type
 local monitorblock
+local checks
 
 if #arg==1 or opttab['-h'] then
    usage(); os.exit(1)
@@ -78,11 +89,22 @@ if opttab['-validate'] then
    os.exit(1)
 end
 
+if opttab['-check'] then
+   if not opttab['-check'][1] then
+      print("-check option requires name argument)")
+      os.exit(1)
+   end
+   checks = utils.split(opttab['-check'][1], ",")
+end
+
 print("using prefix "..ubx.get_prefix())
 
 ni = model:launch{nodename=nodename,
 		  verbose=true,
-		  nostart=opttab['-nostart']}
+		  nostart=opttab['-nostart'],
+		  checks=checks or nil,
+		  werror=opttab['-werror'],
+}
 
 if opttab['-webif'] then
    local port = opttab['-webif'][1] or 8888
