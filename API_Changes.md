@@ -5,6 +5,11 @@ This file tracks user visible API changes.
 
 ## v0.6.2
 
+- added hooks for extra checking `-check` and `-werror` and two checks
+  for unconnected in- and outports.
+
+- removed generated `ubx_proto.h` from git
+
 - cleanup: headers moved to `include/ubx/`. pkg-config file adapted,
   so this change should be transparent.
 
