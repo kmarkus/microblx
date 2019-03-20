@@ -9,12 +9,12 @@
 
 /* #define DEBUG 1 */
 
+#include <config.h>
+
 #include "ubx.h"
 #ifdef TSC_TIMERS
 #include <math.h>
 #endif
-
-#include <config.h>
 
 /*
  * Internal helper functions
