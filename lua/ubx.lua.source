@@ -1196,7 +1196,6 @@ function M.ports_foreach(b, fun, pred)
       if pred(port_ptr) then fun(port_ptr) end
       port_ptr=port_ptr+1
    end
-   return res
 end
 
 --- Call function on all configs of a block and return the result in a table.
