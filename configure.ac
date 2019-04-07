@@ -32,15 +32,16 @@ AC_SUBST([UBX_CFLAGS], ["-Wall -Wextra -Werror"])
 AC_SUBST([UBX_IF_CURRENT], [libubx_if_current])
 AC_SUBST([UBX_IF_AGE], [libubx_if_age])
 
-AC_ARG_ENABLE([tsc-timers],
-  AS_HELP_STRING([--enable-tsc-timers], [Enable TSC timers (POSIX timers disabled)]),
-  [enable_tsc_timers=yes],
+AC_ARG_ENABLE([timesrc-tsc],
+  AS_HELP_STRING([--enable-timesrc-tsc], [use TSC as timesource instead of POSIX time]),
+  [enable_timesrc_tsc=yes],
   [])
 
-if test "x${enable_tsc_timers}" = xyes; then
-  AC_DEFINE([TSC_TIMERS], 1, [tsc timers enabled])
+if test "x${enable_timesrc_tsc}" = xyes; then
+  AC_DEFINE([TIMESRC_TSC], 1, [use TSC as timesource instead of POSIX time])
 fi
 
+# required for TSC only
 AC_DEFINE([CPU_HZ], 1600000000, [cpu hz defined])
 
 # check for pthreads

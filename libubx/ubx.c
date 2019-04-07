@@ -12,7 +12,7 @@
 #include <config.h>
 
 #include "ubx.h"
-#ifdef TSC_TIMERS
+#ifdef TIMESRC_TSC
 #include <math.h>
 #endif
 
@@ -2114,7 +2114,7 @@ void __port_write(ubx_port_t* port, ubx_data_t* data)
 
 /* OS stuff, for scripting layer */
 
-#ifdef TSC_TIMERS
+#ifdef TIMESRC_TSC
 /**
  * rdtscp
  *

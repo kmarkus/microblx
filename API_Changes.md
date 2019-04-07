@@ -5,6 +5,8 @@ This file tracks user visible API changes.
 
 ## v0.6.2
 
+- renamed TSC configure option `tsc-timers` to `timesrc-tsc`
+
 - added hooks for extra checking `-check` and `-werror` and two checks
   for unconnected in- and outports.
 
