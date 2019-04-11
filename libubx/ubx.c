@@ -2006,9 +2006,9 @@ int ubx_cblock_step(ubx_block_t* b)
  *
  * @return status value
  */
-uint32_t __port_read(ubx_port_t* port, ubx_data_t* data)
+int __port_read(ubx_port_t* port, ubx_data_t* data)
 {
-	uint32_t ret=0;
+	int ret = 0;
 	const char *tp;
 	ubx_block_t **iaptr;
 
