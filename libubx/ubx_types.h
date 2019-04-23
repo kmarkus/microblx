@@ -17,14 +17,16 @@
 enum {
 	BLOCK_NAME_MAXLEN	= 30,
 	TYPE_HASH_LEN		= 16,   /* md5 */
-	TYPE_HASH_LEN_UNIQUE	= 8	/* Number of characters of the
+	TYPE_HASH_LEN_UNIQUE	= 8,	/* Number of characters of the
 					   type checksum to compare */
+	LOG_MSG_MAXLEN		= 40,
 };
 
 struct ubx_type;
 struct ubx_data;
 struct ubx_block;
 struct ubx_node_info;
+struct ubx_log_msg;
 
 /*
  * module and node
@@ -54,7 +56,7 @@ typedef struct ubx_type
 /* This struct is used to store a reference to the type and contains
    mutable, node specific fields. Since unlike blocks, types are
    mostly immutable, there is no need to take a copy.
- */
+*/
 typedef struct ubx_type_ref
 {
 	ubx_type_t *type_ptr;
@@ -187,6 +189,8 @@ typedef struct ubx_block
 
 	struct ubx_node_info* ni;
 
+	int loglevel;
+
 	int(*init) (struct ubx_block*);
 	int(*start) (struct ubx_block*);
 	void(*stop) (struct ubx_block*);
@@ -244,6 +248,10 @@ typedef struct ubx_node_info
 	ubx_type_ref_t *types; /* known types */
 	ubx_module_t *modules;
 	unsigned long cur_seqid;
+
+	int loglevel;
+	void(*log)(struct ubx_node_info*, struct ubx_log_msg*);
+	void *log_data;
 } ubx_node_info_t;
 
 /* OS stuff */
@@ -251,4 +259,19 @@ struct ubx_timespec
 {
 	long int sec;
 	long int nsec;
+};
+
+/**
+ * struct ubx_log_msg - ubx log message
+ * @level:	log level (%UBX_LL_ERR, ...)
+ * @ts:		timestamp taken at time of logging
+ * @src:	source of log message (typically block or node name)
+ * @msg:	log message
+ */
+struct ubx_log_msg
+{
+	int level;
+	struct ubx_timespec ts;
+	char src[BLOCK_NAME_MAXLEN + 1];
+	char msg[LOG_MSG_MAXLEN + 1];
 };

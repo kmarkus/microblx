@@ -16,6 +16,17 @@
 #include <math.h>
 #endif
 
+/* core logging helpers */
+#define CORE_LOG_SRC			"ubxcore"
+
+#define log_emerg(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_EMERG,  ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
+#define log_alert(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_ALERT,  ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
+#define log_crit(ni,  fmt, ...)		ubx_log(UBX_LOGLEVEL_CRIT,   ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
+#define log_err(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_ERR,    ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
+#define log_warn(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_WARN,   ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
+#define log_notice(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_NOTICE, ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
+#define log_info(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_INFO,   ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
+
 /*
  * Internal helper functions
  */
@@ -174,29 +185,39 @@ int ubx_node_init(ubx_node_info_t* ni, const char *name)
 {
 	int ret=-1;
 
-#ifdef CONFIG_DUMPABLE
-	if(prctl(PR_SET_DUMPABLE, 1, 0, 0, 0)!=0)
-		ERR2(errno, "failed to set PR_SET_DUMPABLE");
-	else
-		DBG("Process option PR_SET_DUMPABLE set");
-#endif
+	ni->loglevel = (ni->loglevel == 0) ?
+		UBX_LOGLEVEL_DEFAULT : ni->loglevel;
 
-#ifdef CONFIG_MLOCK_ALL
-	if(mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
-		ERR2(errno, " ");
+	if(ubx_log_init(ni)) {
+		fprintf(stderr, "Error: failed to initalize logging.");
 		goto out;
-	};
-#endif
+	}
 
 	if(name==NULL) {
-		ERR("name is NULL");
+		log_err(ni, "ERROR: node name is NULL");
 		goto out;
 	}
 
 	if((ni->name=strdup(name))==NULL) {
-		ERR("strdup failed");
+		log_err(ni, "strdup failed: %m");
 		goto out;
 	}
+
+#ifdef CONFIG_DUMPABLE
+	if(prctl(PR_SET_DUMPABLE, 1, 0, 0, 0)!=0) {
+		log_err(ni, "setting PR_SET_DUMPABLE failed: %m");
+		goto out;
+	}
+	log_info(ni, "core dumps enabled (PR_SET_DUMPABLE)");
+#endif
+
+#ifdef CONFIG_MLOCK_ALL
+	if(mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
+		log__err(ni, "mlockall failed: %m");
+		goto out;
+	};
+	log_info(ni, "locking memory succeeded");
+#endif
 
 	ni->blocks=NULL;
 	ni->types=NULL;
@@ -247,6 +268,7 @@ void ubx_node_cleanup(ubx_node_info_t* ni)
 	if((cnt = ubx_num_modules(ni)) > 0) ERR("node %s: %d modules after cleanup", ni->name, cnt);
 	if((cnt = ubx_num_blocks(ni)) > 0) ERR("node %s: %d blocks after cleanup", ni->name, cnt);
 
+	ubx_log_cleanup(ni);
 	free((char*) ni->name);
 	ni->name=NULL;
 }
