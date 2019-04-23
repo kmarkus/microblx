@@ -189,7 +189,7 @@ typedef struct ubx_block
 
 	struct ubx_node_info* ni;
 
-	int loglevel;
+	const int *loglevel;
 
 	int(*init) (struct ubx_block*);
 	int(*start) (struct ubx_block*);
