@@ -53,6 +53,7 @@ extern "C"
 #endif
 
 #include "ubx_proto.h"
+#include "rtlog.h"
 
 /*
  * Debug stuff
@@ -79,7 +80,6 @@ extern "C"
 #define MSG(fmt, args...) ( fprintf(stderr, "%s: ", __FUNCTION__),	\
 			    fprintf(stderr, fmt, ##args),		\
 			    fprintf(stderr, "\n") )
-
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))

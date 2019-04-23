@@ -87,7 +87,7 @@ static int rnd_init(ubx_block_t *b)
 
 	DBG(" ");
 	if ((b->private_data = calloc(1, sizeof(struct random_info)))==NULL) {
-		ERR("Failed to alloc memory");
+		ubx_crit(b, "rnd_init: ENOMEM");
 		ret=EOUTOFMEM;
 		goto out;
 	}
@@ -141,12 +141,14 @@ static int rnd_start(ubx_block_t *b)
 	ret = read_uint(seed_port, &seed);
 
 	if(ret>0) {
-		DBG("starting component. Using seed: %d, min: %d, max: %d", seed, inf->min, inf->max);
+		ubx_info(b, "rnd_start: seed: %d, min: %d, max: %d",
+			 seed, inf->min, inf->max);
 		srandom(seed);
 	} else {
-		DBG("starting component. Using min: %d, max: %d", inf->min, inf->max);
+		ubx_info(b, "rnd_start: min: %d, max: %d",
+			 inf->min, inf->max);
 	}
-	return 0; /* Ok */
+	return 0;
 }
 
 /**
