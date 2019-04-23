@@ -221,8 +221,9 @@ ffi.metatype("struct ubx_timespec", ubx_timespec_mt)
 --- Create and initalize a new node_info struct
 -- @param name name of node
 -- @return ubx_node_info_t
-function M.node_create(name)
+function M.node_create(name, loglevel)
    local ni=ffi.new("ubx_node_info_t")
+   if loglevel then ni.loglevel = loglevel end
    assert(ubx.ubx_node_init(ni, name)==0, "node_create failed")
    return ni
 end

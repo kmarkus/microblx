@@ -591,7 +591,7 @@ function system.launch(self, t)
    t.nodename = t.nodename or "node-"..os.date("%Y%m%d_%H%M%S")
    verbose = t.verbose
 
-   local ni = ubx.node_create(t.nodename)
+   local ni = ubx.node_create(t.nodename, t.loglevel)
 
    -- import modules
    local imports = make_import_list(self)
