@@ -34,7 +34,7 @@ enum {
 #define ubx_info(b, fmt, ...)	ubx_block_log(UBX_LOGLEVEL_INFO, b, fmt, ##__VA_ARGS__)
 
 #define ubx_block_log(level, b, fmt, ...)				\
-	if (level <= b->loglevel)					\
+	if (b->loglevel && level <= *b->loglevel)					\
 		ubx_log(level, b->ni, b->name, fmt, ##__VA_ARGS__);	\
 
 /* hooks for setting up logging infrastructure */

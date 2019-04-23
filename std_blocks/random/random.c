@@ -13,7 +13,6 @@
 
 #include "ubx.h"
 
-
 /* declare and initialize a microblx type. This will be registered /
  * deregistered in the module init / cleanup at the end of this
  * file.
@@ -43,6 +42,7 @@ char rnd_meta[] =
  * if an array is required, then .value = { .len=<LENGTH> } can be used.
  */
 ubx_config_t rnd_config[] = {
+	{ .name="loglevel", .type_name = "int" },
 	{ .name="min_max_config", .type_name = "struct random_config" },
 	{ NULL },
 };

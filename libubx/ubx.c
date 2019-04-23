@@ -16,6 +16,10 @@
 #include <math.h>
 #endif
 
+/*
+ * Internal helper functions
+ */
+
 /* core logging helpers */
 #define CORE_LOG_SRC			"ubxcore"
 
@@ -26,10 +30,6 @@
 #define log_warn(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_WARN,   ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
 #define log_notice(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_NOTICE, ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
 #define log_info(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_INFO,   ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
-
-/*
- * Internal helper functions
- */
 
 /* for pretty printing */
 const char *block_states[] = {	"preinit", "inactive", "active" };
@@ -1852,6 +1852,12 @@ int ubx_block_init(ubx_block_t* b)
 		ERR("block is NULL");
 		goto out;
 	}
+
+	/* check and use loglevel config */
+	if (cfg_getptr_int(b, "loglevel", &b->loglevel) < 0)
+		b->loglevel=NULL;
+	else
+		ubx_info(b, "found loglevel config");
 
 	if(b->block_state!=BLOCK_STATE_PREINIT) {
 		ERR("block '%s' not in state preinit, but in %s",
