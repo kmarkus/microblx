@@ -1857,7 +1857,7 @@ int ubx_block_init(ubx_block_t* b)
 	if (cfg_getptr_int(b, "loglevel", &b->loglevel) < 0)
 		b->loglevel=NULL;
 	else
-		ubx_info(b, "found loglevel config");
+		ubx_debug(b, "found loglevel config");
 
 	if(b->block_state!=BLOCK_STATE_PREINIT) {
 		ERR("block '%s' not in state preinit, but in %s",
