@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: GPL-2.0+ WITH eCos-exception-2.0
  */
 
-/* #define DEBUG 1 */
+#undef UBX_DEBUG
 
 #include <config.h>
 
@@ -22,6 +22,10 @@
 
 /* core logging helpers */
 #define CORE_LOG_SRC			"ubxcore"
+
+#define ubx_log(level, ni, src, fmt, ...)			\
+	if (level <= ni->loglevel)				\
+		__ubx_log(ni, level, src, fmt, ##__VA_ARGS__);	\
 
 #define log_emerg(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_EMERG,  ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
 #define log_alert(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_ALERT,  ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
