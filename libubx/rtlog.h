@@ -37,9 +37,16 @@ enum {
 #define ubx_notice(b, fmt, ...) ubx_block_log(UBX_LOGLEVEL_NOTICE, b, fmt, ##__VA_ARGS__)
 #define ubx_info(b, fmt, ...)	ubx_block_log(UBX_LOGLEVEL_INFO, b, fmt, ##__VA_ARGS__)
 
-#define ubx_block_log(level, b, fmt, ...)				\
-	if (b->loglevel && level <= *b->loglevel)					\
-		__ubx_log(b->ni, level, b->name, fmt, ##__VA_ARGS__);	\
+#define ubx_block_log(level, b, fmt, ...)				      \
+	if (b->loglevel) {						      \
+		if (level <= *b->loglevel) {				      \
+			__ubx_log(b->ni, level, b->name, fmt, ##__VA_ARGS__); \
+		}							      \
+	} else {							      \
+		if (level <= b->ni->loglevel) {				      \
+			__ubx_log(b->ni, level, b->name, fmt, ##__VA_ARGS__); \
+		}							      \
+	}								      \
 
 /* hooks for setting up logging infrastructure */
 int ubx_log_init(ubx_node_info_t *ni);
