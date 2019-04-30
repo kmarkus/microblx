@@ -131,8 +131,9 @@ void trig_step(ubx_block_t *b)
 	struct trig_inf *inf;
 	inf = (struct trig_inf*) b->private_data;
 
-	if(do_trigger(inf) != 0)
+	if (do_trigger(inf) != 0) {
 		ubx_err(b, "do_trigger failed");
+	}
 }
 
 
