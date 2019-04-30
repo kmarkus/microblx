@@ -54,6 +54,6 @@ void ubx_log_cleanup(ubx_node_info_t *ni);
 
 /* generic, low-level logging function. blocks should prefer the
  * standard ubx_* functions */
-void ubx_log(int level, ubx_node_info_t *ni, const char* src, const char* fmt, ...);
+void __ubx_log(ubx_node_info_t *ni, int level, const char* src, const char* fmt, ...);
 
 #endif /* _UBX_RTLOG_H */
