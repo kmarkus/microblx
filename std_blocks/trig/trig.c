@@ -128,7 +128,6 @@ int do_trigger(struct trig_inf *inf)
 /* step */
 void trig_step(ubx_block_t *b)
 {
-	ubx_debug(b, " ");
 	struct trig_inf *inf;
 	inf = (struct trig_inf*) b->private_data;
 
@@ -156,8 +155,6 @@ int trig_init(ubx_block_t *b)
 
 int trig_start(ubx_block_t *b)
 {
-	ubx_debug(b, " ");
-
 	int ret = -1;
 	struct trig_inf *inf;
 	ubx_data_t* trig_list_data;
