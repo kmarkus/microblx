@@ -18,6 +18,10 @@ enum {
 	UBX_LOGLEVEL_DEBUG = 7		/* debug messages */
 };
 
+#define ubx_log(level, ni, src, fmt, ...)			\
+	if (level <= ni->loglevel)				\
+		__ubx_log(ni, level, src, fmt, ##__VA_ARGS__);	\
+
 #ifdef UBX_DEBUG
 # define ubx_debug(b, fmt, ...) ubx_block_log(UBX_LOGLEVEL_DEBUG, b, fmt, ##__VA_ARGS__) 
 #else
