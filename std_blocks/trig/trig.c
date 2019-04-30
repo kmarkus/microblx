@@ -2,7 +2,7 @@
  * A simple activity-less trigger block
  */
 
-#undef DEBUG
+#undef UBX_DEBUG
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,6 +48,7 @@ ubx_config_t trig_config[] = {
 	  .type_name = "int",
 	  .doc="print tstats in stop()",
 	},
+	{ .name="loglevel", .type_name="int" },
 	{ NULL },
 };
 
@@ -127,12 +128,12 @@ int do_trigger(struct trig_inf *inf)
 /* step */
 void trig_step(ubx_block_t *b)
 {
-	DBG(" ");
 	struct trig_inf *inf;
 	inf = (struct trig_inf*) b->private_data;
 
-	if(do_trigger(inf) != 0)
-		ERR("do_trigger failed");
+	if (do_trigger(inf) != 0) {
+		ubx_err(b, "do_trigger failed");
+	}
 }
 
 
@@ -142,7 +143,7 @@ int trig_init(ubx_block_t *b)
 	int ret = EOUTOFMEM;
 
 	if((b->private_data=calloc(1, sizeof(struct trig_inf)))==NULL) {
-		ERR("failed to alloc");
+		ubx_err(b, "failed to alloc");
 		goto out;
 	}
 
@@ -155,8 +156,6 @@ int trig_init(ubx_block_t *b)
 
 int trig_start(ubx_block_t *b)
 {
-	DBG(" ");
-
 	int ret = -1;
 	struct trig_inf *inf;
 	ubx_data_t* trig_list_data;
@@ -178,7 +177,7 @@ int trig_start(ubx_block_t *b)
 		inf->trig_list_len * sizeof(struct ubx_tstat));
 
 	if(!inf->tstats) {
-		ERR("failed to alloc blk_stats");
+		ubx_err(b, "failed to alloc blk_stats");
 		goto out;
 	}
 
@@ -188,7 +187,7 @@ int trig_start(ubx_block_t *b)
 	}
 
 	if ((len = cfg_getptr_char(b, "profile_path", &inf->profile_path)) < 0) {
-		ERR("unable to retrieve profile_path parameter");
+		ubx_err(b, "unable to retrieve profile_path parameter");
 		goto out;
 	}
 	/* truncate the file if it exists */
@@ -209,7 +208,7 @@ int trig_start(ubx_block_t *b)
 	inf->tstats_enabled = (len > 0) ? *val : 0;
 
 	if(inf->tstats_enabled) {
-		DBG("tstats enabled");
+		ubx_debug(b, "tstats enabled");
 	}
 
 	inf->p_tstats = ubx_port_get(b, "tstats");
@@ -258,7 +257,8 @@ int trig_mod_init(ubx_node_info_t* ni)
 
 	for(tptr=trig_types; tptr->name!=NULL; tptr++) {
 		if((ret=ubx_type_register(ni, tptr))!=0) {
-			ERR("failed to register type %s", tptr->name);
+			ubx_log(UBX_LOGLEVEL_ERR, ni, "trig_mod_init",
+				"failed to register type %s", tptr->name);
 			goto out;
 		}
 	}

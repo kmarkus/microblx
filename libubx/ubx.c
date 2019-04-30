@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: GPL-2.0+ WITH eCos-exception-2.0
  */
 
-/* #define DEBUG 1 */
+#undef UBX_DEBUG
 
 #include <config.h>
 
