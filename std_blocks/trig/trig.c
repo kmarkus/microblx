@@ -257,7 +257,8 @@ int trig_mod_init(ubx_node_info_t* ni)
 
 	for(tptr=trig_types; tptr->name!=NULL; tptr++) {
 		if((ret=ubx_type_register(ni, tptr))!=0) {
-			ERR("failed to register type %s", tptr->name);
+			ubx_log(UBX_LOGLEVEL_ERR, ni, "trig_mod_init",
+				"failed to register type %s", tptr->name);
 			goto out;
 		}
 	}
