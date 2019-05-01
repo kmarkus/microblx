@@ -19,7 +19,7 @@ enum {
 	TYPE_HASH_LEN		= 16,   /* md5 */
 	TYPE_HASH_LEN_UNIQUE	= 8,	/* Number of characters of the
 					   type checksum to compare */
-	LOG_MSG_MAXLEN		= 40,
+	LOG_MSG_MAXLEN		= 50,
 };
 
 struct ubx_type;
