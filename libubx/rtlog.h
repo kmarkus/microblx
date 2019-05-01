@@ -20,7 +20,7 @@ enum {
 
 #define ubx_log(level, ni, src, fmt, ...)			\
 	if (level <= ni->loglevel)				\
-		__ubx_log(ni, level, src, fmt, ##__VA_ARGS__);	\
+		__ubx_log(level, ni, src, fmt, ##__VA_ARGS__);	\
 
 #ifdef UBX_DEBUG
 # define ubx_debug(b, fmt, ...) ubx_block_log(UBX_LOGLEVEL_DEBUG, b, fmt, ##__VA_ARGS__) 
@@ -40,11 +40,11 @@ enum {
 #define ubx_block_log(level, b, fmt, ...)				      \
 	if (b->loglevel) {						      \
 		if (level <= *b->loglevel) {				      \
-			__ubx_log(b->ni, level, b->name, fmt, ##__VA_ARGS__); \
+			__ubx_log(level, b->ni, b->name, fmt, ##__VA_ARGS__); \
 		}							      \
 	} else {							      \
 		if (level <= b->ni->loglevel) {				      \
-			__ubx_log(b->ni, level, b->name, fmt, ##__VA_ARGS__); \
+			__ubx_log(level, b->ni, b->name, fmt, ##__VA_ARGS__); \
 		}							      \
 	}								      \
 
@@ -54,6 +54,6 @@ void ubx_log_cleanup(ubx_node_info_t *ni);
 
 /* generic, low-level logging function. blocks should prefer the
  * standard ubx_* functions */
-void __ubx_log(ubx_node_info_t *ni, int level, const char* src, const char* fmt, ...);
+void __ubx_log(int level, ubx_node_info_t *ni, const char* src, const char* fmt, ...);
 
 #endif /* _UBX_RTLOG_H */

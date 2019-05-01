@@ -11,7 +11,7 @@ const char *loglevel_str[] = {
 #define CONFIG_SIMPLE_LOGGING 1
 
 /* basic logging function */
-void __ubx_log(ubx_node_info_t *ni, int level, const char* src, const char* fmt, ...)
+void __ubx_log(int level, ubx_node_info_t *ni, const char* src, const char* fmt, ...)
 {
 	va_list args;
 	struct ubx_log_msg msg;
