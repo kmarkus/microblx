@@ -30,6 +30,7 @@
 #define log_warn(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_WARN,   ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
 #define log_notice(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_NOTICE, ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
 #define log_info(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_INFO,   ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
+#define log_debug(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_DEBUG,   ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
 
 /* for pretty printing */
 const char *block_states[] = {	"preinit", "inactive", "active" };
@@ -1437,7 +1438,7 @@ ubx_config_t* ubx_config_get(ubx_block_t* b, const char* name)
 	for(conf=b->configs; conf->name!=NULL; conf++)
 		if(strcmp(conf->name, name)==0)
 			goto out;
-	ERR("block %s has no config %s", b->name, name);
+	ubx_warn(b, "no config '%s'", name);
 	conf=NULL;
  out:
 	return conf;
@@ -1829,7 +1830,7 @@ ubx_port_t* ubx_port_get(ubx_block_t* b, const char *name)
 		if(strcmp(port_ptr->name, name)==0)
 			goto out;
  out_notfound:
-	ERR("block %s has no port %s", b->name, name);
+	ubx_warn(b, "no port '%s'", name);
 	port_ptr=NULL;
  out:
 	return port_ptr;
