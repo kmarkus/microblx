@@ -174,6 +174,40 @@ function M.is_outport(p) return p.out_type_name ~= nil end
 function M.is_inport(p) return p.in_type_name ~= nil end
 function M.is_inoutport(p) return M.is_outport(p) and M.is_inport(p) end
 
+------------------------------------------------------------------------------
+--                           LOGGING API
+------------------------------------------------------------------------------
+
+--- log a message via rtlog
+-- @param level
+-- @node node handle
+-- @src source of log message
+-- @str string to log
+local function log(level, node, src, str)
+   if level <= node.loglevel then
+      ubx.__ubx_log(level, node, src, str)
+   end
+end
+
+local function emerg(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_EMERG, node, src, str) end
+local function alert(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_ALERT, node, src, str) end
+local function crit(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_CRIT, node, src, str) end
+local function err(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_ERR, node, src, str) end
+local function warn(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_WARN, node, src, str) end
+local function notice(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_NOTICE, node, src, str) end
+local function info(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_INFO, node, src, str) end
+local function debug(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_DEBUG, node, src, str) end
+
+M.log = log
+M.emerg = emerg
+M.alert = alert
+M.crit = crit
+M.err = err
+M.warn = warn
+M.notice = notice
+M.info = info
+M.debug = debug
+
 
 ------------------------------------------------------------------------------
 --                           OS API
