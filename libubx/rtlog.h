@@ -7,17 +7,6 @@
 
 #define UBX_LOGLEVEL_DEFAULT		UBX_LOGLEVEL_INFO
 
-enum {
-	UBX_LOGLEVEL_EMERG = 0,		/* system unusable */
-	UBX_LOGLEVEL_ALERT = 1,		/* immediate action required */
-	UBX_LOGLEVEL_CRIT = 2,		/* critical */
-	UBX_LOGLEVEL_ERR = 3,		/* error */
-	UBX_LOGLEVEL_WARN = 4,	 	/* warning conditions */
-	UBX_LOGLEVEL_NOTICE = 5, 	/* normal but significant */
-	UBX_LOGLEVEL_INFO = 6,		/* info msg */
-	UBX_LOGLEVEL_DEBUG = 7		/* debug messages */
-};
-
 #define ubx_log(level, ni, src, fmt, ...)			\
 	if (level <= ni->loglevel)				\
 		__ubx_log(level, ni, src, fmt, ##__VA_ARGS__);	\
