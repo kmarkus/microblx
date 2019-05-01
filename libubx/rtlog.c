@@ -43,7 +43,7 @@ static void ubx_log_simple(struct ubx_node_info* ni, struct ubx_log_msg *msg)
 		     msg->level < UBX_LOGLEVEL_EMERG) ?
 		"INVALID" : loglevel_str[msg->level];
 
-	fprintf(stream, "[%li.%li] %s %s.%s: %s\n",
+	fprintf(stream, "[%li.%06li] %s %s.%s: %s\n",
 		msg->ts.sec, msg->ts.nsec / NSEC_PER_USEC,
 		level_str, ni->name, msg->src, msg->msg);
 }
