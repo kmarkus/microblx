@@ -3,6 +3,9 @@ local ubx=require("ubx")
 local utils=require("utils")
 local bd = require("blockdiagram")
 local time = require("time")
+local ffi = require("ffi")
+
+local LOGLEVEL = ffi.C.UBX_LOGLEVEL_WARN
 
 local assert_equals = luaunit.assert_equals
 local assert_true = luaunit.assert_true
@@ -62,7 +65,7 @@ local sys1 = bd.system {
 }
 
 function test_count_num_trigs()
-   local ni = sys1:launch{ nostart=true, verbose=false }
+   local ni = sys1:launch{ nostart=true, loglevel=LOGLEVEL, nodename='sys1' }
    local p_result = ubx.port_clone_conn(ni:b("tester"), "test_result")
    sys1:startup(ni)
    ubx.clock_mono_sleep(1)
@@ -138,7 +141,7 @@ function test_tstats()
 		     block_dur_us[res.block_name]*(1+eps)..")")
    end
 
-   local ni = sys2:launch{ nostart=true, verbose=false }
+   local ni = sys2:launch{ nostart=true, loglevel=LOGLEVEL, nodename='sys2' }
    local p_tstats = ubx.port_clone_conn(ni:b("trig"), "tstats", 4)
 
    sys2:startup(ni)
