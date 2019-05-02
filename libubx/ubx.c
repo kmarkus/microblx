@@ -1438,7 +1438,7 @@ ubx_config_t* ubx_config_get(ubx_block_t* b, const char* name)
 	for(conf=b->configs; conf->name!=NULL; conf++)
 		if(strcmp(conf->name, name)==0)
 			goto out;
-	ubx_warn(b, "no config '%s'", name);
+	ubx_debug(b, "no config '%s'", name);
 	conf=NULL;
  out:
 	return conf;
@@ -1830,7 +1830,7 @@ ubx_port_t* ubx_port_get(ubx_block_t* b, const char *name)
 		if(strcmp(port_ptr->name, name)==0)
 			goto out;
  out_notfound:
-	ubx_warn(b, "no port '%s'", name);
+	ubx_debug(b, "no port '%s'", name);
 	port_ptr=NULL;
  out:
 	return port_ptr;
