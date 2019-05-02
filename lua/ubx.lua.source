@@ -18,7 +18,7 @@ require "strict"
 local M={}
 
 --- set to false to disable terminal colors
-M.color = true
+M.color = false
 
 local function red(str, bright) if M.color then str = ac.red(str); if bright then str=ac.bright(str) end end return str end
 local function blue(str, bright) if M.color then str = ac.blue(str); if bright then str=ac.bright(str) end end return str end
