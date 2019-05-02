@@ -293,7 +293,6 @@ function system.pulldown(self, ni)
    end
    info("stopping remaining blocks")
    ubx.node_cleanup(ni)
-   info("stopping blocks completed")
 end
 
 
