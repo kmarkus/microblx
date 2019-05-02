@@ -25,6 +25,13 @@ void __ubx_log(int level, ubx_node_info_t *ni, const char* src, const char* fmt,
 	vsnprintf(msg.msg, LOG_MSG_MAXLEN, fmt, args);
 	va_end(args);
 
+	if (!ni->log) {
+		fprintf(stderr,
+			"ERROR: rtlog: node->log is NULL (msg: %s: %s)\n",
+			msg.src, msg.msg);
+		return;
+	}
+
 	ni->log(ni, &msg);
 
 	return;
