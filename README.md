@@ -107,10 +107,46 @@ You can subscribe by email by sending a mail to
 Contributing
 ------------
 
-Contributions should conform to the Linux kernel [coding
-style](https://www.kernel.org/doc/html/latest/process/coding-style.html). The
-preferred ways of submitting patches via the mailing list or via a
-github merge request.
+Contributions are very welcome. Please check that the following
+requirements are met:
+
+- contributions must conform to the Linux kernel [coding
+style](https://www.kernel.org/doc/html/latest/process/coding-style.html).
+
+- the preferred ways of submitting patches is via the mailing list. If
+  you must, a github merge request is OK too.
+
+- please don't forget to add a line
+  `Signed-off-by: Random J Developer <random@developer.example.org>`
+  to certify conformance with the *Developer's Certificate of Origin
+  1.1* below.
+
+### Developer's Certificate of Origin 1.1
+
+By making a contribution to this project, I certify that:
+
+(a) The contribution was created in whole or in part by me and I
+    have the right to submit it under the open source license
+    indicated in the file; or
+
+(b) The contribution is based upon previous work that, to the best
+    of my knowledge, is covered under an appropriate open source
+    license and I have the right under that license to submit that
+    work with modifications, whether created in whole or in part
+    by me, under the same open source license (unless I am
+    permitted to submit under a different license), as indicated
+    in the file; or
+
+(c) The contribution was provided directly to me by some other
+    person who certified (a), (b) or (c) and I have not modified
+    it.
+
+(d) I understand and agree that this project and the contribution
+    are public and that a record of the contribution (including all
+    personal information I submit with it, including my sign-off) is
+    maintained indefinitely and may be redistributed consistent with
+    this project or the open source license(s) involved.
+
 
 License
 -------
