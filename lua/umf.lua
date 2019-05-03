@@ -3,8 +3,7 @@
 --
 -- (C) 2012-2018 Markus Klotzbuecher, mk@mkio.de
 --
--- SPDX-License-Identifier: LGPL-2.1-or-later
---
+-- SPDX-License-Identifier: BSD-3-Clause
 --
 -- micro-OO: classes, objects, simple inheritance, constructors.
 -- Just enough for umf modeling.

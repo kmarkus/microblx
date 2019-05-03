@@ -1,5 +1,10 @@
-#include <stdarg.h>
+/*
+ * microblx real-time logging support
+ *
+ * SPDX-License-Identifier: MPL-2.0
+ */
 
+#include <stdarg.h>
 #include "ubx.h"
 #include "rtlog.h"
 
