@@ -535,7 +535,7 @@ function generate_block_body(fd, bm)
 @ end
 
 /* edit and uncomment this:
- * UBX_MODULE_LICENSE_SPDX(GPL-2.0+)
+ * UBX_MODULE_LICENSE_SPDX(...)
  */
 
 /* define a structure for holding the block local state. By assigning an

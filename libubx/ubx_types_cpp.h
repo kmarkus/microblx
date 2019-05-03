@@ -1,7 +1,7 @@
 /*
  * C++ type interface
  *
- * SPDX-License-Identifier: GPL-2.0+ WITH eCos-exception-2.0
+ * SPDX-License-Identifier: MPL-2.0
  */
 #ifndef UBX_TYPES_CPP_H
 #define UBX_TYPES_CPP_H
