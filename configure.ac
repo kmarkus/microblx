@@ -66,6 +66,7 @@ AC_CHECK_HEADERS([uthash.h])
 AC_CONFIG_FILES([Makefile
 libubx/Makefile
 libubx/ubx0.pc
+libubx/ubxrtl0.pc
 std_blocks/Makefile
 std_blocks/cppdemo/Makefile
 std_blocks/hexdump/Makefile
