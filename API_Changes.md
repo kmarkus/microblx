@@ -3,6 +3,14 @@ API Changes
 
 This file tracks user visible API changes.
 
+## v0.7.0
+
+- introduced real-time safe logging and switched core and std_blocks
+  to it
+
+- `data_size`: changed return value to `long` (signed) to be able to
+  signal errors via negative return value.
+
 ## v0.6.2
 
 - renamed TSC configure option `tsc-timers` to `timesrc-tsc`

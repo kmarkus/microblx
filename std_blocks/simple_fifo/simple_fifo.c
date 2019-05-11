@@ -213,7 +213,7 @@ static int fifo_read(ubx_block_t *i, ubx_data_t* msg)
 
 	if(msg->type != bbi->type) {
 		ERR("invalid read type '%s' (expected '%s'", get_typename(msg), bbi->type->name);
-		ret=EPORT_INVALID_TYPE;
+		ret=ETYPE_MISMATCH;
 		goto out_unlock;
 	}
 
