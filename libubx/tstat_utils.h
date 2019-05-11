@@ -1,3 +1,7 @@
+/*
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 #include "ubx.h"
 
 void tstat_init(struct ubx_tstat* ts, const char *block_name);

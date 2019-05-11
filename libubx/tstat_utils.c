@@ -1,5 +1,7 @@
 /*
  * Performance profiling functions
+ *
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 #include "ubx.h"

@@ -1,3 +1,9 @@
+/*
+ * microblx real-time logging support
+ *
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 #undef DEBUG
 
 #include <stdarg.h>

@@ -4,10 +4,8 @@
  * Copyright (C) 2013,2014 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
  * Copyright (C) 2014-2018 Markus Klotzbuecher <mk@mkio.de>
  *
- * SPDX-License-Identifier: GPL-2.0+ WITH eCos-exception-2.0
- */
-
-/*
+ * SPDX-License-Identifier: MPL-2.0
+ *
  * ubx type a function definitions.
  *
  * This file is luajit-ffi parsable, the rest goes into ubx.h

@@ -5,7 +5,7 @@
 -- Copyright (C) 2013 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
 -- Copyright (C) 2014-2018 Markus Klotzbuecher <mk@mkio.de>
 --
--- SPDX-License-Identifier: LGPL-2.1-or-later
+-- SPDX-License-Identifier: BSD-3-Clause
 --
 
 local ubx = require "ubx"
