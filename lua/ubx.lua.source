@@ -62,15 +62,21 @@ local function setup_enums()
    if M.ubx==nil then error("setup_enums called before loading libubx") end
    M.retval_tostr = {
       [0] ='OK',
-      -- [ffi.C.PORT_READ_NODATA]	  ='PORT_READ_NODATA',
-      -- [ffi.C.PORT_READ_NEWDATA]   ='PORT_READ_NEWDATA',
-      [ffi.C.EPORT_INVALID]	  ='EPORT_INVALID',
-      [ffi.C.EPORT_INVALID_TYPE]  ='EPORT_INVALID_TYPE',
-      [ffi.C.EINVALID_BLOCK_TYPE] ='EINVALID_BLOCK_TYPE',
-      [ffi.C.ENOSUCHBLOCK]	  ='ENOSUCHBLOCK',
-      [ffi.C.EALREADY_REGISTERED] ='EALREADY_REGISTERED',
-      [ffi.C.EOUTOFMEM]		  ='EOUTOFMEM',
-      [ffi.C.EINVALID_CONFIG]	  ='EINVALID_CONFIG'
+      [0] ='OK',
+      [ffi.C.EINVALID_BLOCK]		='EINVALID_BLOCK',
+      [ffi.C.EINVALID_PORT]		='EINVALID_PORT',
+      [ffi.C.EINVALID_CONFIG]		='EINVALID_CONFIG',
+
+      [ffi.C.EINVALID_BLOCK_TYPE]	='EINVALID_BLOCK_TYPE',
+      [ffi.C.EINVALID_PORT_TYPE]	='EINVALID_PORT_TYPE',
+      [ffi.C.EINVALID_CONFIG_TYPE]	='EINVALID_CONFIG_TYPE',
+
+      [ffi.C.EINVALID_PORT_DIR]		='EINVALID_PORT_DIR',
+
+      [ffi.C.ENOSUCHENT]		='ENOSUCHENT',
+      [ffi.C.EALREADY_REGISTERED]	='EALREADY_REGISTERED',
+      [ffi.C.ETYPE_MISMATCH]		='ETYPE_MISMATCH',
+      [ffi.C.EOUTOFMEM]			='EOUTOFMEM',
    }
 
    M.block_type_tostr={

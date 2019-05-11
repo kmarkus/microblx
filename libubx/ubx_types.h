@@ -92,18 +92,23 @@ enum {
 	PORT_READ_DROPPED		= -2
 };
 
-/* return values */
+/* return error codes */
 enum {
-	/* ERROR conditions */
-	EPORT_INVALID		= -3,
-	EPORT_INVALID_TYPE	= -4,
+	EINVALID_BLOCK = -32767,	/* invalid block */
+	EINVALID_PORT,			/* invalid port */
+	EINVALID_CONFIG,		/* invalid config */
 
-	/* Registration, etc */
-	EINVALID_BLOCK_TYPE	= -5,
-	ENOSUCHBLOCK		= -6,
-	EALREADY_REGISTERED	= -7,
-	EOUTOFMEM		= -8,
-	EINVALID_CONFIG		= -9
+	EINVALID_BLOCK_TYPE,		/* invalid block type */
+	EINVALID_PORT_TYPE,		/* invalid port type */
+	EINVALID_CONFIG_TYPE,		/* invalid port type */		
+	
+	EINVALID_PORT_DIR,		/* invalid port direction */
+
+	EINVALID_ARG,			/* UBX EINVAL */
+	ENOSUCHENT,			/* no such entity */
+	EALREADY_REGISTERED,		/* entity already registered */
+	ETYPE_MISMATCH,			/* mismatching types */
+	EOUTOFMEM,			/* UBX ENOMEM */
 };
 
 enum {
