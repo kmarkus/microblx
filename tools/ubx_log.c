@@ -29,7 +29,7 @@ void log_data(logc_info_t *inf)
 		break;
 
 	case NEW_DATA:
-		stream = (msg->level <= UBX_LOGLEVEL_WARN) ? stderr : stdout;
+		stream = stdout;
 		level_str = (msg->level > UBX_LOGLEVEL_DEBUG ||
 			     msg->level < UBX_LOGLEVEL_EMERG) ?
 			"INVALID" : loglevel_str[msg->level];
