@@ -10,7 +10,4 @@
 #define RTLOG_CLIENT_H
 #include "internal/rtlog_common.h"
 #include "internal/rtlog_client.h"
-
-#define LOG_BUFFER_DEPTH 1000
-#define LOG_SHM_FILENAME "rtlog.logshm"
 #endif /* RTLOG_CLIENT_H */
