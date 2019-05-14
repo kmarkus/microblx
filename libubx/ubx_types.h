@@ -95,6 +95,7 @@ enum {
 	EINVALID_BLOCK = -32767,	/* invalid block */
 	EINVALID_PORT,			/* invalid port */
 	EINVALID_CONFIG,		/* invalid config */
+	EINVALID_TYPE,			/* invalid config */
 
 	EINVALID_BLOCK_TYPE,		/* invalid block type */
 	EINVALID_PORT_TYPE,		/* invalid port type */
@@ -103,10 +104,12 @@ enum {
 	EINVALID_PORT_DIR,		/* invalid port direction */
 
 	EINVALID_ARG,			/* UBX EINVAL */
+	EWRONG_STATE,			/* invalid FSM state */
 	ENOSUCHENT,			/* no such entity */
 	EALREADY_REGISTERED,		/* entity already registered */
 	ETYPE_MISMATCH,			/* mismatching types */
 	EOUTOFMEM,			/* UBX ENOMEM */
+
 };
 
 enum {

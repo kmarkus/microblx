@@ -1057,7 +1057,7 @@ ubx_block_t* ubx_block_create(ubx_node_info_t *ni, const char *type, const char*
 	newb=NULL;
 
 	if(name==NULL) {
-		ERR("name is NULL");
+		logf_err(ni, "block_create: name is NULL");
 		goto out;
 	}
 
@@ -1270,22 +1270,22 @@ int ubx_ports_connect_uni(ubx_port_t* out_port, ubx_port_t* in_port, ubx_block_t
 	int ret=-1;
 
 	if (iblock == NULL) {
-		DBG(iblock->ni, "ERR: block NULL");
+		logf_debug(iblock->ni, "ERR: block NULL");
 		return EINVALID_BLOCK_TYPE;
 	}
 
 	if (out_port == NULL) {
-		DBG("ERR: out_port NULL");
+		logf_debug(iblock->ni, "ERR: out_port NULL");
 		return EINVALID_PORT;
 	}
 
 	if (in_port == NULL) {
-		DBG("ERR: in_port NULL");
+		logf_debug(iblock->ni, "ERR: in_port NULL");
 		return EINVALID_PORT;
 	}
 
 	if(iblock->type != BLOCK_TYPE_INTERACTION) {
-		DBG("ERR: block not of type interaction");
+		logf_debug(iblock->ni, "ERR: block not of type interaction");
 		return EINVALID_BLOCK_TYPE;
 	}
 
@@ -1313,7 +1313,9 @@ int ubx_port_disconnect_out(ubx_port_t* out_port, ubx_block_t* iblock)
 		if((ret=array_block_rm(&out_port->out_interaction, iblock))!=0)
 			goto out;
 	} else {
-		DBG("ERR: port %s is not an out-port", out_port->name);
+		logf_debug(iblock->ni,
+			   "ERR: port %s is not an out-port",
+			   out_port->name);
 		ret = EINVALID_PORT_TYPE;
 		goto out;
 	}
@@ -1337,7 +1339,7 @@ int ubx_port_disconnect_in(ubx_port_t* in_port, ubx_block_t* iblock)
 		if((ret=array_block_rm(&in_port->in_interaction, iblock))!=0)
 			goto out;
 	} else {
-		DBG("ERR: port %s is not an in-port", in_port->name);
+		logf_debug(iblock->ni, "ERR: port %s is not an in-port", in_port->name);
 		ret = EINVALID_PORT_TYPE;		
 		goto out;
 	}
@@ -1361,22 +1363,22 @@ int ubx_ports_disconnect_uni(ubx_port_t* out_port, ubx_port_t* in_port, ubx_bloc
 	int ret=-1;
 
 	if (iblock == NULL) {
-		DBG("ERR: iblock NULL");
+		logf_debug(iblock->ni, "ERR: iblock NULL");
 		return EINVALID_BLOCK;
 	}
 
 	if (out_port == NULL) {
-		DBG("ERR: out_port NULL");
+		logf_debug(iblock->ni, "ERR: out_port NULL");
 		return EINVALID_PORT;
 	}
 
 	if (in_port == NULL) {
-		DBG("ERR: in_port NULL");
+		logf_debug(iblock->ni, "ERR: in_port NULL");
 		return EINVALID_PORT;		
 	}
 
 	if(iblock->type != BLOCK_TYPE_INTERACTION) {
-		DBG("ERR: block not of type interaction");
+		logf_debug(iblock->ni, "ERR: block not of type interaction");
 		return EINVALID_BLOCK_TYPE;
 	}
 
@@ -1435,7 +1437,7 @@ ubx_config_t* ubx_config_get(ubx_block_t* b, const char* name)
 	for(conf=b->configs; conf->name!=NULL; conf++)
 		if(strcmp(conf->name, name)==0)
 			goto out;
-	ubx_debug(b, "no config '%s'", name);
+	ubx_debug(b, "no config %s", name);
 	conf=NULL;
  out:
 	return conf;
@@ -1523,16 +1525,16 @@ int ubx_config_add(ubx_block_t* b,
 {
 	ubx_type_t* typ;
 	ubx_config_t* carr;
-	int i, ret=-1;
-
+	int i, ret;
 
 	if(b==NULL) {
-		ERR("block is NULL");
+		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
 	if((typ=ubx_type_get(b->ni, type_name))==NULL) {
-		ERR("unkown type '%s'", type_name);
+		ubx_err(b, "unkown type %s", type_name);
+		ret = EINVALID_TYPE;
 		goto out;
 	}
 
@@ -1544,14 +1546,15 @@ int ubx_config_add(ubx_block_t* b,
 	carr=realloc(b->configs, (i+2) * sizeof(ubx_config_t));
 
 	if(carr==NULL) {
-		ERR("out of mem, config not added.");
+		ubx_err(b, "out of mem, config not added");
+		ret = EOUTOFMEM;
 		goto out;
 	}
 
 	b->configs=carr;
 
 	if((ret=ubx_clone_config_data(&b->configs[i], name, meta, typ, len)) != 0) {
-		ERR("cloning config data failed");
+		ubx_err(b, "cloning config data failed");
 		goto out;
 	}
 
@@ -1575,17 +1578,19 @@ int ubx_config_rm(ubx_block_t* b, const char* name)
 	int ret=-1, i, num_configs;
 
 	if(!b) {
-		ERR("block is NULL");
+		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
 	if(b->prototype==NULL) {
-		ERR("modifying prototype block not allowed");
+		ubx_err(b, "modifying prototype block not allowed");
+		ret = EINVALID_BLOCK_TYPE;
 		goto out;
 	}
 
 	if(b->configs==NULL) {
-		ERR("no config '%s' found", name);
+		ubx_err(b, "no config %s found", name);
+		ret = ENOSUCHENT;
 		goto out;
 	}
 
@@ -1596,7 +1601,7 @@ int ubx_config_rm(ubx_block_t* b, const char* name)
 			break;
 
 	if(i>=num_configs) {
-		ERR("no config %s found", name);
+		ubx_err(b, "no config %s found", name);
 		goto out;
 	}
 
@@ -1611,8 +1616,6 @@ int ubx_config_rm(ubx_block_t* b, const char* name)
  out:
 	return ret;
 }
-
-
 
 
 /*
@@ -1656,30 +1659,34 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* doc,
 	     const char* in_type_name, unsigned long in_data_len,
 	     const char* out_type_name, unsigned long out_data_len, uint32_t state)
 {
-	int i, ret=-1;
+	int i, ret;
 	ubx_port_t* parr;
 	ubx_type_t *in_type=NULL, *out_type=NULL;
 
 	if(b==NULL) {
 		ERR("block is NULL");
+		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
 	if(b->prototype==NULL) {
-		ERR("modifying prototype block not allowed");
+		ubx_err(b, "modifying prototype block not allowed");
+		ret = EINVALID_BLOCK_TYPE;
 		goto out;
 	}
 
 	if(in_type_name) {
 		if((in_type = ubx_type_get(b->ni, in_type_name))==NULL) {
-			ERR("failed to resolve in_type '%s'", in_type_name);
+			ubx_err(b, "failed to resolve in_type %s", in_type_name);
+			ret = EINVALID_TYPE;
 			goto out;
 		}
 	}
 
 	if(out_type_name) {
 		if((out_type = ubx_type_get(b->ni, out_type_name))==NULL) {
-			ERR("failed to resolve out_type '%s'", out_type_name);
+			ubx_err(b, "failed to resolve out_type %s", out_type_name);
+			ret = EINVALID_TYPE;
 			goto out;
 		}
 	}
@@ -1689,7 +1696,8 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* doc,
 	parr=realloc(b->ports, (i+2) * sizeof(ubx_port_t));
 
 	if(parr==NULL) {
-		ERR("out of mem, port not added.");
+		ubx_err(b, "out of mem, port not added");
+		ret = EOUTOFMEM;		
 		goto out;
 	}
 
@@ -1703,7 +1711,7 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* doc,
 	b->ports[i].block = b;
 
 	if(ret) {
-		ERR("cloning port data failed");
+		ubx_err(b, "cloning port data failed");
 		memset(&b->ports[i], 0x0, sizeof(ubx_port_t));
 		/* nothing else to cleanup, really */
 	}
@@ -1757,17 +1765,17 @@ int ubx_port_rm(ubx_block_t* b, const char* name)
 	int ret=-1, i, num_ports;
 
 	if(!b) {
-		ERR("block is NULL");
+		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
 	if(b->prototype==NULL) {
-		ERR("modifying prototype block not allowed");
+		ubx_err(b, "modifying prototype block not allowed");
 		goto out;
 	}
 
 	if(b->ports==NULL) {
-		ERR("no port '%s' found", name);
+		ubx_err(b, "no port %s found", name);
 		goto out;
 	}
 
@@ -1778,7 +1786,7 @@ int ubx_port_rm(ubx_block_t* b, const char* name)
 			break;
 
 	if(i>=num_ports) {
-		ERR("no port %s found", name);
+		ubx_err(b, "no port %s found", name);
 		goto out;
 	}
 
@@ -1816,7 +1824,7 @@ ubx_port_t* ubx_port_get(ubx_block_t* b, const char *name)
 	}
 
 	if(name==NULL) {
-		ERR("name is NULL");
+		ubx_err(b, "name is NULL");
 		goto out;
 	}
 
@@ -1844,10 +1852,11 @@ ubx_port_t* ubx_port_get(ubx_block_t* b, const char *name)
  */
 int ubx_block_init(ubx_block_t* b)
 {
-	int ret = -1;
+	int ret;
 
 	if(b==NULL) {
 		ERR("block is NULL");
+		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
@@ -1858,8 +1867,9 @@ int ubx_block_init(ubx_block_t* b)
 		ubx_debug(b, "found loglevel config");
 
 	if(b->block_state!=BLOCK_STATE_PREINIT) {
-		ERR("block '%s' not in state preinit, but in %s",
-		    b->name, block_state_tostr(b->block_state));
+		ubx_err(b, "init: not in state preinit (but %s)",
+			block_state_tostr(b->block_state));
+		ret = EWRONG_STATE;
 		goto out;
 	}
 
@@ -1867,7 +1877,7 @@ int ubx_block_init(ubx_block_t* b)
 		goto out_ok;
 
 	if((ret = b->init(b)) !=0) {
-		ERR("block '%s' init function failed.", b->name);
+		ubx_err(b, "init failed");
 		goto out;
 	}
 
@@ -1888,16 +1898,18 @@ int ubx_block_init(ubx_block_t* b)
  */
 int ubx_block_start(ubx_block_t* b)
 {
-	int ret = -1;
+	int ret;
 
 	if(b==NULL) {
 		ERR("block is NULL");
+		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
 	if(b->block_state != BLOCK_STATE_INACTIVE) {
-		ERR("block '%s' not in state inactive, but in %s",
-		    b->name, block_state_tostr(b->block_state));
+		ubx_err(b, "start: not in state inactive (but %s)",
+			block_state_tostr(b->block_state));
+		ret = EWRONG_STATE;
 		goto out;
 	}
 
@@ -1905,7 +1917,7 @@ int ubx_block_start(ubx_block_t* b)
 		goto out_ok;
 
 	if((ret = b->start(b)) !=0) {
-		ERR("block '%s' start function failed.", b->name);
+		ubx_err(b, "start failed");
 		goto out;
 	}
 
@@ -1926,16 +1938,18 @@ int ubx_block_start(ubx_block_t* b)
  */
 int ubx_block_stop(ubx_block_t* b)
 {
-	int ret = -1;
+	int ret;
 
 	if(b==NULL) {
 		ERR("block is NULL");
+		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
 	if(b->block_state!=BLOCK_STATE_ACTIVE) {
-		ERR("block '%s' not in state active, but in %s",
-		    b->name, block_state_tostr(b->block_state));
+		ubx_err(b, "stop: not in state active (but %s)",
+			block_state_tostr(b->block_state));
+		ret = EWRONG_STATE;
 		goto out;
 	}
 
@@ -1961,16 +1975,18 @@ int ubx_block_stop(ubx_block_t* b)
  */
 int ubx_block_cleanup(ubx_block_t* b)
 {
-	int ret=-1;
+	int ret;
 
 	if(b==NULL) {
 		ERR("block is NULL");
+		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
 	if(b->block_state!=BLOCK_STATE_INACTIVE) {
-		ERR("block '%s' not in state inactive, but in %s",
-		    b->name, block_state_tostr(b->block_state));
+		ubx_err(b, "cleanup: not in state inactive (but %s)",
+			block_state_tostr(b->block_state));
+		ret = EWRONG_STATE;
 		goto out;
 	}
 
@@ -1996,30 +2012,34 @@ int ubx_block_cleanup(ubx_block_t* b)
  */
 int ubx_cblock_step(ubx_block_t* b)
 {
-	int ret = -1;
+	int ret;
 
 	if(b==NULL) {
 		ERR("block is NULL");
+		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
 	if(b->type!=BLOCK_TYPE_COMPUTATION) {
-		ERR("block %s: can't step block of type %u", b->name, b->type);
+		ubx_err(b, "invalid block type %u", b->type);
+		ret = EINVALID_BLOCK_TYPE;
 		goto out;
 	}
 
 	if(b->block_state!=BLOCK_STATE_ACTIVE) {
-		ERR("block %s not active", b->name);
+		ubx_err(b, "block not active");
+		ret = EWRONG_STATE;
 		goto out;
 	}
 
 	if(b->step==NULL)
-		goto out;
+		goto out_ok;
 
 	b->step(b);
 	b->stat_num_steps++;
+out_ok:
 	ret=0;
- out:
+out:
 	return ret;
 }
 
