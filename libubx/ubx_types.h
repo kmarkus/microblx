@@ -106,6 +106,7 @@ enum {
 	EINVALID_ARG,			/* UBX EINVAL */
 	EWRONG_STATE,			/* invalid FSM state */
 	ENOSUCHENT,			/* no such entity */
+	EENTEXISTS,			/* entity exists already */
 	EALREADY_REGISTERED,		/* entity already registered */
 	ETYPE_MISMATCH,			/* mismatching types */
 	EOUTOFMEM,			/* UBX ENOMEM */
