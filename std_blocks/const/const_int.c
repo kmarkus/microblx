@@ -35,7 +35,7 @@ static int const_int_init(ubx_block_t *i)
 	struct blk_inf *inf;
 
 	if((i->private_data = calloc(1, sizeof(struct blk_inf)))==NULL) {
-		ERR("failed to alloc blk_info");
+		ubx_err(i, "failed to alloc blk_info");
 		ret = EOUTOFMEM;
 		goto out;
 	}
@@ -46,7 +46,7 @@ static int const_int_init(ubx_block_t *i)
 	inf->type = ubx_type_get(i->ni, "int");
 
 	if(inf->type == NULL) {
-		ERR("failed to lookup type int");
+		ubx_err(i, "failed to lookup type int");
 		ret = EINVALID_CONFIG;
 		goto out;
 	}
@@ -66,7 +66,7 @@ static int const_int_start(ubx_block_t *i)
 	len = cfg_getptr_int(i, "value", &inf->value);
 
 	if(len != 1) {
-		ERR("%s: config 'value' unconfigured or wrong size %lu", i->name, len);
+		ubx_err(i, "config 'value' unconfigured or wrong size %lu", len);
 		return EINVALID_CONFIG;
 	}
 
@@ -86,8 +86,8 @@ static int const_int_read(ubx_block_t *i, ubx_data_t* data)
 	inf = (struct blk_inf*) i->private_data;
 
 	if(inf->type != data->type) {
-		ERR("%s: invalid read target type %s (should be int)",
-		    i->name, data->type->name);
+		ubx_err(i, "invalid read destination type %s (should be int)",
+			data->type->name);
 		goto out;
 	}
 
