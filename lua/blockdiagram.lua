@@ -317,7 +317,7 @@ function system.startup(self, ni)
    -- start the start table blocks in order
    for _,trigname in ipairs(self.start) do
       local b = ubx.block_get(ni, trigname)
-      info("    starting ".. green(trigname))
+      info("starting ".. green(trigname))
       local ret = ubx.block_tostate(b, 'active')
       if ret ~= 0 then
 	 err_exit(ret, "failed to start block "..trigname..": ", ret)
