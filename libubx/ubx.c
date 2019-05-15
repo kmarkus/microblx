@@ -1369,7 +1369,6 @@ ubx_config_t* ubx_config_get(ubx_block_t* b, const char* name)
 	for(conf=b->configs; conf->name!=NULL; conf++)
 		if(strcmp(conf->name, name)==0)
 			goto out;
-	ubx_debug(b, "no config %s", name);
 	conf=NULL;
  out:
 	return conf;
@@ -1467,6 +1466,12 @@ int ubx_config_add(ubx_block_t* b,
 	if((typ=ubx_type_get(b->ni, type_name))==NULL) {
 		ubx_err(b, "unkown type %s", type_name);
 		ret = EINVALID_TYPE;
+		goto out;
+	}
+
+	if (ubx_config_get(b, name)) {
+		ubx_err(b, "config_add: %s already exists", name);
+		ret = EENTEXISTS;
 		goto out;
 	}
 
@@ -1622,6 +1627,12 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* doc,
 		}
 	}
 
+	if (ubx_port_get(b, name)) {
+		ubx_err(b, "port_add: %s already exists", name);
+		ret = EENTEXISTS;
+		goto out;
+	}
+
 	i=get_num_ports(b);
 
 	parr=realloc(b->ports, (i+2) * sizeof(ubx_port_t));
@@ -1753,7 +1764,7 @@ ubx_port_t* ubx_port_get(ubx_block_t* b, const char *name)
 		goto out;
 
 	if(name==NULL) {
-		ubx_err(b, "name is NULL");
+		ubx_err(b, "port_get: name is NULL");
 		goto out;
 	}
 
@@ -1764,7 +1775,6 @@ ubx_port_t* ubx_port_get(ubx_block_t* b, const char *name)
 		if(strcmp(port_ptr->name, name)==0)
 			goto out;
  out_notfound:
-	ubx_debug(b, "no port %s", name);
 	port_ptr=NULL;
  out:
 	return port_ptr;
