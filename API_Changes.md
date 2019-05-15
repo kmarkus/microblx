@@ -5,6 +5,9 @@ This file tracks user visible API changes.
 
 ## v0.7.0
 
+- lfds_cyclic: increased loglevel for buffer overflow loggin to
+  NOTICE.
+
 - introduced real-time safe logging and switched core and std_blocks
   to it
 
