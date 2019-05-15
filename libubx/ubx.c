@@ -91,7 +91,7 @@ int ubx_module_load(ubx_node_info_t* ni, const char *lib)
 	HASH_FIND_STR(ni->modules, lib, mod);
 
 	if(mod != NULL) {
-		logf_err(ni, "module '%s' already loaded", lib);
+		logf_err(ni, "module %s already loaded", lib);
 		goto out;
 	};
 
@@ -171,7 +171,7 @@ void ubx_module_unload(ubx_node_info_t* ni, const char *lib)
 	HASH_FIND_STR(ni->modules, lib, mod);
 
 	if(mod==NULL) {
-		logf_err(ni, "unknown module '%s'", lib);
+		logf_err(ni, "unknown module %s", lib);
 		goto out;
 	}
 
@@ -323,7 +323,7 @@ int ubx_block_register(ubx_node_info_t *ni, ubx_block_t* block)
 	HASH_FIND_STR(ni->blocks, block->name, tmpc);
 
 	if(tmpc!=NULL) {
-		log_err(ni, "block '%s' already registered", block->name);
+		log_err(ni, "block %s already registered", block->name);
 		goto out;
 	};
 
@@ -375,7 +375,7 @@ ubx_block_t* ubx_block_unregister(ubx_node_info_t* ni, const char* name)
 	HASH_FIND_STR(ni->blocks, name, tmpc);
 
 	if(tmpc==NULL) {
-		logf_err(ni, "block '%s' not registered", name);
+		logf_err(ni, "block %s not registered", name);
 		goto out;
 	}
 
@@ -410,7 +410,7 @@ int ubx_type_register(ubx_node_info_t* ni, ubx_type_t* type)
 
 	if(typref!=NULL) {
 		/* check if types are the same, if yes no error */
-		logf_err(ni, "'%s' already registered.", type->name);
+		logf_err(ni, "%s already registered.", type->name);
 		goto out;
 	};
 
@@ -449,7 +449,7 @@ ubx_type_t* ubx_type_unregister(ubx_node_info_t* ni, const char* name)
 	HASH_FIND_STR(ni->types, name, typref);
 
 	if(typref==NULL) {
-		logf_err(ni, "type '%s' not registered", name);
+		logf_err(ni, "type %s not registered", name);
 		goto out;
 	};
 
@@ -506,7 +506,7 @@ int ubx_resolve_types(ubx_block_t* b)
 			/* in-type */
 			if(port_ptr->in_type_name) {
 				if((typ = ubx_type_get(ni, port_ptr->in_type_name)) == NULL) {
-					logf_err(ni, "failed to resolve type '%s' of in-port '%s' of block '%s'",
+					logf_err(ni, "failed to resolve type %s of in-port %s of block %s",
 						 port_ptr->in_type_name, port_ptr->name, b->name);
 					goto out;
 				}
@@ -516,7 +516,7 @@ int ubx_resolve_types(ubx_block_t* b)
 			/* out-type */
 			if(port_ptr->out_type_name) {
 				if((typ = ubx_type_get(ni, port_ptr->out_type_name)) == NULL) {
-					logf_err(ni, "failed to resolve type '%s' of out-port '%s' of block '%s'",
+					logf_err(ni, "failed to resolve type %s of out-port %s of block %s",
 						 port_ptr->out_type_name, port_ptr->name, b->name);
 					goto out;
 				}
@@ -529,7 +529,7 @@ int ubx_resolve_types(ubx_block_t* b)
 	if(b->configs!=NULL) {
 		for(config_ptr=b->configs; config_ptr->name!=NULL; config_ptr++) {
 			if((typ=ubx_type_get(ni, config_ptr->type_name)) == NULL)  {
-				logf_err(ni, "failed to resolve type '%s' of config '%s' of block '%s'",
+				logf_err(ni, "failed to resolve type %s of config %s of block %s",
 					 config_ptr->type_name, config_ptr->name, b->name);
 				goto out;
 			}
@@ -604,7 +604,7 @@ ubx_data_t* ubx_data_alloc(ubx_node_info_t *ni,
 	}
 
 	if((t=ubx_type_get(ni, typname))==NULL) {
-		logf_err(ni, "unknown type '%s'", typname);
+		logf_err(ni, "unknown type %s", typname);
 		goto out;
 	}
 
@@ -1073,7 +1073,7 @@ ubx_block_t* ubx_block_create(ubx_node_info_t *ni, const char *type, const char*
 	HASH_FIND_STR(ni->blocks, name, newb);
 
 	if(newb!=NULL) {
-		logf_err(ni, "existing block named '%s'", name);
+		logf_err(ni, "existing block named %s", name);
 		newb=NULL;
 		goto out;
 	}
@@ -1835,7 +1835,7 @@ ubx_port_t* ubx_port_get(ubx_block_t* b, const char *name)
 		if(strcmp(port_ptr->name, name)==0)
 			goto out;
  out_notfound:
-	ubx_debug(b, "no port '%s'", name);
+	ubx_debug(b, "no port %s", name);
 	port_ptr=NULL;
  out:
 	return port_ptr;
@@ -2143,7 +2143,7 @@ void __port_write(ubx_port_t* port, ubx_data_t* data)
 	/* pump it out */
 	for(iaptr=port->out_interaction; *iaptr!=NULL; iaptr++) {
 		if((*iaptr)->block_state==BLOCK_STATE_ACTIVE) {
-			DBG("writing to interaction '%s'", (*iaptr)->name);
+			DBG("writing to interaction %s", (*iaptr)->name);
 			(*iaptr)->write(*iaptr, data);
 			(*iaptr)->stat_num_writes++;
 		}
@@ -2424,7 +2424,7 @@ int checktype(ubx_node_info_t* ni, ubx_type_t *required, const char *tcheck_str,
 	assert(portname!=NULL);
 
 	if (required != tcheck) {
-		ERR("port %s type error during %s: is '%s' but should be '%s'",
+		ERR("port %s type error during %s: is %s but should be %s",
 				portname, (isrd==1) ? "read" : "write", tcheck_str, required->name);
 		return -1;
 	}
