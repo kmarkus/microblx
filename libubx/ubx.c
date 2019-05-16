@@ -560,7 +560,7 @@ int ubx_resolve_types(ubx_block_t* b)
  *
  * @return ubx_data_t* or NULL in case of error.
  */
-ubx_data_t* __ubx_data_alloc(const ubx_type_t* typ, const unsigned long array_len)
+ubx_data_t* __ubx_data_alloc(const ubx_type_t* typ, const long array_len)
 {
 	ubx_data_t* d = NULL;
 
@@ -600,7 +600,7 @@ ubx_data_t* __ubx_data_alloc(const ubx_type_t* typ, const unsigned long array_le
  */
 ubx_data_t* ubx_data_alloc(ubx_node_info_t *ni,
 			   const char* typname,
-			   unsigned long array_len)
+			   long array_len)
 {
 	ubx_type_t* t = NULL;
 	ubx_data_t* d = NULL;
@@ -623,7 +623,7 @@ ubx_data_t* ubx_data_alloc(ubx_node_info_t *ni,
 	return d;
 }
 
-int ubx_data_resize(ubx_data_t *d, unsigned int newlen)
+int ubx_data_resize(ubx_data_t *d, long newlen)
 {
 	int ret=-1;
 	void *ptr;
@@ -718,8 +718,8 @@ void ubx_port_free_data(ubx_port_t* p)
  * This function allocates memory.
  */
 int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* doc,
-			ubx_type_t* in_type, unsigned long in_data_len,
-			ubx_type_t* out_type, unsigned long out_data_len, uint32_t state)
+			ubx_type_t* in_type, long in_data_len,
+			ubx_type_t* out_type, long out_data_len, uint32_t state)
 {
 	int ret = EOUTOFMEM;
 
@@ -793,7 +793,7 @@ static int ubx_clone_config_data(ubx_config_t *cnew,
 				 const char* name,
 				 const char* doc,
 				 const ubx_type_t* type,
-				 const unsigned long len)
+				 const long len)
 {
 	memset(cnew, 0x0, sizeof(ubx_config_t));
 
@@ -1090,7 +1090,7 @@ int ubx_block_rm(ubx_node_info_t *ni, const char* name)
 static int array_block_add(ubx_block_t ***arr, ubx_block_t *newblock)
 {
 	int ret;
-	unsigned long newlen; /* new length of array including NULL element */
+	long newlen; /* new length of array including NULL element */
 	ubx_block_t **tmpb;
 
 	/* determine newlen
@@ -1454,7 +1454,7 @@ int ubx_config_add(ubx_block_t* b,
 		   const char* name,
 		   const char* meta,
 		   const char* type_name,
-		   const unsigned long len)
+		   const long len)
 {
 	ubx_type_t* typ;
 	ubx_config_t* carr;
@@ -1595,8 +1595,8 @@ unsigned int get_num_ports(ubx_block_t* b)
   * @return < 0 in case of error, 0 otherwise.
   */
 int ubx_port_add(ubx_block_t* b, const char* name, const char* doc,
-	     const char* in_type_name, unsigned long in_data_len,
-	     const char* out_type_name, unsigned long out_data_len, uint32_t state)
+	     const char* in_type_name, long in_data_len,
+	     const char* out_type_name, long out_data_len, uint32_t state)
 {
 	int i, ret;
 	ubx_port_t* parr;
@@ -1676,7 +1676,7 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* doc,
  * @return < 0 in case of error, 0 otherwise
  */
 int ubx_outport_add(ubx_block_t* b, const char* name, const char* doc,
-		    const char* out_type_name, unsigned long out_data_len)
+		    const char* out_type_name, long out_data_len)
 {
 	return ubx_port_add(b, name, doc, NULL, 0, out_type_name, out_data_len, 1);
 }
@@ -1691,7 +1691,7 @@ int ubx_outport_add(ubx_block_t* b, const char* name, const char* doc,
  * @return < 0 in case of error, 0 otherwise
  */
 int ubx_inport_add(ubx_block_t* b, const char* name, const char* doc,
-		   const char* in_type_name, unsigned long in_data_len)
+		   const char* in_type_name, long in_data_len)
 {
 	return ubx_port_add(b, name, doc, in_type_name, in_data_len, NULL, 0, 1);
 }
@@ -1988,7 +1988,7 @@ out:
  *
  * @return status value
  */
-int __port_read(ubx_port_t* port, ubx_data_t* data)
+long __port_read(ubx_port_t* port, ubx_data_t* data)
 {
 	int ret = 0;
 	ubx_block_t **iaptr;

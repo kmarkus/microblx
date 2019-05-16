@@ -194,7 +194,7 @@ static void fifo_write(ubx_block_t *i, ubx_data_t* msg)
 }
 
 /* read */
-static int fifo_read(ubx_block_t *i, ubx_data_t* msg)
+static long fifo_read(ubx_block_t *i, ubx_data_t* msg)
 {
 	int ret=0;
 	unsigned long readsz=0, readsz1=0, readsz2=0, used;

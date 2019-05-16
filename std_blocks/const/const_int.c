@@ -78,7 +78,7 @@ static void const_int_cleanup(ubx_block_t *i)
 	free(i->private_data);
 }
 
-static int const_int_read(ubx_block_t *i, ubx_data_t* data)
+static long const_int_read(ubx_block_t *i, ubx_data_t* data)
 {
 	DBG("");
 	int ret = 0;

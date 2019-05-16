@@ -163,7 +163,7 @@ static void mqueue_cleanup(ubx_block_t *i)
 	free(mqi);
 }
 
-static int mqueue_read(ubx_block_t *i, ubx_data_t* data)
+static long mqueue_read(ubx_block_t *i, ubx_data_t* data)
 {
 	int ret=0, size;
 	struct mqueue_info* mqi;
