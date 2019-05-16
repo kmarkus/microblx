@@ -17,7 +17,7 @@ enum {
 	TYPE_HASH_LEN		= 16,   /* md5 */
 	TYPE_HASH_LEN_UNIQUE	= 8,	/* Number of characters of the
 					   type checksum to compare */
-	LOG_MSG_MAXLEN		= 50,
+	LOG_MSG_MAXLEN		= 80,
 };
 
 struct ubx_type;
@@ -46,7 +46,7 @@ typedef struct ubx_type
 	const char* name;		/* name: dir/header.h/struct foo*/
 	const char* doc;		/* short documentation string */
 	uint32_t type_class;		/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
-	unsigned long size;		/* size in bytes */
+	long size;			/* size in bytes */
 	const void* private_data;	/* private data. */
 	uint8_t hash[TYPE_HASH_LEN];
 } ubx_type_t;
@@ -66,7 +66,7 @@ typedef struct ubx_data
 {
 	int refcnt;		/* reference counting, num refs = refcnt + 1 */
 	const ubx_type_t* type;	/* link to ubx_type */
-	unsigned long len;	/* if length> 1 then length of array, else ignored */
+	long len;		/* if length> 1 then length of array, else ignored */
 	void* data;		/* buffer with size (type->size * length) */
 } ubx_data_t;
 
@@ -141,8 +141,8 @@ typedef struct ubx_port
 	ubx_type_t* in_type;		/* resolved in automatically */
 	ubx_type_t* out_type;		/* resolved in automatically */
 
-	unsigned long in_data_len;	/* max array size of in/out data */
-	unsigned long out_data_len;
+	long in_data_len;		/* max array size of in/out data */
+	long out_data_len;
 
 	struct ubx_block** in_interaction;
 	struct ubx_block** out_interaction;
@@ -167,7 +167,7 @@ typedef struct ubx_config
 	const char* type_name;
 	ubx_type_t *type;
 	ubx_data_t *value;		/* reference to actual value */
-	unsigned long data_len;		/* array size of value */
+	long data_len;			/* array size of value */
 	uint32_t attrs;
 } ubx_config_t;
 
@@ -228,7 +228,7 @@ typedef struct ubx_block
 		struct {
 			/* read and write: these are implemented by interactions and
 			 * called by the ports read/write */
-			int(*read)(struct ubx_block* iblock, ubx_data_t* value);
+			long(*read)(struct ubx_block* iblock, ubx_data_t* value);
 			void(*write)(struct ubx_block* iblock, ubx_data_t* value);
 			unsigned long stat_num_reads;
 			unsigned long stat_num_writes;

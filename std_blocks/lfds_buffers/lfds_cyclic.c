@@ -40,8 +40,8 @@ ubx_port_t cyclic_ports[] = {
 /* interaction private data */
 struct cyclic_block_info {
 	const ubx_type_t* type;		/* type of contained elements */
-	unsigned long data_len;		/* buffer size of each element */
-	unsigned long buffer_len;	/* number of elements */
+	long data_len;			/* buffer size of each element */
+	long buffer_len;		/* number of elements */
 
 	struct lfds611_ringbuffer_state *rbs;
 
@@ -50,7 +50,7 @@ struct cyclic_block_info {
 };
 
 struct cyclic_elem_header {
-	unsigned long data_len;
+	long data_len;
 	uint8_t data[0];
 };
 
@@ -207,7 +207,7 @@ static void cyclic_write(ubx_block_t *i, ubx_data_t* msg)
 }
 
 /* where to check whether the msg->data len is long enough? */
-static int cyclic_read(ubx_block_t *i, ubx_data_t* msg)
+static long cyclic_read(ubx_block_t *i, ubx_data_t* msg)
 {
 	int ret = 0;
 	unsigned long readlen, readsz;
