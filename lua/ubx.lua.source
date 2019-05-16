@@ -1378,6 +1378,11 @@ $conns
     })
 end
 
+local __pcc_cnt=0
+function pcc_cnt()
+   __pcc_cnt=__pcc_cnt+1
+   return __pcc_cnt
+end
 
 --- Create a new port connected to an existing port via an interaction.
 -- @param bname block
@@ -1388,11 +1393,8 @@ end
 function M.port_clone_conn(block, pname, buff_len1, buff_len2)
    local prot = M.port_get(block, pname)
    local p=ffi.new("ubx_port_t")
-   local ts = ffi.new("struct ubx_timespec")
 
    -- print("port_clone_conn, block=", ubx.safe_tostr(block.name), ", port=", pname)
-
-   M.clock_mono_gettime(ts)
 
    if M.clone_port_data(p, M.safe_tostr(prot.name)..'_inv', prot.doc,
 			prot.out_type, prot.out_data_len,
@@ -1406,9 +1408,8 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
    -- New port is an out-port?
    local i_p_to_prot=nil
    if p.out_type~=nil then
-      local iname = string.format("PCC->%s.%s_%x:%x",
-				  M.safe_tostr(block.name), pname,
-				  tonumber(ts.sec), tonumber(ts.nsec))
+      local iname = string.format("PCC%d->%s.%s",
+				  pcc_cnt(), M.safe_tostr(block.name), pname)
 
       -- print("creating interaction", iname, buff_len1, tonumber(p.out_type.size * p.out_data_len))
 
@@ -1428,9 +1429,8 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
    local i_prot_to_p = nil
 
    if p.in_type ~= nil then -- new port is an in-port?
-      local iname = string.format("PCC<-%s.%s_%x:%x",
-				  M.safe_tostr(block.name), pname,
-				  tonumber(ts.sec), tonumber(ts.nsec))
+      local iname = string.format("PCC%d<-%s.%s",
+				  pcc_cnt(), M.safe_tostr(block.name), pname)
 
       i_prot_to_p = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
 				     { buffer_len=buff_len2,
