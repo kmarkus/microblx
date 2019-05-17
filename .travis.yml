@@ -1,0 +1,40 @@
+dist: xenial
+sudo: required
+
+language: c
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y automake 
+  - sudo apt-get install -y make automake libtool pkg-config
+  - sudo apt-get install -y gcc cproto g++
+  - sudo apt-get install -y git-core
+  - sudo apt-get install -y luajit libluajit-5.1-dev lua-unit
+  - sudo apt-get install -y uthash-dev
+
+install:
+  - mkdir src/
+  - cd src/
+  - git clone git://github.com/kmarkus/uutils
+  - git clone git://github.com/liblfds/liblfds6.1.1
+  - git clone git://github.com/kmarkus/microblx
+  # install uutils
+  - cd uutils/
+  - sudo make install
+  - cd ..
+  # install liblfds
+  - cd liblfds6.1.1
+  - git -c user.name='travis' -c user.email='xxx' am ../microblx/liblfds/*.patch
+  - ./bootstrap
+  - ./configure --prefix=/usr/
+  - make
+  - sudo make install
+  - cd ..
+    
+script:
+  - cd microblx
+  - ./bootstrap
+  - ./configure --prefix=/usr/
+  - make
+  - sudo make install
+  
