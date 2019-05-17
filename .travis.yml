@@ -37,4 +37,5 @@ script:
   - ./configure --prefix=/usr/
   - make
   - sudo make install
+  - ./run_tests.sh
   
