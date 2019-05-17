@@ -3,6 +3,8 @@
 MICROBLX: hard realtime, embedded, reflective function blocks
 =============================================================
 
+[![Build Status](https://travis-ci.org/kmarkus/microblx.svg?branch=master)](https://travis-ci.org/kmarkus/microblx)
+
 What is it?
 -----------
 
