@@ -7,6 +7,7 @@
  */
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/inotify.h>
 
 #include "ubx.h"
 #include "rtlog_client.h"
@@ -42,45 +43,307 @@ void log_data(logc_info_t *inf)
 	}
 }
 
-int main(void)
-{
-	logc_info_t inf;
-	int ret;
-	int frames = 0, overrun = 0;
+/*
+ * The code below utilises inotify to detect when a shm becomes
+ * available if the logger is launched before the function blocks. At
+ * runtime it can also detect when the shm is re-created in order to
+ * allow the client to close the old shm and reopen the new shm. It
+ * can easily be cleanly separated from this client and implemented as
+ * a library for re-use by other aggregators
+ */
 
-	ret = logc_init(&inf, LOG_SHM_FILENAME, sizeof(struct ubx_log_msg));
-	if (ret) {
-		fprintf(stderr, "failed to initialsise logging library\n");
-		return 1;
+#define EVENT_SIZE sizeof(struct inotify_event)
+#define BUF_LEN (10 * (EVENT_SIZE + NAME_MAX + 1))
+
+/**
+ * uin_info - inotify local data struct
+ *
+ * path:	direcory path to monitor
+ * file:	filename to monitor
+ * infd:	inotify file descriptor
+ * wd:		inotify watch descriptor
+ * mask:	inotify event mask to monitor
+ * inbuf:	buffer of inotify events
+ */
+struct uin_info {
+	const char *path;
+	const char *file;
+	int infd;
+	int wd;
+	uint32_t mask;
+	char inbuf[BUF_LEN] __attribute__ ((aligned(8)));
+};
+
+/**
+ * start_inotify - start inotify
+ *
+ * @param inf:		local data
+ * @param path:		path of direcory to monitor
+ * @param file:		file to monitor
+ * @param flags:	0 - blocking, IN_NONBLOCK - nonblocking
+ * @param mask:		inotify events to monitor
+ *
+ * @return:		0 - success, non-zero -errno on failure
+ */
+int start_inotify(struct uin_info *inf, const char *path, const char *file,
+		  int flags, uint32_t mask)
+{
+	int ret = 0;
+
+	inf->path = path;
+	inf->file = file;
+	inf->mask = mask;
+	inf->infd = inotify_init1(flags);
+	if (inf->infd == -1) {
+		ret = -errno;
+		fprintf(stderr, "failed to initialise inotify: %d: %s\n",
+			errno, strerror(errno));
+		goto out;
 	}
 
+	inf->wd = inotify_add_watch(inf->infd, inf->path, inf->mask);
+	if (inf->wd == -1) {
+		ret = -errno;
+		fprintf(stderr, "failed to add inotify watch: %d: %s\n",
+			errno, strerror(errno));
+		goto out_close_infd;
+	}
+
+	goto out;
+
+out_close_infd:
+	close(inf->infd);
+
+out:
+	return ret;
+}
+
+/**
+ * check_inotify - check inotify events
+ *		   NOTE: depending on the flags parameter for start_inotify
+ *		         this function will block or nonblock hence may be
+ *			 used for both waiting until a shm becomes available
+ *			 or to detect if the shm has been reopened
+ *
+ * @param inf:		local data
+ *
+ * @return:		1 - event to be monitored for detected
+ *			0 - event not detected
+ *			-ve value, -errno in case of error
+ */
+int check_inotify(struct uin_info *inf)
+{
+	int ret = 0;
+	ssize_t nr;
+	struct inotify_event *event;
+	char *p;
+
+	nr = read(inf->infd, inf->inbuf, BUF_LEN);
+	if (nr < 0) {
+		ret = -errno;
+		goto out;
+	}
+
+	for (p = inf->inbuf; p < inf->inbuf + nr; ) {
+		event = (struct inotify_event *)p;
+
+		if ((strncmp(inf->file, event->name, strlen(inf->file)) == 0)
+		     && (event->mask & inf->mask)) {
+			ret = 1;
+			break;
+		}
+
+		p += sizeof(struct inotify_event) + event->len;
+	}
+out:
+	return ret;
+}
+
+/*
+ * end of inotify 'library' code
+ */
+
+#define SHM_DIRPATH "/dev/shm"
+
+/**
+ * ubx_log_info - local data struct to be used by logger client
+ *
+ * lcinf:	log client local data structure
+ * uininf:	inotify local data structure
+ */
+struct ubx_log_info {
+	logc_info_t *lcinf;
+	struct uin_info *uininf;
+};
+
+/**
+ * lc_init - log client initialisation
+ *
+ * @param inf:	log client local data
+ */
+int lc_init(struct ubx_log_info *inf)
+{
+	int ret = EOUTOFMEM;
+
+	inf->lcinf = calloc(1, sizeof(logc_info_t));
+	if (inf->lcinf == NULL) {
+		fprintf(stderr, "failed to alloc logc_info_t\n");
+		goto out;
+	}
+
+	inf->uininf = calloc(1, sizeof(struct uin_info));
+	if (inf->uininf == NULL) {
+		fprintf(stderr, "failed to alloc uin_info\n");
+		goto out_free_logc_info;
+	}
+
+	ret = start_inotify(inf->uininf, SHM_DIRPATH, LOG_SHM_FILENAME,
+			    0, IN_CREATE);
+	if (ret < 0)
+		goto out_free_uin_info;
+
 	while (1) {
-		ret = logc_has_data(&inf);
+		ret = logc_init(inf->lcinf, LOG_SHM_FILENAME,
+				sizeof(struct ubx_log_msg));
+		if (ret == 0) {
+			break;
+		}
+
+		if (ret == ENAMETOOLONG) {
+			fprintf(stderr, "failed to initialise logging library\n");
+			goto out_close_infd;
+		}
+
+		if (ret == ENOENT) {
+			int done = 0;
+
+			fprintf(stderr, "waiting for %s to appear\n",
+				LOG_SHM_FILENAME);
+			while(!done) {
+				done = check_inotify(inf->uininf);
+				if (done < 0) {
+					ret = done;
+					goto out;
+				}
+			}
+		}
+	}
+
+	/*
+	 * closing the inotify file descriptor also removes all notification
+	 * structures in the kernel
+	 */
+	close(inf->uininf->infd);
+
+	ret = start_inotify(inf->uininf, SHM_DIRPATH, LOG_SHM_FILENAME,
+			    IN_NONBLOCK, IN_CREATE);
+	if (ret != 0) {
+		fprintf(stderr, "start_inotify failed: %d: %s\n", ret,
+			strerror(-ret));
+		goto out_free_logc_info;
+	}
+	goto out;
+
+out_close_infd:
+	close(inf->uininf->infd);
+
+out_free_uin_info:
+	free(inf->uininf);
+
+out_free_logc_info:
+	free(inf->lcinf);
+
+out:
+	return ret;
+}
+
+/**
+ * check_new_shm - check if the shm has been (re)created
+ *
+ * @param inf:	log client local data
+ */
+int check_new_shm(struct ubx_log_info *inf)
+{
+	int ret = 0;
+
+	ret = check_inotify(inf->uininf);
+	switch(ret) {
+	case 0:
+	case -EAGAIN:
+		ret = 0;
+		break;
+
+	case 1:
+		logc_close(inf->lcinf);
+		ret = logc_init(inf->lcinf, LOG_SHM_FILENAME,
+				sizeof(struct ubx_log_msg));
+		break;
+
+	default:
+		fprintf(stderr, "error %d ocurred checking inotify: %s\n",
+			ret, strerror(-ret));
+		break;
+	}
+
+	return ret;
+}
+
+int main(void)
+{
+	struct ubx_log_info *inf;
+	int ret = EOUTOFMEM;
+
+	inf = calloc(1, sizeof(struct ubx_log_info));
+	if (inf == NULL) {
+		fprintf(stderr, "failed to alloc ubx_log_info\n");
+		goto out;
+	}
+	inf->lcinf = NULL;
+	inf->uininf = NULL;
+
+	ret = lc_init(inf);
+	if (ret != 0)
+		goto out_free;
+
+	while (1) {
+		/* check for create shm event */
+		ret = check_new_shm(inf);
+		if (ret != 0)
+			break;
+
+		ret = logc_has_data(inf->lcinf);
 		switch (ret) {
 		case NO_DATA:
 			usleep(100000);
 			continue;
 
 		case NEW_DATA:
-			log_data(&inf);
-			frames++;
+			log_data(inf->lcinf);
 			break;
 
 		case OVERRUN:
 			fprintf(stderr, "OVERRUN - reset read side\n");
-			overrun++;
-			logc_reset_read(&inf);
+			logc_reset_read(inf->lcinf);
 			break;
 
 		case ERROR:
 			fprintf(stderr, "ERROR checking for data\n");
-			logc_reset_read(&inf);
+			logc_reset_read(inf->lcinf);
 			usleep(100000);
 			break;
 		}
 	}
 
-	logc_close(&inf);
+	logc_close(inf->lcinf);
+	close(inf->uininf->infd);
 
-	return 0;
+out_free:
+	if (inf->lcinf)
+		free(inf->lcinf);
+	if (inf->uininf)
+		free(inf->uininf);
+	free(inf);
+
+out:
+	return ret;
 }
