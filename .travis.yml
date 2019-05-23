@@ -17,17 +17,19 @@ addons:
       - git-core
       - luajit
       - libluajit-5.1-dev
-      - lua-unit
       - uthash-dev
 
 install:
   - cd ../../
-  - git clone git://github.com/kmarkus/uutils
-  - git clone git://github.com/liblfds/liblfds6.1.1
+  - git clone --depth=1 git://github.com/kmarkus/uutils
+  - git clone --depth=1 git://github.com/liblfds/liblfds6.1.1
+  - git clone --depth=1 -b LUAUNIT_V3_3 git://github.com/bluebird75/luaunit
   # install uutils
   - cd uutils/
   - sudo make install
   - cd ..
+  # install luaunit
+  - sudo install -Dt /usr/share/lua/5.1/ luaunit/luaunit.lua
   # install liblfds
   - cd liblfds6.1.1
   - git -c user.name='travis' -c user.email='xxx' am ../kmarkus/microblx/liblfds/*.patch
@@ -43,5 +45,5 @@ script:
   - ./configure --prefix=/usr/
   - make
   - sudo make install
-  # - ./run_tests.sh
+  - ./run_tests.sh
   
