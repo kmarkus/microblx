@@ -38,7 +38,9 @@ CLEANFILES = $(BUILT_SOURCES)
 
 ubx_proto.h: md5.c ubx.c rtlog.c
 	cproto $(srcdir)/md5.c $(srcdir)/ubx.c $(srcdir)/rtlog.c \
-		-I$(top_builddir)/ -I${top_srcdir}/ -I${top_srcdir}/libubx/ > $(srcdir)/$@
+		-I$(top_builddir)/ -I${top_srcdir}/ -I${top_srcdir}/libubx/ \
+		-I$(top_srcdir)/oe-workdir/recipe-sysroot/usr/include \
+		-I$(top_srcdir)/../recipe-sysroot/usr/include > $(srcdir)/$@
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = ubx0.pc ubxrtl0.pc
