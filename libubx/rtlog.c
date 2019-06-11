@@ -9,7 +9,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <sys/shm.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <pthread.h>
 
@@ -85,7 +84,6 @@ void ubx_log_cleanup(struct ubx_node_info* ni)
 #ifdef CONFIG_LOGGING_SHM
 
 #include "internal/rtlog_common.h"
-#include <pthread.h>
 
 struct log_shm_inf {
 	pthread_spinlock_t loglock;
