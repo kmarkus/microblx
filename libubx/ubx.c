@@ -1801,7 +1801,7 @@ int ubx_block_init(ubx_block_t* b)
 	}
 
 	/* check and use loglevel config */
-	if (cfg_getptr_int(b, "loglevel", &b->loglevel) < 0)
+	if (cfg_getptr_int(b, "loglevel", &b->loglevel) <= 0)
 		b->loglevel=NULL;
 	else
 		ubx_debug(b, "found loglevel config");
