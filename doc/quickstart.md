@@ -31,7 +31,7 @@ NOTE: the following assumes that microblx has been installed with
 ### Generate a block
 
 ```sh
-$ ubx_genblock -d myblock -c /usr/share/microblx/examples/blockmodels/block_model_example.lua 
+$ ubx_genblock -d myblock -c /usr/share/ubx/examples/blockmodels/block_model_example.lua 
     generating myblock/configure.ac
 	generating myblock/Makefile.am
 	generating myblock/myblock.h
