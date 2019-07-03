@@ -264,17 +264,20 @@ local function load(fn, file_type)
    local suc, mod
    if file_type == 'json' then
       if not has_json then
-	 err_exit(1, "no cjson library found, unable to load json")
+	 print("no cjson library found, unable to load json")
+	 os.exit(1)
       end
       suc, mod = pcall(read_json, fn)
    elseif file_type == 'usc' or file_type == 'lua' then
       suc, mod = pcall(dofile, fn)
    else
-      err_exit(1, "ubx_launch error: unknown file type "..tostring(file_type))
+      print("ubx_launch error: unknown file type "..tostring(file_type))
+      os.exit(1)
    end
 
    if not is_system(mod) then
-      err_exit(1, "failed to load "..ts(fn).."\n"..ts(mod))
+      print("failed to load "..ts(fn).."\n"..ts(mod))
+      os.exit(1)
    end
 
    return suc, mod
