@@ -90,8 +90,9 @@ out:
 }
 
 /* trigger the configured blocks */
-int do_trigger(struct trig_inf *inf)
+int do_trigger(ubx_block_t *b)
 {
+	struct trig_inf *inf = (struct trig_inf*) b->private_data;
 	int ret=-1;
 	unsigned int i, steps;
 	struct ubx_timespec blk_ts_start, blk_ts_end;
@@ -101,6 +102,7 @@ int do_trigger(struct trig_inf *inf)
 			ubx_gettime(&blk_ts_start);
 
 		for(steps=0; steps<inf->trig_list[i].num_steps; steps++) {
+			ubx_debug(b, "step: %s", inf->trig_list[i].b->name);
 			if(ubx_cblock_step(inf->trig_list[i].b)!=0)
 				goto out;
 
@@ -128,10 +130,7 @@ int do_trigger(struct trig_inf *inf)
 /* step */
 void trig_step(ubx_block_t *b)
 {
-	struct trig_inf *inf;
-	inf = (struct trig_inf*) b->private_data;
-
-	if (do_trigger(inf) != 0) {
+	if (do_trigger(b) != 0) {
 		ubx_err(b, "do_trigger failed");
 	}
 }
