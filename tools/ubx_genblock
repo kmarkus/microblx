@@ -534,10 +534,6 @@ function generate_block_body(fd, bm)
 #include "$(bm.name).h"
 @ end
 
-/* edit and uncomment this:
- * UBX_MODULE_LICENSE_SPDX(...)
- */
-
 /* define a structure for holding the block local state. By assigning an
  * instance of this struct to the block private_data pointer (see init), this
  * information becomes accessible within the hook functions.
