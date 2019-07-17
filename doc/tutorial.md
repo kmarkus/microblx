@@ -264,13 +264,21 @@ void platform_2dof_step(ubx_block_t *b)
 }
 ```
 In case there is no value in the port ,an error is signaled, and nominal velocity is set to zero. 
+<<<<<<< HEAD
 This will always happens in the first iteration, since the controller did step yet, thus no velocity command is available.
+=======
+This will always happens in the first interation, since the controller did step yet, thus no velocity command is available.
+>>>>>>> 3d38b0464a05eb4be7ef501925b26850d40b6952
 
 ### Step 4: Stop and clean-up functions
 These functions are ok as they are generated, since the only thing we want to take care is that memory is freed.
 
 ### Final listings of the block
 The plant is, _mutatis mutandis_,  built following the same rationale, and will be not detailed here.
+<<<<<<< HEAD
+the final code of the plant and the controller can be retrieved in the examples/platform folder.
+
+=======
 the final code of the plant and the controller can be retrieved in the examples/platform folder.
 
 
@@ -365,6 +373,7 @@ Consider also, that if multiple out are connected, if one read one data, that da
 
 The logger automatically instantiates fifos to connects input and output, this is happening for example for the logger:
 __when we add two ports to the logger, the program autmatically generated two addional fifos from the outports to the inports of the logger__.
+
 
 
 ##Deployment via c program
