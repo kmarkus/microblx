@@ -6,6 +6,12 @@ AM_CFLAGS = -I$(top_srcdir)/libubx \
 ubxmoddir = $(UBX_MODDIR)
 ubxmod_LTLIBRARIES = ptrig.la
 
+pkginclude_HEADERS = types/ptrig_config.h  \
+		     types/ptrig_config.h.hexarr \
+ 		     types/ptrig_period.h \
+		     types/ptrig_period.h.hexarr
+		    
+
 BUILT_SOURCES = types/ptrig_config.h.hexarr \
                 types/ptrig_period.h.hexarr \
                 $(top_srcdir)/std_types/stattypes/types/tstat.h.hexarr

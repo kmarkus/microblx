@@ -6,6 +6,11 @@ ubxmoddir = $(UBX_MODDIR)
 
 ubxmod_LTLIBRARIES = trig.la
 
+pkginclude_HEADERS = types/trig_config.h  \
+		     types/trig_config.h.hexarr \
+ 		     types/trig_period.h \
+		     types/trig_period.h.hexarr
+
 BUILT_SOURCES = types/trig_config.h.hexarr \
                 types/trig_period.h.hexarr \
                 $(top_srcdir)/std_types/stattypes/types/tstat.h.hexarr
