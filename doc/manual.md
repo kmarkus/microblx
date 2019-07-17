@@ -366,7 +366,7 @@ $ tools/ubx_genblock.lua -c examples/block_model_example.lua -d std_blocks/test
 	generating std_blocks/test/types/robot_data.h
 ```
 
-If the command is run again, only the `.c` file will be
+If the command is run again, only the `.c` file will be NOT
 regenerated. This can be overriden using the `-force` option.
 
 Assembling blocks
@@ -404,7 +404,8 @@ initializers (yet).
 ### Avoiding Lua scripting
 
 It is possible to avoid the Lua scripting layer entirely. A small
-example can be found in `examples/c-only.c`.
+example can be found in `examples/c-only.c`. 
+
 
 ### Speeding up port writing
 
