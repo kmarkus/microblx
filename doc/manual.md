@@ -493,7 +493,7 @@ initializers (yet).
 
 It is possible to avoid the Lua scripting layer entirely. A small
 example can be found in `examples/c-only.c`. 
-
+See also the [tutorial](tutorial.md) for a more complete example.
 
 ### Speeding up port writing
 
