@@ -91,6 +91,7 @@ Documentation
 
  - [Quickstart](/doc/quickstart.md)
  - [User manual](/doc/manual.md)
+ - [Tutorial](doc/tutorial.md)
  - [FAQ](/doc/FAQ.md)
  - [API Changes](/API_Changes.md)
 
