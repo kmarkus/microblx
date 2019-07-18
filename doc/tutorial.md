@@ -1,5 +1,5 @@
-#Tutorial: close loop control of a robotic platform
-##Goal
+# Tutorial: close loop control of a robotic platform
+## Goal
 This is a walk-trough that shows how to:
 
 1. write, compile and install  two blocks:
@@ -146,7 +146,7 @@ void platform_2dof_step(ubx_block_t *b)
         MSG("%s", b->name);
 }
 ```
-we will need then to insert the code indicated by the comments.
+We will need then to insert the code indicated by the comments.
 ### Step 1: insert the state of the robot, and other helper functions
 At the beginning of the file we insert the following code, to save the state of the robot:
 
@@ -177,10 +177,9 @@ The "last_time" variable is needed to compute the time passed between two calls 
 the "platform_2dof_step" function.
 
 ### Step 2: Initialization and Start functions
-
 This is the function called when the block is initilized;
 it allocates memory for the info structure, caches the ports, and initializes the state given the configuration values (these values are given in the ".usc" or main application file).
- 
+
 ```c
 int platform_2dof_init(ubx_block_t *b)
 {
@@ -263,22 +262,14 @@ void platform_2dof_step(ubx_block_t *b)
 
 }
 ```
-In case there is no value in the port ,an error is signaled, and nominal velocity is set to zero. 
-<<<<<<< HEAD
-This will always happens in the first iteration, since the controller did step yet, thus no velocity command is available.
-=======
+In case there is no value in the port, an error is signaled, and nominal velocity is set to zero. =
 This will always happens in the first interation, since the controller did step yet, thus no velocity command is available.
->>>>>>> 3d38b0464a05eb4be7ef501925b26850d40b6952
 
 ### Step 4: Stop and clean-up functions
 These functions are ok as they are generated, since the only thing we want to take care is that memory is freed.
 
 ### Final listings of the block
 The plant is, _mutatis mutandis_,  built following the same rationale, and will be not detailed here.
-<<<<<<< HEAD
-the final code of the plant and the controller can be retrieved in the examples/platform folder.
-
-=======
 the final code of the plant and the controller can be retrieved in the examples/platform folder.
 
 
@@ -298,7 +289,7 @@ The `ubx_genblock` commands generates two sample files to run indipendently each
 - which block (name, type) are created,
 - the configuration values of properties.
 
-
+The code is the following.
 ``` lua
 -- -*- mode: lua; -*-
 
@@ -353,7 +344,8 @@ return bd.system
 
 }
 ```
-It is worth noticing that configuration types can be arrays (*e.g.* `target_pos`), strings (`file_name` and `report_conf`) and structures (`period` and `trig_blocks`). Types can checked in the source file, and in the web server.
+It is worth noticing that configuration types can be arrays (*e.g.* `target_pos`), strings (`file_name` and `report_conf`) and structures (`period`) and vector of structures (`trig_blocks`). Types for each porpoery should be checked in source files.
+Alternatively, the web server can provide insight of the types.
 
 The file is launched with the command 
 ```bash
@@ -380,7 +372,7 @@ __when we add two ports to the logger, the program autmatically generated two ad
 This example is an extention of the _"c-only.c"_.
 It will be clear that using the above method is far easier, but in case for some reason we want to eliminate the dependency from _lua_, this example show that is possible, even if a little burden some. 
 
-First of all, we need to make a package to enable the building.  This can be done  looking at the structure of the rest of packages.
+First of all, we need to make a package to enable the building.  This can be done looking at the structure of the rest of packages.
 
 we will create a folder called _platform_launch_ that contains the following files:
 
@@ -444,7 +436,7 @@ It might be possible that, if some custom types are used in the configuration, b
 platform_main_CFLAGS = -I${top_srcdir}/libubx -I path/to/other/headers  @UBX_CFLAGS@
 ```
 
-to compile we will use the same commands as before (we do not need to install)
+In order to compile, we will use the same commands as before (we do not need to install).
 ```bash
 autoreconf --install
 ./configure
@@ -498,8 +490,8 @@ if((plat1 = ubx_block_create(&ni, "platform_2dof", "plat1"))==NULL){
 ```
 
 ### Property configuration
-Now we have the more tedious and error-prone part, that is the configuration. depending by the type of the property, it might be necessary to allocate memory with the function `ubx_data_resize`, that takes as argument the data pointer, and the new lenght.
-####String property:
+Now we have the more tedious and error-prone part, that is the configuration. depending by the type of the property, it might be necessary to allocate memory with the function `ubx_data_resize`, that takes as argument the data pointer, and the new length.
+#### String property:
 ```c
 d = ubx_config_get_data(webif, "port");
 len = strlen(WEBIF_PORT)+1;
@@ -507,21 +499,21 @@ len = strlen(WEBIF_PORT)+1;
 ubx_data_resize(d, len);
 strncpy((char *)d->data, WEBIF_PORT, len);
 ```
-Here the sting is declared with a `#define`, it can be written directly or with a  variable, _e.g._ `char filename[]="/tmp/platform_time.log"`; 
+Here the sting is declared with a `#define`, it can be written directly, or with a variable, _e.g._ `char filename[]="/tmp/platform_time.log"`; 
 
-####Double property:
+#### Double property:
 ```
 d = ubx_config_get_data(control1, "gain");
 *((double*)d->data)=0.12;
 ```
-  In this case, no memory allocation is necessary. The second line says: consider `d->data` as  a pointer to double, and assign to the area of pointed memory  the value `0.12`.
-####Fixed size array of double:
+  In this case, no memory allocation is necessary. The second line says: consider `d->data` as  a pointer to double, and assign to the pointed memory area the value `0.12`.
+#### Fixed size array of double:
 ```c
 d = ubx_config_get_data(control1, "target_pos");
 ((double*)d->data)[0]=4.5;
 ((double*)d->data)[1]=4.52;
 ```
-####Structure property:
+#### Structure property:
 In this case is necessary to allocate memory. To assign the values to the structure, one option is to make allocate a local instance of the structure, and then copy it.
 ```c
 struct ptrig_period p;
@@ -538,7 +530,7 @@ ubx_data_resize(d, 1);
 ((struct ptrig_period*)d->data)->sec=1;
 ((struct ptrig_period*)d->data)->usec=14;
 ```
-####Array of structures:
+#### Array of structures:
 It combines what we saw for arrays and structures. In the case of the trigger block, we have to configure the order of blocks, 
 ```c
 d=ubx_config_get_data(ptrig1, "trig_blocks");
@@ -555,14 +547,16 @@ printf("data size trig blocks: %li\n",d->type->size);
 ((struct ptrig_config*)d->data)[2].num_steps = 1;
 ((struct ptrig_config*)d->data)[2].measure = 0;
 ```
-####Uint 32 property:
-differntly from double property this property needs memory allocation.
-
+#### Uint32 and other non registered properties:
+differntly from double property, this property needs memory allocation.
 ```
 d = ubx_config_get_data(fifo_pos, "data_len");
 ubx_data_resize(d, 1);
 *((uint32_t*)d->data)=2;
 ```
+
+
+
 ### Port connection
 To connect we have first to retrieve the ports, and then connect to an a **iblock**, the fifos. in the following we have two inputs and two output ports, that are connected via two fifo
 ```c
