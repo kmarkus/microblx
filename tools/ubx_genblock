@@ -185,6 +185,18 @@ end
 --- Generate configure.ac
 -- @param bm block model
 -- @param fd file to write to (optional, default: io.stdout)
+function generate_bootstrap(fd, bm)
+fd:write([[
+#!/bin/sh
+
+autoreconf --install || exit 1
+]])
+end
+
+
+--- Generate configure.ac
+-- @param bm block model
+-- @param fd file to write to (optional, default: io.stdout)
 function generate_configure_ac(fd, bm)
 
    local res, str = utils.preproc([[
@@ -666,6 +678,7 @@ function generate(cgt, outdir, force_overwrite)
 		    else
 		       print("    skipping existing "..file)
 		    end
+		    if e.executable then os.execute("chmod +x "..file) end
 		 end, cgt)
 end
 
@@ -743,6 +756,7 @@ if block_model.cpp then h_ext = '.hpp' end
 
 -- static part
 local codegen_tab = {
+   { fun=generate_bootstrap, funargs={ block_model }, file="bootstrap", overwrite=true, executable=true },
    { fun=generate_configure_ac, funargs={ block_model }, file="configure.ac", overwrite=false },
    { fun=generate_automakefile, funargs={ block_model }, file="Makefile.am", overwrite=false },
    { fun=generate_block_if, funargs={ block_model } , file=block_model.name..h_ext, overwrite=true },

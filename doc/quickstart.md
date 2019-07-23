@@ -58,8 +58,8 @@ The following files are generated:
 
 ```sh
 $ cd myblock/
-$ autoreconf --install
-$ ./configure --prefix=/usr/
+$ ./bootstrap
+$ ./configure
 $ make
 $ make install
 ```
