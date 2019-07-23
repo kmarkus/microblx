@@ -46,4 +46,11 @@ script:
   - make
   - sudo make install
   - ./run_tests.sh
-  
+  # test generating an out-of-tree block
+  - ubx_genblock -d /tmp/testblock/ -c examples/blockmodels/block_model_example.lua
+  - cd /tmp/testblock/
+  - ./bootstrap
+  - ./configure
+  - make
+  - sudo make install
+  - ubx_launch -t 1 -webif -c myblock.usc
