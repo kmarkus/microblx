@@ -828,11 +828,8 @@ static int ubx_clone_config_data(ubx_config_t *cnew,
  */
 int ubx_config_assign(ubx_config_t *c, ubx_data_t *d)
 {
-	if(c->type != d->type) {
-		DBG("refusing to assign a type %s data to a type %s config",
-		    d->type->name, c->type_name);
+	if(c->type != d->type)
 		return ETYPE_MISMATCH;
-	}
 
 	if(c->value)
 		ubx_data_free(c->value);
@@ -2053,7 +2050,7 @@ void __port_write(ubx_port_t* port, ubx_data_t* data)
 	ubx_block_t **iaptr;
 
 	if (port==NULL) {
-		DBG("ERR: port null");
+		ubx_err(port->block, "port null");
 		goto out;
 	};
 
@@ -2198,8 +2195,6 @@ int ubx_clock_mono_nanosleep(struct ubx_timespec* uts)
 	for (;;) {
 		ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 		if (ret != EINTR) {
-			if (ret != 0)
-				DBG("ERR: clock_nanosleep failed");
 			goto out;
 		}
 	}
