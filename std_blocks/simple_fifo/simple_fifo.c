@@ -53,7 +53,7 @@ static int fifo_init(ubx_block_t *i)
 	struct fifo_block_info* bbi;
 
 	if((i->private_data = calloc(1, sizeof(struct fifo_block_info)))==NULL) {
-		ERR("failed to alloc fifo_block_info");
+		ubx_err(i, "failed to alloc fifo_block_info");
 		goto out;
 	}
 
@@ -65,12 +65,12 @@ static int fifo_init(ubx_block_t *i)
 	bbi->size = (len>0) ? *val : 16;
 
 	if(bbi->size==0) {
-		ERR("%s: invalid config fifo_size 0", i->name);
+		ubx_err(i, "%s: invalid config fifo_size 0", i->name);
 		goto out_free_priv_data;
 	}
 
 	if((bbi->buff=malloc(bbi->size))==NULL) {
-		ERR("failed to allocate fifo");
+		ubx_err(i, "failed to allocate fifo");
 		goto out_free_priv_data;
 	}
 
@@ -78,7 +78,7 @@ static int fifo_init(ubx_block_t *i)
 	bbi->rdptr = bbi->wrptr = bbi->buff;
 	bbi->type=NULL;
 
-	DBG("allocated fifo of size %ld", bbi->size);
+	ubx_debug(i, "allocated fifo of size %ld", bbi->size);
 	ret=0;
 	goto out;
 
@@ -125,13 +125,14 @@ static void fifo_write(ubx_block_t *i, ubx_data_t* msg)
 	len = data_size(msg);
 
 	if(len > bbi->size) {
-		ERR("can't store %ld bytes of data in a %ld size buffer", len, bbi->size);
+		ubx_err(i, "can't store %ld bytes of data in a %ld size buffer", len, bbi->size);
 		goto out_unlock;
 	}
 
 	/* remember type, this should better happen in preconnect-hook. */
 	if(bbi->type==NULL) {
-		DBG("SETTING type to msg->type = %p, %s", msg->type, msg->type->name);
+		ubx_debug(i, "SETTING type to msg->type = %p, %s",
+			msg->type, msg->type->name);
 		bbi->type=msg->type;
 	}
 
@@ -145,16 +146,16 @@ static void fifo_write(ubx_block_t *i, ubx_data_t* msg)
 		bbi->overruns++;
 
 		if(bbi->overrun_policy==DROP_NEW) {
-			DBG("fifo overrun (#%ld), dropping new data.", bbi->overruns);
+			ubx_debug(i, "fifo overrun (#%ld), dropping new data.", bbi->overruns);
 			goto out_unlock;
 		} else if(bbi->overrun_policy==DROP_OLD) {
 			/* fake a read of len and deal with wrapping */
 			bbi->rdptr+=len;
 			if(bbi->rdptr > bbi->buff+bbi->size)
 				bbi->rdptr-=bbi->size;
-			DBG("fifo overrun (#%ld), dropping old data.", bbi->overruns);
+			ubx_debug(i, "fifo overrun (#%ld), dropping old data.", bbi->overruns);
 		} else {
-			ERR("unknown overrun_policy 0x%x", bbi->overrun_policy);
+			ubx_err(i, "unknown overrun_policy 0x%x", bbi->overrun_policy);
 			goto out_unlock;
 		}
 	}
@@ -172,7 +173,7 @@ static void fifo_write(ubx_block_t *i, ubx_data_t* msg)
 		len = (len2>0) ? len-len2 : len;
 	}
 
-	DBG("empty=%ld, len=%ld, len2=%ld\n",empty,len,len2);
+	ubx_debug(i, "empty=%ld, len=%ld, len2=%ld\n", empty, len, len2);
 
 	/* chunk 1 */
 	memcpy(bbi->wrptr, msg->data, len);
@@ -212,7 +213,8 @@ static long fifo_read(ubx_block_t *i, ubx_data_t* msg)
 	}
 
 	if(msg->type != bbi->type) {
-		ERR("invalid read type '%s' (expected '%s'", get_typename(msg), bbi->type->name);
+		ubx_err(i, "invalid read type '%s' (expected '%s'",
+			get_typename(msg), bbi->type->name);
 		ret=ETYPE_MISMATCH;
 		goto out_unlock;
 	}
@@ -258,13 +260,11 @@ ubx_block_t fifo_comp = {
 
 static int fifo_mod_init(ubx_node_info_t* ni)
 {
-	DBG(" ");
 	return ubx_block_register(ni, &fifo_comp);
 }
 
 static void fifo_mod_cleanup(ubx_node_info_t *ni)
 {
-	DBG(" ");
 	ubx_block_unregister(ni, "examples/simple_fifo");
 }
 
