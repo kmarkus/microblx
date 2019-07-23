@@ -155,7 +155,7 @@ local information. Allocate this in the `init` hook:
 
 ```C
 if ((b->private_data = calloc(1, sizeof(struct random_info)))==NULL) {
-	ERR("Failed to alloc memory");
+	ubx_err(b, "Failed to alloc memory");
 	goto out_err;
 }
 
@@ -323,6 +323,48 @@ static void rnd_module_cleanup(ubx_node_info_t *ni)
 }
 UBX_MODULE_CLEANUP(rnd_module_cleanup)
 ```
+
+### Using real-time logging
+
+Microblx provides logging infrastructure with loglevels similar to the
+Linux Kernel. Loglevel can be set on the (global) node level (e.g. by
+passing it `-loglevel N` to `ubx_launch` or be overridden on a per
+block basis. To do the latter, a block must define and configure a
+`loglevel` config of type `int`. If it is left unconfigured, again the
+node loglevel will be used.
+
+The following loglevels are supported: (`EMERG` (0), `ALERT`, `CRIT`,
+`ERROR`, `WARN`,`NOTICE`, `INFO`, `DEBUG` (7)).
+
+
+The following macros are available for logging from within blocks:
+
+```C
+ubx_emerg(b, fmt, ...)		/* system unusable */
+ubx_alert(b, fmt, ...)		/* immediate action required */
+ubx_crit(b, fmt, ...)		/* critical */
+ubx_err(b, fmt, ...)		/* error */
+ubx_warn(b, fmt, ...)		/* warning conditions */
+ubx_notice(b, fmt, ...)		/* normal but significant */
+ubx_info(b, fmt, ...)		/* info msg */
+ubx_debug(b, fmt, ...)		/* debug messages */
+```
+
+Note that `ubx_debug` will only be logged if `UBX_DEBUG` is defined in
+the respective block and otherwise compiled out without any overhead.
+
+To view the logmessages, you need to run the `ubx_log` tool in a
+separate window.
+
+**Important**: The maximum total log message length (including is by
+default set to 80 by default), so make sure to keep log message short
+and sweet (or increase the lenghth for your build).
+
+Note that the old (non-rt) macros `ERR`, `ERR2`, `MSG` and `DBG` are
+deprecated and shall not be used anymore.
+
+The ubx core uses the same logger, but mechanism, but uses the
+`log_info` resp `logf_info` variants. See `libubx/ubx.c` for examples.
 
 ### SPDX License Identifier
 
