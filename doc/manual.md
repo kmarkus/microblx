@@ -3,11 +3,35 @@ Microblx User Manual
 
 Microblx is a lightweight function block model and implementation.
 
-This manual describes microblx in a cookbook style:
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-generate-toc again -->
+**Table of Contents**
 
- 1. Key concepts
- 1. How to build a microblx block
- 1. How to assemble blocks into a system and how to use std_blocks like the webinterface (`webif` block) or the logger (`file_logger`))
+- [Microblx User Manual](#microblx-user-manual)
+    - [Key concepts](#key-concepts)
+    - [Building microblx blocks](#building-microblx-blocks)
+        - [Declaring configuration](#declaring-configuration)
+        - [Declaring ports](#declaring-ports)
+        - [Declaring block meta-data](#declaring-block-meta-data)
+        - [Declaring/implementing block hook functions](#declaringimplementing-block-hook-functions)
+            - [Storing block local state](#storing-block-local-state)
+            - [Reading configuration values](#reading-configuration-values)
+            - [When to read configuration: init vs start?](#when-to-read-configuration-init-vs-start)
+            - [Reading from and writing to ports](#reading-from-and-writing-to-ports)
+        - [Declaring the block](#declaring-the-block)
+        - [Declaring types](#declaring-types)
+        - [Block and type registration](#block-and-type-registration)
+        - [Using real-time logging](#using-real-time-logging)
+        - [SPDX License Identifier](#spdx-license-identifier)
+        - [Block code-generation](#block-code-generation)
+    - [Assembling blocks](#assembling-blocks)
+    - [Tips and Tricks](#tips-and-tricks)
+        - [Using C++](#using-c)
+        - [Avoiding Lua scripting](#avoiding-lua-scripting)
+        - [Speeding up port writing](#speeding-up-port-writing)
+        - [What the difference between block types and instances?](#what-the-difference-between-block-types-and-instances)
+        - [Module visibility](#module-visibility)
+
+<!-- markdown-toc end -->
 
 
 Key concepts
