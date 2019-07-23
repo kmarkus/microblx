@@ -12,6 +12,16 @@ This (silly) example creates a random number generator block. It's
 output is hexdump'ed (using the `hexdump` interaction block) and also
 logged using a `file_logger` block.
 
+Before launching the composition, it is advisable to run the logging
+client to see potential errors:
+
+```
+$ ubx_log
+
+```
+
+and then in another terminal:
+
 ```sh
 $ ubx_ilaunch -webif -c /usr/local/share/ubx/examples/systemmodels/trig_rnd_hexdump.usc
 ```
