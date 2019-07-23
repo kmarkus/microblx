@@ -32,6 +32,7 @@ NOTE: the following assumes that microblx has been installed with
 
 ```sh
 $ ubx_genblock -d myblock -c /usr/share/ubx/examples/blockmodels/block_model_example.lua 
+    generating myblock/bootstrap
     generating myblock/configure.ac
 	generating myblock/Makefile.am
 	generating myblock/myblock.h
@@ -45,6 +46,7 @@ Run `ubx_genblock -h` for full options.
 
 The following files are generated:
 
+ - `bootstrap` autoconf bootstrap script
  - `configure.ac` autoconf input file
  - `Makefile.am` automake input file
  - `myblock.h` block interface and module registration code (don't edit)
@@ -73,14 +75,3 @@ $ ubx_ilaunch -webif -c myblock.usc
 Run `ubx_launch -h` for full options.
 
 Browse to http://localhost:8888
-
-
-Notes
------
-
- - Commands must be run from root of source tree. This will change in
-   the future when blocks and libraries are installed.
-   
- - Note the "random block example" uses a plain script to launch the
-   system, while ubx_launch uses a declarative system model to launch,
-   connect and configure blocks.
