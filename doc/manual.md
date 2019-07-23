@@ -333,21 +333,28 @@ block basis. To do the latter, a block must define and configure a
 `loglevel` config of type `int`. If it is left unconfigured, again the
 node loglevel will be used.
 
-The following loglevels are supported: (`EMERG` (0), `ALERT`, `CRIT`,
-`ERROR`, `WARN`,`NOTICE`, `INFO`, `DEBUG` (7)).
+The following loglevels are supported:
 
+- `UBX_LOGLEVEL_EMERG`  (0) (system unusable)
+- `UBX_LOGLEVEL_ALERT`  (1)	(immediate action required)
+- `UBX_LOGLEVEL_CRIT`   (2)	(critical)
+- `UBX_LOGLEVEL_ERROR`  (3)	(error)
+- `UBX_LOGLEVEL_WARN`   (4)	(warning conditions)
+- `UBX_LOGLEVEL_NOTICE` (5)	(normal but significant)
+- `UBX_LOGLEVEL_INFO`   (6)	(info message)
+- `UBX_LOGLEVEL_DEBUG`  (7)	(debug messages)
 
 The following macros are available for logging from within blocks:
 
 ```C
-ubx_emerg(b, fmt, ...)		/* system unusable */
-ubx_alert(b, fmt, ...)		/* immediate action required */
-ubx_crit(b, fmt, ...)		/* critical */
-ubx_err(b, fmt, ...)		/* error */
-ubx_warn(b, fmt, ...)		/* warning conditions */
-ubx_notice(b, fmt, ...)		/* normal but significant */
-ubx_info(b, fmt, ...)		/* info msg */
-ubx_debug(b, fmt, ...)		/* debug messages */
+ubx_emerg(b, fmt, ...)
+ubx_alert(b, fmt, ...)
+ubx_crit(b, fmt, ...)
+ubx_err(b, fmt, ...)
+ubx_warn(b, fmt, ...)
+ubx_notice(b, fmt, ...)
+ubx_info(b, fmt, ...)
+ubx_debug(b, fmt, ...)
 ```
 
 Note that `ubx_debug` will only be logged if `UBX_DEBUG` is defined in
@@ -362,6 +369,21 @@ and sweet (or increase the lenghth for your build).
 
 Note that the old (non-rt) macros `ERR`, `ERR2`, `MSG` and `DBG` are
 deprecated and shall not be used anymore.
+
+Outside of the block context, (e.g. in `module_init` or
+`module_cleanup`, you can log with the lowlevel function
+
+```C
+ubx_log(int level,
+	    ubx_node_info_t *ni,
+		const char* src,
+		const char* fmt, ...)
+
+/* for example */
+ubx_log(UBX_LOGLEVEL_ERROR, ni, __FUNCTION__, "error %u", x);
+```
+
+e.g.
 
 The ubx core uses the same logger, but mechanism, but uses the
 `log_info` resp `logf_info` variants. See `libubx/ubx.c` for examples.
