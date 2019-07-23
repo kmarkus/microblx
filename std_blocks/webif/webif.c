@@ -41,7 +41,6 @@ char wi_meta[] =
 	"}";
 
 struct webif_info {
-	struct ubx_node_info* ni;
 	struct ubx_block* block;
 	struct mg_context *ctx;
 	struct mg_callbacks callbacks;
@@ -83,7 +82,7 @@ static int begin_request_handler(struct mg_connection *conn)
 #endif
 	/* call lua */
 	lua_getfield(inf->L, LUA_GLOBALSINDEX, "request_handler");
-	lua_pushlightuserdata(inf->L, (void*) inf->ni);
+	lua_pushlightuserdata(inf->L, (void*) inf->block->ni);
 	lua_pushlightuserdata(inf->L, (void*) request_info);
 
 	if(post_data_len>0)
@@ -92,8 +91,8 @@ static int begin_request_handler(struct mg_connection *conn)
 		lua_pushnil(inf->L);
 
 	if(lua_pcall(inf->L, 3, 2, 0)!=0) {
-		ubx_err(inf->block, "%s, calling Lua request_handler failed: %s",
-			"webif", lua_tostring(inf->L, -1));
+		ubx_err(inf->block, "calling Lua request_handler failed: %s",
+			lua_tostring(inf->L, -1));
 		goto out_unlock;
 	}
 
