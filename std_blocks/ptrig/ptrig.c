@@ -220,7 +220,7 @@ static void* thread_startup(void *arg)
 		pthread_mutex_unlock(&inf->mutex);
 
 		if((ret=clock_gettime(CLOCK_MONOTONIC, &ts))) {
-			ERR2(ret, "clock_gettime failed");
+			ubx_err(b, "clock_gettime failed: %s", strerror(errno));
 			goto out;
 		}
 
@@ -231,7 +231,7 @@ static void* thread_startup(void *arg)
 		tsnorm(&ts);
 
 		if((ret=clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL))) {
-			ERR2(ret, "clock_nanosleep failed");
+			ubx_err(b, "clock_nanosleep failed: %s", strerror(errno));
 			goto out;
 		}
 	}
@@ -254,7 +254,7 @@ int ptrig_handle_config(ubx_block_t *b)
 
 	/* period */
 	if((tmplen = ubx_config_get_data_ptr(b, "period", (void**) &inf->period)) <= 0) {
-		ERR("%s: config 'period' unconfigured", b->name);
+		ubx_err(b, "%s: config 'period' unconfigured", b->name);
 		goto out;
 	}
 
@@ -264,13 +264,14 @@ int ptrig_handle_config(ubx_block_t *b)
 
 	if(tmplen > 0) {
 		if(*stacksize<PTHREAD_STACK_MIN) {
-			ERR("%s: stacksize (%zd) less than PTHREAD_STACK_MIN (%d)",
+			ubx_err(b, "%s: stacksize (%zd) less than PTHREAD_STACK_MIN (%d)",
 			    b->name, *stacksize, PTHREAD_STACK_MIN);
 			goto out;
 		}
 
 		if(pthread_attr_setstacksize(&inf->attr, *stacksize)) {
-			ERR2(errno, "pthread_attr_setstacksize failed");
+			ubx_err(b, "pthread_attr_setstacksize failed: %s",
+				strerror(errno));
 			goto out;
 		}
 	}
@@ -287,7 +288,7 @@ int ptrig_handle_config(ubx_block_t *b)
 		} else if (strncmp(schedpol_str, "SCHED_RR", tmplen) == 0) {
 			schedpol = SCHED_RR;
 		} else {
-			ERR("%s: sched_policy config: illegal value %s",
+			ubx_err(b, "%s: sched_policy config: illegal value %s",
 			    b->name, schedpol_str);
 			goto out;
 		}
@@ -296,14 +297,16 @@ int ptrig_handle_config(ubx_block_t *b)
 	}
 
 	if(pthread_attr_setschedpolicy(&inf->attr, schedpol)) {
-		ERR("pthread_attr_setschedpolicy failed");
+		ubx_err(b, "pthread_attr_setschedpolicy failed");
 	}
 
 	/* see PTHREAD_ATTR_SETSCHEDPOLICY(3) */
 	ret = pthread_attr_setinheritsched(&inf->attr, PTHREAD_EXPLICIT_SCHED);
 
-	if(ret!=0)
-		ERR2(ret, "failed to set PTHREAD_EXPLICIT_SCHED.");
+	if(ret!=0) {
+		ubx_err(b, "failed to set PTHREAD_EXPLICIT_SCHED: %s",
+			strerror(errno));
+	}
 
 	/* priority */
 	if((tmplen = cfg_getptr_int(b, "sched_priority", &prio)) < 0)
@@ -314,13 +317,16 @@ int ptrig_handle_config(ubx_block_t *b)
 	if(((schedpol==SCHED_FIFO ||
 	     schedpol==SCHED_RR) && sched_param.sched_priority == 0) ||
 	   (schedpol==SCHED_OTHER && sched_param.sched_priority > 0)) {
-		ERR("%s sched_priority is %d with %s policy",
+		ubx_err(b, "%s sched_priority is %d with %s policy",
 		    b->name, sched_param.sched_priority, schedpol_str);
 	}
 
-	if(pthread_attr_setschedparam(&inf->attr, &sched_param))
-		ERR("failed to set sched_policy.sched_priority to %d",
-		    sched_param.sched_priority);
+	if((ret = pthread_attr_setschedparam(&inf->attr, &sched_param)) != 0) {
+		ubx_err(b, "failed to set sched_policy.sched_priority to %d: %s",
+			sched_param.sched_priority, strerror(ret));
+		ret = EINVALID_CONFIG;
+		goto out;
+	}
 
 	DBG("%s config: period=%lus:%luus, policy=%s, \
 	     prio=%d, stacksize=%lu (0=default size)",
@@ -342,7 +348,7 @@ static int ptrig_init(ubx_block_t *b)
 	struct ptrig_inf* inf;
 
 	if((b->private_data=calloc(1, sizeof(struct ptrig_inf)))==NULL) {
-		ERR("failed to alloc");
+		ubx_err(b, "failed to alloc");
 		goto out;
 	}
 
@@ -361,7 +367,7 @@ static int ptrig_init(ubx_block_t *b)
 	}
 
 	if((ret=pthread_create(&inf->tid, &inf->attr, thread_startup, b))!=0) {
-		ERR2(ret, "pthread_create failed");
+		ubx_err(b, "pthread_create failed: %s", strerror(errno));
 		goto out_err;
 	}
 
@@ -371,8 +377,9 @@ static int ptrig_init(ubx_block_t *b)
 
 	threadname = (len>0) ? threadname : b->name;
 
-	if(pthread_setname_np(inf->tid, threadname))
-		ERR("failed to set thread_name to %s", threadname);
+	if(pthread_setname_np(inf->tid, threadname)) {
+		ubx_err(b, "failed to set thread_name to %s", threadname);
+	}
 #endif
 
 	/* OK */
@@ -412,7 +419,7 @@ static int ptrig_start(ubx_block_t *b)
 		inf->trig_list_len * sizeof(struct ubx_tstat));
 
 	if(!inf->blk_tstats) {
-		ERR("failed to alloc blk_stats");
+		ubx_err(b, "failed to alloc blk_stats");
 		goto out;
 	}
 
@@ -422,7 +429,7 @@ static int ptrig_start(ubx_block_t *b)
 	}
 
 	if ((len = cfg_getptr_char(b, "profile_path", &inf->profile_path)) < 0) {
-		ERR("unable to retrieve profile_path parameter");
+		ubx_err(b, "unable to retrieve profile_path parameter");
 		goto out;
 	}
 	/* truncate the file if it exists */
@@ -479,12 +486,14 @@ static void ptrig_cleanup(ubx_block_t *b)
 
 	inf->state=BLOCK_STATE_PREINIT;
 
-	if((ret=pthread_cancel(inf->tid))!=0)
-		ERR2(ret, "pthread_cancel failed");
+	if((ret=pthread_cancel(inf->tid))!=0) {
+		ubx_err(b, "pthread_cancel failed: %s", strerror(errno));
+	}
 
 	/* join */
-	if((ret=pthread_join(inf->tid, NULL))!=0)
-		ERR2(ret, "pthread_join failed");
+	if((ret=pthread_join(inf->tid, NULL))!=0) {
+		ubx_err(b, "pthread_join failed: %s", strerror(errno));
+	}
 
 	pthread_attr_destroy(&inf->attr);
 
@@ -514,13 +523,16 @@ static int ptrig_mod_init(ubx_node_info_t* ni)
 
 	for(tptr=ptrig_types; tptr->name!=NULL; tptr++) {
 		if((ret=ubx_type_register(ni, tptr))!=0) {
-			ERR("failed to register type %s", tptr->name);
+			ubx_log(UBX_LOGLEVEL_ERR, ni,
+				__FUNCTION__,
+				"failed to register type %s", tptr->name);
 			goto out;
 		}
 	}
 	ret=ubx_block_register(ni, &ptrig_comp);
 	if(ret != 0) {
-		ERR("failed to register block");
+		ubx_log(UBX_LOGLEVEL_ERR, ni, __FUNCTION__,
+			"failed to register ptrig block");
 	}
  out:
 	return ret;
