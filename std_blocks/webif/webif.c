@@ -28,9 +28,6 @@ UBX_MODULE_LICENSE_SPDX(GPL-2.0)
 #define WEBIF_FILE "/home/mk/prog/c/microblx/std_blocks/webif/webif.lua"
 #endif
 
-/* make this configuration */
-static struct ubx_node_info *global_ni;
-
 ubx_config_t webif_conf[] = {
 	{ .name="port",
 	  .type_name="char",
@@ -45,6 +42,7 @@ char wi_meta[] =
 
 struct webif_info {
 	struct ubx_node_info* ni;
+	struct ubx_block* block;
 	struct mg_context *ctx;
 	struct mg_callbacks callbacks;
 	struct lua_State* L;
@@ -64,7 +62,7 @@ static int begin_request_handler(struct mg_connection *conn)
 	struct webif_info *inf = (struct webif_info*) request_info->user_data;
 
 	if(pthread_mutex_lock(&inf->mutex) != 0) {
-		ERR("failed to aquire mutex");
+		ubx_err(inf->block, "failed to aquire mutex");
 		goto out;
 	}
 
@@ -74,7 +72,7 @@ static int begin_request_handler(struct mg_connection *conn)
 
 #ifdef WEBIF_RELOAD
 	if(strcmp(request_info->uri, "/reload")==0) {
-		fprintf(stderr, "reloading webif.lua\n");
+		ubx_notice(inf->block, "reloading webif.lua");
 		lua_close(inf->L);
 		init_lua(inf);
 		res="reloaded, <a href=\"./\">continue</a>";
@@ -94,8 +92,8 @@ static int begin_request_handler(struct mg_connection *conn)
 		lua_pushnil(inf->L);
 
 	if(lua_pcall(inf->L, 3, 2, 0)!=0) {
-		ERR("%s, calling Lua request_handler failed: %s",
-		    "webif", lua_tostring(inf->L, -1));
+		ubx_err(inf->block, "%s, calling Lua request_handler failed: %s",
+			"webif", lua_tostring(inf->L, -1));
 		goto out_unlock;
 	}
 
@@ -127,12 +125,12 @@ static int init_lua(struct webif_info* inf)
 	int ret=-1;
 
 	if(pthread_mutex_init(&inf->mutex, NULL) != 0) {
-		ERR("failed to init mutex");
+		ubx_err(inf->block, "failed to init mutex");
 		goto out;
 	}
 
 	if((inf->L=luaL_newstate())==NULL) {
-		ERR("failed to alloc lua_State");
+		ubx_err(inf->block, "failed to alloc lua_State");
 		goto out;
 	}
 
@@ -144,7 +142,8 @@ static int init_lua(struct webif_info* inf)
 	ret = luaL_dofile(inf->L, WEBIF_FILE);
 #endif
 	if (ret) {
-		ERR("Failed to load ubx_webif.lua: %s\n", lua_tostring(inf->L, -1));
+		ubx_err(inf->block, "Failed to load ubx_webif.lua: %s\n",
+			lua_tostring(inf->L, -1));
 		goto out;
 	}
 	ret=0;
@@ -162,9 +161,7 @@ static int wi_init(ubx_block_t *c)
 		goto out;
 
 	c->private_data = inf;
-
-	/* make configurable ?*/
-	inf->ni=global_ni;
+	inf->block = c;
 
 	if(init_lua(inf) != 0)
 		goto out_free;
@@ -183,7 +180,6 @@ static int wi_init(ubx_block_t *c)
 
 static void wi_cleanup(ubx_block_t *c)
 {
-	DBG(" ");
 	struct webif_info* inf = (struct webif_info*) c->private_data;
 	lua_close(inf->L);
 	pthread_mutex_destroy(&inf->mutex);
@@ -196,8 +192,6 @@ static int wi_start(ubx_block_t *c)
 	long int len;
 	struct webif_info *inf;
 
-	DBG("in");
-
 	inf=(struct webif_info*) c->private_data;
 
 	/* read port config and set default if undefined */
@@ -206,13 +200,14 @@ static int wi_start(ubx_block_t *c)
 
 	port_num = (len > 0) ? port_num : WEBIF_DEFAULT_PORT;
 
-	DBG("starting mongoose on port %s using %s thread(s)", port_num, MONGOOSE_NR_THREADS);
+	ubx_info(c, "starting mongoose on port %s using %s thread(s)",
+		 port_num, MONGOOSE_NR_THREADS);
 
 	/* List of options. Last element must be NULL. */
 	const char *options[] = {"listening_ports", port_num, "num_threads", MONGOOSE_NR_THREADS, NULL};
 
 	if((inf->ctx = mg_start(&inf->callbacks, inf, options))==NULL) {
-		ERR("failed to start mongoose on port %s", port_num);
+		ubx_err(c, "failed to start mongoose on port %s", port_num);
 		goto out_err;
 	}
 
@@ -224,7 +219,6 @@ static int wi_start(ubx_block_t *c)
 static void wi_stop(ubx_block_t *c)
 {
 	struct webif_info *inf;
-	DBG("in");
 	inf=(struct webif_info*) c->private_data;
 	mg_stop(inf->ctx);
 }
@@ -245,14 +239,11 @@ ubx_block_t webif_comp = {
 
 static int webif_init(ubx_node_info_t* ni)
 {
-	DBG(" ");
-	global_ni=ni;
 	return ubx_block_register(ni, &webif_comp);
 }
 
 static void webif_cleanup(ubx_node_info_t *ni)
 {
-	DBG(" ");
 	ubx_block_unregister(ni, "webif/webif");
 }
 
