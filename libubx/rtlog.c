@@ -153,12 +153,12 @@ int ubx_log_init(struct ubx_node_info* ni)
 	inf.shm_fd = shm_open(LOG_SHM_FILENAME, O_CREAT | O_RDWR, 0640);
 
 	if (inf.shm_fd == -1) {
-		ERR("cannot open shm file");
+		fprintf(stderr, "%s: cannot open shm file\n", __FUNCTION__);
 		goto out;
 	}
 
 	if((ret = ftruncate(inf.shm_fd, inf.shm_size)) != 0) {
-		ERR("cannot resize chm file");
+		fprintf(stderr, "%s: cannot resize chm file\n", __FUNCTION__);
 		goto out_close;
 	}
 
@@ -168,7 +168,7 @@ int ubx_log_init(struct ubx_node_info* ni)
 
 	if (inf.buf_ptr == MAP_FAILED) {
 		ret = -1;
-		ERR("cannot mmap shm");
+		fprintf(stderr, "%s: cannot mmap shm\n", __FUNCTION__);
 		goto out_unlink;
 	}
 
