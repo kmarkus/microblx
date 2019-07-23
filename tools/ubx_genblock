@@ -476,7 +476,6 @@ ubx_block_t $(bm.name)_block = {
 /* $(bm.name) module init and cleanup functions */
 int $(bm.name)_mod_init(ubx_node_info_t* ni)
 {
-	DBG(" ");
 	int ret = -1;
 	ubx_type_t *tptr;
 
@@ -496,7 +495,6 @@ out:
 
 void $(bm.name)_mod_cleanup(ubx_node_info_t *ni)
 {
-	DBG(" ");
 	const ubx_type_t *tptr;
 
 	for(tptr=types; tptr->name!=NULL; tptr++)
@@ -557,7 +555,7 @@ int $(bm.name)_init(ubx_block_t *b)
 
 	/* allocate memory for the block local state */
 	if ((inf = (struct $(bm.name)_info*)calloc(1, sizeof(struct $(bm.name)_info)))==NULL) {
-		ERR("$(bm.name): failed to alloc memory");
+		ubx_err(b, "$(bm.name): failed to alloc memory");
 		ret=EOUTOFMEM;
 		goto out;
 	}
@@ -575,7 +573,7 @@ out:
 int $(bm.name)_start(ubx_block_t *b)
 {
 	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
-        MSG("%s", b->name);
+        ubx_info(b, "%s", __FUNCTION__);
 	int ret = 0;
 	return ret;
 }
@@ -586,7 +584,7 @@ int $(bm.name)_start(ubx_block_t *b)
 void $(bm.name)_stop(ubx_block_t *b)
 {
 	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
-        MSG("%s", b->name);
+        ubx_info(b, "%s", __FUNCTION__);
 }
 @ end
 
@@ -594,7 +592,7 @@ void $(bm.name)_stop(ubx_block_t *b)
 void $(bm.name)_cleanup(ubx_block_t *b)
 {
 	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
-        MSG("%s", b->name);
+        ubx_info(b, "%s", __FUNCTION__);
 	free(b->private_data);
 }
 
@@ -603,7 +601,7 @@ void $(bm.name)_cleanup(ubx_block_t *b)
 void $(bm.name)_step(ubx_block_t *b)
 {
 	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
-        MSG("%s", b->name);
+        ubx_info(b, "%s", __FUNCTION__);
 }
 @ end
 
