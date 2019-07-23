@@ -1,6 +1,10 @@
 Quickstart
 ==========
 
+NOTE: the following assume microblx was installed in the default
+locations under `/usr/local/`. If you installed it in a different
+location you will need to adopt the path to the examples.
+
 Run the random block example
 ----------------------------
 
@@ -9,7 +13,7 @@ output is hexdump'ed (using the `hexdump` interaction block) and also
 logged using a `file_logger` block.
 
 ```sh
-$ ubx_ilaunch -webif -c /usr/share/microblx/examples/systemmodels/trig_rnd_hexdump.usc
+$ ubx_ilaunch -webif -c /usr/local/share/ubx/examples/systemmodels/trig_rnd_hexdump.usc
 ```
 
 Browse to http://localhost:8888
@@ -25,13 +29,10 @@ Explore:
 Create your first block
 -----------------------
 
-NOTE: the following assumes that microblx has been installed with
-`--prefix=/usr/`.
-
 ### Generate a block
 
 ```sh
-$ ubx_genblock -d myblock -c /usr/share/ubx/examples/blockmodels/block_model_example.lua 
+$ ubx_genblock -d myblock -c /usr/local/share/ubx/examples/blockmodels/block_model_example.lua
     generating myblock/bootstrap
     generating myblock/configure.ac
 	generating myblock/Makefile.am
