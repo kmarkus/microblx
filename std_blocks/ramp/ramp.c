@@ -63,6 +63,6 @@ void ramp_step(ubx_block_t *b)
 	struct ramp_info *inf = (struct ramp_info*) b->private_data;
 
 	inf->cur += inf->slope;
-	DBG("%s: cur: %g", b->name, (double) inf->cur);
+	ubx_debug(b, "cur: %g", (double) inf->cur);
 	write_out(inf->ports.out, &inf->cur);
 }

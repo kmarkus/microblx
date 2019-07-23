@@ -328,11 +328,11 @@ int ptrig_handle_config(ubx_block_t *b)
 		goto out;
 	}
 
-	DBG("%s config: period=%lus:%luus, policy=%s, \
+	ubx_debug(b, "config: period=%lus:%luus, policy=%s, \
 	     prio=%d, stacksize=%lu (0=default size)",
-	    b->name, inf->period->sec, inf->period->usec,
-	    schedpol_str, sched_param.sched_priority,
-	    (unsigned long) stacksize);
+		  inf->period->sec, inf->period->usec,
+		  schedpol_str, sched_param.sched_priority,
+		  (unsigned long) stacksize);
 
 	ret = 0;
 out:
@@ -394,7 +394,6 @@ static int ptrig_init(ubx_block_t *b)
 
 static int ptrig_start(ubx_block_t *b)
 {
-	DBG(" ");
 	int ret = -1;
 	const int *val;
 	long int len;
@@ -450,7 +449,7 @@ static int ptrig_start(ubx_block_t *b)
 	inf->tstats_enabled = (len > 0) ? *val : 0;
 
 	if(inf->tstats_enabled) {
-		DBG("tstats enabled");
+		ubx_info(b, "tstats enabled");
 	}
 
 	pthread_mutex_lock(&inf->mutex);
@@ -467,7 +466,6 @@ out:
 
 static void ptrig_stop(ubx_block_t *b)
 {
-	DBG(" ");
 	struct ptrig_inf *inf;
 
 	inf = (struct ptrig_inf*) b->private_data;
@@ -479,7 +477,6 @@ static void ptrig_stop(ubx_block_t *b)
 
 static void ptrig_cleanup(ubx_block_t *b)
 {
-	DBG(" ");
 	int ret;
 	struct ptrig_inf* inf;
 	inf=(struct ptrig_inf*) b->private_data;

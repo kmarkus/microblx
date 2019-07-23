@@ -264,13 +264,11 @@ ubx_block_t cyclic_comp = {
 
 static int cyclic_mod_init(ubx_node_info_t* ni)
 {
-	DBG(" ");
 	return ubx_block_register(ni, &cyclic_comp);
 }
 
 static void cyclic_mod_cleanup(ubx_node_info_t *ni)
 {
-	DBG(" ");
 	ubx_block_unregister(ni, "lfds_buffers/cyclic");
 }
 
