@@ -28,3 +28,4 @@ libubx/ubx0.pc
 lua/ubx.lua
 libubx/ubx_proto.h
 libubx/ubxrtl0.pc
+tools/ubx_log
