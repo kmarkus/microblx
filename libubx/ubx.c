@@ -228,7 +228,7 @@ int ubx_node_init(ubx_node_info_t* ni, const char *name)
 
 #ifdef CONFIG_MLOCK_ALL
 	if(mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
-		log__err(ni, "mlockall failed: %m");
+		logf_err(ni, "mlockall failed: %m");
 		goto out;
 	};
 	logf_info(ni, "locking memory succeeded");
