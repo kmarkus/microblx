@@ -21,7 +21,6 @@ void log_data(logc_info_t *inf)
 {
 	struct ubx_log_msg *msg;
 	int ret;
-	FILE *stream;
 	const char *level_str;
 
 	ret = logc_read_frame(inf, (volatile log_frame_t **)&msg);
@@ -30,15 +29,15 @@ void log_data(logc_info_t *inf)
 		break;
 
 	case NEW_DATA:
-		stream = stdout;
 		level_str = (msg->level > UBX_LOGLEVEL_DEBUG ||
 			     msg->level < UBX_LOGLEVEL_EMERG) ?
 			"INVALID" : loglevel_str[msg->level];
 
-		fprintf(stream, "[%li.%06li] %s %s: %s\n",
+		fprintf(stdout, "[%li.%06li] %s %s: %s\n",
 			msg->ts.sec, msg->ts.nsec / NSEC_PER_USEC,
 			level_str, msg->src, msg->msg);
 
+		fflush(stdout);
 		break;
 	}
 }
