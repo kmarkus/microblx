@@ -144,7 +144,7 @@ void *malloc(size_t size);
 void free(void *ptr);
 void *calloc(size_t nmemb, size_t size);
 void *realloc(void *ptr, size_t size);
-]]
+ ]]
 
 local prefix=find_prefix()
 load_ubx_ffi(prefix)
@@ -283,6 +283,27 @@ function M.load_module(ni, libfile)
    end
    M.ffi_load_types(ni)
 end
+
+--- Node to tab
+-- @param ni
+-- @return table with node information
+function M.node_totab(ni)
+   local types = {}
+   local blocks = {}
+
+   M.types_foreach(ni,
+		   function (_t)
+		      local t = M.ubx_type_totab(_t)
+		      types[t.name] = t end)
+
+   M.blocks_map(ni,
+		function (_b)
+		   local b = M.block_totab(_b)
+		   blocks[b.name] = b end)
+
+   return { types=types, blocks=blocks }
+end
+
 
 --- Cleanup a node: cleanup and remove instances and unload modules.
 -- @param ni node info
@@ -492,7 +513,10 @@ end
 -- @return string
 function M.block_pp(b)
    local res = {}
-   local bt=M.block_totab(b)
+   local bt
+
+   if M.is_block(b) then bt = M.block_totab(b) else bt = b end
+
    local fmt = "%s (type=%s, state=%s, prototype=%s)"
 
    res[#res+1] = fmt:format(green(bt.name), bt.block_type,
@@ -515,18 +539,23 @@ end
 --- Convert a block to a string (short form)
 -- @param b ubx_block_t
 function M.block_tostr(b)
+   local bt
 
-   if b.prototype==nil then
-      return ("%s [%s]"):format(
-	 green(M.safe_tostr(b.name)),
-	 M.block_type_tostr[b.type])
+   if M.is_block(b) then
+      bt = M.block_totab(b)
+   else
+      bt = b
+   end
+
+   if bt.prototype==false then
+      return ("%s [%s]"):format(green(bt.name), bt.block_type)
    end
 
    return ("%s [%s, %s, %s]"):format(
-      green(M.safe_tostr(b.name)),
-      M.block_type_tostr[b.type],
-      block_state_color(M.block_state_tostr[b.block_state]),
-      blue(M.safe_tostr(b.prototype)))
+      green(bt.name),
+      bt.block_type,
+      block_state_color(bt.state),
+      blue(bt.prototype))
 end
 
 function M.block_port_get (b, n)
