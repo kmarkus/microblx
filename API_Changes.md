@@ -5,6 +5,8 @@ This file tracks user visible API changes.
 
 ## v0.7.0
 
+- added `ubx-modinfo` tool for offline module introspection
+
 - lfds_cyclic: increased loglevel for buffer overflow loggin to
   NOTICE.
 
