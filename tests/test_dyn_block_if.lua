@@ -11,6 +11,7 @@ local assert_false = lu.assert_false
 local assert_equals = lu.assert_equals
 local assert_not_equals = lu.assert_not_equals
 local assert_not_nil = lu.assert_not_nil
+local assert_nil = lu.assert_nil
 
 local code_str_len = 16*1024*1024
 
@@ -114,7 +115,7 @@ function test_config_add_rm()
 
 
 
-   assert_false(pcall(ubx.config_get, lb1, "testconfig0"))
+   assert_nil(ubx.config_get(lb1, "testconfig0"))
 
    assert_not_nil(ubx.config_get(lb1, "testconfig1"))
    assert_not_nil(ubx.config_get(lb1, "testconfig2"))

@@ -5,6 +5,9 @@ This file tracks user visible API changes.
 
 ## v0.7.0
 
+- ubx.lua: `config_get` returns `nil` if a config doesn't exist
+  instead of throwing and error
+
 - added `ubx-modinfo` tool for offline module introspection
 
 - lfds_cyclic: increased loglevel for buffer overflow loggin to

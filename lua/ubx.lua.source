@@ -566,9 +566,7 @@ end
 M.port_get = M.block_port_get
 
 function M.block_config_get (b, n)
-   local res = ubx.ubx_config_get(b, n)
-   if res==nil then error("config_get: no config with name '"..ts(n).."'") end
-   return res
+   return ubx.ubx_config_get(b, n)
 end
 M.config_get = M.block_config_get
 
