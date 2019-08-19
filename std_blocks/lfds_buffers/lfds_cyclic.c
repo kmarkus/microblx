@@ -126,8 +126,8 @@ static int cyclic_init(ubx_block_t *i)
 		goto out_free_priv_data;
 	}
 
-	ubx_info(i, "alloc ringbuf of %lu x %s [%lu]",
-		 bbi->buffer_len, type_name, bbi->data_len);
+	ubx_debug(i, "alloc ringbuf of %lu x %s [%lu]",
+		  bbi->buffer_len, type_name, bbi->data_len);
 
 	if (lfds611_ringbuffer_new(&bbi->rbs,
 				   bbi->buffer_len,
