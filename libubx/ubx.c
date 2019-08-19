@@ -30,7 +30,6 @@
 #define log_warn(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_WARN,   ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
 #define log_notice(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_NOTICE, ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
 #define log_info(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_INFO,   ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
-#define log_debug(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_DEBUG,   ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
 
 #define logf_emerg(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_EMERG,  ni, __FUNCTION__, fmt, ##__VA_ARGS__)
 #define logf_alert(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_ALERT,  ni, __FUNCTION__, fmt, ##__VA_ARGS__)
@@ -39,7 +38,14 @@
 #define logf_warn(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_WARN,   ni, __FUNCTION__, fmt, ##__VA_ARGS__)
 #define logf_notice(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_NOTICE, ni, __FUNCTION__, fmt, ##__VA_ARGS__)
 #define logf_info(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_INFO,   ni, __FUNCTION__, fmt, ##__VA_ARGS__)
-#define logf_debug(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_DEBUG,  ni, __FUNCTION__, fmt, ##__VA_ARGS__)
+
+#ifdef UBX_DEBUG
+# define log_debug(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_DEBUG,  ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
+# define logf_debug(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_DEBUG,  ni, __FUNCTION__, fmt, ##__VA_ARGS__)
+#else
+# define log_debug(ni, fmt, ...) 	do {} while (0)
+# define logf_debug(ni, fmt, ...) 	do {} while (0)
+#endif
 
 
 /* for pretty printing */
