@@ -21,7 +21,7 @@
  *   of roff (and no erroneous conditions such as an overrun occured).
  */
 
-#define LOG_BUFFER_DEPTH 1000
+#define LOG_BUFFER_DEPTH 10000
 #define LOG_SHM_FILENAME "rtlog.logshm"
 
 /* helper to handle atomic read/write of wrap_woff and conveniently
