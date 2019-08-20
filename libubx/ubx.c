@@ -149,9 +149,9 @@ int ubx_module_load(ubx_node_info_t* ni, const char *lib)
 	/* register with node */
 	HASH_ADD_KEYPTR(hh, ni->modules, mod->id, strlen(mod->id), mod);
 
+	logf_debug(ni, "loaded %s", lib);
 	ret=0;
 	goto out;
-
 
  out_err_close:
 	dlclose(mod->handle);
@@ -364,7 +364,7 @@ int ubx_block_register(ubx_node_info_t *ni, ubx_block_t* block)
 		goto out;
 
 	HASH_ADD_KEYPTR(hh, ni->blocks, block->name, strlen(block->name), block);
-
+	logf_debug(ni, "registered %s", block->name);
 	ret=0;
  out:
 	return ret;
@@ -1231,22 +1231,22 @@ int ubx_ports_connect_uni(ubx_port_t* out_port, ubx_port_t* in_port, ubx_block_t
 	int ret;
 
 	if (iblock == NULL) {
-		logf_debug(iblock->ni, "ERR: block NULL");
+		logf_err(iblock->ni, "block NULL");
 		return EINVALID_BLOCK_TYPE;
 	}
 
 	if (out_port == NULL) {
-		logf_debug(iblock->ni, "ERR: out_port NULL");
+		logf_err(iblock->ni, "out_port NULL");
 		return EINVALID_PORT;
 	}
 
 	if (in_port == NULL) {
-		logf_debug(iblock->ni, "ERR: in_port NULL");
+		logf_err(iblock->ni, "in_port NULL");
 		return EINVALID_PORT;
 	}
 
 	if(iblock->type != BLOCK_TYPE_INTERACTION) {
-		logf_debug(iblock->ni, "ERR: block not of type interaction");
+		logf_err(iblock->ni, "block not of type interaction");
 		return EINVALID_BLOCK_TYPE;
 	}
 
@@ -1274,9 +1274,9 @@ int ubx_port_disconnect_out(ubx_port_t* out_port, ubx_block_t* iblock)
 		if((ret=array_block_rm(&out_port->out_interaction, iblock))!=0)
 			goto out;
 	} else {
-		logf_debug(iblock->ni,
-			   "ERR: port %s is not an out-port",
-			   out_port->name);
+		logf_err(iblock->ni,
+			 "port %s is not an out-port",
+			 out_port->name);
 		ret = EINVALID_PORT_TYPE;
 		goto out;
 	}
@@ -1300,7 +1300,7 @@ int ubx_port_disconnect_in(ubx_port_t* in_port, ubx_block_t* iblock)
 		if((ret=array_block_rm(&in_port->in_interaction, iblock))!=0)
 			goto out;
 	} else {
-		logf_debug(iblock->ni, "ERR: port %s is not an in-port", in_port->name);
+		logf_err(iblock->ni, "port %s is not an in-port", in_port->name);
 		ret = EINVALID_PORT_TYPE;		
 		goto out;
 	}
@@ -1324,22 +1324,22 @@ int ubx_ports_disconnect_uni(ubx_port_t* out_port, ubx_port_t* in_port, ubx_bloc
 	int ret=-1;
 
 	if (iblock == NULL) {
-		logf_debug(iblock->ni, "ERR: iblock NULL");
+		logf_err(iblock->ni, "iblock NULL");
 		return EINVALID_BLOCK;
 	}
 
 	if (out_port == NULL) {
-		logf_debug(iblock->ni, "ERR: out_port NULL");
+		logf_err(iblock->ni, "out_port NULL");
 		return EINVALID_PORT;
 	}
 
 	if (in_port == NULL) {
-		logf_debug(iblock->ni, "ERR: in_port NULL");
+		logf_err(iblock->ni, "in_port NULL");
 		return EINVALID_PORT;		
 	}
 
 	if(iblock->type != BLOCK_TYPE_INTERACTION) {
-		logf_debug(iblock->ni, "ERR: block not of type interaction");
+		logf_err(iblock->ni, "block not of type interaction");
 		return EINVALID_BLOCK_TYPE;
 	}
 
@@ -1825,6 +1825,8 @@ int ubx_block_init(ubx_block_t* b)
 		goto out;
 	}
 
+	ubx_debug(b, __FUNCTION__);
+
 	/* check and use loglevel config */
 	if (cfg_getptr_int(b, "loglevel", &b->loglevel) <= 0)
 		b->loglevel=NULL;
@@ -1870,6 +1872,8 @@ int ubx_block_start(ubx_block_t* b)
 		goto out;
 	}
 
+	ubx_debug(b, __FUNCTION__);
+
 	if(b->block_state != BLOCK_STATE_INACTIVE) {
 		ubx_err(b, "start: not in state inactive (but %s)",
 			block_state_tostr(b->block_state));
@@ -1909,6 +1913,8 @@ int ubx_block_stop(ubx_block_t* b)
 		goto out;
 	}
 
+	ubx_debug(b, __FUNCTION__);
+
 	if(b->block_state!=BLOCK_STATE_ACTIVE) {
 		ubx_err(b, "stop: not in state active (but %s)",
 			block_state_tostr(b->block_state));
@@ -1944,6 +1950,8 @@ int ubx_block_cleanup(ubx_block_t* b)
 		ret = EINVALID_BLOCK;
 		goto out;
 	}
+
+	ubx_debug(b, __FUNCTION__);
 
 	if(b->block_state!=BLOCK_STATE_INACTIVE) {
 		ubx_err(b, "cleanup: not in state inactive (but %s)",

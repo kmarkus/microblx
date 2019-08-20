@@ -203,7 +203,7 @@ local function err(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_ERR, node, src, str)
 local function warn(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_WARN, node, src, str) end
 local function notice(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_NOTICE, node, src, str) end
 local function info(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_INFO, node, src, str) end
-local function debug(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_DEBUG, node, src, str) end
+local function dbg(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_DEBUG, node, src, str) end
 
 M.log = log
 M.emerg = emerg
@@ -213,7 +213,7 @@ M.err = err
 M.warn = warn
 M.notice = notice
 M.info = info
-M.debug = debug
+M.debug = dbg
 
 
 ------------------------------------------------------------------------------
