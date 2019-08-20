@@ -56,6 +56,6 @@ int main(int argc, char **argv)
 	ret=EXIT_SUCCESS;
  out:
 	/* this cleans up all blocks and unloads all modules */
-	ubx_node_cleanup(&ni);
+	ubx_node_rm(&ni);
 	exit(ret);
 }

@@ -78,5 +78,5 @@ ubx.block_start(hexdump1)
 print("--- demo app launched, browse to http://localhost:8888 and start ptrig1 block to start up")
 io.read()
 
-ubx.node_cleanup(ni)
+ubx.node_rm(ni)
 os.exit(1)
