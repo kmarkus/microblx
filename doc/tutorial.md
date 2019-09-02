@@ -11,14 +11,14 @@ This is a walk-trough that shows how to:
 All the files can be found in the examples/platform folder.
 
 ## Introductory steps
-First of all, we need need to define the interface of and between our two components. 
+First of all, we need need to define the interface of and between our two components.
 
 The plant and controller has two ports, that exchange position and velocity, each of dimension two, and some properties (initial position and velocity limits for the plant, gain and setpoint for the controller).
 These properties are described it two lua files:
 
 The plant, "platform_2dof.lua"
 ```lua
-return block 
+return block
 {
       name="platform_2dof",
       license="MIT",
@@ -40,7 +40,7 @@ return block
 ```
 The controller, "platform_2dof_control.lua"
 ```lua
-return block 
+return block
 {
       name="platform_2dof_control",
       license="MIT",
@@ -56,7 +56,7 @@ return block
 	 { name="measured_pos", in_type_name="double", in_data_len=2, doc="measured position [m]" },
 	 { name="commanded_vel", out_type_name="double", out_data_len=2, doc="desired velocity [m/s]" },
       },
-      
+
       operations = { start=true, stop=true, step=true }
 }
 ```
@@ -119,7 +119,7 @@ out:
 int platform_2dof_start(ubx_block_t *b)
 {
 	/* struct platform_2dof_info *inf = (struct platform_2dof_info*) b->private_data; */
-        MSG("%s", b->name);
+  ubx_info(b, "platform_2dof start");
 	int ret = 0;
 	return ret;
 }
@@ -128,14 +128,14 @@ int platform_2dof_start(ubx_block_t *b)
 void platform_2dof_stop(ubx_block_t *b)
 {
 	/* struct platform_2dof_info *inf = (struct platform_2dof_info*) b->private_data; */
-        MSG("%s", b->name);
+  ubx_info(b, "platform_2dof stop");
 }
 
 /* cleanup */
 void platform_2dof_cleanup(ubx_block_t *b)
 {
 	/* struct platform_2dof_info *inf = (struct platform_2dof_info*) b->private_data; */
-        MSG("%s", b->name);
+  ubx_info(b, "platform_2dof cleanup");
 	free(b->private_data);
 }
 
@@ -143,7 +143,7 @@ void platform_2dof_cleanup(ubx_block_t *b)
 void platform_2dof_step(ubx_block_t *b)
 {
 	/* struct platform_2dof_info *inf = (struct platform_2dof_info*) b->private_data; */
-        MSG("%s", b->name);
+	ubx_info(b, "platform_2dof step");
 }
 ```
 We will need then to insert the code indicated by the comments.
@@ -186,12 +186,11 @@ int platform_2dof_init(ubx_block_t *b)
   int ret = -1;
   long int len;
   struct platform_2dof_info *inf;
-  //  double pos_vec[2];
   double *pos_vec;
 
   /* allocate memory for the block local state */
   if ((inf = (struct platform_2dof_info*)calloc(1, sizeof(struct platform_2dof_info)))==NULL) {
-      ERR("platform_2dof: failed to alloc memory");
+      ubx_err(b,"platform_2dof: failed to alloc memory");
       ret=EOUTOFMEM;
       goto out;
     }
@@ -200,13 +199,13 @@ int platform_2dof_init(ubx_block_t *b)
 
   //read configuration - initial position
   if ((len = ubx_config_get_data_ptr(b, "initial_position",(void **)&pos_vec)) < 0) {
-      ERR("platform_2dof: failed to load initial_position");
+      ubx_err(b,"platform_2dof: failed to load initial_position");
       goto out;
     }
   inf->r_state.pos[0]=pos_vec[0];
   inf->r_state.pos[1]=pos_vec[1];
   if ((len = ubx_config_get_data_ptr(b, "joint_velocity_limits",(void **)&pos_vec)) < 0) {
-      ERR("platform_2dof: failed to load joint_velocity_limits");
+      ubx_err(b,"platform_2dof: failed to load joint_velocity_limits");
       goto out;
     }
   //read configuration - max velocity
@@ -251,7 +250,7 @@ void platform_2dof_step(ubx_block_t *b)
   ret = read_desired_vel_2(inf->ports.desired_vel, &velocity);
   if (ret<=0){ //nodata
       velocity[0]=velocity[1]=0.0;
-      ERR("no velocity data");
+      ubx_err(b,"no velocity data");
     }
 
   for (int i=0;i<2;i++){// saturate and integrate velocity
@@ -320,7 +319,7 @@ return bd.system
       { name="ptrig1", type="std_triggers/ptrig" },
    },
    connections = {
-     { src="plat1.pos", tgt="fifo_pos" }, 
+     { src="plat1.pos", tgt="fifo_pos" },
      { src="fifo_pos",tgt="control1.measured_pos" },
      { src="control1.commanded_vel",tgt="fifo_vel" },
      { src="fifo_vel",  tgt="plat1.desired_vel" },
@@ -347,11 +346,11 @@ return bd.system
 It is worth noticing that configuration types can be arrays (*e.g.* `target_pos`), strings (`file_name` and `report_conf`) and structures (`period`) and vector of structures (`trig_blocks`). Types for each porpoery should be checked in source files.
 Alternatively, the web server can provide insight of the types.
 
-The file is launched with the command 
+The file is launched with the command
 ```bash
 ubx_ilaunch -c platform_2dof_and_control.usc
 ```
-or 
+or
 ```bash
 ubx_ilaunch -webif -c platform_2dof_and_control.usc
 ```
@@ -359,18 +358,16 @@ to enable the webinterface at [localhost:8888](localhost:8888) .
 In order to visualise the data saved by the logger in the _\tmp_ folder, consider [kst](https://kst-plot.kde.org/) or any other program that can visualise a comma-separated-value file.
 ###Some considerations about the fifos
 
-First of all, consider that each fifo can be connected with multiple input and pultiple oitput ports.
-Consider also, that if multiple out are connected, if one read one data, that data will be consumed and not available for a second port. In general cases, each fifo has a sinle input and a single output, while an output port can be connected with multiple output.
+First of all, consider that each  (iblock) fifo can be connected with multiple input and multiple output ports.
+Consider also, that if multiple out are connected, if one read one data, that data will be consumed and not available for a second port.
 
-
-The logger automatically instantiates fifos to connects input and output, this is happening for example for the logger:
-__when we add two ports to the logger, the program autmatically generated two addional fifos from the outports to the inports of the logger__.
+The  more common use-case is that each inport has is own fifo. If the data that is produced by one outport is needed to be read by two oe more inports, a fifo per  inport is connected to the the outport. __If you use the DSL, this is automatically done, so you do not have to worry to explicitly instantiate the iblocks. This also happens when adding ports to the logger__.
 
 
 
 ##Deployment via c program
 This example is an extention of the _"c-only.c"_.
-It will be clear that using the above method is far easier, but in case for some reason we want to eliminate the dependency from _lua_, this example show that is possible, even if a little burden some. 
+It will be clear that using the above method is far easier, but in case for some reason we want to eliminate the dependency from _lua_, this example show that is possible, even if a little burden some.
 
 First of all, we need to make a package to enable the building.  This can be done looking at the structure of the rest of packages.
 
@@ -473,7 +470,7 @@ modules[5]= "/usr/local/lib/ubx/0.6/webif.so";
 modules[6]= "/usr/local/lib/ubx/0.6/logger.so";
 modules[7]= "/usr/local/lib/ubx/0.6/lfds_cyclic.so";
   /* load modules */
-for (int i=0; i<8;i++)
+for (int i=0; i<sizeof(modules);i++)
   if(ubx_module_load(&ni, modules[i]) != 0){
       printf("fail to load %s",modules[i]);
       goto out;
@@ -490,7 +487,7 @@ if((plat1 = ubx_block_create(&ni, "platform_2dof", "plat1"))==NULL){
 ```
 
 ### Property configuration
-Now we have the more tedious and error-prone part, that is the configuration. depending by the type of the property, it might be necessary to allocate memory with the function `ubx_data_resize`, that takes as argument the data pointer, and the new length.
+Now we have the more tedious part, that is the configuration.  it is necessary to allocate memory with the function `ubx_data_resize`, that takes as argument the data pointer, and the new length.
 #### String property:
 ```c
 d = ubx_config_get_data(webif, "port");
@@ -499,22 +496,25 @@ len = strlen(WEBIF_PORT)+1;
 ubx_data_resize(d, len);
 strncpy((char *)d->data, WEBIF_PORT, len);
 ```
-Here the sting is declared with a `#define`, it can be written directly, or with a variable, _e.g._ `char filename[]="/tmp/platform_time.log"`; 
+Here the sting is declared with a `#define`, it can be written directly, or with a variable, _e.g._ `char filename[]="/tmp/platform_time.log"`;
 
 #### Double property:
 ```
 d = ubx_config_get_data(control1, "gain");
+ubx_data_resize(d, 1);
 *((double*)d->data)=0.12;
 ```
-  In this case, no memory allocation is necessary. The second line says: consider `d->data` as  a pointer to double, and assign to the pointed memory area the value `0.12`.
+In this case, memory allocation is done for a scalar (i.e. size 1) . The second line says: consider `d->data` as  a pointer to double, and assign to the pointed memory area the value `0.12`.
 #### Fixed size array of double:
 ```c
 d = ubx_config_get_data(control1, "target_pos");
+ubx_data_resize(d, 2);
 ((double*)d->data)[0]=4.5;
 ((double*)d->data)[1]=4.52;
 ```
+Same as before, but being a vector, of two elements, the memory allocation is changed accordingly, and data writings needs the index.
 #### Structure property:
-In this case is necessary to allocate memory. To assign the values to the structure, one option is to make allocate a local instance of the structure, and then copy it.
+ To assign the values to the structure, one option is to make/allocate a local instance of the structure, and then copy it.
 ```c
 struct ptrig_period p;
 p.sec=1;
@@ -522,7 +522,7 @@ p.usec=14;
 d=ubx_config_get_data(ptrig1, "period");
 ubx_data_resize(d, 1);
 *((struct ptrig_period*)d->data)=p;
-``` 
+```
 In alternative, we can direcly work on the fields of the structure
 ```c
 d=ubx_config_get_data(ptrig1, "period");
@@ -531,7 +531,7 @@ ubx_data_resize(d, 1);
 ((struct ptrig_period*)d->data)->usec=14;
 ```
 #### Array of structures:
-It combines what we saw for arrays and structures. In the case of the trigger block, we have to configure the order of blocks, 
+It combines what we saw for arrays and structures. In the case of the trigger block, we have to configure the order of blocks,
 ```c
 d=ubx_config_get_data(ptrig1, "trig_blocks");
 len= 3;
@@ -566,7 +566,7 @@ ubx_port_t* control1_commanded_vel=ubx_port_get(control1,"commanded_vel");
 ubx_port_t* plat1_desired_vel=ubx_port_get(plat1,"desired_vel");
 
 ubx_port_connect_out(plat1_pos,fifo_pos);
-ubx_port_connect_in(control1_measured_pos,fifoplatform_main_LDFLAGS = -module -avoid-version -shared -export-dynamic  @UBX_LIBS@ -ldl -lpthread_pos);
+ubx_port_connect_in(control1_measured_pos,fifo_pos);
 ubx_port_connect_out(control1_commanded_vel,fifo_vel);
 ubx_port_connect_in(plat1_desired_vel,fifo_vel);
 
@@ -575,6 +575,7 @@ ubx_port_connect_in(plat1_desired_vel,fifo_vel);
 Lastly, we need to init and start all the blocks. For example, for the `fifo_pos` iblock:
 ```c
 if(ubx_block_init(fifo_pos) != 0) {
+	ubx_log(UBX_LOGLEVEL_ERROR, ni, __FUNCTION__, "failed to init fifo_pos");
 	ERR("failed to init fifo_pos");
 	goto out;
 }
@@ -585,11 +586,11 @@ if(ubx_block_start(fifo_pos) != 0) {
 ```
 The same applies for all the block.
 
-Once all the block are running, the `trigger` block will call all the blocks in the given order, so long the main does not terminate. To prevent the main process to terminate, we can insert either a blocking call to terminal input
+Once all the block are running, the `trigger` block will call all the blocks in the given order, so long the main does not terminate. To prevent the main process to terminate, we can insert either a blocking call to terminal input:
 ```c
 getchar();
 ```
-or using the *signal.h* library, wait untill *CTRL+C*  is pressed:
+or using the *signal.h* library, wait until *CTRL+C*  is pressed:
 ```c
 sigset_t set;
 int sig;
@@ -599,7 +600,7 @@ sigaddset(&set, SIGINT);
 pthread_sigmask(SIG_BLOCK, &set, NULL);
 sigwait(&set, &sig);
 ```
-Note that we have to link against ptread library, so the _Makefile.am_ has to be modified accrdingly
+Note that we have to link against pthread library, so the _Makefile.am_ has to be modified accordingly:
 ```make
 ...
 platform_main_LDFLAGS = -module -avoid-version -shared -export-dynamic  @UBX_LIBS@ -ldl -lpthread
