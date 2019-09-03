@@ -218,14 +218,14 @@ out:
   return ret;
 }
 ```
-The function `ubx_config_get_data_ptr(ubx_block_t *b, const char *name, void **ptr)` returns in the pointer passed by reference the address of the required configuration. In this case the function will return "2", success, the lenght of the data or "-1", failiture.
+The function `ubx_config_get_data_ptr(ubx_block_t *b, const char *name, void **ptr)` returns in the pointer passed by reference the address of the required configuration. In this case the function will return "2", success, the length of the data or "-1", failure.
 
 For the start function, we only need to initialize the internal timer
 ```c
 int platform_2dof_start(ubx_block_t *b)
 {
   struct platform_2dof_info *inf = (struct platform_2dof_info*) b->private_data;
-  MSG("%s", b->name);
+  ubx_info(b, "platform_2dof start");
   ubx_gettime(&(inf->last_time));
   int ret = 0;
   return ret;
@@ -265,7 +265,7 @@ In case there is no value in the port ,an error is signaled, and nominal velocit
 This will always happens in the first interation, since the controller did step yet, thus no velocity command is available.
 
 ### Step 4: Stop and clean-up functions
-These functions are ok as they are generated, since the only thing we want to take care is that memory is freed.
+These functions are OK as they are generated, since the only thing we want to take care of is that memory is freed.
 
 ### Final listings of the block
 The plant is, _mutatis mutandis_,  built following the same rationale, and will be not detailed here.
@@ -282,7 +282,7 @@ sudo make install
 ```
 see also the quickstart about these.
 ## Deployment via the usc ( microblx system composition) file.
-The `ubx_genblock` commands generates two sample files to run indipendently each block. We want to run and compose them together, and save the results in a logger file.  The composition file **platform_2dof_and_control.usc** is quite self explanatory: It indicates
+The `ubx_genblock` commands generates two sample files to run independently each block. We want to run and compose them together, and save the results in a logger file.  The composition file **platform_2dof_and_control.usc** is quite self explanatory: It indicates
 
 - which libraries are imported,
 - which block (name, type) are created,
@@ -290,8 +290,6 @@ The `ubx_genblock` commands generates two sample files to run indipendently each
 
 The code is the following.
 ``` lua
--- -*- mode: lua; -*-
-
 plat_report_conf = [[{
 { blockname='plat1', portname="pos"},
 { blockname='control1', portname="commanded_vel"}
@@ -343,7 +341,7 @@ return bd.system
 
 }
 ```
-It is worth noticing that configuration types can be arrays (*e.g.* `target_pos`), strings (`file_name` and `report_conf`) and structures (`period`) and vector of structures (`trig_blocks`). Types for each porpoery should be checked in source files.
+It is worth noticing that configuration types can be arrays (*e.g.* `target_pos`), strings (`file_name` and `report_conf`) and structures (`period`) and vector of structures (`trig_blocks`). Types for each property should be checked in source files.
 Alternatively, the web server can provide insight of the types.
 
 The file is launched with the command
@@ -354,8 +352,8 @@ or
 ```bash
 ubx_ilaunch -webif -c platform_2dof_and_control.usc
 ```
-to enable the webinterface at [localhost:8888](localhost:8888) .
-In order to visualise the data saved by the logger in the _\tmp_ folder, consider [kst](https://kst-plot.kde.org/) or any other program that can visualise a comma-separated-value file.
+to enable the *web interface* at [localhost:8888](localhost:8888) .
+In order to visualize the data saved by the logger in the _\tmp_ folder, consider [kst](https://kst-plot.kde.org/) or any other program that can visualize a comma-separated-value file.
 ###Some considerations about the fifos
 
 First of all, consider that each  (iblock) fifo can be connected with multiple input and multiple output ports.
@@ -366,8 +364,8 @@ The  more common use-case is that each inport has is own fifo. If the data that 
 __TODO insert picture__
 
 ##Deployment via c program
-This example is an extention of the _"c-only.c"_.
-It will be clear that using the above method is far easier, but in case for some reason we want to eliminate the dependency from _lua_, this example show that is possible, even if a little burden some.
+This example is an extension of the _"c-only.c"_.
+It will be clear that using the above method is far easier, but in case for some reason we want to eliminate the dependency from _lua_, this example show that is possible, even if a little burdensome.
 
 First of all, we need to make a package to enable the building.  This can be done looking at the structure of the rest of packages.
 
@@ -426,8 +424,8 @@ platform_main_CFLAGS = -I${top_srcdir}/libubx  @UBX_CFLAGS@
 platform_main_LDFLAGS = -module -avoid-version -shared -export-dynamic  @UBX_LIBS@ -ldl
 ```
 
-Here we specifiy that the name of the executable is _platform_main_
-It might be possible that, if some custom types are used in the configuration, but are not installed, they mist be added to the _CFLAGS_:
+Here, we specify that the name of the executable is _platform_main_
+It might be possible that, if some custom types are used in the configuration, but are not installed, they must be added to the _CFLAGS_:
 
 ```cmake
 platform_main_CFLAGS = -I${top_srcdir}/libubx -I path/to/other/headers  @UBX_CFLAGS@
@@ -442,6 +440,12 @@ make
 
 ## The program
 The main follows the same structure of the .usc file.
+### Logging
+Microblx uses realtime safe functions for logging. For logging from the scope of a block the functions `ubx_info`, `ubx_info`, _etc_ are used. In the main we have to use the functions, `ubx_log`, _e.g._
+```
+ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to init control1");
+```
+More info on logging can be found  in the [__Using real-time logging__ section](manual.md#using-real-time-logging).
 ### Libraries
 It start with some include (struct that are needed in configuration) and loading the libraries
 ```c
@@ -451,6 +455,7 @@ It start with some include (struct that are needed in configuration) and loading
 #define DOUBLE_STR "double"
 #include "ptrig_config.h"
 #include "ptrig_period.h"
+#define LEN_VEC(a) (sizeof(a)/sizeof(a[0]))
 int main()
 {
   int len, ret=EXIT_FAILURE;
@@ -470,7 +475,7 @@ modules[5]= "/usr/local/lib/ubx/0.6/webif.so";
 modules[6]= "/usr/local/lib/ubx/0.6/logger.so";
 modules[7]= "/usr/local/lib/ubx/0.6/lfds_cyclic.so";
   /* load modules */
-for (int i=0; i<sizeof(modules);i++)
+for (int i=0; i<LEN_VEC(modules);i++)
   if(ubx_module_load(&ni, modules[i]) != 0){
       printf("fail to load %s",modules[i]);
       goto out;
@@ -523,7 +528,7 @@ d=ubx_config_get_data(ptrig1, "period");
 ubx_data_resize(d, 1);
 *((struct ptrig_period*)d->data)=p;
 ```
-In alternative, we can direcly work on the fields of the structure
+In alternative, we can directly work on the fields of the structure
 ```c
 d=ubx_config_get_data(ptrig1, "period");
 ubx_data_resize(d, 1);
@@ -547,18 +552,9 @@ printf("data size trig blocks: %li\n",d->type->size);
 ((struct ptrig_config*)d->data)[2].num_steps = 1;
 ((struct ptrig_config*)d->data)[2].measure = 0;
 ```
-#### Uint32 and other non registered properties:
-differntly from double property, this property needs memory allocation.
-```
-d = ubx_config_get_data(fifo_pos, "data_len");
-ubx_data_resize(d, 1);
-*((uint32_t*)d->data)=2;
-```
-
-
 
 ### Port connection
-To connect we have first to retrieve the ports, and then connect to an a **iblock**, the fifos. in the following we have two inputs and two output ports, that are connected via two fifo
+To connect we have first to retrieve the ports, and then connect to an a **iblock**, the fifos. In the following, we have two inputs and two output ports, that are connected via two fifos:
 ```c
 ubx_port_t* plat1_pos=ubx_port_get(plat1,"pos");
 ubx_port_t* control1_measured_pos=ubx_port_get(control1,"measured_pos");
@@ -572,16 +568,15 @@ ubx_port_connect_in(plat1_desired_vel,fifo_vel);
 
 ```
 ### Init and Start the blocks
-Lastly, we need to init and start all the blocks. For example, for the `fifo_pos` iblock:
+Lastly, we need to init and start all the blocks. For example, for the `control1` iblock:
 ```c
-if(ubx_block_init(fifo_pos) != 0) {
-	ubx_log(UBX_LOGLEVEL_ERROR, ni, __FUNCTION__, "failed to init fifo_pos");
-	ERR("failed to init fifo_pos");
-	goto out;
+if(ubx_block_init(control1) != 0) {
+		ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to init control1");
+		goto out;
 }
-if(ubx_block_start(fifo_pos) != 0) {
-	ERR("failed to start fifo_pos");
-	goto out;
+if(ubx_block_start(control1) != 0) {
+    ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start control1");
+    goto out;
 }
 ```
 The same applies for all the block.
