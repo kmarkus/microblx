@@ -8,7 +8,7 @@
 #define UBX_LOGLEVEL_DEFAULT		UBX_LOGLEVEL_INFO
 
 #define ubx_log(level, ni, src, fmt, ...)			\
-	if (level <= ni->loglevel)				\
+	if (level <= (ni)->loglevel)				\
 		__ubx_log(level, ni, src, fmt, ##__VA_ARGS__);	\
 
 #ifdef UBX_DEBUG
