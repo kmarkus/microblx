@@ -28,7 +28,7 @@ int platform_2dof_control_init(ubx_block_t *b)
 
   /* allocate memory for the block local state */
   if ((inf = (struct platform_2dof_control_info*)calloc(1, sizeof(struct platform_2dof_control_info)))==NULL) {
-      ERR("platform_2dof_control: failed to alloc memory");
+       ubx_err(b,"platform_2dof_control: failed to alloc memory");
       ret=EOUTOFMEM;
       goto out;
     }
@@ -37,12 +37,12 @@ int platform_2dof_control_init(ubx_block_t *b)
   double *gain;
   double *target;
   if ((len = ubx_config_get_data_ptr(b, "gain",(void **)&gain)) < 0) {
-      ERR("failed to load gain");
+       ubx_err(b,"failed to load gain");
       goto out;
     }
   inf->gain=*gain;
   if ((len = ubx_config_get_data_ptr(b, "target_pos",(void **)&target)) < 0) {
-      ERR("failed to load target_pos");
+       ubx_err(b, "failed to load target_pos");
       goto out;
     }
   inf->target[0]=target[0];
@@ -57,7 +57,7 @@ out:
 int platform_2dof_control_start(ubx_block_t *b)
 {
   /* struct platform_2dof_control_info *inf = (struct platform_2dof_control_info*) b->private_data; */
-  MSG("%s", b->name);
+
   int ret = 0;
   return ret;
 }
@@ -66,14 +66,12 @@ int platform_2dof_control_start(ubx_block_t *b)
 void platform_2dof_control_stop(ubx_block_t *b)
 {
   /* struct platform_2dof_control_info *inf = (struct platform_2dof_control_info*) b->private_data; */
-  MSG("%s", b->name);
 }
 
 /* cleanup */
 void platform_2dof_control_cleanup(ubx_block_t *b)
 {
   /* struct platform_2dof_control_info *inf = (struct platform_2dof_control_info*) b->private_data; */
-  MSG("%s", b->name);
   free(b->private_data);
 }
 
@@ -81,7 +79,6 @@ void platform_2dof_control_cleanup(ubx_block_t *b)
 void platform_2dof_control_step(ubx_block_t *b)
 {
   /* struct platform_2dof_control_info *inf = (struct platform_2dof_control_info*) b->private_data; */
-  //MSG("%s", b->name);
   int ret;
   struct platform_2dof_control_info *inf = (struct platform_2dof_control_info*) b->private_data;
   ubx_port_t* pos_port = ubx_port_get(b, "measured_pos");
@@ -90,7 +87,6 @@ void platform_2dof_control_step(ubx_block_t *b)
   double pos[2];
   ret = read_measured_pos_2(pos_port,&pos);
   if (ret<=0) {//nodata
-      ERR("no position data");
     }else{
       velocity[0]=(inf->target[0] -pos[0])*(inf->gain);
       velocity[1]=(inf->target[1] -pos[1])*(inf->gain);
