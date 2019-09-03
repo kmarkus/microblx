@@ -5,6 +5,8 @@
 #include "ptrig_config.h"
 #include "ptrig_period.h"
 #include "signal.h"
+#define LEN_VEC(a) sizeof(a)/sizeof(a[0])
+
 int main()
 {
   int len, ret=EXIT_FAILURE;
@@ -24,46 +26,46 @@ int main()
   modules[6]= "/usr/local/lib/ubx/0.6/logger.so";
   modules[7]= "/usr/local/lib/ubx/0.6/lfds_cyclic.so";
   /* load modules */
-  for (int i=0; i<8;i++)
+  for (unsigned int i=0; i<(LEN_VEC(modules));i++)
     if(ubx_module_load(&ni, modules[i]) != 0){
-        printf("fail to load %s",modules[i]);
+        ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to load  module %s %i",modules[i], i);
         goto out;
       }
 
 
-  //create cblocks
+  /* create cblocks */
   if((plat1 = ubx_block_create(&ni, "platform_2dof", "plat1"))==NULL){
-      printf("fail to create plat1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to create plat1");
       goto out;
     }
   if((control1 = ubx_block_create(&ni, "platform_2dof_control", "control1"))==NULL){
-      printf("fail to create control1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to create control1");
       goto out;
     }
   if((logger1 = ubx_block_create(&ni, "logging/file_logger", "logger1"))==NULL){
-      printf("fail to create logger1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to create logger1");
       goto out;
     }
   if((ptrig1 = ubx_block_create(&ni, "std_triggers/ptrig", "ptrig1"))==NULL){
-      printf("fail to create ptrig1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to create ptrig1");
       goto out;
     }
   if((webif = ubx_block_create(&ni, "webif/webif", "webif1"))==NULL){
-      printf("fail to create webif1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to create webif1");
       goto out;
     }
-  //crate iblocks
+  /* create iblocks */
   if((fifo_pos = ubx_block_create(&ni, "lfds_buffers/cyclic", "fifo_pos"))==NULL){
-      printf("fail to create fifo_pos");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to create fifo_pos");
       goto out;
     }
   if((fifo_vel = ubx_block_create(&ni, "lfds_buffers/cyclic", "fifo_vel"))==NULL){
-      printf("fail to create fifo_vel");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to create fifo_vel");
       goto out;
     }
 
-  //configuration of blocks
-  //configuration of web interface
+  /* configuration of blocks
+    configuration of web interface */
   d = ubx_config_get_data(webif, "port");
   len = strlen(WEBIF_PORT)+1;
 
@@ -83,7 +85,7 @@ int main()
   ((double*)d->data)[0]=4.5;
   ((double*)d->data)[1]=4.52;
 
-  //logger config
+  /* logger configuration */
   d=ubx_config_get_data(logger1, "filename");
   char filename[]="/tmp/platform_time.log";
   len = strlen(filename)+1;
@@ -102,21 +104,10 @@ int main()
   ubx_data_resize(d, len);
   strncpy((char *)d->data, separator, len);
 
-  //ptrig config
-  /*{ name="ptrig1", config = {
-     period = {sec=1, usec=0 },
-     sched_policy="SCHED_OTHER",
-     sched_priority=0,
-     trig_blocks={ { b="#plat1", num_steps=1, measure=1 },
-                   { b="#control1", num_steps=1, measure=1 },
-                   { b="#logger1", num_steps=1, measure=0 },
-                   { b="#logger_time", num_steps=1, measure=0 }  } } }  */
-  //struct ptrig_period p;
-  //p.sec=1;
-  //p.usec=14;
+  /* ptrig config */
   d=ubx_config_get_data(ptrig1, "period");
   ubx_data_resize(d, 1);
-  //*((struct ptrig_period*)d->data)=p;
+
   ((struct ptrig_period*)d->data)->sec=1;
   ((struct ptrig_period*)d->data)->usec=14;
 
@@ -131,8 +122,10 @@ int main()
   d=ubx_config_get_data(ptrig1, "trig_blocks");
   len= 3;
   ubx_data_resize(d, len);
-  printf("data size trig blocks: %li\n",d->type->size);
-  ((struct ptrig_config*)d->data)[0].b= plat1;//ubx_block_get(&ni, "plat1")
+  ((struct ptrig_config*)d->data)[0].b= plat1;
+  /*As alternative: the block can be retieved by name:
+   *(struct ptrig_config*)d->data)[0].b= ubx_block_get(&ni, "plat1")*/
+
   ((struct ptrig_config*)d->data)[0].num_steps = 1;
   ((struct ptrig_config*)d->data)[0].measure = 0;
   ((struct ptrig_config*)d->data)[1].b= control1;
@@ -145,7 +138,7 @@ int main()
 
 
 
-  // i-block config
+  /* i-block configuration */
   len = strlen(DOUBLE_STR)+1;
   d = ubx_config_get_data(fifo_pos, "type_name");
   ubx_data_resize(d, len);
@@ -167,7 +160,7 @@ int main()
   ubx_data_resize(d, 1);
   *((uint32_t*)d->data)=1;
 
-  //connections
+  /* connections setup - first ports must be retrived and then connected */
   ubx_port_t* plat1_pos=ubx_port_get(plat1,"pos");
   ubx_port_t* control1_measured_pos=ubx_port_get(control1,"measured_pos");
   ubx_port_t* control1_commanded_vel=ubx_port_get(control1,"commanded_vel");
@@ -181,83 +174,81 @@ int main()
 
 
 
-  /* init and start the block */
+  /* init and start blocks */
   if(ubx_block_init(webif) != 0) {
-      ERR("failed to init webif");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to init webif");
       goto out;
     }
   if(ubx_block_init(plat1) != 0) {
-      ERR("failed to init plat1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to init plat1");
       goto out;
     }
   if(ubx_block_init(control1) != 0) {
-      ERR("failed to init control1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to init control1");
       goto out;
     }
 
   if(ubx_block_init(fifo_pos) != 0) {
-      ERR("failed to init fifo_pos");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to init fifo_pos");
       goto out;
     }
 
   if(ubx_block_init(fifo_vel) != 0) {
-      ERR("failed to init fifo_vel");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to init fifo_vel");
       goto out;
     }
   if(ubx_block_start(fifo_pos) != 0) {
-      ERR("failed to start fifo_pos");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start fifo_pos");
       goto out;
     }
   if(ubx_block_start(fifo_vel) != 0) {
-      ERR("failed to start fifo_vel");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start fifo_vel");
       goto out;
     }
-
   if(ubx_block_start(webif) != 0) {
-      ERR("failed to start webif");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start webif");
       goto out;
     }
   if(ubx_block_start(plat1) != 0) {
-      ERR("failed to start plat1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start plat1");
       goto out;
     }
   if(ubx_block_start(control1) != 0) {
-      ERR("failed to start control1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start control1");
       goto out;
     }
-
-
   if(ubx_block_init(ptrig1) != 0) {
-      ERR("HERE failed to init ptrig1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "HERE failed to init ptrig1");
       goto out;
     }
   if(ubx_block_start(ptrig1) != 0) {
-      ERR("failed to start ptrig1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start ptrig1");
       goto out;
     }
   if(ubx_block_init(logger1) != 0) {
-      ERR("HERE failed to init logger1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "HERE failed to init logger1");
       goto out;
     }
   if(ubx_block_start(logger1) != 0) {
-      ERR("failed to start logger1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start logger1");
       goto out;
     }
 
   sigset_t set;
   int sig;
 
+  /* stop on SIGINT (ctrl + c) */
   sigemptyset(&set);
   sigaddset(&set, SIGINT);
   pthread_sigmask(SIG_BLOCK, &set, NULL);
   sigwait(&set, &sig);
 
-  //printf("webif block lauched on port  hit enter to quit\n");
-  //getchar();
 
   ret=EXIT_SUCCESS;
 out:
+  printf("EXIT\n");
   /* this cleans up all blocks and unloads all modules */
   ubx_node_cleanup(&ni);
   exit(ret);
 }
+
