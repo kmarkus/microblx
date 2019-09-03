@@ -38,7 +38,7 @@ int platform_2dof_init(ubx_block_t *b)
 
   /* allocate memory for the block local state */
   if ((inf = (struct platform_2dof_info*)calloc(1, sizeof(struct platform_2dof_info)))==NULL) {
-      ERR("platform_2dof: failed to alloc memory");
+      ubx_err(b, "platform_2dof: failed to alloc memory");
       ret=EOUTOFMEM;
       goto out;
     }
@@ -47,13 +47,13 @@ int platform_2dof_init(ubx_block_t *b)
 
   //read configuration - initial position
   if ((len = ubx_config_get_data_ptr(b, "initial_position",(void **)&pos_vec)) < 0) {
-      ERR("platform_2dof: failed to load initial_position");
+      ubx_err(b, "platform_2dof: failed to load initial_position");
       goto out;
     }
   inf->r_state.pos[0]=pos_vec[0];
   inf->r_state.pos[1]=pos_vec[1];
   if ((len = ubx_config_get_data_ptr(b, "joint_velocity_limits",(void **)&pos_vec)) < 0) {
-      ERR("platform_2dof: failed to load joint_velocity_limits");
+      ubx_err(b, "platform_2dof: failed to load joint_velocity_limits");
       goto out;
     }
   //read configuration - max velocity
@@ -70,7 +70,8 @@ out:
 int platform_2dof_start(ubx_block_t *b)
 {
   struct platform_2dof_info *inf = (struct platform_2dof_info*) b->private_data;
-  MSG("%s", b->name);
+
+  ubx_info(b, "platform_2dof start");
   ubx_gettime(&(inf->last_time));
 
 
@@ -83,14 +84,15 @@ int platform_2dof_start(ubx_block_t *b)
 void platform_2dof_stop(ubx_block_t *b)
 {
   /* struct platform_2dof_info *inf = (struct platform_2dof_info*) b->private_data; */
-  MSG("%s", b->name);
+ ubx_info(b, "platform_2dof stop");
+
 }
 
 /* cleanup */
 void platform_2dof_cleanup(ubx_block_t *b)
 {
   /* struct platform_2dof_info *inf = (struct platform_2dof_info*) b->private_data; */
-  MSG("%s", b->name);
+  ubx_info(b, "platform_2dof cleanup");
   free(b->private_data);
 }
 
@@ -111,7 +113,7 @@ void platform_2dof_step(ubx_block_t *b)
   ret = read_desired_vel_2(inf->ports.desired_vel, &velocity);
   if (ret<=0){ //nodata
       velocity[0]=velocity[1]=0.0;
-      ERR("no velocity data");
+      ubx_err(b, "no velocity data");
     }
 
   for (int i=0;i<2;i++){// saturate and integrate velocity
@@ -121,4 +123,5 @@ void platform_2dof_step(ubx_block_t *b)
   write_pos_2(inf->ports.pos,&(inf->r_state.pos));
 
 }
+
 
