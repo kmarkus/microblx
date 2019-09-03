@@ -295,7 +295,7 @@ function system.pulldown(self, ni)
       end
    end
    info("stopping remaining blocks")
-   ubx.node_cleanup(ni)
+   ubx.node_rm(ni)
 end
 
 
@@ -426,6 +426,9 @@ function system.launch(self, t)
 	       err_exit(1, "invalid node config reference '"..val.."'")
 	    end
 	    local blkcfg = ubx.block_config_get(b, name)
+	    if not blkcfg then
+	       err_exit(1, "non-existing config '"..blkconf.name.. "."..name.."'")
+	    end
 	    ubx.config_assign(blkcfg, _NC[nodecfg])
 	    info("cfg "..green(blkconf.name.."."..blue(name))..
 		    " -> node cfg "..yellow(nodecfg))

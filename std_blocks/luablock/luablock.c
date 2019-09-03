@@ -65,23 +65,24 @@ int call_hook(ubx_block_t* b, const char *fname, int require_fun, int require_re
 
 	if(lua_isnil(inf->L, -1)) {
 		lua_pop(inf->L, 1);
-		if(require_fun)
-			ERR("%s: no (required) Lua function %s", b->name, fname);
-		else
+		if(require_fun) {
+			ubx_err(b, "%s: no (required) Lua function %s", b->name, fname);
+		} else {
 			goto out;
+		}
 	}
 
 	lua_pushlightuserdata(inf->L, (void*) b);
 
 	if (lua_pcall(inf->L, 1, num_res, 0) != 0) {
-		ERR("%s: error calling function %s: %s", b->name, fname, lua_tostring(inf->L, -1));
+		ubx_err(b, "calling fun %s: %s", fname, lua_tostring(inf->L, -1));
 		ret = -1;
 		goto out;
 	}
 
 	if(require_res) {
 		if (!lua_isboolean(inf->L, -1)) {
-			ERR("%s: %s must return a bool but returned a %s",
+			ubx_err(b, "%s: %s must return a bool but returned a %s",
 			    b->name, fname, lua_typename(inf->L, lua_type(inf->L, -1)));
 			ret = -1;
 			goto out;
@@ -102,32 +103,35 @@ int call_hook(ubx_block_t* b, const char *fname, int require_fun, int require_re
  *
  * @return 0 if Ok, -1 otherwise.
  */
-static int init_lua_state(struct luablock_info* inf, const char* lua_file, const char* lua_str)
+static int init_lua_state(struct ubx_block* b,
+			  const char* lua_file,
+			  const char* lua_str)
 {
 	int ret=-1;
+	struct luablock_info* inf = (struct luablock_info*) b->private_data;
 
 	if((inf->L=luaL_newstate())==NULL) {
-		ERR("failed to alloc lua_State");
+		ubx_err(b, "failed to alloc lua_State");
 		goto out;
 	}
 
 	luaL_openlibs(inf->L);
 
 	if((ret=luaL_dostring(inf->L, predef_hooks))!=0) {
-		ERR("failed to predefine hooks");
+		ubx_err(b, "failed to predefine hooks");
 		goto out;
 	}
 
 	if(lua_file) {
 		if((ret=luaL_dofile(inf->L, lua_file))!=0) {
-			ERR("Failed to load lua_file '%s': %s\n", lua_file, lua_tostring(inf->L, -1));
+			ubx_err(b, "Failed to load lua_file '%s': %s\n", lua_file, lua_tostring(inf->L, -1));
 			goto out;
 		}
 	}
 
 	if(lua_str) {
 		if((ret=luaL_dostring(inf->L, lua_str))!=0) {
-			ERR("Failed to load lua_str '%s': %s\n", lua_str, lua_tostring(inf->L, -1));
+			ubx_err(b, "Failed to load lua_str '%s': %s\n", lua_str, lua_tostring(inf->L, -1));
 			goto out;
 		}
 	}
@@ -163,11 +167,11 @@ static int luablock_init(ubx_block_t *b)
 	lua_str = (len > 0) ? lua_str : NULL;
 
 	if((inf->exec_str_buff = ubx_data_alloc(b->ni, "char", EXEC_STR_BUFF_SIZE)) == NULL) {
-		ERR("failed to allocate exec_str buffer");
+		ubx_err(b, "failed to allocate exec_str buffer");
 		goto out_free1;
 	}
 
-	if(init_lua_state(inf, lua_file, lua_str) != 0)
+	if(init_lua_state(b, lua_file, lua_str) != 0)
 		goto out_free2;
 
 	if((ret=call_hook(b, "init", 0, 1)) != 0)
@@ -205,7 +209,7 @@ static void luablock_step(ubx_block_t *b)
 
 	if((len=__port_read(p_exec_str, inf->exec_str_buff))>0) {
 		if ((ret=luaL_dostring(inf->L, inf->exec_str_buff->data)) != 0) {
-			ERR("Failed to exec_str: %s", lua_tostring(inf->L, -1));
+			ubx_err(b, "Failed to exec_str: %s", lua_tostring(inf->L, -1));
 			goto out;
 		}
 	}

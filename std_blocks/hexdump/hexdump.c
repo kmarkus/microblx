@@ -53,13 +53,11 @@ ubx_block_t hexdump_comp = {
 
 static int hexdump_mod_init(ubx_node_info_t* ni)
 {
-	DBG(" ");	
 	return ubx_block_register(ni, &hexdump_comp);
 }
 
 static void hexdump_mod_cleanup(ubx_node_info_t *ni)
 {
-	DBG(" ");
 	ubx_block_unregister(ni, "hexdump/hexdump");
 }
 

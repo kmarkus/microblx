@@ -85,7 +85,6 @@ static int rnd_init(ubx_block_t *b)
 {
 	int ret=0;
 
-	DBG(" ");
 	if ((b->private_data = calloc(1, sizeof(struct random_info)))==NULL) {
 		ubx_crit(b, "rnd_init: ENOMEM");
 		ret=EOUTOFMEM;
@@ -104,7 +103,6 @@ static int rnd_init(ubx_block_t *b)
  */
 static void rnd_cleanup(ubx_block_t *b)
 {
-	DBG(" ");
 	free(b->private_data);
 }
 
@@ -117,7 +115,6 @@ static void rnd_cleanup(ubx_block_t *b)
  */
 static int rnd_start(ubx_block_t *b)
 {
-	DBG("in");
 	uint32_t seed, ret;
 	long int len;
 	struct random_config* rndconf;

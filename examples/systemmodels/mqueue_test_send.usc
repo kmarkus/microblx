@@ -11,11 +11,12 @@ local bd = require("blockdiagram")
 return bd.system
 {
    imports = {
-      "stdtypes.so",
-      "ptrig.so",
-      "random.so",
-      "mqueue.so",
-      "logger.so",
+      "stdtypes",
+      "stattypes",
+      "ptrig",
+      "random",
+      "mqueue",
+      "logger",
    },
 
    blocks = {

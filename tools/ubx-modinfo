@@ -1,0 +1,168 @@
+#!/usr/bin/env luajit
+-- -*- lua -*-
+
+local ubx = require("ubx")
+local utils = require("utils")
+local strict = require("strict")
+local ts = tostring
+
+local res,lfs = _G.pcall(_G.require,'lfs')
+
+if not res then
+   print("error: ubx-modinfo requires LuaFileSystem")
+   os.exit(1)
+end
+
+local function usage()
+   print([[
+usage: ubx-modinfo <command> [<args>]
+commands:
+   list	    	      list available modules
+
+   show <module>      print the contents of a module
+     -t [type1,type2]     show only the given types
+     -b [block1,block2]   show only the given blocks
+
+global parameters:
+
+   -l N	        set global loglevel to N
+   -c [0|1]     color: disable or enable (default)
+   -p m1,m2     list of depending modules to preload
+                (stdtypes loaded by default)
+   -h           show help
+]])
+end
+
+--- Subtract two sets (tables)
+-- @param t1 table to substract from
+-- @param t2 table to substract
+-- @return a table with elements not present in t1
+local function table_sub(t1, t2)
+   local res = {}
+   for k,v in pairs(t1) do
+      if t2[k] == nil then res[k] = v end
+   end
+   return res
+end
+
+local function modules_list()
+   local prefix = ubx.get_prefix()
+   local ver = string.sub(ubx.safe_tostr(ubx.version()), 1, 3)
+   local modpath = prefix.."/lib/ubx/"..ver.."/"
+
+   for f in lfs.dir(modpath) do
+      local ext = string.match(f, "^.+%.(.+)$")
+      if f ~= "." and f ~= ".." and ext == "so" then
+	 print(modpath..f)
+      end
+   end
+end
+
+--- get_arg
+-- @param opttab opttab converter table
+-- @param optname name of option (e.g. "-v")
+-- @param defarg default value for non mandatory optargs
+-- @param req this option is required
+-- @param reqarg requres an option argument
+-- @param typecheck function to convert/check the argument
+local function get_arg(opttab, optname, defarg, req, reqarg, typecheck)
+
+   if defarg and req and reqarg then
+      error("required optarg with default value makes no sense")
+   end
+
+   if req and (not opttab[optname]) then
+      print("error: mandatory option "..optname.. " missing")
+      os.exit(1)
+   end
+
+   -- arg-value required but not there?
+   if reqarg and opttab[optname] and (not opttab[optname][1]) then
+      print("error: option "..optname.. " requires an argument")
+      os.exit(1)
+   end
+
+   -- arg not there at all
+   -- we also return the default if the opt is not given at all
+   if not opttab[optname] or (not opttab[optname][1]) then
+      return defarg
+   end
+
+   return typecheck(opttab[optname][1])
+end
+
+
+--- prog starts here
+if #arg < 1 then
+   usage(); os.exit(1)
+end
+
+local opttab = utils.proc_args(arg)
+
+if opttab['-h'] then
+   usage(); os.exit(0)
+end
+
+local loglevel = get_arg(opttab, "-l", 6, false, false, tonumber)
+
+ubx.color = get_arg(opttab, "-c", true, false, true,
+		    function (c) return tonumber(c) ~= 0 end)
+
+if opttab[0][1] == "list" then
+   modules_list()
+   os.exit(0)
+elseif opttab[0][1] == "show" then
+
+   if not opttab[0][2] then
+      print("show requires a module parameter")
+      os.exit(1)
+   end
+
+   local mod = opttab[0][2]
+
+   local premods = get_arg(opttab, "-p", {}, false, true,
+			   function(modlist) return utils.split(modlist, ',') end)
+
+   local show_blocks = get_arg(opttab, "-b", {}, false, true,
+			       function(modlist) return utils.split(modlist, ',') end)
+
+   local show_types = get_arg(opttab, "-t", {}, false, true,
+			      function(typelist) return utils.split(typelist, ',') end)
+
+   local ni = ubx.node_create("node", loglevel)
+
+   if mod ~= "stdtypes" then
+      premods[#premods+1] = "stdtypes"
+   end
+
+   for _,m in ipairs(premods) do ubx.load_module(ni, m) end
+
+   local n1 = ubx.node_totab(ni)
+   ubx.load_module(ni, mod)
+   local n2 = ubx.node_totab(ni)
+
+   local types = table_sub(n2.types, n1.types)
+   local blocks = table_sub(n2.blocks, n1.blocks)
+
+   print("module " .. mod)
+
+   if #show_types > 0 or #show_blocks > 0 then
+      if #show_types > 0 then
+	 for _,tname in ipairs(show_types) do
+	    print("  " ..ubx.type_tostr(types[tname]))
+	 end
+      end
+
+      if #show_blocks > 0 then
+	 for _,bname in ipairs(show_blocks) do
+	    print("  " ..ubx.block_pp(blocks[bname]))
+	 end
+      end
+   else
+      -- print all
+      print(" types:")
+      for _,t in pairs(types) do print("  "..ubx.type_tostr(t)) end
+      print("\n blocks:")
+      for _,b in pairs(blocks) do print("  " ..ubx.block_pp(b)) end
+   end
+end

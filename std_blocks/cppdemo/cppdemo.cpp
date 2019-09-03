@@ -90,14 +90,12 @@ ubx_block_t cppdemo_comp = ubx_block_cpp(
 
 static int cppdemo_init(ubx_node_info_t* ni)
 {
-	DBG(" ");
 	ubx_type_register(ni, &cpp_demo_type);
 	return ubx_block_register(ni, &cppdemo_comp);
 }
 
 static void cppdemo_cleanup(ubx_node_info_t *ni)
 {
-	DBG(" ");
 	ubx_type_unregister(ni, "cpp_demo_type");
 	ubx_block_unregister(ni, "cppdemo/cppdemo");
 }

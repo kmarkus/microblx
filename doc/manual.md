@@ -3,11 +3,35 @@ Microblx User Manual
 
 Microblx is a lightweight function block model and implementation.
 
-This manual describes microblx in a cookbook style:
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-generate-toc again -->
+**Table of Contents**
 
- 1. Key concepts
- 1. How to build a microblx block
- 1. How to assemble blocks into a system and how to use std_blocks like the webinterface (`webif` block) or the logger (`file_logger`))
+- [Microblx User Manual](#microblx-user-manual)
+    - [Key concepts](#key-concepts)
+    - [Building microblx blocks](#building-microblx-blocks)
+        - [Declaring configuration](#declaring-configuration)
+        - [Declaring ports](#declaring-ports)
+        - [Declaring block meta-data](#declaring-block-meta-data)
+        - [Declaring/implementing block hook functions](#declaringimplementing-block-hook-functions)
+            - [Storing block local state](#storing-block-local-state)
+            - [Reading configuration values](#reading-configuration-values)
+            - [When to read configuration: init vs start?](#when-to-read-configuration-init-vs-start)
+            - [Reading from and writing to ports](#reading-from-and-writing-to-ports)
+        - [Declaring the block](#declaring-the-block)
+        - [Declaring types](#declaring-types)
+        - [Block and type registration](#block-and-type-registration)
+        - [Using real-time logging](#using-real-time-logging)
+        - [SPDX License Identifier](#spdx-license-identifier)
+        - [Block code-generation](#block-code-generation)
+    - [Assembling blocks](#assembling-blocks)
+    - [Tips and Tricks](#tips-and-tricks)
+        - [Using C++](#using-c)
+        - [Avoiding Lua scripting](#avoiding-lua-scripting)
+        - [Speeding up port writing](#speeding-up-port-writing)
+        - [What the difference between block types and instances?](#what-the-difference-between-block-types-and-instances)
+        - [Module visibility](#module-visibility)
+
+<!-- markdown-toc end -->
 
 
 Key concepts
@@ -155,7 +179,7 @@ local information. Allocate this in the `init` hook:
 
 ```C
 if ((b->private_data = calloc(1, sizeof(struct random_info)))==NULL) {
-	ERR("Failed to alloc memory");
+	ubx_err(b, "Failed to alloc memory");
 	goto out_err;
 }
 
@@ -323,6 +347,70 @@ static void rnd_module_cleanup(ubx_node_info_t *ni)
 }
 UBX_MODULE_CLEANUP(rnd_module_cleanup)
 ```
+
+### Using real-time logging
+
+Microblx provides logging infrastructure with loglevels similar to the
+Linux Kernel. Loglevel can be set on the (global) node level (e.g. by
+passing it `-loglevel N` to `ubx_launch` or be overridden on a per
+block basis. To do the latter, a block must define and configure a
+`loglevel` config of type `int`. If it is left unconfigured, again the
+node loglevel will be used.
+
+The following loglevels are supported:
+
+- `UBX_LOGLEVEL_EMERG`  (0) (system unusable)
+- `UBX_LOGLEVEL_ALERT`  (1)	(immediate action required)
+- `UBX_LOGLEVEL_CRIT`   (2)	(critical)
+- `UBX_LOGLEVEL_ERROR`  (3)	(error)
+- `UBX_LOGLEVEL_WARN`   (4)	(warning conditions)
+- `UBX_LOGLEVEL_NOTICE` (5)	(normal but significant)
+- `UBX_LOGLEVEL_INFO`   (6)	(info message)
+- `UBX_LOGLEVEL_DEBUG`  (7)	(debug messages)
+
+The following macros are available for logging from within blocks:
+
+```C
+ubx_emerg(b, fmt, ...)
+ubx_alert(b, fmt, ...)
+ubx_crit(b, fmt, ...)
+ubx_err(b, fmt, ...)
+ubx_warn(b, fmt, ...)
+ubx_notice(b, fmt, ...)
+ubx_info(b, fmt, ...)
+ubx_debug(b, fmt, ...)
+```
+
+Note that `ubx_debug` will only be logged if `UBX_DEBUG` is defined in
+the respective block and otherwise compiled out without any overhead.
+
+To view the logmessages, you need to run the `ubx_log` tool in a
+separate window.
+
+**Important**: The maximum total log message length (including is by
+default set to 80 by default), so make sure to keep log message short
+and sweet (or increase the lenghth for your build).
+
+Note that the old (non-rt) macros `ERR`, `ERR2`, `MSG` and `DBG` are
+deprecated and shall not be used anymore.
+
+Outside of the block context, (e.g. in `module_init` or
+`module_cleanup`, you can log with the lowlevel function
+
+```C
+ubx_log(int level,
+	    ubx_node_info_t *ni,
+		const char* src,
+		const char* fmt, ...)
+
+/* for example */
+ubx_log(UBX_LOGLEVEL_ERROR, ni, __FUNCTION__, "error %u", x);
+```
+
+e.g.
+
+The ubx core uses the same logger, but mechanism, but uses the
+`log_info` resp `logf_info` variants. See `libubx/ubx.c` for examples.
 
 ### SPDX License Identifier
 

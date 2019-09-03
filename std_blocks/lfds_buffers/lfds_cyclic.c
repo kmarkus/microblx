@@ -126,8 +126,8 @@ static int cyclic_init(ubx_block_t *i)
 		goto out_free_priv_data;
 	}
 
-	ubx_info(i, "alloc ringbuf of %lu x %s [%lu]",
-		 bbi->buffer_len, type_name, bbi->data_len);
+	ubx_debug(i, "alloc ringbuf of %lu x %s [%lu]",
+		  bbi->buffer_len, type_name, bbi->data_len);
 
 	if (lfds611_ringbuffer_new(&bbi->rbs,
 				   bbi->buffer_len,
@@ -264,13 +264,11 @@ ubx_block_t cyclic_comp = {
 
 static int cyclic_mod_init(ubx_node_info_t* ni)
 {
-	DBG(" ");
 	return ubx_block_register(ni, &cyclic_comp);
 }
 
 static void cyclic_mod_cleanup(ubx_node_info_t *ni)
 {
-	DBG(" ");
 	ubx_block_unregister(ni, "lfds_buffers/cyclic");
 }
 

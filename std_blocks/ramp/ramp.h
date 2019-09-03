@@ -82,7 +82,6 @@ ubx_block_t ramp_block = {
 /* ramp module init and cleanup functions */
 int ramp_mod_init(ubx_node_info_t* ni)
 {
-	DBG(" ");
 	int ret = -1;
 	ubx_type_t *tptr;
 
@@ -102,7 +101,6 @@ out:
 
 void ramp_mod_cleanup(ubx_node_info_t *ni)
 {
-	DBG(" ");
 	const ubx_type_t *tptr;
 
 	for(tptr=types; tptr->name!=NULL; tptr++)

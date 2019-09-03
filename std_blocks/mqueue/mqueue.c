@@ -49,7 +49,7 @@ static int mqueue_init(ubx_block_t *i)
 	struct mq_attr mqa;
 
 	if((i->private_data = calloc(1, sizeof(struct mqueue_info)))==NULL) {
-		ERR("failed to alloc mqueue_info");
+		ubx_err(i, "failed to alloc mqueue_info");
 		ret = EOUTOFMEM;
 		goto out;
 	}
@@ -60,15 +60,15 @@ static int mqueue_init(ubx_block_t *i)
 	len = cfg_getptr_uint32(i, "buffer_len", &val);
 
 	if(len < 0) {
-		ERR("%s: failed to get buffer_len config", i->name);
+		ubx_err(i, "%s: failed to get buffer_len config", i->name);
 		goto out_free_info;
 	} else if (len == 0) {
-		ERR("%s: config buffer_len unconfigured", i->name);
+		ubx_err(i, "%s: config buffer_len unconfigured", i->name);
 		ret = EINVALID_CONFIG;
 		goto out_free_info;
 	} else {
 		if(*val==0) {
-			ERR("%s: illegal value buffer_len=0", i->name);
+			ubx_err(i, "%s: illegal value buffer_len=0", i->name);
 			ret = EINVALID_CONFIG;
 			goto out_free_info;
 		}
@@ -80,7 +80,7 @@ static int mqueue_init(ubx_block_t *i)
 
 	/* config data_len */
 	if((len = cfg_getptr_uint32(i, "data_len", &val)) < 0) {
-		ERR("%s: failed to read 'data_len' config", i->name);
+		ubx_err(i, "%s: failed to read 'data_len' config", i->name);
 		goto out_free_info;
 	}
 
@@ -90,7 +90,7 @@ static int mqueue_init(ubx_block_t *i)
 	len = cfg_getptr_char(i, "type_name", &chrptr);
 
 	if (len <= 0 || chrptr == NULL) {
-		ERR("%s: invalid or missing type name", i->name);
+		ubx_err(i, "%s: invalid or missing type name", i->name);
 		goto out_free_info;
 	}
 
@@ -100,7 +100,7 @@ static int mqueue_init(ubx_block_t *i)
 	mqa.mq_msgsize = mqi->data_len * mqi->type->size;
 
 	if(mqi->type==NULL) {
-		ERR("%s: failed to lookup type %s", i->name, chrptr);
+		ubx_err(i, "%s: failed to lookup type %s", i->name, chrptr);
 		ret = EINVALID_CONFIG;
 		goto out_free_info;
 	}
@@ -109,19 +109,19 @@ static int mqueue_init(ubx_block_t *i)
 	len = cfg_getptr_char(i, "mq_name", &chrptr);
 
 	if(len <= 0) {
-		ERR("%s: 'mq_name' unconfigured", i->name);
+		ubx_err(i, "%s: 'mq_name' unconfigured", i->name);
 		goto out_free_info;
 	}
 
 	if(chrptr[0] != '/') {
-		ERR("%s: invalid mq_name, must start with '/' (cfr. mq_overview(1))", i->name);
+		ubx_err(i, "%s: invalid mq_name, must start with '/' (cfr. mq_overview(1))", i->name);
 		goto out_free_info;
 	}
 
 	mqi->mq_name = strdup(chrptr);
 
 	if (mqa.mq_msgsize <= 0) {
-		ERR("%s: invalid value for mq_msgsize: %ld", i->name, mqa.mq_msgsize);
+		ubx_err(i, "%s: invalid value for mq_msgsize: %ld", i->name, mqa.mq_msgsize);
 		goto out_free_mq_name;
 	}
 
@@ -130,7 +130,7 @@ static int mqueue_init(ubx_block_t *i)
 	mqi->mqd = mq_open(mqi->mq_name, O_RDWR | O_CREAT | O_NONBLOCK, S_IRUSR | S_IWUSR, &mqa);
 
 	if(mqi->mqd < 0) {
-		ERR2(errno, "%s: mq_open failed", i->name);
+		ubx_err(i, "mq_open failed %s", strerror(errno));
 		goto out_free_mq_name;
 	}
 
@@ -150,13 +150,14 @@ static void mqueue_cleanup(ubx_block_t *i)
 	int ret;
 	struct mqueue_info* mqi = (struct mqueue_info*) i->private_data;
 
-	if(mq_close(mqi->mqd) != 0)
-		ERR2(errno, "%s: mq_close failed on message queue %s", i->name, mqi->mq_name);
+	if(mq_close(mqi->mqd) != 0) {
+		ubx_err(i, "mq_close %s failed: %s", mqi->mq_name, strerror(errno));
+	}
 
 	ret = mq_unlink(mqi->mq_name);
 
 	if( ret < 0 && errno !=ENOENT) {
-		ERR2(errno, "%s: mq_unlink failed on queue %s", i->name, mqi->mq_name);
+		ubx_err(i, "mq_unlink %s failed: %s", mqi->mq_name, strerror(errno));
 	}
 
 	free(mqi->mq_name);
@@ -173,7 +174,7 @@ static long mqueue_read(ubx_block_t *i, ubx_data_t* data)
 	ret = mq_receive(mqi->mqd, (char*) data->data, size, NULL);
 
 	if(ret <= 0 && errno != EAGAIN) { /* error */
-		ERR2(errno, "%s: mq_receive failed", i->name);
+		ubx_err(i, "mq_receive %s failed: %s", i->name, strerror(errno));
 		mqi->cnt_recv_err++;
 		goto out;
 	} else if (ret<=0 && errno == EAGAIN) { /* empty queue */
@@ -194,7 +195,7 @@ static void mqueue_write(ubx_block_t *i, ubx_data_t* data)
 	mqi = (struct mqueue_info*) i->private_data;
 
 	if(mqi->type != data->type) {
-		ERR("%s: invalid message type %s", i->name, data->type->name);
+		ubx_err(i, "%s: invalid message type %s", i->name, data->type->name);
 		goto out;
 	}
 
@@ -206,7 +207,7 @@ static void mqueue_write(ubx_block_t *i, ubx_data_t* data)
 	if(ret != 0 ) {
 		mqi->cnt_send_err++;
 		if (errno != EAGAIN) {
-			ERR2(errno, "%s: sending message failed", i->name);
+			ubx_err(i, "mq_send %s failed", i->name, strerror(errno));
 			goto out;
 		}
 	}

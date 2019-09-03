@@ -17,11 +17,24 @@ const char *loglevel_str[] = {
 	"WARN", "NOTICE", "INFO", "DEBUG"
 };
 
-void log_data(logc_info_t *inf)
+#define RED   "\x1B[31m"
+#define GRN   "\x1B[32m"
+#define YEL   "\x1B[33m"
+#define BLU   "\x1B[34m"
+#define MAG   "\x1B[35m"
+#define CYN   "\x1B[36m"
+#define WHT   "\x1B[37m"
+#define RESET "\x1B[0m"
+
+const char *loglevel_color[] = {
+	RED, RED, RED, RED,
+	YEL, CYN, WHT, MAG
+};
+
+void log_data(logc_info_t *inf, int color)
 {
 	struct ubx_log_msg *msg;
 	int ret;
-	FILE *stream;
 	const char *level_str;
 
 	ret = logc_read_frame(inf, (volatile log_frame_t **)&msg);
@@ -30,18 +43,28 @@ void log_data(logc_info_t *inf)
 		break;
 
 	case NEW_DATA:
-		stream = stdout;
 		level_str = (msg->level > UBX_LOGLEVEL_DEBUG ||
 			     msg->level < UBX_LOGLEVEL_EMERG) ?
 			"INVALID" : loglevel_str[msg->level];
 
-		fprintf(stream, "[%li.%06li] %s %s: %s\n",
-			msg->ts.sec, msg->ts.nsec / NSEC_PER_USEC,
-			level_str, msg->src, msg->msg);
+		if (color)
+			fprintf(stdout, GRN "[%li.%06li]" RESET "%s %s %s: %s\n" RESET,
+				msg->ts.sec, msg->ts.nsec / NSEC_PER_USEC,
+				loglevel_color[msg->level],
+				level_str, msg->src, msg->msg);
+		else
+			fprintf(stdout, "[%li.%06li] %s %s: %s\n",
+				msg->ts.sec, msg->ts.nsec / NSEC_PER_USEC,
+				level_str, msg->src, msg->msg);
 
+		fflush(stdout);
 		break;
 	}
 }
+
+#define ERRC(color, fmt, args...) ( fprintf(stderr, "%s", (color==1) ? RED : ""), \
+				    fprintf(stderr, fmt, ##args),		  \
+				    fprintf(stderr, "%s", (color==1) ? RESET : "") )
 
 /*
  * The code below utilises inotify to detect when a shm becomes
@@ -288,10 +311,33 @@ int check_new_shm(struct ubx_log_info *inf)
 	return ret;
 }
 
-int main(void)
+void print_help(char **argv)
 {
+	printf("usage:\n");
+	printf(" %s [options]\n", argv[0]);
+	printf("   show ubx log messages\n\n");
+	printf("Options:\n");
+	printf("  -N    don't use colors\n");
+	printf("  -h    show this help and exit\n");
+}
+
+int main(int argc, char **argv)
+{
+	int opt, color = 1, ret = EOUTOFMEM;
 	struct ubx_log_info *inf;
-	int ret = EOUTOFMEM;
+
+	while ((opt = getopt(argc, argv, "Nh")) != -1) {
+		switch (opt) {
+		case 'N':
+			color = 0;
+			break;
+		case 'h':
+		default: /* '?' */
+			print_help(argv);
+			exit(EXIT_FAILURE);
+		}
+	}
+
 
 	inf = calloc(1, sizeof(struct ubx_log_info));
 	if (inf == NULL) {
@@ -318,16 +364,16 @@ int main(void)
 			continue;
 
 		case NEW_DATA:
-			log_data(inf->lcinf);
+			log_data(inf->lcinf, color);
 			break;
 
 		case OVERRUN:
-			fprintf(stderr, "OVERRUN - reset read side\n");
+			ERRC(color, "OVERRUN - reset read side\n");
 			logc_reset_read(inf->lcinf);
 			break;
 
 		case ERROR:
-			fprintf(stderr, "ERROR checking for data\n");
+			ERRC(color, "ERROR checking for data\n");
 			logc_reset_read(inf->lcinf);
 			usleep(100000);
 			break;

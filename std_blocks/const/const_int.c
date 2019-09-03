@@ -30,7 +30,6 @@ struct blk_inf {
 
 static int const_int_init(ubx_block_t *i)
 {
-	DBG("");
 	int ret = -1;
 	struct blk_inf *inf;
 
@@ -57,7 +56,6 @@ out:
 
 static int const_int_start(ubx_block_t *i)
 {
-	DBG("");
 	long int len;
 	struct blk_inf *inf;
 
@@ -80,7 +78,6 @@ static void const_int_cleanup(ubx_block_t *i)
 
 static long const_int_read(ubx_block_t *i, ubx_data_t* data)
 {
-	DBG("");
 	int ret = 0;
 	struct blk_inf *inf;
 	inf = (struct blk_inf*) i->private_data;
@@ -115,13 +112,11 @@ ubx_block_t const_int_comp = {
 
 static int const_int_mod_init(ubx_node_info_t* ni)
 {
-	DBG(" ");
 	return ubx_block_register(ni, &const_int_comp);
 }
 
 static void const_int_mod_cleanup(ubx_node_info_t *ni)
 {
-	DBG(" ");
 	ubx_block_unregister(ni, "const_int/const_int");
 }
 

@@ -5,7 +5,16 @@ This file tracks user visible API changes.
 
 ## v0.7.0
 
-- lfds_cyclic: increased loglevel for buffer overflow loggin to
+- ubxcore: `ubx_node_cleanup` changed to remove blocks and unload
+  modules, but to leaving the node intact. For destroying a node,
+  `ubx_node_rm` was introduced.
+
+- ubx.lua: `config_get` returns `nil` if a config doesn't exist
+  instead of throwing and error
+
+- added `ubx-modinfo` tool for offline module introspection
+
+- lfds_cyclic: increased loglevel for buffer overflow logging to
   NOTICE.
 
 - introduced real-time safe logging and switched core and std_blocks
