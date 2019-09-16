@@ -6,6 +6,7 @@ return bd.system
 {
    imports = {
       "stdtypes",
+      "stattypes",
       "random",
       "ptrig",
       "lfds_cyclic"

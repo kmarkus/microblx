@@ -1,6 +1,7 @@
 {
   "imports": [
     "stdtypes",
+    "stattypes",
     "random",
     "ptrig",
     "lfds_cyclic"
