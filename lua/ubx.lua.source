@@ -998,7 +998,7 @@ end
 function M.config_tabtostr(ctab)
    return blue(ctab.name, true)
       .." ["..magenta(ctab.type_name).."] "
-      ..yellow(utils.tab2str((ctab.value)))
+      ..yellow(utils.tab2str(ctab.value))
       .." "..red("// "..ctab.doc)
 end
 
