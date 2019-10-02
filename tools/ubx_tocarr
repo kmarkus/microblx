@@ -4,6 +4,8 @@
 -- This tool converts the contents of a file to a C array of hex data,
 -- that can be included as a C header. The data is \0 terminated.
 
+utils=require "utils"
+
 local fmt = string.format
 
 local function split(str, pat)
@@ -30,17 +32,46 @@ local function filename(path)
    return t[#t]
 end
 
-if #arg < 1 then
-   print("ubx_tocarr: convert file contents to a C hex array")
-   print("   usage: ubx_tocarr <file> <array name>")
-   os.exit(1)
+function usage()
+   print([[
+ubx_tocarr: convert file contents to a C hex array
+
+Usage: ubx_tocarr [OPTIONS]
+   -s           source file
+   -d           destination file
+   -a           array name
+   -h           show this.
+]])
 end
 
-outfile=arg[1]..".hexarr"
-structname=arg[2] or string.gsub(filename(arg[1]), "[-.]", "_")
+local opttab=utils.proc_args(arg)
+
+if #arg < 1 or opttab['-h'] then usage(); os.exit(1) end
+
+if not (opttab['-s'] and opttab['-s'][1]) then
+   srcfile=arg[1]
+else
+   srcfile=opttab['-s'][1]
+end
+
+if not (opttab['-d'] and opttab['-d'][1]) then
+   outfile=arg[1]..".hexarr"
+else
+   outfile=opttab['-d'][1]
+end
+
+if not (opttab['-a'] and opttab['-a'][1]) then
+   structname=arg[2] or string.gsub(filename(arg[1]), "[-.]", "_")
+else
+   structname=opttab['-a'][1]
+end
+
+
 breaknum = 16	 -- break line after this
 
-fi = assert(io.open(arg[1], "r"))
+print("srcfile: " .. srcfile)
+print("outfile: " .. outfile)
+fi = assert(io.open(srcfile, "r"))
 fo = assert(io.open(outfile, "w"))
 
 data=fi:read("*a")
