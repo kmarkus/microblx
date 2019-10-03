@@ -4,8 +4,6 @@
 -- This tool converts the contents of a file to a C array of hex data,
 -- that can be included as a C header. The data is \0 terminated.
 
-utils=require "utils"
-
 local fmt = string.format
 
 local function split(str, pat)
@@ -32,6 +30,27 @@ local function filename(path)
    return t[#t]
 end
 
+--- Convert arguments list into key-value pairs.
+-- The return table is indexable by parameters (i.e. ["-p"]) and the
+-- value is an array of zero to many option parameters.
+-- @param standard Lua argument table
+-- @return key-value table
+function proc_args(args)
+   local function is_opt(s) return string.sub(s, 1, 1) == '-' end
+   local res = { [0]={} }
+   local last_key = 0
+   for i=1,#args do
+      if is_opt(args[i]) then -- new key
+         last_key = args[i]
+         res[last_key] = {}
+      else -- option parameter, append to existing tab
+         local list = res[last_key]
+         list[#list+1] = args[i]
+      end
+   end
+   return res
+end
+
 function usage()
    print([[
 ubx_tocarr: convert file contents to a C hex array
@@ -44,7 +63,7 @@ Usage: ubx_tocarr [OPTIONS]
 ]])
 end
 
-local opttab=utils.proc_args(arg)
+local opttab=proc_args(arg)
 
 if #arg < 1 or opttab['-h'] then usage(); os.exit(1) end
 
