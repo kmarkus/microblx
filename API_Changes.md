@@ -3,6 +3,10 @@ API Changes
 
 This file tracks user visible API changes.
 
+## Unreleased
+
+- ubx_tocarr: cmdline args added to allow overriding output file file
+
 ## v0.7.0
 
 - ubxcore: `ubx_node_cleanup` changed to remove blocks and unload
