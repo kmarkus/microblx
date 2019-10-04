@@ -1,6 +1,10 @@
 Quickstart
 ==========
 
+NOTE: the following assume microblx was installed in the default
+locations under `/usr/local/`. If you installed it in a different
+location you will need to adopt the path to the examples.
+
 Run the random block example
 ----------------------------
 
@@ -8,8 +12,18 @@ This (silly) example creates a random number generator block. It's
 output is hexdump'ed (using the `hexdump` interaction block) and also
 logged using a `file_logger` block.
 
+Before launching the composition, it is advisable to run the logging
+client to see potential errors:
+
+```
+$ ubx_log
+
+```
+
+and then in another terminal:
+
 ```sh
-$ ubx_ilaunch -webif -c /usr/share/microblx/examples/systemmodels/trig_rnd_hexdump.usc
+$ ubx_ilaunch -webif -c /usr/local/share/ubx/examples/systemmodels/trig_rnd_hexdump.usc
 ```
 
 Browse to http://localhost:8888
@@ -25,13 +39,11 @@ Explore:
 Create your first block
 -----------------------
 
-NOTE: the following assumes that microblx has been installed with
-`--prefix=/usr/`.
-
 ### Generate a block
 
 ```sh
-$ ubx_genblock -d myblock -c /usr/share/microblx/examples/blockmodels/block_model_example.lua 
+$ ubx_genblock -d myblock -c /usr/local/share/ubx/examples/blockmodels/block_model_example.lua
+    generating myblock/bootstrap
     generating myblock/configure.ac
 	generating myblock/Makefile.am
 	generating myblock/myblock.h
@@ -45,6 +57,7 @@ Run `ubx_genblock -h` for full options.
 
 The following files are generated:
 
+ - `bootstrap` autoconf bootstrap script
  - `configure.ac` autoconf input file
  - `Makefile.am` automake input file
  - `myblock.h` block interface and module registration code (don't edit)
@@ -58,8 +71,8 @@ The following files are generated:
 
 ```sh
 $ cd myblock/
-$ autoreconf --install
-$ ./configure --prefix=/usr/
+$ ./bootstrap
+$ ./configure
 $ make
 $ make install
 ```
@@ -73,14 +86,3 @@ $ ubx_ilaunch -webif -c myblock.usc
 Run `ubx_launch -h` for full options.
 
 Browse to http://localhost:8888
-
-
-Notes
------
-
- - Commands must be run from root of source tree. This will change in
-   the future when blocks and libraries are installed.
-   
- - Note the "random block example" uses a plain script to launch the
-   system, while ubx_launch uses a declarative system model to launch,
-   connect and configure blocks.

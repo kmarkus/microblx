@@ -4,6 +4,8 @@ local ubx=require("ubx")
 local utils=require("utils")
 local bd = require("blockdiagram")
 
+ubx.color=false
+
 local NUM_BLOCKS = 100
 
 local luablock = [[
@@ -63,7 +65,7 @@ local sys1 = bd.system {
 }
 
 function test_launch()
-   return sys1:launch{nodename="sys1", verbose=false }
+   return sys1:launch{nodename="sys1", loglevel=ffi.C.UBX_LOGLEVEL_WARN }
 end
 
 os.exit( luaunit.LuaUnit.run() )

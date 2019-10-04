@@ -31,7 +31,6 @@ ubx_type_t types[] = {
 
 static int testtypes_init(ubx_node_info_t* ni)
 {
-	DBG(" ");
 	ubx_type_t *tptr;
 	for(tptr=types; tptr->name!=NULL; tptr++) {
 		/* TODO check for errors */
@@ -43,7 +42,6 @@ static int testtypes_init(ubx_node_info_t* ni)
 
 static void testtypes_cleanup(ubx_node_info_t *ni)
 {
-	DBG(" ");
 	const ubx_type_t *tptr;
 
 	for(tptr=types; tptr->name!=NULL; tptr++)

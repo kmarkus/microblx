@@ -4,10 +4,8 @@
  * Copyright (C) 2013,2014 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
  * Copyright (C) 2014-2018 Markus Klotzbuecher <mk@mkio.de>
  *
- * SPDX-License-Identifier: GPL-2.0+ WITH eCos-exception-2.0
- */
-
-/*
+ * SPDX-License-Identifier: MPL-2.0
+ *
  * ubx type a function definitions.
  *
  * This file is luajit-ffi parsable, the rest goes into ubx.h
@@ -17,14 +15,16 @@
 enum {
 	BLOCK_NAME_MAXLEN	= 30,
 	TYPE_HASH_LEN		= 16,   /* md5 */
-	TYPE_HASH_LEN_UNIQUE	= 8	/* Number of characters of the
+	TYPE_HASH_LEN_UNIQUE	= 8,	/* Number of characters of the
 					   type checksum to compare */
+	LOG_MSG_MAXLEN		= 80,
 };
 
 struct ubx_type;
 struct ubx_data;
 struct ubx_block;
 struct ubx_node_info;
+struct ubx_log_msg;
 
 /*
  * module and node
@@ -46,7 +46,7 @@ typedef struct ubx_type
 	const char* name;		/* name: dir/header.h/struct foo*/
 	const char* doc;		/* short documentation string */
 	uint32_t type_class;		/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
-	unsigned long size;		/* size in bytes */
+	long size;			/* size in bytes */
 	const void* private_data;	/* private data. */
 	uint8_t hash[TYPE_HASH_LEN];
 } ubx_type_t;
@@ -54,7 +54,7 @@ typedef struct ubx_type
 /* This struct is used to store a reference to the type and contains
    mutable, node specific fields. Since unlike blocks, types are
    mostly immutable, there is no need to take a copy.
- */
+*/
 typedef struct ubx_type_ref
 {
 	ubx_type_t *type_ptr;
@@ -66,7 +66,7 @@ typedef struct ubx_data
 {
 	int refcnt;		/* reference counting, num refs = refcnt + 1 */
 	const ubx_type_t* type;	/* link to ubx_type */
-	unsigned long len;	/* if length> 1 then length of array, else ignored */
+	long len;		/* if length> 1 then length of array, else ignored */
 	void* data;		/* buffer with size (type->size * length) */
 } ubx_data_t;
 
@@ -90,18 +90,38 @@ enum {
 	PORT_READ_DROPPED		= -2
 };
 
-/* return values */
+/* return error codes */
 enum {
-	/* ERROR conditions */
-	EPORT_INVALID		= -3,
-	EPORT_INVALID_TYPE	= -4,
+	EINVALID_BLOCK = -32767,	/* invalid block */
+	EINVALID_PORT,			/* invalid port */
+	EINVALID_CONFIG,		/* invalid config */
+	EINVALID_TYPE,			/* invalid config */
 
-	/* Registration, etc */
-	EINVALID_BLOCK_TYPE	= -5,
-	ENOSUCHBLOCK		= -6,
-	EALREADY_REGISTERED	= -7,
-	EOUTOFMEM		= -8,
-	EINVALID_CONFIG		= -9
+	EINVALID_BLOCK_TYPE,		/* invalid block type */
+	EINVALID_PORT_TYPE,		/* invalid port type */
+	EINVALID_CONFIG_TYPE,		/* invalid port type */		
+	
+	EINVALID_PORT_DIR,		/* invalid port direction */
+
+	EINVALID_ARG,			/* UBX EINVAL */
+	EWRONG_STATE,			/* invalid FSM state */
+	ENOSUCHENT,			/* no such entity */
+	EENTEXISTS,			/* entity exists already */
+	EALREADY_REGISTERED,		/* entity already registered */
+	ETYPE_MISMATCH,			/* mismatching types */
+	EOUTOFMEM,			/* UBX ENOMEM */
+
+};
+
+enum {
+	UBX_LOGLEVEL_EMERG 	= 0,	/* system unusable */
+	UBX_LOGLEVEL_ALERT 	= 1,	/* immediate action required */
+	UBX_LOGLEVEL_CRIT 	= 2,	/* critical */
+	UBX_LOGLEVEL_ERR 	= 3,	/* error */
+	UBX_LOGLEVEL_WARN 	= 4,	/* warning conditions */
+	UBX_LOGLEVEL_NOTICE 	= 5,	/* normal but significant */
+	UBX_LOGLEVEL_INFO 	= 6,	/* info msg */
+	UBX_LOGLEVEL_DEBUG 	= 7	/* debug messages */
 };
 
 /* Port
@@ -121,8 +141,8 @@ typedef struct ubx_port
 	ubx_type_t* in_type;		/* resolved in automatically */
 	ubx_type_t* out_type;		/* resolved in automatically */
 
-	unsigned long in_data_len;	/* max array size of in/out data */
-	unsigned long out_data_len;
+	long in_data_len;		/* max array size of in/out data */
+	long out_data_len;
 
 	struct ubx_block** in_interaction;
 	struct ubx_block** out_interaction;
@@ -147,7 +167,7 @@ typedef struct ubx_config
 	const char* type_name;
 	ubx_type_t *type;
 	ubx_data_t *value;		/* reference to actual value */
-	unsigned long data_len;		/* array size of value */
+	long data_len;			/* array size of value */
 	uint32_t attrs;
 } ubx_config_t;
 
@@ -187,6 +207,8 @@ typedef struct ubx_block
 
 	struct ubx_node_info* ni;
 
+	const int *loglevel;
+
 	int(*init) (struct ubx_block*);
 	int(*start) (struct ubx_block*);
 	void(*stop) (struct ubx_block*);
@@ -206,7 +228,7 @@ typedef struct ubx_block
 		struct {
 			/* read and write: these are implemented by interactions and
 			 * called by the ports read/write */
-			int(*read)(struct ubx_block* iblock, ubx_data_t* value);
+			long(*read)(struct ubx_block* iblock, ubx_data_t* value);
 			void(*write)(struct ubx_block* iblock, ubx_data_t* value);
 			unsigned long stat_num_reads;
 			unsigned long stat_num_writes;
@@ -244,6 +266,10 @@ typedef struct ubx_node_info
 	ubx_type_ref_t *types; /* known types */
 	ubx_module_t *modules;
 	unsigned long cur_seqid;
+
+	int loglevel;
+	void(*log)(struct ubx_node_info*, struct ubx_log_msg*);
+	void *log_data;
 } ubx_node_info_t;
 
 /* OS stuff */
@@ -251,4 +277,19 @@ struct ubx_timespec
 {
 	long int sec;
 	long int nsec;
+};
+
+/**
+ * struct ubx_log_msg - ubx log message
+ * @level:	log level (%UBX_LL_ERR, ...)
+ * @ts:		timestamp taken at time of logging
+ * @src:	source of log message (typically block or node name)
+ * @msg:	log message
+ */
+struct ubx_log_msg
+{
+	int level;
+	struct ubx_timespec ts;
+	char src[BLOCK_NAME_MAXLEN + 1];
+	char msg[LOG_MSG_MAXLEN + 1];
 };

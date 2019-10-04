@@ -185,6 +185,18 @@ end
 --- Generate configure.ac
 -- @param bm block model
 -- @param fd file to write to (optional, default: io.stdout)
+function generate_bootstrap(fd, bm)
+fd:write([[
+#!/bin/sh
+
+autoreconf --install || exit 1
+]])
+end
+
+
+--- Generate configure.ac
+-- @param bm block model
+-- @param fd file to write to (optional, default: io.stdout)
 function generate_configure_ac(fd, bm)
 
    local res, str = utils.preproc([[
@@ -476,9 +488,10 @@ ubx_block_t $(bm.name)_block = {
 /* $(bm.name) module init and cleanup functions */
 int $(bm.name)_mod_init(ubx_node_info_t* ni)
 {
-	DBG(" ");
 	int ret = -1;
 	ubx_type_t *tptr;
+
+	ubx_log(UBX_LOGLEVEL_DEBUG, ni, __FUNCTION__, "");
 
 	for(tptr=types; tptr->name!=NULL; tptr++) {
 		if(ubx_type_register(ni, tptr) != 0) {
@@ -496,8 +509,9 @@ out:
 
 void $(bm.name)_mod_cleanup(ubx_node_info_t *ni)
 {
-	DBG(" ");
 	const ubx_type_t *tptr;
+
+	ubx_log(UBX_LOGLEVEL_DEBUG, ni, __FUNCTION__, "");
 
 	for(tptr=types; tptr->name!=NULL; tptr++)
 		ubx_type_unregister(ni, tptr->name);
@@ -534,10 +548,6 @@ function generate_block_body(fd, bm)
 #include "$(bm.name).h"
 @ end
 
-/* edit and uncomment this:
- * UBX_MODULE_LICENSE_SPDX(GPL-2.0+)
- */
-
 /* define a structure for holding the block local state. By assigning an
  * instance of this struct to the block private_data pointer (see init), this
  * information becomes accessible within the hook functions.
@@ -561,7 +571,7 @@ int $(bm.name)_init(ubx_block_t *b)
 
 	/* allocate memory for the block local state */
 	if ((inf = (struct $(bm.name)_info*)calloc(1, sizeof(struct $(bm.name)_info)))==NULL) {
-		ERR("$(bm.name): failed to alloc memory");
+		ubx_err(b, "$(bm.name): failed to alloc memory");
 		ret=EOUTOFMEM;
 		goto out;
 	}
@@ -579,7 +589,7 @@ out:
 int $(bm.name)_start(ubx_block_t *b)
 {
 	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
-        MSG("%s", b->name);
+        ubx_info(b, "%s", __FUNCTION__);
 	int ret = 0;
 	return ret;
 }
@@ -590,7 +600,7 @@ int $(bm.name)_start(ubx_block_t *b)
 void $(bm.name)_stop(ubx_block_t *b)
 {
 	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
-        MSG("%s", b->name);
+        ubx_info(b, "%s", __FUNCTION__);
 }
 @ end
 
@@ -598,7 +608,7 @@ void $(bm.name)_stop(ubx_block_t *b)
 void $(bm.name)_cleanup(ubx_block_t *b)
 {
 	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
-        MSG("%s", b->name);
+        ubx_info(b, "%s", __FUNCTION__);
 	free(b->private_data);
 }
 
@@ -607,7 +617,7 @@ void $(bm.name)_cleanup(ubx_block_t *b)
 void $(bm.name)_step(ubx_block_t *b)
 {
 	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
-        MSG("%s", b->name);
+        ubx_info(b, "%s", __FUNCTION__);
 }
 @ end
 
@@ -630,6 +640,7 @@ return bd.system
 {
    imports = {
       "stdtypes",
+      "stattypes",
       "ptrig",
       "lfds_cyclic",
       "logger",
@@ -671,6 +682,7 @@ function generate(cgt, outdir, force_overwrite)
 		    else
 		       print("    skipping existing "..file)
 		    end
+		    if e.executable then os.execute("chmod +x "..file) end
 		 end, cgt)
 end
 
@@ -748,6 +760,7 @@ if block_model.cpp then h_ext = '.hpp' end
 
 -- static part
 local codegen_tab = {
+   { fun=generate_bootstrap, funargs={ block_model }, file="bootstrap", overwrite=true, executable=true },
    { fun=generate_configure_ac, funargs={ block_model }, file="configure.ac", overwrite=false },
    { fun=generate_automakefile, funargs={ block_model }, file="Makefile.am", overwrite=false },
    { fun=generate_block_if, funargs={ block_model } , file=block_model.name..h_ext, overwrite=true },

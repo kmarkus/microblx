@@ -38,21 +38,24 @@ int main(int argc, char **argv)
 
 	/* init and start the block */
 	if(ubx_block_init(webif) != 0) {
-		ERR("failed to init webif");
+		ubx_log(UBX_LOGLEVEL_ERR, ni, "failed to init webif");
 		goto out;
 	}
 
 	if(ubx_block_start(webif) != 0) {
-		ERR("failed to start webif");
+		ubx_log(UBX_LOGLEVEL_ERR, ni, "failed to start webif");
 		goto out;
 	}
 
-	printf("webif block lauched on port %s, hit enter to quit\n", WEBIF_PORT);
+	ubx_log(UBX_LOGLEVEL_INFO, ni,
+		"webif block lauched on port %s, hit enter to quit\n",
+		WEBIF_PORT);
+
 	getchar();
 
 	ret=EXIT_SUCCESS;
  out:
 	/* this cleans up all blocks and unloads all modules */
-	ubx_node_cleanup(&ni);
+	ubx_node_rm(&ni);
 	exit(ret);
 }

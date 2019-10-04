@@ -29,7 +29,7 @@ return bd.system
    },
 
    configurations = {
-      { name="rnd", config = {min_max_config={min=127, max=256} } },
+      { name="rnd", config = { loglevel=6, min_max_config={min=127, max=256} } },
       { name="fifo1", config = { type_name="unsigned int", buffer_len=3 } },
       { name="logger1", config = { filename="/tmp/trig_rnd_hexdump_usc.log",
 				   separator=",",

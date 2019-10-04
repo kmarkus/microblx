@@ -1,10 +1,11 @@
+-- -*- mode: lua; -*-
 --
 -- microblx: embedded, realtime safe, reflective function blocks.
 --
 -- Copyright (C) 2013 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
 -- Copyright (C) 2014-18 Markus Klotzbuecher <mk@mkio.de>
 --
--- SPDX-License-Identifier: LGPL-2.1-or-later
+-- SPDX-License-Identifier: BSD-3-Clause
 --
 
 local ffi=require "ffi"
@@ -18,7 +19,7 @@ require "strict"
 local M={}
 
 --- set to false to disable terminal colors
-M.color = true
+M.color = false
 
 local function red(str, bright) if M.color then str = ac.red(str); if bright then str=ac.bright(str) end end return str end
 local function blue(str, bright) if M.color then str = ac.blue(str); if bright then str=ac.bright(str) end end return str end
@@ -61,15 +62,21 @@ local function setup_enums()
    if M.ubx==nil then error("setup_enums called before loading libubx") end
    M.retval_tostr = {
       [0] ='OK',
-      -- [ffi.C.PORT_READ_NODATA]	  ='PORT_READ_NODATA',
-      -- [ffi.C.PORT_READ_NEWDATA]   ='PORT_READ_NEWDATA',
-      [ffi.C.EPORT_INVALID]	  ='EPORT_INVALID',
-      [ffi.C.EPORT_INVALID_TYPE]  ='EPORT_INVALID_TYPE',
-      [ffi.C.EINVALID_BLOCK_TYPE] ='EINVALID_BLOCK_TYPE',
-      [ffi.C.ENOSUCHBLOCK]	  ='ENOSUCHBLOCK',
-      [ffi.C.EALREADY_REGISTERED] ='EALREADY_REGISTERED',
-      [ffi.C.EOUTOFMEM]		  ='EOUTOFMEM',
-      [ffi.C.EINVALID_CONFIG]	  ='EINVALID_CONFIG'
+      [0] ='OK',
+      [ffi.C.EINVALID_BLOCK]		='EINVALID_BLOCK',
+      [ffi.C.EINVALID_PORT]		='EINVALID_PORT',
+      [ffi.C.EINVALID_CONFIG]		='EINVALID_CONFIG',
+
+      [ffi.C.EINVALID_BLOCK_TYPE]	='EINVALID_BLOCK_TYPE',
+      [ffi.C.EINVALID_PORT_TYPE]	='EINVALID_PORT_TYPE',
+      [ffi.C.EINVALID_CONFIG_TYPE]	='EINVALID_CONFIG_TYPE',
+
+      [ffi.C.EINVALID_PORT_DIR]		='EINVALID_PORT_DIR',
+
+      [ffi.C.ENOSUCHENT]		='ENOSUCHENT',
+      [ffi.C.EALREADY_REGISTERED]	='EALREADY_REGISTERED',
+      [ffi.C.ETYPE_MISMATCH]		='ETYPE_MISMATCH',
+      [ffi.C.EOUTOFMEM]			='EOUTOFMEM',
    }
 
    M.block_type_tostr={
@@ -137,7 +144,7 @@ void *malloc(size_t size);
 void free(void *ptr);
 void *calloc(size_t nmemb, size_t size);
 void *realloc(void *ptr, size_t size);
-]]
+ ]]
 
 local prefix=find_prefix()
 load_ubx_ffi(prefix)
@@ -173,6 +180,40 @@ function M.is_iblock_proto(b) return M.is_iblock(b) and M.is_proto(b) end --- Is
 function M.is_outport(p) return p.out_type_name ~= nil end
 function M.is_inport(p) return p.in_type_name ~= nil end
 function M.is_inoutport(p) return M.is_outport(p) and M.is_inport(p) end
+
+------------------------------------------------------------------------------
+--                           LOGGING API
+------------------------------------------------------------------------------
+
+--- log a message via rtlog
+-- @param level
+-- @node node handle
+-- @src source of log message
+-- @str string to log
+local function log(level, node, src, str)
+   if level <= node.loglevel then
+      ubx.__ubx_log(level, node, src, str)
+   end
+end
+
+local function emerg(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_EMERG, node, src, str) end
+local function alert(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_ALERT, node, src, str) end
+local function crit(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_CRIT, node, src, str) end
+local function err(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_ERR, node, src, str) end
+local function warn(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_WARN, node, src, str) end
+local function notice(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_NOTICE, node, src, str) end
+local function info(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_INFO, node, src, str) end
+local function dbg(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_DEBUG, node, src, str) end
+
+M.log = log
+M.emerg = emerg
+M.alert = alert
+M.crit = crit
+M.err = err
+M.warn = warn
+M.notice = notice
+M.info = info
+M.debug = dbg
 
 
 ------------------------------------------------------------------------------
@@ -221,8 +262,9 @@ ffi.metatype("struct ubx_timespec", ubx_timespec_mt)
 --- Create and initalize a new node_info struct
 -- @param name name of node
 -- @return ubx_node_info_t
-function M.node_create(name)
+function M.node_create(name, loglevel)
    local ni=ffi.new("ubx_node_info_t")
+   if loglevel then ni.loglevel = loglevel end
    assert(ubx.ubx_node_init(ni, name)==0, "node_create failed")
    return ni
 end
@@ -241,6 +283,27 @@ function M.load_module(ni, libfile)
    end
    M.ffi_load_types(ni)
 end
+
+--- Node to tab
+-- @param ni
+-- @return table with node information
+function M.node_totab(ni)
+   local types = {}
+   local blocks = {}
+
+   M.types_foreach(ni,
+		   function (_t)
+		      local t = M.ubx_type_totab(_t)
+		      types[t.name] = t end)
+
+   M.blocks_map(ni,
+		function (_b)
+		   local b = M.block_totab(_b)
+		   blocks[b.name] = b end)
+
+   return { types=types, blocks=blocks }
+end
+
 
 --- Cleanup a node: cleanup and remove instances and unload modules.
 -- @param ni node info
@@ -450,7 +513,10 @@ end
 -- @return string
 function M.block_pp(b)
    local res = {}
-   local bt=M.block_totab(b)
+   local bt
+
+   if M.is_block(b) then bt = M.block_totab(b) else bt = b end
+
    local fmt = "%s (type=%s, state=%s, prototype=%s)"
 
    res[#res+1] = fmt:format(green(bt.name), bt.block_type,
@@ -473,18 +539,23 @@ end
 --- Convert a block to a string (short form)
 -- @param b ubx_block_t
 function M.block_tostr(b)
+   local bt
 
-   if b.prototype==nil then
-      return ("%s [%s]"):format(
-	 green(M.safe_tostr(b.name)),
-	 M.block_type_tostr[b.type])
+   if M.is_block(b) then
+      bt = M.block_totab(b)
+   else
+      bt = b
+   end
+
+   if bt.prototype==false then
+      return ("%s [%s]"):format(green(bt.name), bt.block_type)
    end
 
    return ("%s [%s, %s, %s]"):format(
-      green(M.safe_tostr(b.name)),
-      M.block_type_tostr[b.type],
-      block_state_color(M.block_state_tostr[b.block_state]),
-      blue(M.safe_tostr(b.prototype)))
+      green(bt.name),
+      bt.block_type,
+      block_state_color(bt.state),
+      blue(bt.prototype))
 end
 
 function M.block_port_get (b, n)
@@ -495,9 +566,7 @@ end
 M.port_get = M.block_port_get
 
 function M.block_config_get (b, n)
-   local res = ubx.ubx_config_get(b, n)
-   if res==nil then error("config_get: no config with name '"..ts(n).."'") end
-   return res
+   return ubx.ubx_config_get(b, n)
 end
 M.config_get = M.block_config_get
 
@@ -929,7 +998,7 @@ end
 function M.config_tabtostr(ctab)
    return blue(ctab.name, true)
       .." ["..magenta(ctab.type_name).."] "
-      ..yellow(utils.tab2str((ctab.value)))
+      ..yellow(utils.tab2str(ctab.value))
       .." "..red("// "..ctab.doc)
 end
 
@@ -1336,6 +1405,11 @@ $conns
     })
 end
 
+local __pcc_cnt=0
+function pcc_cnt()
+   __pcc_cnt=__pcc_cnt+1
+   return __pcc_cnt
+end
 
 --- Create a new port connected to an existing port via an interaction.
 -- @param bname block
@@ -1346,11 +1420,8 @@ end
 function M.port_clone_conn(block, pname, buff_len1, buff_len2)
    local prot = M.port_get(block, pname)
    local p=ffi.new("ubx_port_t")
-   local ts = ffi.new("struct ubx_timespec")
 
    -- print("port_clone_conn, block=", ubx.safe_tostr(block.name), ", port=", pname)
-
-   M.clock_mono_gettime(ts)
 
    if M.clone_port_data(p, M.safe_tostr(prot.name)..'_inv', prot.doc,
 			prot.out_type, prot.out_data_len,
@@ -1364,9 +1435,8 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
    -- New port is an out-port?
    local i_p_to_prot=nil
    if p.out_type~=nil then
-      local iname = string.format("PCC->%s.%s_%x:%x",
-				  M.safe_tostr(block.name), pname,
-				  tonumber(ts.sec), tonumber(ts.nsec))
+      local iname = string.format("PCC%d->%s.%s",
+				  pcc_cnt(), M.safe_tostr(block.name), pname)
 
       -- print("creating interaction", iname, buff_len1, tonumber(p.out_type.size * p.out_data_len))
 
@@ -1386,9 +1456,8 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
    local i_prot_to_p = nil
 
    if p.in_type ~= nil then -- new port is an in-port?
-      local iname = string.format("PCC<-%s.%s_%x:%x",
-				  M.safe_tostr(block.name), pname,
-				  tonumber(ts.sec), tonumber(ts.nsec))
+      local iname = string.format("PCC%d<-%s.%s",
+				  pcc_cnt(), M.safe_tostr(block.name), pname)
 
       i_prot_to_p = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
 				     { buffer_len=buff_len2,

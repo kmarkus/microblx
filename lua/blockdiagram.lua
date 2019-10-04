@@ -5,7 +5,7 @@
 -- Copyright (C) 2013 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
 -- Copyright (C) 2014-2018 Markus Klotzbuecher <mk@mkio.de>
 --
--- SPDX-License-Identifier: LGPL-2.1-or-later
+-- SPDX-License-Identifier: BSD-3-Clause
 --
 
 local ubx = require "ubx"
@@ -27,18 +27,18 @@ local green=ubx.green
 local yellow=ubx.yellow
 local magenta=ubx.magenta
 
-local ind_log = -1
-local ind_mul = 4
-local verbose = true
+local crit, err, warn, notice, info = nil, nil, nil, nil, nil
 
-local function log(first, ...)
-   if verbose then
-      print(string.rep(' ', ind_log*ind_mul)..tostring(first), ...)
-   end
+local function def_loggers(ni, src)
+   crit = function(msg) ubx.crit(ni, src, msg) end
+   err = function(msg) ubx.err(ni, src, msg) end
+   warn = function(msg) ubx.warn(ni, src, msg) end
+   notice = function(msg) ubx.notice(ni, src, msg) end
+   info = function(msg) ubx.info(ni, src, msg) end
 end
 
 local function err_exit(code, msg)
-   utils.stderr(red(msg))
+   err(msg)
    os.exit(code)
 end
 
@@ -227,8 +227,8 @@ M._checks = {
 local function late_checks(self, conf, ni)
    if not conf.checks then return end
    local res = {}
-   log("starting late validation ("..
-	  table.concat(conf.checks, ", ")..")")
+   info("running late validation ("..
+	   table.concat(conf.checks, ", ")..")")
    utils.foreach(
       function (chk)
 	 if not M._checks[chk] then
@@ -238,13 +238,11 @@ local function late_checks(self, conf, ni)
       end,
       conf.checks or {})
 
-   utils.foreach(function(v) print("    "..v) end, res)
+   utils.foreach(function(v) warn(v) end, res)
 
    if #res > 0 and conf.werror then
       err_exit(-1, "warnings raised and treating warnings as errors")
    end
-
-   log("late validation completed")
 end
 
 --- read blockdiagram system file from usc or json file
@@ -266,17 +264,20 @@ local function load(fn, file_type)
    local suc, mod
    if file_type == 'json' then
       if not has_json then
-	 err_exit(1, "no cjson library found, unable to load json")
+	 print("no cjson library found, unable to load json")
+	 os.exit(1)
       end
       suc, mod = pcall(read_json, fn)
    elseif file_type == 'usc' or file_type == 'lua' then
       suc, mod = pcall(dofile, fn)
    else
-      err_exit(1, "ubx_launch error: unknown file type "..tostring(file_type))
+      print("ubx_launch error: unknown file type "..tostring(file_type))
+      os.exit(1)
    end
 
    if not is_system(mod) then
-      err_exit(1, "failed to load "..ts(fn).."\n"..ts(mod))
+      print("failed to load "..ts(fn).."\n"..ts(mod))
+      os.exit(1)
    end
 
    return suc, mod
@@ -287,16 +288,14 @@ end
 -- @param t configuration table
 function system.pulldown(self, ni)
    if #self.start > 0 then
-      log("stopping "..ts(#self.blocks).." blocks... ")
       -- stop the start table blocks in reverse order
       for i = #self.start, 1, -1 do
-	 log("    stopping " .. green(self.start[i]))
+	 info("stopping " .. green(self.start[i]))
 	 ubx.block_unload(ni, self.start[i])
       end
    end
-   log("    stopping remaining blocks")
-   ubx.node_cleanup(ni)
-   log("stopping blocks completed")
+   info("stopping remaining blocks")
+   ubx.node_rm(ni)
 end
 
 
@@ -305,14 +304,13 @@ end
 -- @param t configuration table
 -- @return ni node_info handle
 function system.startup(self, ni)
-   log("starting "..ts(#self.blocks).." blocks... ")
    utils.foreach(
       function (bmodel)
 
 	 -- skip the blocks in the start table
 	 if utils.table_has(self.start, bmodel.name) then return end
 	 local b = ubx.block_get(ni, bmodel.name)
-	 log("    starting ".. green(bmodel.name))
+	 info("starting ".. green(bmodel.name))
 
 	 local ret = ubx.block_tostate(b, 'active')
 	 if ret ~= 0 then
@@ -322,13 +320,12 @@ function system.startup(self, ni)
    -- start the start table blocks in order
    for _,trigname in ipairs(self.start) do
       local b = ubx.block_get(ni, trigname)
-      log("    starting ".. green(trigname))
+      info("starting ".. green(trigname))
       local ret = ubx.block_tostate(b, 'active')
       if ret ~= 0 then
 	 err_exit(ret, "failed to start block "..trigname..": ", ret)
       end
    end
-   log("starting blocks completed")
 end
 
 --- Instantiate ubx_data for node configuration
@@ -340,7 +337,7 @@ local function create_node_config(ni, node_config)
       local d = ubx.data_alloc(ni, cfg.type, 1)
       ubx.data_set(d, cfg.config, true)
       res[name]=d
-      log("    "..blue(name)..
+      info("creating node config "..blue(name)..
 	     "["..magenta(cfg.type).."] "..
 	     yellow(utils.tab2str(cfg.config)))
    end
@@ -401,7 +398,7 @@ function system.launch(self, t)
 	 elseif ubx.is_proto(ptr) then
 	    err_exit("error: block #"..name.." is a proto block")
 	 end
-	 log(magenta("    resolved block #"..name))
+	 info(magenta("resolved block #"..name))
 	 tab[key]=ptr
       end
       utils.maptree(subs_blck_ptrs, c, function(v,k) return type(v)=='string' end)
@@ -429,12 +426,17 @@ function system.launch(self, t)
 	       err_exit(1, "invalid node config reference '"..val.."'")
 	    end
 	    local blkcfg = ubx.block_config_get(b, name)
+
+	    if blkcfg==nil then
+	       err_exit(1, "non-existing config '"..blkconf.name.. "."..name.."'")
+	    end
+
 	    ubx.config_assign(blkcfg, _NC[nodecfg])
-	    log("    "..green(blkconf.name.."."..blue(name))..
-		   " -> node cfg "..yellow(nodecfg))
+	    info("cfg "..green(blkconf.name.."."..blue(name))..
+		    " -> node cfg "..yellow(nodecfg))
 	 else -- regular config
-	    log("    "..green(blkconf.name).."."..blue(name)
-		   .." with "..yellow(utils.tab2str(val)))
+	    info("cfg "..green(blkconf.name).."."..blue(name)
+		    ..": "..yellow(utils.tab2str(val)))
 	    ubx.set_config(b, name, val)
 	 end
       end
@@ -445,8 +447,6 @@ function system.launch(self, t)
    -- @param t global configuration
    -- @param ni node_info
    local function __launch(self, t, ni)
-      ind_log=ind_log+1
-
       self.include = self.include or {}
       self.imports = self.imports or {}
       self.blocks = self.blocks or {}
@@ -454,30 +454,24 @@ function system.launch(self, t)
       self.connections = self.connections or {}
       self.start = self.start or {}
 
-      log("launching block diagram system in node "..ts(t.nodename))
+      info("launching system in node "..ts(t.nodename))
 
-      log("    preprocessing configs")
       if not preproc_configs(ni, self.configurations) then
-	 err_exit(1, "    failed")
+	 err_exit(1, "preprocessing configs failed")
       end
 
       -- launch subsystems
       if #self.include > 0 then
-	 log("loading used subsystems")
 	 utils.foreach(function(s) __launch(s, t, ni) end, self.include)
-	 log("loading subsystems completed")
       end
 
       -- apply configuration
       if #self.configurations > 0 then
-	 log("configuring "..ts(#self.configurations).." blocks... ")
-
 	 utils.imap(
 	    function(c)
 	       local b = ubx.block_get(ni, c.name)
 	       if b==nil then
-		  log(red("    no block named "..c.name..
-			     " ignoring configuration "..utils.tab2str(c.config)))
+		  info(red("no block "..c.name.." ignoring configuration "..utils.tab2str(c.config)))
 	       elseif b:get_block_state()~='preinit' then return
 	       else
 		  -- apply this config to and then find configs for
@@ -498,12 +492,10 @@ function system.launch(self, t)
 		  end
 	       end
 	    end, self.configurations)
-	 log("configuring blocks completed")
       end
 
       -- create connections
       if #self.connections > 0 then
-	 log("creating "..ts(#self.connections).." connections... ")
 	 utils.foreach(function(c)
 			  local bnamesrc,pnamesrc = unpack(utils.split(c.src, "%."))
 			  local bnametgt,pnametgt = unpack(utils.split(c.tgt, "%."))
@@ -528,7 +520,7 @@ function system.launch(self, t)
 				err_exit(1, "failed to connect interaction "..bnamesrc..
 					    " to port "..ts(bnametgt).."."..ts(pnametgt))
 			     end
-			     log("    "..green(bnamesrc).." (iblock) -> "
+			     info("connecting "..green(bnamesrc).." (iblock) -> "
 				    ..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
 
 			  elseif pnametgt==nil then
@@ -551,14 +543,15 @@ function system.launch(self, t)
 					    ..ts(bnamesrc).."." ..ts(pnamesrc).." to "
 					    ..ts(bnametgt).." (iblock)")
 			     end
-			     log("    "..green(ts(bnamesrc)).."."..cyan(ts(pnamesrc)).." -> "..green(bnametgt).." (iblock)")
+			     info("connecting "..green(ts(bnamesrc)).."."..cyan(ts(pnamesrc)).." -> "
+				     ..green(bnametgt).." (iblock)")
 			  else
 			     -- standard connection between two cblocks
 			     local bufflen = c.buffer_length or 1
 
-			     log("    "..green(ts(bnamesrc))..'.'..cyan(ts(pnamesrc))
-				    .." -["..yellow(ts(bufflen), true).."]".."-> "
-				    ..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
+			     info("connecting "..green(ts(bnamesrc))..'.'..cyan(ts(pnamesrc))
+				     .." -["..yellow(ts(bufflen), true).."]".."-> "
+				     ..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
 
 			     local bsrc = ubx.block_get(ni, bnamesrc)
 			     local btgt = ubx.block_get(ni, bnametgt)
@@ -573,8 +566,6 @@ function system.launch(self, t)
 			     ubx.conn_lfds_cyclic(bsrc, pnamesrc, btgt, pnametgt, bufflen)
 			  end
 		       end, self.connections)
-
-	 log("creating connections completed")
       end
 
       -- run late checks
@@ -582,39 +573,32 @@ function system.launch(self, t)
 
       -- startup
       if not t.nostart then system.startup(self, ni) end
-
-      ind_log=ind_log-1
    end
 
    -- fire it up
    t = t or {}
-   t.nodename = t.nodename or "node-"..os.date("%Y%m%d_%H%M%S")
-   verbose = t.verbose
+   t.nodename = t.nodename or "n"
 
-   local ni = ubx.node_create(t.nodename)
+   local ni = ubx.node_create(t.nodename, t.loglevel)
+
+   def_loggers(ni, "launch")
 
    -- import modules
    local imports = make_import_list(self)
-   log("importing "..ts(#imports).." modules... ")
    utils.foreach(function(m)
-		    log("    "..magenta(m) )
+		    info("importing module "..magenta(m) )
 		    ubx.load_module(ni, m)
 		 end, imports)
-   log("importing modules completed")
 
    --- create blocks
    local blocks = make_block_list(self)
-   log("instantiating "..ts(#blocks).." blocks... ")
    utils.foreach(function(b)
-		    log("    "..green(b.name).." ["..blue(b.type).."]")
+		    info("creating block "..green(b.name).." ["..blue(b.type).."]")
 		    ubx.block_create(ni, b.type, b.name)
 		 end, blocks)
-   log("instantiating blocks completed")
 
    if self.node_configurations then
-      log("creating node configurations...")
       _NC = create_node_config(ni, self.node_configurations)
-      log("creating node configurations completed")
    end
    -- configure and connect
    __launch(self, t, ni)

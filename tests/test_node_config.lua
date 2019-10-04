@@ -1,7 +1,6 @@
 local luaunit=require("luaunit")
 local bd=require("blockdiagram")
-
-local VERBOSE=false
+local ffi=require("ffi")
 
 local assert_equals = luaunit.assert_equals
 
@@ -41,7 +40,7 @@ local sys1 = bd.system {
 local ni=nil
 
 function setup()
-   ni = sys1:launch{ nostart=true, verbose=VERBOSE }
+   ni = sys1:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN }
 end
 
 function teardown()

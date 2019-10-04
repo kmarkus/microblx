@@ -57,15 +57,16 @@ int call_hook(ubx_block_t* b, const char *fname, int require_fun, int require_re
 
 	if(lua_isnil(inf->L, -1)) {
 		lua_pop(inf->L, 1);
-		if(require_fun)
-			ERR("%s: no (required) Lua function %s", b->name, fname);
+		if(require_fun) {
+			ubx_err(b, "%s: no (required) Lua function %s", b->name, fname);
+		}
 		goto out;
 	}
 
 	lua_pushlightuserdata(inf->L, (void*) b);
 
 	if (lua_pcall(inf->L, 1, num_res, 0) != 0) {
-		ERR("%s: error calling function %s: %s", b->name, fname, lua_tostring(inf->L, -1));
+		ubx_err(b, "%s: error calling function %s: %s", b->name, fname, lua_tostring(inf->L, -1));
 		lua_pop(inf->L, 1); /* pop result */
 		ret = -1;
 		goto out;
@@ -73,7 +74,7 @@ int call_hook(ubx_block_t* b, const char *fname, int require_fun, int require_re
 
 	if(require_res) {
 		if (!lua_isboolean(inf->L, -1)) {
-			ERR("%s: %s must return a bool but returned a %s",
+			ubx_err(b, "%s: %s must return a bool but returned a %s",
 			    b->name, fname, lua_typename(inf->L, lua_type(inf->L, -1)));
 			ret = -1;
 			goto out;
@@ -93,12 +94,15 @@ int call_hook(ubx_block_t* b, const char *fname, int require_fun, int require_re
  *
  * @return 0 if Ok, -1 otherwise.
  */
-static int init_lua_state(struct file_logger_info* inf)
+static int init_lua_state(struct ubx_block* b)
 {
 	int ret=-1;
+	
+	struct file_logger_info* inf =
+		(struct file_logger_info*) b->private_data;
 
 	if((inf->L=luaL_newstate())==NULL) {
-		ERR("failed to alloc lua_State");
+		ubx_err(b, "failed to alloc lua_State");
 		goto out;
 	}
 
@@ -111,7 +115,8 @@ static int init_lua_state(struct file_logger_info* inf)
 #endif
 	
 	if (ret) {
-		ERR("Failed to load file_logger.lua: %s\n", lua_tostring(inf->L, -1));
+		ubx_err(b, "Failed to load file_logger.lua: %s",
+			lua_tostring(inf->L, -1));
 		goto out;
 	}
 	ret=0;
@@ -123,7 +128,6 @@ static int init_lua_state(struct file_logger_info* inf)
 
 static int file_logger_init(ubx_block_t *b)
 {
-	DBG(" ");
 	int ret = -EOUTOFMEM;
 	struct file_logger_info* inf;
 
@@ -132,7 +136,7 @@ static int file_logger_init(ubx_block_t *b)
 
 	b->private_data = inf;
 
-	if(init_lua_state(inf) != 0)
+	if(init_lua_state(b) != 0)
 		goto out_free;
 
 	if((ret=call_hook(b, "init", 0, 1)) != 0)
@@ -150,7 +154,6 @@ static int file_logger_init(ubx_block_t *b)
 
 static int file_logger_start(ubx_block_t *b)
 {
-	DBG(" ");
 	return call_hook(b, "start", 0, 1);
 }
 

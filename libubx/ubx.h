@@ -4,8 +4,7 @@
  * Copyright (C) 2013,2014 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
  * Copyright (C) 2014-2018 Markus Klotzbuecher <mk@mkio.de>
  *
- * SPDX-License-Identifier: GPL-2.0+ WITH eCos-exception-2.0
- *
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 #ifndef _UBX_H
@@ -53,6 +52,7 @@ extern "C"
 #endif
 
 #include "ubx_proto.h"
+#include "rtlog.h"
 
 /*
  * Debug stuff
@@ -79,7 +79,6 @@ extern "C"
 #define MSG(fmt, args...) ( fprintf(stderr, "%s: ", __FUNCTION__),	\
 			    fprintf(stderr, fmt, ##args),		\
 			    fprintf(stderr, "\n") )
-
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
@@ -117,7 +116,10 @@ int checktype(ubx_node_info_t* ni, ubx_type_t *required, const char *tcheck_str,
 static void function_name(ubx_port_t* port, typename *outval)	\
 {							\
  ubx_data_t val;					\
- if(port==NULL) { ERR("port is NULL"); return; }	\
+ if(port==NULL) {					\
+   ubx_err(port->block, "%s: port is NULL", __FUNCTION__);	\
+   return;						\
+ }							\
  checktype(port->block->ni, port->out_type, QUOTE(typename), port->name, 0); \
  val.data = outval;					\
  val.type = port->out_type;				\
@@ -132,7 +134,10 @@ static void function_name(ubx_port_t* port, typename *outval)	\
 static int32_t function_name(ubx_port_t* port, typename *inval) \
 {							\
  ubx_data_t val;					\
- if(port==NULL) { ERR("port is NULL"); return -1; }	\
+ if(port==NULL) {					\
+   ubx_err(port->block, "%s: port is NULL", __FUNCTION__);	\
+   return EINVALID_PORT;				\
+ }							\
  checktype(port->block->ni, port->in_type, QUOTE(typename), port->name, 1); \
  val.type=port->in_type;				\
  val.data = inval;					\
@@ -145,7 +150,10 @@ static int32_t function_name(ubx_port_t* port, typename *inval) \
 static void function_name(ubx_port_t* port, typename (*outval)[arrlen]) \
 {							\
  ubx_data_t val;					\
- if(port==NULL) { ERR("port is NULL"); return; }	\
+ if(port==NULL) {					\
+   ubx_err(port->block, "%s: port is NULL", __FUNCTION__);	\
+   return;						\
+ }							\
  checktype(port->block->ni, port->out_type, QUOTE(typename), port->name, 0); \
  val.data = outval;					\
  val.type = port->out_type;				\
@@ -157,7 +165,10 @@ static void function_name(ubx_port_t* port, typename (*outval)[arrlen]) \
 static int32_t function_name(ubx_port_t* port, typename (*inval)[arrlen])	\
 {							\
  ubx_data_t val;					\
- if(port==NULL) { ERR("port is NULL"); return -1; }	\
+ if(port==NULL) {					\
+   ubx_err(port->block, "%s: port is NULL", __FUNCTION__);	\
+   return EINVALID_PORT;				\
+ }							\
  checktype(port->block->ni, port->in_type, QUOTE(typename), port->name, 1); \
  val.type = port->in_type;				\
  val.data = inval;					\
@@ -176,13 +187,13 @@ long int function_name(ubx_block_t* b, const char* cfg_name, const typename** va
     goto out;							\
 								\
   if((t = ubx_type_get(b->ni, QUOTE(typename))) == NULL) {	\
-    ERR("unknown type %s", QUOTE(typename));			\
+    ubx_err(b, "unknown type %s", QUOTE(typename));		\
     goto out;							\
   }								\
 								\
   if(t != c->type) {						\
-    ERR("mismatch: expected %s but %s.%s config is of type %s",	\
-	t->name, b->name, cfg_name, c->type->name);		\
+    ubx_err(b, "mismatch: expected %s but %s.%s config is of type %s", \
+              t->name, b->name, cfg_name, c->type->name);		 \
     goto out;							\
   }								\
 								\

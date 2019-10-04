@@ -25,7 +25,7 @@ int ramp_init(ubx_block_t *b)
 
 	/* allocate memory for the block local state */
 	if ((inf = (struct ramp_info*)calloc(1, sizeof(struct ramp_info)))==NULL) {
-		ERR("ramp: failed to alloc memory");
+		ubx_err(b, "ramp: failed to alloc memory");
 		ret=EOUTOFMEM;
 		goto out;
 	}
@@ -63,6 +63,6 @@ void ramp_step(ubx_block_t *b)
 	struct ramp_info *inf = (struct ramp_info*) b->private_data;
 
 	inf->cur += inf->slope;
-	DBG("%s: cur: %g", b->name, (double) inf->cur);
+	ubx_debug(b, "cur: %g", (double) inf->cur);
 	write_out(inf->ports.out, &inf->cur);
 }

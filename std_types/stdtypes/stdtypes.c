@@ -29,7 +29,6 @@ ubx_type_t basic_types[] = {
 
 static int stdtypes_init(ubx_node_info_t* ni)
 {
-	DBG(" ");	
 	ubx_type_t *tptr;
 	for(tptr=basic_types; tptr->name!=NULL; tptr++) {
 		/* TODO check for errors */
@@ -41,7 +40,6 @@ static int stdtypes_init(ubx_node_info_t* ni)
 
 static void stdtypes_cleanup(ubx_node_info_t *ni)
 {
-	DBG(" ");
 	const ubx_type_t *tptr;
 
 	for(tptr=basic_types; tptr->name!=NULL; tptr++)

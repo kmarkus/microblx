@@ -56,16 +56,29 @@ Before building microblx, liblfds611 needs to be built and
 installed. There is a set of patches in the microblx repository to
 clean up the packaging of liblfds. Follow the instructions below:
 
-First build lfds:
+Clone the code:
 
 ```bash
 $ git clone https://github.com/liblfds/liblfds6.1.1.git
 $ git clone https://github.com/kmarkus/microblx.git
+$ git clone https://github.com/kmarkus/uutils.git
+```
+
+First build lfds:
+
+```
 $ cd liblfds6.1.1
 $ git am ../microblx/liblfds/*.patch
 $ ./bootstrap
 $ ./configure --prefix=/usr
 $ make
+$ sudo make install
+```
+
+Then install `uutils`:
+
+```bash
+$ cd ../uutils
 $ sudo make install
 ```
 
@@ -109,20 +122,60 @@ You can subscribe by email by sending a mail to
 Contributing
 ------------
 
-Contributions should conform to the Linux kernel [coding
-style](https://www.kernel.org/doc/html/latest/process/coding-style.html). The
-preferred ways of submitting patches via the mailing list or via a
-github merge request.
+Contributions are very welcome. Please check that the following
+requirements are met:
+
+- contributions must conform to the Linux kernel [coding
+style](https://www.kernel.org/doc/html/latest/process/coding-style.html).
+
+- the preferred ways of submitting patches is via the mailing list. If
+  you must, a github merge request is OK too.
+
+- please don't forget to add a line
+  `Signed-off-by: Random J Developer <random@developer.example.org>`
+  to certify conformance with the *Developer's Certificate of Origin
+  1.1* below.
+
+### Developer's Certificate of Origin 1.1
+
+By making a contribution to this project, I certify that:
+
+(a) The contribution was created in whole or in part by me and I
+    have the right to submit it under the open source license
+    indicated in the file; or
+
+(b) The contribution is based upon previous work that, to the best
+    of my knowledge, is covered under an appropriate open source
+    license and I have the right under that license to submit that
+    work with modifications, whether created in whole or in part
+    by me, under the same open source license (unless I am
+    permitted to submit under a different license), as indicated
+    in the file; or
+
+(c) The contribution was provided directly to me by some other
+    person who certified (a), (b) or (c) and I have not modified
+    it.
+
+(d) I understand and agree that this project and the contribution
+    are public and that a record of the contribution (including all
+    personal information I submit with it, including my sign-off) is
+    maintained indefinitely and may be redistributed consistent with
+    this project or the open source license(s) involved.
+
 
 License
 -------
 
-See COPYING. The license is GPLv2 with a linking exception. It boils
-down to the following. Use microblx as you wish in free and
+See COPYING. The microblx core is licensed under the weak copyleft
+Mozilla Public License Version 2.0 (MPL-2.0). Standard blocks are
+mostly licensed under the permissive BSD 3-Clause "New" or "Revised"
+License or also under the MPLv2.
+
+It boils down to the following. Use microblx as you wish in free and
 proprietary applications. You can distribute binary function blocks
-modules. Only if you make changes to the core (the microblx library),
-and distribute these, then you are required to release these under the
-conditions of the GPL.
+modules. Only if you make changes to the core files (mostly the files
+in libubx/) library), and distribute these based on these, then you
+are required to release these under the conditions of the MPL-2.0.
 
 
 Acknowledgement
