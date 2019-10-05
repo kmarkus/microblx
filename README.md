@@ -1,4 +1,4 @@
-![microblx logo](/doc/figures/microblx-logo.png)
+![microblx logo](/doc/source/figures/microblx-logo.png)
 
 MICROBLX: hard realtime, embedded, reflective function blocks
 =============================================================
