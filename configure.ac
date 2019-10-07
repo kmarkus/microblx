@@ -62,6 +62,11 @@ PKG_CHECK_MODULES(LFDS, lfds6 >= 6.1.1)
 
 AC_CHECK_HEADERS([uthash.h])
 
+AC_CHECK_PROGS([SPHINXBUILD], [sphinx-build sphinx-build3 sphinx-build2], [no])
+
+AS_IF([test "x$SPHINXBUILD" = xno],
+      AC_MSG_WARN(sphinx-build is required to build documentation))
+
 # files to generate via autotools
 AC_CONFIG_FILES([Makefile
 libubx/Makefile
