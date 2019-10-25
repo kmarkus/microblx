@@ -3,4 +3,4 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = libubx std_blocks std_types lua tools examples
 
 docs:
-	@$(MAKE) -C doc html SPHINXBUILD=$(SPHINXBUILD)
+	@$(MAKE) -C docs html SPHINXBUILD=$(SPHINXBUILD)
