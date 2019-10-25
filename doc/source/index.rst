@@ -10,8 +10,9 @@ Welcome to microblx's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   quickstart.rst
-   manual.rst
+   introduction.rst
+   developing_blocks.rst
+   composing_systems.rst
    tutorial.rst
    faq.rst
 

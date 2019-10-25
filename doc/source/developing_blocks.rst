@@ -1,43 +1,5 @@
-Microblx User Manual
-====================
-
-Microblx is a lightweight function block model and implementation.
-
-Key concepts
-------------
-
--  **block**: the main building block. Is defined by filling in a
-   ``ubx_block_t`` type and registering it with a microblx
-   ``ubx_node_t``. Blocks *have* configuration, ports and operations.
-
-   Each block is part of a module and becomes available once the module
-   is loaded in a node.
-
-   There are two types of blocks: **computation blocks** (“cblocks”,
-   ``BLOCK_TYPE_COMPUTATION``) encapsulate “functionality” such as
-   drivers and controllers. **interaction blocks** (“iblocks”,
-   ``BLOCK_TYPE_INTERACTION``) are used to implement communication or
-   interaction between blocks. This manual focusses on how to build
-   cblocks, since this is what most application builders need to do.
-
-   -  **configuration**: defines static properties of blocks, such as
-      control parameters, device file names etc.
-
-   -  **port**: define which data flows in and out of blocks.
-
--  **type**: types of data sent through ports or of configuration must
-   be registed with microblx.
-
--  **node**: an adminstrative entity which keeps track of blocks and
-   types. Typically one per process is used, but there’s no constraint
-   whatsoever.
-
--  **module**: a module contains one or more blocks or types that are
-   registered/deregistered with a node when the module is
-   loaded/unloaded.
-
-Building microblx blocks
-------------------------
+Developing microblx blocks
+==========================
 
 The following is based on the (heavily documented random number
 generator block (``std_blocks/random/``).
@@ -60,7 +22,7 @@ Building a block entails the following:
    known to the system
 
 Declaring configuration
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 
 Configuration is described with a ``NULL`` terminated array of
 ``ubx_config_t`` types:
@@ -79,7 +41,7 @@ type “struct random_config”.
 with the system. (see section “declaring types”)
 
 Declaring ports
-~~~~~~~~~~~~~~~
+---------------
 
 Like configurations, ports are described with a ``NULL`` terminated
 array of ubx_config_t types:
@@ -96,7 +58,7 @@ Depending on whether an ``in_type_name``, an ``out_type_name`` or both
 are defined, the port will be an in-, out- or a bidirectional port.
 
 Declaring block meta-data
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
 
 .. code:: c
 
@@ -115,7 +77,7 @@ are supported so far:
    calls in the ``step`` function.
 
 Declaring/implementing block hook functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------
 
 The following block operations can be implemented to realize the blocks
 behavior. All are optional.
@@ -147,7 +109,7 @@ They are typically used for the following:
 -  ``cleanup``: free all memory, release all resources.
 
 Storing block local state
-^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As multiple instances of a block may exists, **NO** global variables may
 be used to store the state of a block. Instead, the ``ubx_block_t``
@@ -170,7 +132,7 @@ and retrieve it in the other hooks:
    inf = (struct random_info*) b->private_data;
 
 Reading configuration values
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The following example from the ``random`` block shows how to retrieve a
 struct configuration called ``min_max_config``:

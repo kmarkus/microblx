@@ -29,6 +29,7 @@ local magenta=ubx.magenta
 
 local crit, err, warn, notice, info = nil, nil, nil, nil, nil
 
+--- Create logging helper functions.
 local function def_loggers(ni, src)
    crit = function(msg) ubx.crit(ni, src, msg) end
    err = function(msg) ubx.err(ni, src, msg) end
@@ -102,7 +103,7 @@ local connections_spec = TableSpec
    sealed='both',
 }
 
-   -- node_config
+-- node_config
 local node_config_spec = TableSpec {
    name='node configs',
    sealed='both',
@@ -147,7 +148,6 @@ local start_spec = TableSpec
 
 
 --- system spec
-
 local system_spec = ObjectSpec
 {
    name='system',
@@ -382,12 +382,14 @@ function system.launch(self, t)
       return utils.table_unique(res)
    end
 
-   -- Preprocess configs
+   --- Preprocess configs
    -- @param ni node_info
    -- @param c configuration
    -- Substitute #blockanme with corresponding ubx_block_t ptrs
    local function preproc_configs(ni, c)
       local ret=true
+
+      --- Substitute #blockname with ubx_block_t ptr
       local function subs_blck_ptrs(val, tab, key)
 	 local name=string.match(val, ".*#([%w_-]+)")
 	 if not name then return end
