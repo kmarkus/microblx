@@ -3,7 +3,8 @@
 MICROBLX: hard realtime, embedded, reflective function blocks
 =============================================================
 
-[![Build Status](https://travis-ci.org/kmarkus/microblx.svg?branch=master)](https://travis-ci.org/kmarkus/microblx)
+[![Build status](https://travis-ci.org/kmarkus/microblx.svg?branch=master)](https://travis-ci.org/kmarkus/microblx)
+[![Documentation status](https://readthedocs.org/projects/microblx/badge/?version=latest)](http://microblx.readthedocs.io/?badge=latest)
 
 What is it?
 -----------
@@ -14,10 +15,10 @@ function block framework. Primary use-cases are hard realtime
 
 Main features:
 
- - Core in C, few external dependencies
- - No code generation, dynamic type handling
+ - minimal core in C, few external dependencies
+ - No code generation for types
  - Lua scripting for system configuration and deployment
- - C, C++ or Lua support for implementing function blocks
+ - C/C++ or Lua support for implementing function blocks
  - Standard function block and type library
  - Webinterface function block to introspect and control blocks
  - Automatic block stub code generation
@@ -27,12 +28,15 @@ Main features:
 Documentation
 -------------
 
- - [Quickstart](/doc/quickstart.md)
- - [User manual](/doc/manual.md)
- - [Tutorial](doc/tutorial.md)
- - [FAQ](/doc/FAQ.md)
- - [API Changes](/API_Changes.md)
+Documentation is available on [here](https://microblx.readthedocs.io),
+or can be built locally (requires sphinx to be installed):
 
+```bash
+$ cd docs/
+$ make html
+```
+
+There is also a [ChangeLog](/API_Changes.md).
 
 Getting help
 ------------

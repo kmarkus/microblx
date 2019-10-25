@@ -12,11 +12,12 @@ FSM. There are different ways to do this:
 
 .. code:: bash
 
-   $ ubx_launch -webif -c examples/trig_rnd_hexdump.usc
- 
-  this will launch the given system composition and additionally
-  create a webserver block to allow system to be introspected via a
-  browser. Using the usc files is the preferred approach.
+	  $ ubx_launch -webif -c examples/trig_rnd_hexdump.usc
+
+
+this will launch the given system composition and additionally create
+a webserver block to allow system to be introspected via a
+browser. Using the usc files is the preferred approach.
 
 - by writing a Lua called “deployment script” (e.g. see
   ``examples/trig_rnd_to_hexdump.lua``). This is not recommended under
