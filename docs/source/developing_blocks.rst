@@ -383,11 +383,7 @@ To dual-license a block, write:
    UBX_MODULE_LICENSE_SPDX(MPL-2.0 BSD-3-Clause)
 
 Is is strongly recommended to use this macro. The list of licenses can
-be found here:
-
-http://spdx.org/licenses/ http://spdx.org
-
-(Credit: inspired by U-Boot).
+be found on `<http://spdx.org/licenses>`_
 
 Block code-generation
 ~~~~~~~~~~~~~~~~~~~~~
