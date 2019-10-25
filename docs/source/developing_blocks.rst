@@ -1,10 +1,10 @@
 Developing microblx blocks
 ==========================
 
-The following is based on the (heavily documented random number
-generator block (``std_blocks/random/``).
+Overview
+----------
 
-Building a block entails the following:
+Generally, building a block entails the following:
 
 1. declaring configuration: what is the static configuration of a block
 2. declaring ports: what is the input/output of a block
@@ -20,6 +20,14 @@ Building a block entails the following:
 6. declaring the block: how to put everything together
 7. registration of blocks and types: make block prototypes and types
    known to the system
+
+The following describes these steps in detail and is based on the
+(heavily) documented random number generator block
+(``std_blocks/random/``).
+
+Note: Instead of manually implementing the above, a tool
+``ubx_genblock`` is available which can generate blocks including
+interfaces from a simple description. See `Block code-generation`_.
 
 Declaring configuration
 -----------------------
@@ -384,47 +392,65 @@ http://spdx.org/licenses/ http://spdx.org
 Block code-generation
 ~~~~~~~~~~~~~~~~~~~~~
 
-The script ``tools/ubx_genblock.lua`` generates a microblx block
-including a makefile. After this, only the hook functions need to be
-implemented in the ``.c`` file:
+The ``ubx_genblock`` tool generates a microblx block including a
+Makefile. After this, only the hook functions need to be implemented
+in the ``.c`` file:
 
 Example: generate stubs for a ``myblock`` block (see
 ``examples/block_model_example.lua`` for the block generator model).
 
-.. code:: bash
+.. code:: sh
 
-   $ tools/ubx_genblock.lua -c examples/block_model_example.lua -d std_blocks/test
-       generating std_blocks/test/Makefile
-       generating std_blocks/test/myblock.h
-       generating std_blocks/test/myblock.c
-       generating std_blocks/test/myblock.usc
-       generating std_blocks/test/types/vector.h
-       generating std_blocks/test/types/robot_data.h
+   $ ubx_genblock -d myblock -c /usr/local/share/ubx/examples/blockmodels/block_model_example.lua
+       generating myblock/bootstrap
+       generating myblock/configure.ac
+       generating myblock/Makefile.am
+       generating myblock/myblock.h
+       generating myblock/myblock.c
+       generating myblock/myblock.usc
+       generating myblock/types/vector.h
+       generating myblock/types/robot_data.h
 
-If the command is run again, only the ``.c`` file will be NOT
+Run ``ubx_genblock -h`` for full options.
+
+The following files are generated:
+
+-  ``bootstrap`` autoconf bootstrap script
+-  ``configure.ac`` autoconf input file
+-  ``Makefile.am`` automake input file
+-  ``myblock.h`` block interface and module registration code (don’t edit)
+-  ``myblock.c`` module body (edit and implement functions)
+-  ``myblock.usc`` simple microblx system composition file, see below (can be extended)
+-  ``types/vector.h`` sample type (edit and fill in struct body)
+-  ``robot_data.h`` sample type (edit and fill in struct body)
+
+
+If the command is run again, only the ``.c`` file will NOT be
 regenerated. This can be overriden using the ``-force`` option.
+   
+   
+Compile the block
+~~~~~~~~~~~~~~~~~
 
-Assembling blocks
------------------
+.. code:: sh
 
-There are different options how to create a system from blocks:
+   $ cd myblock/
+   $ ./bootstrap
+   $ ./configure
+   $ make
+   $ make install
 
--  by using a declarative description of the desired composition (the
-   ``*.usc`` files under examples). ``usc`` stands for microblx system
-   composition). These can be launched using the ``ubx_launch`` tool,
-   e.g.
+Launch block using ubx_launch
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: bash
+.. code:: sh
 
-   $ tools/ubx_launch -webif -c examples/trig_rnd_hexdump.usc
+   $ ubx_ilaunch -webif -c myblock.usc
 
-this will launch␇the given system composition and additionally create a
-webserver block to allow system to be introspected.
+Run ``ubx_launch -h`` for full options.
 
--  by writing a so called “deployment script” (e.g. see
-   ``examples/trig_rnd_to_hexdump.lua``)
+Browse to http://localhost:8888
 
--  by assembling the necessary parts in C.
 
 Tips and Tricks
 ---------------
@@ -455,7 +481,7 @@ What the difference between block types and instances?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 First: to create a block instance, it is cloned from an existing block
-and the ``block->prototype`` char ponter set to a newly allocated string
+and the ``block->prototype`` char pointer set to a newly allocated string
 holding the protoblocks name.
 
 There’s very little difference between prototypes and instances:
@@ -472,3 +498,5 @@ Module visibility
 
 The default Makefile defines ``-fvisibility=hidden``, so there’s no need
 to prepend functions and global variables with ``static``
+
+

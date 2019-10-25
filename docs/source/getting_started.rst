@@ -1,10 +1,13 @@
-Introduction
-============
+Getting started
+===============
 
-Microblx is a lightweight function block model and implementation.
 
-Key concepts
-------------
+Overview
+--------
+
+Microblx is a very lightweight function block model and
+implementation.
+
 
 - **block**: the basic building block of microblx. Is defined by filling in a
   ``ubx_block_t`` type and registering it with a microblx
@@ -43,29 +46,30 @@ Installation
 Dependencies
 ~~~~~~~~~~~~
 
- - uthash (apt: ``uthash-dev``)
- - luajit (>=v2.0.0) (apt: ``luajit`` and ``libluajit-5.1-dev``) (not
+- uthash (apt: ``uthash-dev``)
+- luajit (>=v2.0.0) (apt: ``luajit`` and ``libluajit-5.1-dev``) (not
    strictly required, but recommended)
- - ``uutils`` Lua modules [github](https://github.com/kmarkus/uutils)
- - ``liblfds`` lock free data structures (v6.1.1) [github](https://github.com/liblfds/liblfds6.1.1)
- - ``lua-unit`` (apt: ``lua-unit``, src:
-   [luaunit](https://github.com/bluebird75/luaunit) (to run the tests)
- - gcc or clang
- - only for development: ``cproto`` (apt: ``cproto``) to generate C prototype header file
- - autotools etc. (apt: ``automake``, ``libtool``, ``pkg-config``, ``make``)
+- ``uutils`` Lua utilities `git <https://github.com/kmarkus/uutils>`_
+- ``liblfds`` lock free data structures (v6.1.1) `git <https://github.com/liblfds/liblfds6.1.1>`_
+- autotools etc. (apt: ``automake``, ``libtool``, ``pkg-config``, ``make``)
+  
+Only for microblx development:
+
+- ``lua-unit`` (apt: ``lua-unit``, `git <https://github.com/bluebird75/luaunit>`_) (to run the tests)
+- ``cproto`` (apt: ``cproto``) to generate C prototype header file
 
 Building and setting up
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Using yocto
-~~~~~~~~~~~
+^^^^^^^^^^^
 
 The best way to use microblx on an embedded system is by using the
-[meta-microblx](https://github.com/kmarkus/meta-microblx) yocto
+`meta-microblx <https://github.com/kmarkus/meta-microblx>`_ yocto
 layer. Please see the README in that repository for further steps.
 
 Building manually
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
 
 Building to run locally on a PC.
 
@@ -116,11 +120,38 @@ Now build microblx:
 Quickstart
 ----------
 
-Run the example system:
 
-```bash
-$ ubx_ilaunch -webif -c /usr/share/microblx/examples/systemmodels/trig_rnd_hexdump.usc
-```
-browse to http://localhost:8888 to inspect the system.
+NOTE: the following assume microblx was installed in the default
+locations under ``/usr/local/``. If you installed it in a different
+location you will need to adopt the path to the examples.
+
+Run the random block example
+----------------------------
+
+This (silly) example creates a random number generator block. It’s
+output is hexdump’ed (using the ``hexdump`` interaction block) and also
+logged using a ``file_logger`` block.
+
+Before launching the composition, it is advisable to run the logging
+client to see potential errors:
+
+::
+
+   $ ubx_log
+
+and then in another terminal:
+
+.. code:: sh
+
+   $ ubx_ilaunch -webif -c /usr/local/share/ubx/examples/systemmodels/trig_rnd_hexdump.usc
+
+Browse to http://localhost:8888
+
+Explore:
+
+1. clicking on the node graph will show the connections
+2. clicking on blocks will show their interface
+3. start the ``file_log1`` block to enable logging
+4. start the ``ptrig1`` block to start the system.
 
 
