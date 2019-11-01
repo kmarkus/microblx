@@ -1,7 +1,6 @@
 Getting started
 ===============
 
-
 Overview
 --------
 
