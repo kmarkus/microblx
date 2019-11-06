@@ -5,6 +5,9 @@ This file tracks user visible API changes.
 
 ## Unreleased
 
+- rtlog: enable gcc format checking. This checks the provided
+  arguments match the given format string.
+
 - ubx_tocarr: cmdline args added to allow overriding output file file
 
 ## v0.7.0

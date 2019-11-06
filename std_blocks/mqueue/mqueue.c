@@ -207,7 +207,7 @@ static void mqueue_write(ubx_block_t *i, ubx_data_t* data)
 	if(ret != 0 ) {
 		mqi->cnt_send_err++;
 		if (errno != EAGAIN) {
-			ubx_err(i, "mq_send %s failed", i->name, strerror(errno));
+			ubx_err(i, "mq_send %s failed: %s", i->name, strerror(errno));
 			goto out;
 		}
 	}
