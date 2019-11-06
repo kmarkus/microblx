@@ -314,7 +314,7 @@ function system.startup(self, ni)
 
 	 local ret = ubx.block_tostate(b, 'active')
 	 if ret ~= 0 then
-	    err_exit(ret, "failed to start block "..bmodel.name..": ", ret)
+	    err_exit(ret, "failed to start block "..bmodel.name..": "..ubx.retval_tostr[ret])
 	 end
       end, self.blocks)
    -- start the start table blocks in order
