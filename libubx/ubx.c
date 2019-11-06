@@ -113,7 +113,7 @@ int ubx_module_load(ubx_node_info_t* ni, const char *lib)
 	}
 
 	if((mod->handle = dlopen(lib, RTLD_NOW)) == NULL) {
-		ubx_log(UBX_LOGLEVEL_ERR, ni, "dlopen", dlerror())
+		ubx_log(UBX_LOGLEVEL_ERR, ni, "dlopen", "%s", dlerror())
 		goto out_err_free_id;
 	}
 
