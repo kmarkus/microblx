@@ -5,6 +5,8 @@ This file tracks user visible API changes.
 
 ## Unreleased
 
+- blockdiagram.load: change to return `system` or fail and exit
+
 - rtlog: enable gcc format checking. This checks the provided
   arguments match the given format string.
 

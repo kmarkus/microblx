@@ -39,6 +39,7 @@ end
 
 local opttab=utils.proc_args(arg)
 local nodename
+local model
 local conf_file
 local conf_type
 local monitorblock
@@ -65,13 +66,12 @@ if opttab['-ctype'] then
     end
 end
 
-local suc
-suc, model = bd.load(conf_file, conf_type)
+model = bd.load(conf_file, conf_type)
 if (opttab['-b'] and opttab['-b'][1]) then
    monitorblock = opttab['-b'][1]
 end
 
-if not suc then
+if not bd.is_system(model) then
    print(model)
    print("ubx_launch failed to load file "..ts(conf_file))
    os.exit(1)

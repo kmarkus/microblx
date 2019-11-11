@@ -248,7 +248,7 @@ end
 --- read blockdiagram system file from usc or json file
 -- @param fn file name of file (usc or json)
 -- @param file_type optional file type - either \em usc or \em json. If not specified, the type will be auto-detected from the extension of the file
--- @return true or error msg, system model
+-- @return system model or will exit(1)
 local function load(fn, file_type)
 
    local function read_json()
@@ -280,7 +280,7 @@ local function load(fn, file_type)
       os.exit(1)
    end
 
-   return suc, mod
+   return mod
 end
 
 --- Pulldown a blockdiagram system
