@@ -5,6 +5,12 @@ This file tracks user visible API changes.
 
 ## Unreleased
 
+- struct ubx_block: added attributes variable (`attrs`) and defined
+  first block attributes (`BLOCK_ATTR_TRIGGER` and
+  `BLOCK_ATTR_ACTIVE`). These will be used by tools such as
+  ubx_launch, so blocks should be updated to define these
+  appropriately.
+
 - blockdiagram.load: change to return `system` or fail and exit
 
 - rtlog: enable gcc format checking. This checks the provided

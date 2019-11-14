@@ -9,6 +9,7 @@
 --
 
 local ffi=require "ffi"
+local bit=require "bit"
 local cdata = require "cdata"
 local utils= require "utils"
 local ts=tostring
@@ -100,6 +101,11 @@ local function setup_enums()
       [ffi.C.BLOCK_STATE_INACTIVE]='inactive',
       [ffi.C.BLOCK_STATE_ACTIVE]='active'
    }
+
+   M.block_attrs_tostr={
+      [ffi.C.BLOCK_ATTR_TRIGGER]='trigger',
+      [ffi.C.BLOCK_ATTR_ACTIVE]='active',
+   }
 end
 
 -- load ubx_types and library
@@ -144,7 +150,7 @@ void *malloc(size_t size);
 void free(void *ptr);
 void *calloc(size_t nmemb, size_t size);
 void *realloc(void *ptr, size_t size);
- ]]
+]]
 
 local prefix=find_prefix()
 load_ubx_ffi(prefix)
@@ -477,6 +483,13 @@ local function block_state_color(sstr)
    end
 end
 
+local function block_attr_totab(b)
+   local t = {}
+   if bit.band(b.attrs, ffi.C.BLOCK_ATTR_TRIGGER) ~= 0 then t[#t+1] = "trigger" end
+   if bit.band(b.attrs, ffi.C.BLOCK_ATTR_ACTIVE) ~= 0 then t[#t+1] = "active" end
+   return t
+end
+
 --- Convert block to lua table
 -- @param b block to convert to table
 -- @return table
@@ -485,6 +498,7 @@ function M.block_totab(b)
 
    local res = {}
    res.name = M.safe_tostr(b.name)
+   res.attrs = block_attr_totab(b)
    res.meta_data = M.safe_tostr(b.meta_data)
    res.block_type=M.block_type_tostr[b.type]
    res.state = M.block_state_tostr[b.block_state]
@@ -517,11 +531,14 @@ function M.block_pp(b)
 
    if M.is_block(b) then bt = M.block_totab(b) else bt = b end
 
-   local fmt = "%s (type=%s, state=%s, prototype=%s)"
+   local fmt = "%s [state: %s, steps: %u] (type: %s, prototype: %s, attrs: %s)"
 
-   res[#res+1] = fmt:format(green(bt.name), bt.block_type,
+   res[#res+1] = fmt:format(green(bt.name),
 			    block_state_color(bt.state),
-			    blue(bt.prototype), bt.stat_num_steps)
+			    bt.stat_num_steps,
+			    bt.block_type,
+			    blue(bt.prototype),
+			    table.concat(bt.attrs, ', '))
 
    if #bt.ports > 0 then
       res[#res+1] = ("  ports:")
@@ -551,11 +568,12 @@ function M.block_tostr(b)
       return ("%s [%s]"):format(green(bt.name), bt.block_type)
    end
 
-   return ("%s [%s, %s, %s]"):format(
+   return ("%s [%s, %s, %s, attrs: %s]"):format(
       green(bt.name),
       bt.block_type,
       block_state_color(bt.state),
-      blue(bt.prototype))
+      blue(bt.prototype),
+      table.concat(bt.attrs, ', '))
 end
 
 function M.block_port_get (b, n)

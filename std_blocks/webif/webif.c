@@ -226,6 +226,7 @@ static void wi_stop(ubx_block_t *c)
 ubx_block_t webif_comp = {
 	.name = "webif/webif",
 	.type = BLOCK_TYPE_COMPUTATION,
+	.attrs = BLOCK_ATTR_ACTIVE,
 	.meta_data = wi_meta,
 	.configs = webif_conf,
 

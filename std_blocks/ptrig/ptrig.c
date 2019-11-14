@@ -502,6 +502,7 @@ static void ptrig_cleanup(ubx_block_t *b)
 ubx_block_t ptrig_comp = {
 	.name = "std_triggers/ptrig",
 	.type = BLOCK_TYPE_COMPUTATION,
+	.attrs = BLOCK_ATTR_TRIGGER | BLOCK_ATTR_ACTIVE,
 	.meta_data = ptrig_meta,
 
 	.configs = ptrig_config,

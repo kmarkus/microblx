@@ -927,6 +927,7 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 
 	/* copy attributes of prototype */
 	newb->type = prot->type;
+	newb->attrs = prot->attrs;
 
 	if((newb->name=strdup(name))==NULL) goto out_free;
 	if((newb->meta_data=strdup(prot->meta_data))==NULL) goto out_free;

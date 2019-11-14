@@ -238,6 +238,7 @@ void trig_cleanup(ubx_block_t *b)
 ubx_block_t trig_comp = {
 	.name = "std_triggers/trig",
 	.type = BLOCK_TYPE_COMPUTATION,
+	.attrs = BLOCK_ATTR_TRIGGER,
 	.meta_data = trig_meta,
 	.configs = trig_config,
 	.ports = trig_ports,

@@ -172,7 +172,7 @@ typedef struct ubx_config
 } ubx_config_t;
 
 enum {
-	CONFIG_ATTR_RDWR =	0<<0,
+	CONFIG_ATTR_RDWR =	0,
 	CONFIG_ATTR_RDONLY =	1<<0
 };
 
@@ -186,6 +186,13 @@ enum {
 	BLOCK_TYPE_INTERACTION
 };
 
+/* Block attributes */
+enum {
+	BLOCK_ATTR_TRIGGER = 	1<<0,	/* block is a trigger */
+	BLOCK_ATTR_ACTIVE = 	1<<1,	/* block is active (has a thread) */
+};
+
+/* block states */
 enum {
 	BLOCK_STATE_PREINIT,
 	BLOCK_STATE_INACTIVE,
@@ -198,6 +205,7 @@ typedef struct ubx_block
 	const char* name;	/* type name */
 	const char* meta_data;	/* doc, etc. */
 	uint32_t type;		/* type, (computation, interaction) */
+	uint32_t attrs;		/* attributes */
 
 	ubx_port_t* ports;
 	ubx_config_t* configs;
