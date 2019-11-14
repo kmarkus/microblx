@@ -1,4 +1,4 @@
-# Extending the blocksdiagram DSL with Compsition
+# Extending the blocksdiagram DSL with Composition
 
 **Authors**:
 
@@ -32,7 +32,7 @@ roadmap towards more complete composition support.
 
 ## Approach
 
-There are two releavant parts for supporting composition: the
+There are two relevant parts for supporting composition: the
 structural inclusion of a subsystem (i.e. the blocks, configurations
 and connections) and the run-time aspects (e.g. how to trigger such a
 composition).
@@ -65,8 +65,8 @@ This can be used *instead* of just instantiating a `trig` or `ptrig`
 and allows "late" selection of the activity that shall trigger the
 composition.
 
-Another use-case is to support multiple schedules, that can be
-switched at run-time.
+Another use-case is to support multiple alternative schedules, that can be
+selected at run-time.
 
 ### Structural aspects of composition
 
@@ -90,7 +90,7 @@ startup. The `schedule` and the active trigger together form the
 ### Example
 
 **Basic robot composition** consisting of robot driver and
-kinematics. This can be used as a basis for futher applications.
+kinematics. This can be used as a basis for further applications.
 
 ```Lua
 return bd.system {
