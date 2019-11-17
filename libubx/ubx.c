@@ -217,7 +217,7 @@ int ubx_node_init(ubx_node_info_t* ni, const char *name)
 		goto out;
 	}
 
-	logf_info(ni, "node: %s, loglevel: %u", name, ni->loglevel);
+	logf_notice(ni, "node_init: %s, loglevel: %u", name, ni->loglevel);
 
 	if((ni->name=strdup(name))==NULL) {
 		logf_err(ni, "strdup failed: %m");
