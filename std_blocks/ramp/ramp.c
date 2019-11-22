@@ -44,7 +44,7 @@ int ramp_init(ubx_block_t *b)
 		goto out;
 
 	inf->slope = (len > 0) ? *val : 1;
-	inf->slope = (fabs(inf->slope) > 10e-6) ? inf->slope : 1;
+	inf->slope = (fabs((double) inf->slope) > 10e-6) ? inf->slope : 1;
 
 	ret=0;
 out:
