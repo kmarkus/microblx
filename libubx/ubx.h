@@ -20,6 +20,9 @@
 #define NSEC_PER_SEC		1000000000
 #define NSEC_PER_USEC           1000
 
+/* config array length checking */
+#define CONFIG_LEN_MAX		UINT16_MAX
+
 #ifdef __cplusplus
 extern "C"
 {

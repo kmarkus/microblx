@@ -334,6 +334,7 @@ void ubx_node_rm(ubx_node_info_t* ni)
 int ubx_block_register(ubx_node_info_t *ni, ubx_block_t* block)
 {
 	int ret = -1;
+	ubx_config_t *c;
 	ubx_block_t *tmpc;
 
 	/* don't allow instances to be registered into more than one node_info */
@@ -348,7 +349,21 @@ int ubx_block_register(ubx_node_info_t *ni, ubx_block_t* block)
 		goto out;
 	}
 
-	/* TODO: consistency check */
+	/* consistency checks */
+	for(unsigned int i=0; i<get_num_configs(block); i++) {
+		c = &block->configs[i];
+
+		/* if min is set and max is unset, then max defaults
+		 * to CONFIG_LEN_MAX */
+		if (c->max == 0 && c->min > 0)
+			c->max = CONFIG_LEN_MAX;
+
+		if (c->max < c->min) {
+			logf_err(ni, "block %s config %s: invalid min/max [%u/%u]",
+				 block->name, c->name, c->min, c->max);
+			goto out;
+		}
+	}
 
 	HASH_FIND_STR(ni->blocks, block->name, tmpc);
 
@@ -948,6 +963,8 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 						 srcconf->type,
 						 srcconf->data_len) != 0)
 				goto out_free;
+			tgtconf->min = srcconf->min;
+			tgtconf->max = srcconf->max;
 		}
 	}
 
@@ -1364,7 +1381,7 @@ out:
  *
  * @return number of configs of block b
  */
-unsigned int get_num_configs(ubx_block_t* b)
+unsigned int get_num_configs(const ubx_block_t* b)
 {
 	unsigned int n;
 
@@ -1579,6 +1596,58 @@ int ubx_config_rm(ubx_block_t* b, const char* name)
 
 	ret=0;
  out:
+	return ret;
+}
+
+/**
+ * validate_configs - validate array length of configs
+ *
+ * possible min,max settings:
+ *   - 0,0:		 no constraints
+ *   - 0,1:  		 zero or one
+ *   - 0,CONFIG_LEN_MAX: zero to many
+ *   - N,unset: 	 zero to many (for N>0)
+ *   - N,N: 		 exactly N
+ *
+ *   basic sanity checks are in ubx_block_register
+ *
+ * @param b block
+ * @param checklate 1 if this is a late check (in start), 0 otherwise
+ *
+ * @return 0 if successful, EINVALID_CONFIG_LEN otherwise
+ */
+static int validate_configs(const ubx_block_t *b, const int checklate)
+{
+	int ret = 0;
+	ubx_config_t *c;
+
+	for(unsigned int i=0; i<get_num_configs(b); i++) {
+
+		c = &b->configs[i];
+
+		/* no constraints defined */
+		if (c->min == 0 && c->max == 0) {
+			continue;
+		}
+
+		if (((c->attrs & CONFIG_ATTR_CHECKLATE) != 0 && !checklate) ||
+		    ((c->attrs & CONFIG_ATTR_CHECKLATE) == 0 && checklate) ) {
+			ubx_debug(b, "skipping checking of %s", c->name);
+			continue;
+		}
+
+		/* distinguish for nicer error msgs */
+		if (c->value->len == 0 && c->min > 0) {
+			ubx_err(b, "EINVALID_CONFIG_LEN: mandatory config %s unset", c->name);
+			ret = EINVALID_CONFIG_LEN;
+		} else if (c->value->len < c->min || c->value->len > c->max) {
+			ubx_err(b, "EINVALID_CONFIG_LEN: config %s len %lu not in min/max [%u/%u]",
+				c->name, c->value->len, c->min, c->max);
+			ret = EINVALID_CONFIG_LEN;
+		}
+		ubx_debug(b, "%s %s OK", __FUNCTION__, c->name);
+	}
+
 	return ret;
 }
 
@@ -1841,6 +1910,10 @@ int ubx_block_init(ubx_block_t* b)
 		goto out;
 	}
 
+	if((ret = validate_configs(b, 0)) < 0) {
+		goto out;
+	}
+
 	if(b->init==NULL)
 		goto out_ok;
 
@@ -1879,6 +1952,10 @@ int ubx_block_start(ubx_block_t* b)
 		ubx_err(b, "start: not in state inactive (but %s)",
 			block_state_tostr(b->block_state));
 		ret = EWRONG_STATE;
+		goto out;
+	}
+
+	if((ret = validate_configs(b, 1)) < 0) {
 		goto out;
 	}
 

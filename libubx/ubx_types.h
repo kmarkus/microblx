@@ -99,7 +99,9 @@ enum {
 
 	EINVALID_BLOCK_TYPE,		/* invalid block type */
 	EINVALID_PORT_TYPE,		/* invalid port type */
-	EINVALID_CONFIG_TYPE,		/* invalid port type */		
+	EINVALID_CONFIG_TYPE,		/* invalid port type */
+
+	EINVALID_CONFIG_LEN,		/* invalid config array length */
 	
 	EINVALID_PORT_DIR,		/* invalid port direction */
 
@@ -168,12 +170,19 @@ typedef struct ubx_config
 	ubx_type_t *type;
 	ubx_data_t *value;		/* reference to actual value */
 	long data_len;			/* array size of value */
+
 	uint32_t attrs;
+
+	/* */
+	uint16_t min;
+	uint16_t max;
 } ubx_config_t;
 
 enum {
-	CONFIG_ATTR_RDWR =	0,
-	CONFIG_ATTR_RDONLY =	1<<0
+	CONFIG_ATTR_RDONLY =	 1<<0,
+	CONFIG_ATTR_CHECKLATE =  2<<1	/* perform checking of min,
+					 * max before start instead of
+					 * before init hook */
 };
 
 /*

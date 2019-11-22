@@ -43,7 +43,7 @@ char rnd_meta[] =
  */
 ubx_config_t rnd_config[] = {
 	{ .name="loglevel", .type_name = "int" },
-	{ .name="min_max_config", .type_name = "struct random_config" },
+	{ .name="min_max_config", .type_name = "struct random_config", .min=1, .max=1 },
 	{ NULL },
 };
 
