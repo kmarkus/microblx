@@ -25,9 +25,9 @@ char cyclic_meta[] =
 
 /* configuration */
 ubx_config_t cyclic_config[] = {
-	{ .name="type_name", .type_name = "char", .doc="name of registered microblx type to transport" },
-	{ .name="data_len", .type_name = "uint32_t", .doc="array length (multiplier) of data (default: 1)" },
-	{ .name="buffer_len", .type_name = "uint32_t", .doc="max. number of data elements the buffer shall hold" },
+	{ .name="type_name", .type_name = "char", .min=1, .doc="name of registered microblx type to transport" },
+	{ .name="data_len", .type_name = "uint32_t", .max=1, .doc="array length (multiplier) of data (default: 1)" },
+	{ .name="buffer_len", .type_name = "uint32_t", .min=1, .max=1, .doc="max number of data elements the buffer shall hold" },
 	{ NULL },
 };
 
@@ -90,12 +90,6 @@ static int cyclic_init(ubx_block_t *i)
 	/* read and check buffer_len config */
 	len = cfg_getptr_uint32(i, "buffer_len", &val);
 
-	if(len != 1) {
-		ubx_err(i, "config 'buffer_len' %s",
-			(len==0) ? "unconfigured" : "invalid");
-		goto out_free_priv_data;
-	}
-
 	if(*val == 0) {
 		ubx_err(i, "config buffer_len=0");
 		ret = EINVALID_CONFIG;
@@ -111,12 +105,6 @@ static int cyclic_init(ubx_block_t *i)
 	bbi->data_len = (len>0) ? *val : 1;
 
 	len = cfg_getptr_char(i, "type_name", &type_name);
-
-	if (len <= 0 || type_name == NULL) {
-		ubx_err(i, "config 'type_name' %s",
-			(len==0) ? "unconfigured" : "invalid");
-		goto out_free_priv_data;
-	}
 
 	bbi->type=ubx_type_get(i->ni, type_name);
 

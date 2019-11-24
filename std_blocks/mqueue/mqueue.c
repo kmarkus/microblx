@@ -17,10 +17,10 @@ char mqueue_meta[] =
 	"}";
 
 ubx_config_t mqueue_config[] = {
-	{ .name="mq_name", .type_name = "char" },
-	{ .name="type_name", .type_name = "char", .doc="name of registered microblx type to transport" },
-	{ .name="data_len", .type_name = "uint32_t", .doc="array length (multiplier) of data (default: 1)" },
-	{ .name="buffer_len", .type_name = "uint32_t", .doc="max. number of data elements the buffer shall hold" },
+	{ .name="mq_name", .type_name = "char", .min=2, .max=NAME_MAX, .doc="mqueue name see mq_overview(7)" },
+	{ .name="type_name", .type_name = "char", .min=1, .doc="name of registered microblx type to transport" },
+	{ .name="data_len", .type_name = "uint32_t", .max=1, .doc="array length (multiplier) of data (default: 1)" },
+	{ .name="buffer_len", .type_name = "uint32_t", .min=1, .max=1, .doc="max number of data elements the buffer shall hold" },
 	{ NULL }
 };
 
@@ -57,29 +57,23 @@ static int mqueue_init(ubx_block_t *i)
 	mqi = (struct mqueue_info*) i->private_data;
 
 	/* config buffer_len */
-	len = cfg_getptr_uint32(i, "buffer_len", &val);
-
-	if(len < 0) {
+	if ((len = cfg_getptr_uint32(i, "buffer_len", &val)) < 0) {
 		ubx_err(i, "%s: failed to get buffer_len config", i->name);
 		goto out_free_info;
-	} else if (len == 0) {
-		ubx_err(i, "%s: config buffer_len unconfigured", i->name);
+	}
+
+	if (*val==0) {
+		ubx_err(i, "%s: illegal value buffer_len=0", i->name);
 		ret = EINVALID_CONFIG;
 		goto out_free_info;
-	} else {
-		if(*val==0) {
-			ubx_err(i, "%s: illegal value buffer_len=0", i->name);
-			ret = EINVALID_CONFIG;
-			goto out_free_info;
-		}
-
-		mqi->buffer_len =*val;
 	}
+
+	mqi->buffer_len =*val;
 
 	mqa.mq_maxmsg = mqi->buffer_len;
 
 	/* config data_len */
-	if((len = cfg_getptr_uint32(i, "data_len", &val)) < 0) {
+	if ((len = cfg_getptr_uint32(i, "data_len", &val)) < 0) {
 		ubx_err(i, "%s: failed to read 'data_len' config", i->name);
 		goto out_free_info;
 	}
@@ -87,34 +81,30 @@ static int mqueue_init(ubx_block_t *i)
 	mqi->data_len = (len>0) ? *val : 1;
 
 	/* config type_name */
-	len = cfg_getptr_char(i, "type_name", &chrptr);
-
-	if (len <= 0 || chrptr == NULL) {
-		ubx_err(i, "%s: invalid or missing type name", i->name);
+	if ((len = cfg_getptr_char(i, "type_name", &chrptr)) < 0) {
+		ubx_err(i, "failed to access config %s", i->name);
 		goto out_free_info;
 	}
 
 	mqi->type=ubx_type_get(i->ni, chrptr);
 
-	/* configure max message size */
-	mqa.mq_msgsize = mqi->data_len * mqi->type->size;
-
-	if(mqi->type==NULL) {
+	if (mqi->type == NULL) {
 		ubx_err(i, "%s: failed to lookup type %s", i->name, chrptr);
 		ret = EINVALID_CONFIG;
 		goto out_free_info;
 	}
 
-	/* retrive mq_name config */
-	len = cfg_getptr_char(i, "mq_name", &chrptr);
+	/* configure max message size */
+	mqa.mq_msgsize = mqi->data_len * mqi->type->size;
 
-	if(len <= 0) {
-		ubx_err(i, "%s: 'mq_name' unconfigured", i->name);
+	/* retrive mq_name config */
+	if ((len = cfg_getptr_char(i, "mq_name", &chrptr)) < 0) {
+		ubx_err(i, "failed to access config %s", i->name);
 		goto out_free_info;
 	}
 
 	if(chrptr[0] != '/') {
-		ubx_err(i, "%s: invalid mq_name, must start with '/' (cfr. mq_overview(1))", i->name);
+		ubx_err(i, "missing '/' in mq_name %s (cfr. mq_overview(1))", i->name);
 		goto out_free_info;
 	}
 

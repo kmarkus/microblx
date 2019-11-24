@@ -18,7 +18,7 @@ char const_int_meta[] =
 	"}";
 
 ubx_config_t const_int_config[] = {
-	{ .name="value", .type_name = "int" },
+	{ .name="value", .type_name = "int", .min=1, .max=1 },
 	{ NULL },
 };
 
@@ -61,10 +61,8 @@ static int const_int_start(ubx_block_t *i)
 
 	inf = (struct blk_inf*) i->private_data;
 
-	len = cfg_getptr_int(i, "value", &inf->value);
-
-	if(len != 1) {
-		ubx_err(i, "config 'value' unconfigured or wrong size %lu", len);
+	if ((len = cfg_getptr_int(i, "value", &inf->value)) < 0) {
+		ubx_err(i, "missing config 'value'");
 		return EINVALID_CONFIG;
 	}
 
