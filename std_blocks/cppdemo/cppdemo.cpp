@@ -20,13 +20,7 @@ char cppdemo_meta[] =
 	"  realtime=true,"
 	"}";
 
-/* configuration
- * upon cloning the following happens:
- *   - value.type is resolved
- *   - value.data will point to a buffer of size value.len*value.type->size
- *
- * if an array is required, then .value = { .len=<LENGTH> } can be used.
- */
+/* configuration */
 ubx_config_t cppdemo_config[] = {
 	ubx_config_cpp("test_conf", "double", "a test config value"),
 	{ NULL },
