@@ -48,6 +48,44 @@ type “struct random_config”.
 **Note:**: custom types like ``struct random_config`` must be registered
 with the system. (see section “declaring types”)
 
+To reduce boilerplate validation code in blocks, ``min`` and ``max``
+attributes can be used to define permitted length of configuratio
+values. For example:
+
+.. code:: c
+
+   ubx_config_t rnd_config[] = {
+       { .name="min_max_config", .type_name = "struct random_config", .min=1, .max=1 },
+       { NULL },
+   };
+
+Would require that this block must be configured with exactly one
+``struct random_config`` value. Checking will take place before the
+transition to `inactive` (i.e. before ``init``).
+
+In fewer cases, configuration takes place in state ``inactive`` and
+must be checked before the transition to ``active``. That can be
+achieve by defining the config attribute ``CONFIG_ATTR_CHECKLATE``.
+
+Legal values of ``min`` and ``max`` are summarized below:
+
++-----+----------------+------------------------+
+| min | max            | result                 |
++=====+================+========================+
+|   0 | 0              | no checking (disabled) |
++-----+----------------+------------------------+
+|   0 | 1              | optional config        |
++-----+----------------+------------------------+
+|   1 | 1              | mandatory config       |
++-----+----------------+------------------------+
+|   0 | CONFIG_LEN_MAX | zero to many           |
++-----+----------------+------------------------+
+|   1 | undefined      | zero to many           |
++-----+----------------+------------------------+
+|   N | N              | exactly N              |
++-----+----------------+------------------------+
+
+
 Declaring ports
 ---------------
 

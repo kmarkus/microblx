@@ -5,6 +5,9 @@ This file tracks user visible API changes.
 
 ## Unreleased
 
+- config: add `min`/`max` specifiers for introducing constraints such
+  as optional or mandatory configs.
+
 - struct ubx_block: added attributes variable (`attrs`) and defined
   first block attributes (`BLOCK_ATTR_TRIGGER` and
   `BLOCK_ATTR_ACTIVE`). These will be used by tools such as
