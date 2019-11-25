@@ -68,10 +68,52 @@ out:
 	return ret;
 }
 
+
+/**
+ * logc_seek_to_oldest - move the read ptr to the oldest valid log
+ * message (keeping at least LOGC_SEEK_OLDEST_CRUSH_ZONE distance from the
+ * wptr).
+ *
+ * @param inf pointer to logc_info_t
+ */
+void logc_seek_to_oldest(logc_info_t *inf)
+{
+	log_wrap_off_t new = inf->buf_ptr->w;
+
+	/* advance by LOGC_SEEK_OLDEST_CRUSH_ZONE elem. Moving beyond
+	 * wptr means we need to remember to decrement wrap. */
+	new.off += LOGC_SEEK_OLDEST_CRUSH_ZONE * inf->frame_size;
+
+	/* wrap? */
+	if (new.off > inf->shm_size - inf->frame_size - sizeof(log_buf_t)) {
+		/* yes. No need to decrement wrap because we moved
+		 * ahead of wptr, which already "decremented" it. */
+		new.off = new.off - inf->shm_size + sizeof(log_buf_t);
+		DBG("wrapped");
+	} else {
+		/* no wrap occurred and buffer has never wrapped
+		 * before. This means 0 is our oldest message (if its
+		 * there at all). */
+		if(new.wrap == 0) {
+			DBG("no wrap and wrap=0. starting at off=0");
+			new.off = 0;
+		} else {
+		        /* no wrap occurreed and buffer is full (has
+			 * wrapped before), so we need to decrement
+			 * wrap for moving beyond wptr */
+			DBG("no wrap and wrap=%u. decrementing wrap", new.wrap);
+			new.wrap--;
+		}
+	}
+
+	DBG("idx of oldest: %u", new.off / inf->frame_size);
+	inf->r = new;
+}
+
 /**
  * logc_reset_read - reset the read ptr to the write ptr
  *
- * @param inf
+ * @param inf pointer to logc_info_t
  */
 void logc_reset_read(logc_info_t *inf)
 {

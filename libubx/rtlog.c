@@ -95,10 +95,10 @@ struct log_shm_inf {
 struct log_shm_inf inf;
 
 /**
- * log_inc_woff - atomically inc the write offfset
+ * log_inc_woff - atomically inc the write offset
  *
  * This works, because
- *  - aligned memory accesses are guaranteed atomic on intel64 and
+ *  - aligned memory accesses are guaranteed atomic on most architectures
  *  - we only have one writer
  *
  * This be portable, this should use gcc atomic ops.
@@ -158,7 +158,7 @@ int ubx_log_init(struct ubx_node_info* ni)
 	}
 
 	if((ret = ftruncate(inf.shm_fd, inf.shm_size)) != 0) {
-		fprintf(stderr, "%s: cannot resize chm file\n", __FUNCTION__);
+		fprintf(stderr, "%s: cannot resize shm file\n", __FUNCTION__);
 		goto out_close;
 	}
 

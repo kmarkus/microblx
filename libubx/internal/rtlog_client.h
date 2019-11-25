@@ -27,6 +27,7 @@ enum READ_STATUS {
 
 /* rtlog_client.c */
 void logc_reset_read(logc_info_t *inf);
+void logc_seek_to_oldest(logc_info_t *inf);
 int logc_init(logc_info_t *inf, const char *filename, uint32_t frame_size);
 void logc_close(logc_info_t *inf);
 enum READ_STATUS logc_has_data(const logc_info_t *inf);

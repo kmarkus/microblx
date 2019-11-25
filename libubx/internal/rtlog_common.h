@@ -24,6 +24,10 @@
 #define LOG_BUFFER_DEPTH 10000
 #define LOG_SHM_FILENAME "rtlog.logshm"
 
+/* the minimum distance from the wptr that logc_seek_to_oldest will
+ * keep when seeking to the oldest log message */
+#define LOGC_SEEK_OLDEST_CRUSH_ZONE 100
+
 /* helper to handle atomic read/write of wrap_woff and conveniently
  * deal with wrap and woff */
 typedef union {

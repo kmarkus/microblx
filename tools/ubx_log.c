@@ -209,12 +209,14 @@ int lc_init(struct ubx_log_info *inf)
 	int ret = EOUTOFMEM;
 
 	inf->lcinf = calloc(1, sizeof(logc_info_t));
+
 	if (inf->lcinf == NULL) {
 		fprintf(stderr, "failed to alloc logc_info_t\n");
 		goto out;
 	}
 
 	inf->uininf = calloc(1, sizeof(struct uin_info));
+
 	if (inf->uininf == NULL) {
 		fprintf(stderr, "failed to alloc uin_info\n");
 		goto out_free_logc_info;
@@ -252,14 +254,15 @@ int lc_init(struct ubx_log_info *inf)
 		}
 	}
 
-	/*
-	 * closing the inotify file descriptor also removes all notification
-	 * structures in the kernel
+	/* the shm file has appeared. close the blocking inotify fd
+	 * and reopen in non-blocking mode for monitoring during
+	 * regular logging operation. The following close will also
+	 * remove all notification structures in the kernel
 	 */
 	close(inf->uininf->infd);
 
 	ret = start_inotify(inf->uininf, SHM_DIRPATH, LOG_SHM_FILENAME,
-			    IN_NONBLOCK, IN_CREATE);
+			    IN_NONBLOCK, IN_CREATE | IN_MODIFY);
 	if (ret != 0) {
 		fprintf(stderr, "start_inotify failed: %d: %s\n", ret,
 			strerror(-ret));
@@ -285,7 +288,7 @@ out:
  *
  * @param inf:	log client local data
  */
-int check_new_shm(struct ubx_log_info *inf)
+int check_new_shm(struct ubx_log_info *inf, int show_old, int color)
 {
 	int ret = 0;
 
@@ -297,9 +300,19 @@ int check_new_shm(struct ubx_log_info *inf)
 		break;
 
 	case 1:
+		ERRC(color, "ubx log shm recreation/truncation detected - reopening\n");
 		logc_close(inf->lcinf);
 		ret = logc_init(inf->lcinf, LOG_SHM_FILENAME,
 				sizeof(struct ubx_log_msg));
+
+		if(ret) {
+			fprintf(stderr, "logc_init failed to initialize\n");
+			break;
+		}
+
+		if(show_old)
+			logc_seek_to_oldest(inf->lcinf);
+
 		break;
 
 	default:
@@ -318,18 +331,22 @@ void print_help(char **argv)
 	printf("   show ubx log messages\n\n");
 	printf("Options:\n");
 	printf("  -N    don't use colors\n");
+	printf("  -O    don't show old messages upon startup\n");
 	printf("  -h    show this help and exit\n");
 }
 
 int main(int argc, char **argv)
 {
-	int opt, color = 1, ret = EOUTOFMEM;
+	int opt, color = 1, show_old = 1, ret = EOUTOFMEM;
 	struct ubx_log_info *inf;
 
-	while ((opt = getopt(argc, argv, "Nh")) != -1) {
+	while ((opt = getopt(argc, argv, "ONh")) != -1) {
 		switch (opt) {
 		case 'N':
 			color = 0;
+			break;
+		case 'O':
+			show_old = 0;
 			break;
 		case 'h':
 		default: /* '?' */
@@ -351,9 +368,12 @@ int main(int argc, char **argv)
 	if (ret != 0)
 		goto out_free;
 
+	if(show_old)
+		logc_seek_to_oldest(inf->lcinf);
+
 	while (1) {
 		/* check for create shm event */
-		ret = check_new_shm(inf);
+		ret = check_new_shm(inf, show_old, color);
 		if (ret != 0)
 			break;
 

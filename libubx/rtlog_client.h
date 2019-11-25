@@ -8,6 +8,7 @@
  */
 #ifndef RTLOG_CLIENT_H
 #define RTLOG_CLIENT_H
+
 #include "internal/rtlog_common.h"
 #include "internal/rtlog_client.h"
 #endif /* RTLOG_CLIENT_H */
