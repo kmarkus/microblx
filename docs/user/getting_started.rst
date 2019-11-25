@@ -19,7 +19,7 @@ implementation.
   ``BLOCK_TYPE_COMPUTATION``) encapsulate “functionality” such as
   drivers and controllers. **interaction blocks** (“iblocks”,
   ``BLOCK_TYPE_INTERACTION``) are used to implement communication or
-  interaction between blocks. This manual focusses on how to build
+  interaction between blocks. This manual focuses on how to build
   cblocks, since this is what most application builders need to do.
 
   - **configuration**: defines static properties of blocks, such as
@@ -28,9 +28,9 @@ implementation.
   - **port**: define which data flows in and out of blocks.
 
 - **type**: types of data sent through ports or of configuration must
-  be registed with microblx.
+  be registered with microblx.
 
-- **node**: an adminstrative entity which keeps track of blocks and
+- **node**: an administrative entity which keeps track of blocks and
   types. Typically one per process is used, but there’s no constraint
   whatsoever.
 

@@ -10,8 +10,8 @@ Generally, building a block entails the following:
 2. declaring ports: what is the input/output of a block
 3. declaring types: which data types are communicated
 4. declaring block meta-data: provide further information about a block
-5. declaring/implementing hook functions: how is the block initialized,
-   started, run, stopped and cleanup’ed?
+5. declaring and implementing hook functions: how is the block
+   initialized, started, run, stopped and cleaned up?
 
    1. reading configuration values: how to access configuration from
       inside the block
@@ -49,7 +49,7 @@ type “struct random_config”.
 with the system. (see section “declaring types”)
 
 To reduce boilerplate validation code in blocks, ``min`` and ``max``
-attributes can be used to define permitted length of configuratio
+attributes can be used to define permitted length of configuration
 values. For example:
 
 .. code:: c
@@ -65,25 +65,25 @@ transition to `inactive` (i.e. before ``init``).
 
 In fewer cases, configuration takes place in state ``inactive`` and
 must be checked before the transition to ``active``. That can be
-achieve by defining the config attribute ``CONFIG_ATTR_CHECKLATE``.
+achieved by defining the config attribute ``CONFIG_ATTR_CHECKLATE``.
 
 Legal values of ``min`` and ``max`` are summarized below:
 
-+-----+----------------+------------------------+
-| min | max            | result                 |
-+=====+================+========================+
-|   0 | 0              | no checking (disabled) |
-+-----+----------------+------------------------+
-|   0 | 1              | optional config        |
-+-----+----------------+------------------------+
-|   1 | 1              | mandatory config       |
-+-----+----------------+------------------------+
-|   0 | CONFIG_LEN_MAX | zero to many           |
-+-----+----------------+------------------------+
-|   1 | undefined      | zero to many           |
-+-----+----------------+------------------------+
-|   N | N              | exactly N              |
-+-----+----------------+------------------------+
++-----+----------------+-------------------------+
+| min | max            | result                  |
++=====+================+=========================+
+|   0 | 0              | no checking (disabled)  |
++-----+----------------+-------------------------+
+|   0 | 1              | optional config         |
++-----+----------------+-------------------------+
+|   1 | 1              | mandatory config        |
++-----+----------------+-------------------------+
+|   0 | CONFIG_LEN_MAX | zero to many            |
++-----+----------------+-------------------------+
+|   0 | undefined      | zero to many            |
++-----+----------------+-------------------------+
+|   N | M              | must be between N and M |
++-----+----------------+-------------------------+
 
 
 Declaring ports
@@ -201,8 +201,8 @@ struct configuration called ``min_max_config``:
 configured and <0 in case of error.
 
 For basic types there are several predefined and somewhat type safe
-convenince functions ``cfg_getptr_*``. For example, to retrieve a scalar
-``uint32_t`` and to use a default 47 if unconfigured:
+convenience functions ``cfg_getptr_*``. For example, to retrieve a
+scalar ``uint32_t`` and to use a default 47 if unconfigured:
 
 .. code:: c
 
@@ -263,8 +263,8 @@ Declaring types
 ~~~~~~~~~~~~~~~
 
 All types used in configurations and ports must be declared and
-registered. This is necessary because microblx needs to know the size of
-the transported data. Moreoever, it enables type reflection which is
+registered. This is necessary because microblx needs to know the size
+of the transported data. Moreover, it enables type reflection which is
 used by logging or the webinterface.
 
 In the random block example, we used a ``struct random_config``, that is
@@ -300,7 +300,7 @@ third argument to the ``def_struct_type`` macro). At runtime, this type
 model is loaded into the luajit ffi, thereby enabling type reflection
 features such as logging or changing configuration values via the
 webinterface. The conversion from ``.h`` to ``.hexarray`` is done via a
-simple makefile rule.
+simple Makefile rule.
 
 This feature is optional. If no type reflection is needed, don’t include
 the ``.hexarr`` file and pass ``NULL`` as a third argument to
@@ -375,7 +375,7 @@ The following macros are available for logging from within blocks:
 Note that ``ubx_debug`` will only be logged if ``UBX_DEBUG`` is defined
 in the respective block and otherwise compiled out without any overhead.
 
-To view the logmessages, you need to run the ``ubx_log`` tool in a
+To view the log messages, you need to run the ``ubx_log`` tool in a
 separate window.
 
 **Important**: The maximum total log message length (including is by
@@ -460,7 +460,7 @@ The following files are generated:
 
 
 If the command is run again, only the ``.c`` file will NOT be
-regenerated. This can be overriden using the ``-force`` option.
+regenerated. This can be overridden using the ``-force`` option.
    
    
 Compile the block
@@ -492,10 +492,10 @@ Tips and Tricks
 Using C++
 ~~~~~~~~~
 
-See ``std_blocks/cppdemo``. If the designated initalizers (the struct
-initalization used in this manual) are used, the block must be compiled
-with ``clang``, because g++ does not support designated initializers
-(yet).
+See ``std_blocks/cppdemo``. If the designated initializer (the struct
+initalization used in this manual) are used, the block must be
+compiled with ``clang``, because g++ does not support designated
+initializers (yet).
 
 Avoiding Lua scripting
 ~~~~~~~~~~~~~~~~~~~~~~

@@ -208,7 +208,7 @@ the robot:
 Step 2: Initialization and Start functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is the function called when the block is initilized; it allocates
+This is the function called when the block is initialized; it allocates
 memory for the info structure, caches the ports, and initializes the
 state given the configuration values (these values are given in the
 “.usc” or main application file).
@@ -308,7 +308,7 @@ commanded velocity, integrate to position, and then write position.
 
 In case there is no value in the port ,an error is signaled, and nominal
 velocity is set to zero. This will always happens in the first
-interation, since the controller did step yet, thus no velocity command
+interaction, since the controller did step yet, thus no velocity command
 is available.
 
 Step 4: Stop and clean-up functions
@@ -322,7 +322,7 @@ Final listings of the block
 
 The plant is, *mutatis mutandis*, built following the same rationale,
 and will be not detailed here. the final code of the plant and the
-controller can be retrived here **TODO add link to the code**
+controller can be retrieved here **TODO add link to the code**
 
 building of the blocks
 ~~~~~~~~~~~~~~~~~~~~~~
