@@ -1,4 +1,4 @@
-# Extending the blocksdiagram DSL with Composition
+# Extending the blockdiagram DSL with Composition
 
 **Authors**:
 
@@ -11,6 +11,9 @@ The current blockdiagram DSL does not support hierarchical
 composition, which would be useful for building modular and reusable
 compositions. This document outlines the requirements and sketches a
 roadmap towards more complete composition support.
+
+For background about this, see the documentation section `Composing
+microblx systems`.
 
 ## Technical Requirements 
 
@@ -37,6 +40,11 @@ structural inclusion of a subsystem (i.e. the blocks, configurations
 and connections) and the run-time aspects (e.g. how to trigger such a
 composition).
 
+This concept is focused on outlining the basic mechanisms to allow
+composition for the function block composition DSL. Advanced concepts
+as automatic schedule computation are foreseen in the design, but not
+in the scope of this effort.
+
 ### Model extensions
 
 A new keyword `subsystems` is included, which permits to include other
@@ -51,22 +59,27 @@ return bd.system {
     [...]
 ```
 
-Moreover, a `schedule` keyword is introduced, which permits to define
-the triggering order of blocks:
+For a composable usc model it is imperative that it contains no active
+triggers (e.g. `ptrig`), as introducing these must be in the
+responsibility of the system builder.
 
-```Lua
-return bd.system {
-	...
-	schedule = { "block1", "block2", ... }
-}
+The basic way to achieve this is by adding a passive schedule block
+`trig` to each composition. This provides a triggering entry point for
+the parent composition, but at the same time avoids assumptions about
+activities.
+
+To bring in the latter, a separate *activity model* is
+introduced. This is *not* part of the ``bd.system`` specification, but
+is *bound* to a given composition at a late stage, e.g. during
+launching a composition:
+
+```sh
+$ ubx_launch -c mycomp.usc -a '{ name="p1" type="ptrig", tgt="trig1", config={ sched_priority=99, period = { ... } }'
 ```
 
-This can be used *instead* of just instantiating a `trig` or `ptrig`
-and allows "late" selection of the activity that shall trigger the
-composition.
-
-Another use-case is to support multiple alternative schedules, that can be
-selected at run-time.
+This instantiates an active trigger `ptrig1`, configures it with the
+given configuration and attaches it to the passive trigger `trig1`,
+which contains the top-level schedule for the composition.
 
 ### Structural aspects of composition
 
@@ -100,20 +113,18 @@ return bd.system {
 	blocks = {
 		{ name="robot_drv", type="robotX" },
 		{ name="kin", type="kinematics" },
+		{ name="trig", type="std_triggers/trig" },
 	},
 	
 	configurations = {
 		{ name="kin", config = { model = "robot_model.urdf" } },
+		{ name="trig", config = {
 	},
 	
 	connections = {
 		{ src="robot_drv.msr_jntpos", tgt="kin.msr_jntpos },
 		{ src="robot_drv.msr_jntvel", tgt="kin.msr_jntvel },
 		{ src="kin.cmd_jntvel, tgt="robot_drv.cmd_jntvel" },
-	},
-	
-	schedule = {
-	    { "robot_drv", "kin" },
 	},
 	
 	[...]	
@@ -170,12 +181,16 @@ There needs to be a way to support dealing with block names clashes. A
 simple approach would be to extend `load` to take the id as a
 parameter, and then instantiate blocks with names `id.name`.
 
-## Acknowledgement
+## Acknowledgment
 
 - The composition approach, the activity model and component
   operational modes have been adopted from the RobMoSys Component
   Model.
 
 - COCORF ITP project of H2020 RobMoSys
+
+# References
+
+[1] Activity Model
 
 
