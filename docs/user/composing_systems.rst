@@ -11,9 +11,9 @@ Microblx System Composition DSL (usc files)
 -------------------------------------------
 
 ``usc`` are declarative descriptions of microblx systems that can be
-validated and instantiated using the ``ubx_launch`` tool.
-
-The following minimal example illustrates the basic syntax:
+validated and instantiated using the ``ubx_launch`` tool. A usc model
+describes one microblx **system**, as illustrated by the following
+minimal example:
 
 .. code:: lua
 
@@ -75,7 +75,12 @@ this will launch the given system composition and in addition create
 and configure a web server block to allow the system to be
 introspected via a browser.
 
-TODO: starting up blocks.
+Unless the ``-nostart`` option is provided, all blocks will be
+initialized, configured and started. ``ubx_launch`` takes care to do
+this is safe way by starting up active blocks and triggers after all
+other blocks (In earlier versions, there was ``start`` directive to
+list these types of blocks, today this attribute is defined active and
+trigger blocks)
 
 
 Node configs
