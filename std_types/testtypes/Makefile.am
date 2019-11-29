@@ -10,7 +10,7 @@ BUILT_SOURCES = types/test_trig_conf.h.hexarr \
 CLEANFILES = $(BUILT_SOURCES)
 
 %.h.hexarr: %.h
-	$(top_srcdir)/tools/ubx_tocarr -s $< -d $<.hexarr -a $(basename $(notdir $<))$(subst .,_,$(suffix $<))
+	$(top_srcdir)/tools/ubx_tocarr -s $< -d $<.hexarr
 
 # testtypes : The basic types
 testtypes_la_includes = $(top_srcdir)/libubx/ubx.h

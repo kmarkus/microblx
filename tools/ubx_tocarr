@@ -82,8 +82,7 @@ else
 end
 
 if not (opttab['-a'] and opttab['-a'][1]) then
-   usage()
-   os.exit(1)
+   structname = string.gsub(filename(srcfile), "[-.]", "_")
 else
    structname=opttab['-a'][1]
 end

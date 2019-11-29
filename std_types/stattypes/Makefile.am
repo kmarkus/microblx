@@ -10,7 +10,7 @@ pkginclude_HEADERS = types/tstat.h \
 		    types/tstat.h.hexarr
 
 %.h.hexarr: %.h
-	$(top_srcdir)/tools/ubx_tocarr -s $< -d $<.hexarr -a $(basename $(notdir $<))$(subst .,_,$(suffix $<))
+	$(top_srcdir)/tools/ubx_tocarr -s $< -d $<.hexarr
 
 # stattypes : The basic types
 stattypes_la_includes = $(top_srcdir)/libubx/ubx.h
