@@ -284,7 +284,7 @@ $(bm.name)_la_CPPFLAGS = -I${top_srcdir}/libubx @UBX_CFLAGS@
 $(bm.name)_la_CFLAGS = -I${top_srcdir}/libubx @UBX_CFLAGS@
 @ end
 %.h.hexarr: %.h
-	ubx_tocarr $<
+	ubx_tocarr -s $< -d $<.hexarr -a $(basename $(notdir $<))$(subst .,_,$(suffix $<))
 
 ]], { bm=bm, gen_built_sources=gen_built_sources, table=table })
 
