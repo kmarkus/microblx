@@ -7,9 +7,9 @@
 
 ## Motivation
 
-The current blockdiagram DSL does not support hierarchical
-composition, which would be useful for building modular and reusable
-compositions. This document outlines the requirements and sketches a
+The current microblx blockdiagram DSL does not support hierarchical
+composition, which is required for building modular and reusable
+compositions. This document outlines the requirements and outlines a
 roadmap towards more complete composition support.
 
 For background about this, see the documentation section `Composing
@@ -29,7 +29,7 @@ microblx systems`.
   plugin mechanism shall be supported.
 - It must be possible to specify schedules manually. At the same time
   it should be possible to integrate third-party (e.g. via a plugin
-  mechanism) scheduling tools.
+  mechanism) schedule computation tools.
 - To support existing users, the extensions shall be as backward
   compatible as possible
 
@@ -43,7 +43,7 @@ composition).
 This concept is focused on outlining the basic mechanisms to allow
 composition for the function block composition DSL. Advanced concepts
 as automatic schedule computation are foreseen in the design, but not
-in the scope of this effort.
+in the scope of this concept.
 
 ### Model extensions
 
@@ -59,31 +59,10 @@ return bd.system {
     [...]
 ```
 
-For a composable usc model it is imperative that it contains no active
-triggers (e.g. `ptrig`), as introducing these must be in the
-responsibility of the system builder.
-
-The basic way to achieve this is by adding a passive schedule block
-`trig` to each composition. This provides a triggering entry point for
-the parent composition, but at the same time avoids assumptions about
-activities.
-
-To bring in the latter, a separate *activity model* is
-introduced. This is *not* part of the ``bd.system`` specification, but
-is *bound* to a given composition at a late stage, e.g. during
-launching a composition:
-
-```sh
-$ ubx_launch -c mycomp.usc -a '{ name="p1" type="ptrig", tgt="trig1", config={ sched_priority=99, period = { ... } }'
-```
-
-This instantiates an active trigger `ptrig1`, configures it with the
-given configuration and attaches it to the passive trigger `trig1`,
-which contains the top-level schedule for the composition.
 
 ### Structural aspects of composition
-
-Composing one or more subsystems results in the following:
+Structurally, composing one or more subsystems results in the
+following:
 
 - the superset of all modules's `imports` will be loaded
 - the blocks of all compositions are instantiated recursively
@@ -93,11 +72,32 @@ Composing one or more subsystems results in the following:
 
 ### Run-time aspects of composition
 
-During instantiation of the system, the `schedule` of all compositions
-can be used to configure passive `trig` blocks. These are points to
-which active triggers such as `ptrig` can be attached during
-startup. The `schedule` and the active trigger together form the
-*activity model*.
+For a composable usc model it is imperative that it contains no active
+triggers (e.g. `ptrig`), as introducing these must be in the
+responsibility of the system builder.
+
+The basic way to achieve this is by adding a passive schedule block
+`trig` to each composition. This provides a triggering entry point for
+the parent composition, but at the same time avoids assumptions about
+activities.
+
+To bring in the latter, a separate *activity model* is introduced
+similar to the RobMoSys Activity Architecture DSL [1]. This is *not*
+part of the ``bd.system`` specification, but is *bound* to a given
+composition at a late stage, e.g. during launching a composition:
+
+```sh
+$ ubx_launch -c mycomp.usc -a '{ name="p1" type="ptrig", tgt="trig1", config={ sched_priority=99, period = { ... } }'
+```
+
+This instantiates an active trigger `ptrig1`, configures it with the
+given configuration and attaches it to the passive trigger `trig1`,
+which contains the top-level schedule for the composition.
+
+By using these passive `trig` blocks, a triggering `hierarchy` is
+formed, which can be controller by the system builder. Moreover, this
+approach easily replaced by automatic schedule calculation, once this
+tool is available.
 
 
 ### Example
@@ -117,8 +117,11 @@ return bd.system {
 	},
 	
 	configurations = {
+		{ name="robot_drv", config = { inteface="can0" } },
 		{ name="kin", config = { model = "robot_model.urdf" } },
-		{ name="trig", config = {
+		{ name="trig", config = { trig_blocks =
+			                        { b="#robot_drv", num_steps=1 },
+									{ b="#kin",       num_steps=1 } } },
 	},
 	
 	connections = {
@@ -137,13 +140,14 @@ This composition reuses the basic composition and just extends it with
 a trajectory generator:
 
 ```Lua
-return bd.system
+return bd.system {
 	subsystems = {
 		basic = bd.load("robot_basic.usc"),
 	},
 	
 	blocks = {
 		{ name="cart_tj", type="cartesian_trajgen" },
+		{ name="trig", type="std_triggers/trig" },
 	},
 	
 	connections = {
@@ -154,24 +158,22 @@ return bd.system
 	
 	configurations = {
 		-- override a sub-config
-		{ name="basic.kin", config = { model = "robot_model2.urdf" } },
+		{ name="basic.kin", config = { model = "robot_model2.urdf" } }
+		{ name="trig", config = { trig_blocks =
+			                        { b="#cart_tj",    num_steps=1 },
+									{ b="#basic.trig", num_steps=1 } } },
 	},
-
+},
 	
-	schedule = {
-	    { "basic", "cart_tj" },
-	},
 ```
-
 
 ## Extensibility
 
-### Supporting custom schedule calculations
-
-Instead of manually specified schedules, in many cases these can be
-automatically calculated. To support custom or external tools, a
-plugin mechanism shall be provided, which when invoked must populate
-the `schedule` entries.
+The above describes how the basic mechanisms can be used to specify
+composable usc files. However, instead of manually specifying
+schedules, in many cases these can be automatically calculated. This
+use-case shall be supported by a plugin mechanism, which can be used
+to automatically compute the schedule for a trig block.
 
 ## Questions / Answers
 
@@ -191,6 +193,6 @@ parameter, and then instantiate blocks with names `id.name`.
 
 # References
 
-[1] Activity Model
+[1] Activity Architecture DSL
 
 
