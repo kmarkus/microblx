@@ -68,19 +68,22 @@ local opttab=proc_args(arg)
 if #arg < 1 or opttab['-h'] then usage(); os.exit(1) end
 
 if not (opttab['-s'] and opttab['-s'][1]) then
-   srcfile=arg[1]
+   usage()
+   os.exit(1)
 else
    srcfile=opttab['-s'][1]
 end
 
 if not (opttab['-d'] and opttab['-d'][1]) then
-   outfile=arg[1]..".hexarr"
+   usage()
+   os.exit(1)
 else
    outfile=opttab['-d'][1]
 end
 
 if not (opttab['-a'] and opttab['-a'][1]) then
-   structname=arg[2] or string.gsub(filename(arg[1]), "[-.]", "_")
+   usage()
+   os.exit(1)
 else
    structname=opttab['-a'][1]
 end
