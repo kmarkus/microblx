@@ -8,7 +8,7 @@ BUILT_SOURCES = file_logger.lua.hexarr
 CLEANFILES = $(BUILT_SOURCES)
 
 %.lua.hexarr: %.lua
-	$(top_srcdir)/tools/ubx_tocarr $<
+	$(top_srcdir)/tools/ubx_tocarr -s $< -d $<.hexarr -a $(basename $(notdir $<))$(subst .,_,$(suffix $<))
 
 logger_la_includes = $(top_srcdir)/libubx/ubx.h \
                      $(top_srcdir)/libubx/ubx_types.h

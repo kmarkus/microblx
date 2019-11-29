@@ -14,4 +14,4 @@ random_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
 random_la_LIBADD = $(top_builddir)/libubx/libubx.la
 
 %.h.hexarr: %.h
-	$(top_srcdir)/tools/ubx_tocarr $<
+	$(top_srcdir)/tools/ubx_tocarr -s $< -d $<.hexarr -a $(basename $(notdir $<))$(subst .,_,$(suffix $<))

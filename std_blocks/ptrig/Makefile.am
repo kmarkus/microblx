@@ -19,8 +19,7 @@ BUILT_SOURCES = types/ptrig_config.h.hexarr \
 CLEANFILES = $(BUILT_SOURCES)
 
 %.h.hexarr: %.h
-	$(top_srcdir)/tools/ubx_tocarr $<
-
+	$(top_srcdir)/tools/ubx_tocarr -s $< -d $<.hexarr -a $(basename $(notdir $<))$(subst .,_,$(suffix $<))
 
 ptrig_la_includes = $(top_srcdir)/libubx/ubx.h \
                     $(top_srcdir)/libubx/ubx_types.h

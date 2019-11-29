@@ -16,4 +16,4 @@ webif_la_LIBADD = $(top_builddir)/libubx/libubx.la
 webif_la_CFLAGS = -I$(top_srcdir)/libubx $(LUAJIT_CFLAGS) @UBX_CFLAGS@
 
 %.lua.hexarr: %.lua
-	$(top_srcdir)/tools/ubx_tocarr $<
+	$(top_srcdir)/tools/ubx_tocarr -s $< -d $<.hexarr -a $(basename $(notdir $<))$(subst .,_,$(suffix $<))

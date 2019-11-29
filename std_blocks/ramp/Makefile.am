@@ -65,7 +65,3 @@ ramp_int64_la_SOURCES = $(ramp_la_includes) ramp.c
 ramp_int64_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
 ramp_int64_la_LIBADD = $(top_builddir)/libubx/libubx.la
 ramp_int64_la_CPPFLAGS = -DRAMP_T=int64_t -DBLOCK_NAME=int64
-
-
-%.h.hexarr: %.h
-	$(top_srcdir)/tools/ubx_tocarr $<
