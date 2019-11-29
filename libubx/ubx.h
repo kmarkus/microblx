@@ -195,8 +195,8 @@ long int function_name(ubx_block_t* b, const char* cfg_name, const typename** va
   }								\
 								\
   if(t != c->type) {						\
-    ubx_err(b, "mismatch: expected %s but %s.%s config is of type %s", \
-              t->name, b->name, cfg_name, c->type->name);		 \
+    ubx_err(b, "%s: mismatch: expected %s but config %s is of type %s", \
+	    __FUNCTION__, t->name, cfg_name, c->type->name);		\
     goto out;							\
   }								\
 								\
