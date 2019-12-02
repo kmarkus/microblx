@@ -3,7 +3,7 @@ API Changes
 
 This file tracks user visible API changes.
 
-## Unreleased
+## v0.7.1
 
 - config: add `min`/`max` specifiers for introducing constraints such
   as optional or mandatory configs.
