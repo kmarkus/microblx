@@ -1,4 +1,4 @@
-# Extending the blockdiagram DSL with Composition
+# Extending the blockdiagram DSL with composition support
 
 **Authors**:
 
@@ -24,12 +24,10 @@ microblx systems`.
   the super-system.
 - It must be possible to connect to ports of an included subsystem
 - It should be possible to remove elements of the subsystem from the
-  supersystem (blocks, connections)
-- The use of third party schedule computation tools via some form of
-  plugin mechanism shall be supported.
-- It must be possible to specify schedules manually. At the same time
-  it should be possible to integrate third-party (e.g. via a plugin
-  mechanism) schedule computation tools.
+  supersystem (blocks, connections).
+- The use of (third party) schedule computation tools via a form of
+  plugin mechanism shall be supported. Nevertheless, it must be
+  possible to specify schedules manually.
 - To support existing users, the extensions shall be as backward
   compatible as possible
 
@@ -61,8 +59,9 @@ return bd.system {
 
 
 ### Structural aspects of composition
-Structurally, composing one or more subsystems results in the
-following:
+
+Structurally, composing one or more subsystems by including these
+results in the following:
 
 - the superset of all modules's `imports` will be loaded
 - the blocks of all compositions are instantiated recursively
@@ -73,37 +72,41 @@ following:
 ### Run-time aspects of composition
 
 For a composable usc model it is imperative that it contains no active
-triggers (e.g. `ptrig`), as introducing these must be in the
-responsibility of the system builder.
+triggers (such as the pthread `ptrig` trigger), as introducing these
+must exclusively be in the responsibility of the system builder.
 
-The basic way to achieve this is by adding a passive schedule block
-`trig` to each composition. This provides a triggering entry point for
-the parent composition, but at the same time avoids assumptions about
+Thus, the manual way to achieve this is by adding a passive schedule
+block `trig` to each composition. This block encapsulates the schedule
+of it's blocks and subsystems and provides a triggering entry point
+for the parent composition, while avoiding platform specific
 activities.
 
 To bring in the latter, a separate *activity model* is introduced
-similar to the RobMoSys Activity Architecture DSL [1]. This is *not*
-part of the ``bd.system`` specification, but is *bound* to a given
-composition at a late stage, e.g. during launching a composition:
+similar to the RobMoSys Activity Architecture DSL [1]. This model is
+*not* part of the `system` specification, but is *bound* to a given
+composition at a late stage, most likely during launching of a
+composition:
 
 ```sh
 $ ubx_launch -c mycomp.usc -a '{ name="p1" type="ptrig", tgt="trig1", config={ sched_priority=99, period = { ... } }'
 ```
 
-This instantiates an active trigger `ptrig1`, configures it with the
-given configuration and attaches it to the passive trigger `trig1`,
-which contains the top-level schedule for the composition.
+Apart from instantatiating the composition described in `mycomp.usc`,
+this instantiates an active trigger `ptrig1`, configures it with the
+given configuration (priorities, etc.) and attaches it to the passive
+trigger `trig1`, which encapsulates the top-level schedule for the
+composition.
 
 By using these passive `trig` blocks, a triggering `hierarchy` is
-formed, which can be controller by the system builder. Moreover, this
-approach easily replaced by automatic schedule calculation, once this
-tool is available.
+formed, which can be controlled by the system builder. Moreover, this
+approach can easily be replaced by automatic schedule calculation.
 
 
 ### Example
 
-**Basic robot composition** consisting of robot driver and
-kinematics. This can be used as a basis for further applications.
+The following is a **basic robot composition** consisting of robot
+driver and kinematics. The idea is to reuse this composition as a
+basis for further applications.
 
 ```Lua
 return bd.system {
@@ -125,9 +128,9 @@ return bd.system {
 	},
 	
 	connections = {
-		{ src="robot_drv.msr_jntpos", tgt="kin.msr_jntpos },
-		{ src="robot_drv.msr_jntvel", tgt="kin.msr_jntvel },
-		{ src="kin.cmd_jntvel, tgt="robot_drv.cmd_jntvel" },
+		{ src="robot_drv.msr_jntpos", tgt="kin.msr_jntpos" },
+		{ src="robot_drv.msr_jntvel", tgt="kin.msr_jntvel" },
+		{ src="kin.cmd_jntvel", tgt="robot_drv.cmd_jntvel" },
 	},
 	
 	[...]	
@@ -169,11 +172,12 @@ return bd.system {
 
 ## Extensibility
 
-The above describes how the basic mechanisms can be used to specify
-composable usc files. However, instead of manually specifying
-schedules, in many cases these can be automatically calculated. This
-use-case shall be supported by a plugin mechanism, which can be used
-to automatically compute the schedule for a trig block.
+The above example illustrates, how the basic mechanisms can be used to
+specify composable usc files. However, instead of manually specifying
+schedules, in many cases these can be automatically calculated
+(e.g. by deriving them from the data-flow). This use-case will be
+supported by a plugin mechanism, which can (among other use-cases) be
+used to automatically compute the schedule for a trig block.
 
 ## Questions / Answers
 
@@ -185,14 +189,15 @@ parameter, and then instantiate blocks with names `id.name`.
 
 ## Acknowledgment
 
-- The composition approach, the activity model and component
-  operational modes have been adopted from the RobMoSys Component
-  Model.
+- Several concepts such as the composition approach and the activity
+  model have been adopted from the RobMoSys Modeling approach [1],
+  [2].
 
-- COCORF ITP project of H2020 RobMoSys
+- The COCORF ITP project of H2020 RobMoSys
 
 # References
 
-[1] Activity Architecture DSL
+[1] https://robmosys.eu/wiki/modeling:metamodels:system  
+[2] https://robmosys.eu/wiki/modeling:metamodels:deployment  
 
 
