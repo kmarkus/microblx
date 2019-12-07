@@ -38,6 +38,18 @@ local setup_enums
 --                           helpers
 ------------------------------------------------------------------------------
 
+--- preprocess a C string
+-- currently this means stripping out all preprocessor directives
+-- @param str string to process
+-- @return string
+local function preproc(str)
+   local res = {}
+   for l in str:gmatch("[^\n]+") do
+      if not (string.match(l, "^%s*#%s*")) then res[#res+1] = l end
+   end
+   return table.concat(res, "\n")
+end
+
 --- Read the entire contents of a file.
 -- @param file name of file
 -- @return string contents
@@ -137,9 +149,9 @@ end
 
 local ubx = nil
 local function load_ubx_ffi(prefix)
-   ffi.cdef(read_file(prefix.."/include/ubx/ubx_uthash_ffi.h"))
-   ffi.cdef(read_file(prefix.."/include/ubx/ubx_types.h"))
-   ffi.cdef(read_file(prefix.."/include/ubx/ubx_proto.h"))
+   ffi.cdef(preproc(read_file(prefix.."/include/ubx/ubx_uthash_ffi.h")))
+   ffi.cdef(preproc(read_file(prefix.."/include/ubx/ubx_types.h")))
+   ffi.cdef(preproc(read_file(prefix.."/include/ubx/ubx_proto.h")))
    ubx=ffi.load(prefix.."/lib/libubx.so.UBX_IF")
    setmetatable(M, { __index=function(t,k) return ubx["ubx_"..k] end })
    M.ubx=ubx
@@ -678,7 +690,7 @@ function M.ffi_load_types(ni)
    local function ffi_load_no_ns(typref)
       local t = typref.type_ptr
       if t.type_class==ubx.TYPE_CLASS_STRUCT and t.private_data~=nil then
-	 local struct_str = ffi.string(t.private_data)
+	 local struct_str = preproc(ffi.string(t.private_data))
 	 local ret, err = pcall(ffi.cdef, struct_str)
 	 if ret==false then
 	    error("ffi_load_types: failed to load the following struct:\n"..struct_str.."\n"..err)

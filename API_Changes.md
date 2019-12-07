@@ -5,6 +5,10 @@ This file tracks user visible API changes.
 
 ## v0.7.1
 
+- core: ffi: types: strip preprocessor directives from types that are
+  fed to the ffi. This is to allow include guards in these header
+  files.
+
 - config: add `min`/`max` specifiers for introducing constraints such
   as optional or mandatory configs.
 
