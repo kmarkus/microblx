@@ -90,8 +90,6 @@ end
 
 breaknum = 16	 -- break line after this
 
-print("srcfile: " .. srcfile)
-print("outfile: " .. outfile)
 fi = assert(io.open(srcfile, "r"))
 fo = assert(io.open(outfile, "w"))
 
