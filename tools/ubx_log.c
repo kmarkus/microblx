@@ -48,14 +48,15 @@ void log_data(logc_info_t *inf, int color)
 			"INVALID" : loglevel_str[msg->level];
 
 		if (color)
-			fprintf(stdout, GRN "[%li.%06li]" RESET "%s %s %s: %s\n" RESET,
+			fprintf(stdout, GRN "[%li.%06li] " YEL "%s %s%s: %s\n" RESET,
 				msg->ts.sec, msg->ts.nsec / NSEC_PER_USEC,
+				msg->src,
 				loglevel_color[msg->level],
-				level_str, msg->src, msg->msg);
+				level_str, msg->msg);
 		else
 			fprintf(stdout, "[%li.%06li] %s %s: %s\n",
 				msg->ts.sec, msg->ts.nsec / NSEC_PER_USEC,
-				level_str, msg->src, msg->msg);
+				msg->src, level_str, msg->msg);
 
 		fflush(stdout);
 		break;
