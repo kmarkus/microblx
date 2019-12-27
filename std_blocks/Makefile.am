@@ -4,7 +4,6 @@ SUBDIRS = cppdemo \
           logging \
           luablock \
           mqueue \
-          ptrig \
           trig \
           random \
           const \
