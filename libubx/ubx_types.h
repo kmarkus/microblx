@@ -285,7 +285,7 @@ typedef struct ubx_node_info
 	unsigned long cur_seqid;
 
 	int loglevel;
-	void(*log)(struct ubx_node_info*, struct ubx_log_msg*);
+	void(*log)(const struct ubx_node_info*, const struct ubx_log_msg*);
 	void *log_data;
 } ubx_node_info_t;
 
