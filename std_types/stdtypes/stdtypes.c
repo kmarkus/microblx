@@ -6,6 +6,9 @@
 
 #include "ubx.h"
 
+#include "types/tstat.h"
+#include "types/tstat.h.hexarr"
+
 /* declare types */
 ubx_type_t basic_types[] = {
 	/* basic types */
@@ -23,6 +26,9 @@ ubx_type_t basic_types[] = {
 	/* stdint types */
 	def_basic_ctype(int8_t),  def_basic_ctype(int16_t),  def_basic_ctype(int32_t),  def_basic_ctype(int64_t),
 	def_basic_ctype(uint8_t), def_basic_ctype(uint16_t), def_basic_ctype(uint32_t),	def_basic_ctype(uint64_t),
+
+	/* std struct types */
+	def_struct_type(struct ubx_tstat, &tstat_h),
 
 	{ NULL },
 };

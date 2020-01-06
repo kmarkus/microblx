@@ -3,6 +3,12 @@ API Changes
 
 This file tracks user visible API changes.
 
+## unreleased
+
+- `stattypes`: merge into `stdtypes` as this only contains the
+  ubx_tstat type. There is hence no need to import `stattypes`
+  anymore.
+
 ## v0.7.1
 
 - core: add environment variable `UBX_PATH` that can be used to
