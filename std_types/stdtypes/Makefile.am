@@ -3,12 +3,13 @@
 ubxmoddir = $(UBX_MODDIR)
 ubxmod_LTLIBRARIES = stdtypes.la
 
-BUILT_SOURCES = types/tstat.h.hexarr
+BUILT_SOURCES = types/tstat.h.hexarr \
+		types/trig_spec.h.hexarr
 
 CLEANFILES = $(BUILT_SOURCES)
 
-pkginclude_HEADERS = types/tstat.h \
-		     types/tstat.h.hexarr
+pkginclude_HEADERS = types/tstat.h types/tstat.h.hexarr \
+		     types/trig_spec.h types/trig_spec.h.hexarr
 
 %.h.hexarr: %.h
 	$(top_srcdir)/tools/ubx_tocarr -s $< -d $<.hexarr

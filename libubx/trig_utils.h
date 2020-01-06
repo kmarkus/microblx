@@ -3,7 +3,11 @@
  */
 
 #include "ubx.h"
+#include "tstat.h"
+#include "trig_spec.h"
 
+
+/* timing statistics related */
 void tstat_init(struct ubx_tstat* ts, const char *block_name);
 void tstat_update(struct ubx_tstat *stats,
 		  struct ubx_timespec *start,

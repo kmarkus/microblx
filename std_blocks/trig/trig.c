@@ -8,12 +8,6 @@
 #include <stdlib.h>
 
 #include "ubx.h"
-
-#include "types/trig_config.h"
-#include "types/trig_config.h.hexarr"
-#include "types/tstat.h"
-#include "types/tstat.h.hexarr"
-
 #include "trig_utils.h"
 
 /* trig metadata */
@@ -24,12 +18,6 @@ char trig_meta[] =
 
 ubx_port_t trig_ports[] = {
 	{ .name="tstats", .out_type_name="struct ubx_tstat", .doc="timing statistics (if enabled)"},
-	{ NULL },
-};
-
-/* types defined by trig block */
-ubx_type_t trig_types[] = {
-	def_struct_type(struct trig_config, &trig_config_h),
 	{ NULL },
 };
 
@@ -54,7 +42,7 @@ ubx_config_t trig_config[] = {
 
 /* instance state */
 struct trig_inf {
-	struct trig_config *trig_list;
+	struct ubx_trig_spec *trig_list;
 	unsigned int trig_list_len;
 
 	/* timing statistics */
@@ -252,28 +240,11 @@ ubx_block_t trig_comp = {
 
 int trig_mod_init(ubx_node_info_t* ni)
 {
-	int ret;
-	ubx_type_t *tptr;
-
-	for(tptr=trig_types; tptr->name!=NULL; tptr++) {
-		if((ret=ubx_type_register(ni, tptr))!=0) {
-			ubx_log(UBX_LOGLEVEL_ERR, ni, "trig_mod_init",
-				"failed to register type %s", tptr->name);
-			goto out;
-		}
-	}
-	ret=ubx_block_register(ni, &trig_comp);
- out:
-	return ret;
+	return ubx_block_register(ni, &trig_comp);
 }
 
 void trig_mod_cleanup(ubx_node_info_t *ni)
 {
-	ubx_type_t *tptr;
-
-	for(tptr=trig_types; tptr->name!=NULL; tptr++)
-		ubx_type_unregister(ni, tptr->name);
-
 	ubx_block_unregister(ni, "std_triggers/trig");
 }
 

@@ -1,6 +1,6 @@
 # libubx: the microblx library
 
-AM_CFLAGS = -I$(top_srcdir)/std_types/stdtypes/ \
+AM_CFLAGS = -I$(top_srcdir)/std_types/stdtypes/types/ \
 	    $(UBX_CFLAGS)
 
 lib_LTLIBRARIES = libubx.la \
