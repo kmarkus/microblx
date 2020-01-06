@@ -17,10 +17,6 @@ CLEANFILES = $(BUILT_SOURCES)
 %.h.hexarr: %.h
 	$(top_srcdir)/tools/ubx_tocarr -s $< -d $<.hexarr
 
-# trig
-trig_la_includes = types/trig_period.h \
-		   types/trig_period.h.hexarr
-
 trig_la_SOURCES = $(trig_la_includes) trig.c
 trig_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
 trig_la_LIBADD = $(top_builddir)/libubx/libubx.la
