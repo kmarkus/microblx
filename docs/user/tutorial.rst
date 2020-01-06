@@ -546,7 +546,7 @@ the libraries
 
    #define WEBIF_PORT "8810"
    #define DOUBLE_STR "double"
-   #include "ptrig_config.h"
+   #include "trig_spec.h"
    #include "ptrig_period.h"
    #define LEN_VEC(a) (sizeof(a)/sizeof(a[0]))
    int main()
@@ -662,15 +662,15 @@ trigger block, we have to configure the order of blocks,
    len= 3;
    ubx_data_resize(d, len);
    printf("data size trig blocks: %li\n",d->type->size);
-   ((struct ptrig_config*)d->data)[0].b = plat1;//ubx_block_get(&ni, "plat1")
-   ((struct ptrig_config*)d->data)[0].num_steps = 1;
-   ((struct ptrig_config*)d->data)[0].measure = 0;
-   ((struct ptrig_config*)d->data)[1].b = control1;
-   ((struct ptrig_config*)d->data)[1].num_steps = 1;
-   ((struct ptrig_config*)d->data)[1].measure = 0;
-   ((struct ptrig_config*)d->data)[2].b = logger1;
-   ((struct ptrig_config*)d->data)[2].num_steps = 1;
-   ((struct ptrig_config*)d->data)[2].measure = 0;
+   ((struct trig_spec*)d->data)[0].b = plat1;//ubx_block_get(&ni, "plat1")
+   ((struct trig_spec*)d->data)[0].num_steps = 1;
+   ((struct trig_spec*)d->data)[0].measure = 0;
+   ((struct trig_spec*)d->data)[1].b = control1;
+   ((struct trig_spec*)d->data)[1].num_steps = 1;
+   ((struct trig_spec*)d->data)[1].measure = 0;
+   ((struct trig_spec*)d->data)[2].b = logger1;
+   ((struct trig_spec*)d->data)[2].num_steps = 1;
+   ((struct trig_spec*)d->data)[2].measure = 0;
 
 Port connection
 ~~~~~~~~~~~~~~~

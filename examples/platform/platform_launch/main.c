@@ -1,10 +1,12 @@
 #include <ubx.h>
+#include <ubx/trig_utils.h>
 
 #define WEBIF_PORT "8810"
 #define DOUBLE_STR "double"
-#include "ptrig_config.h"
+
 #include "ptrig_period.h"
 #include "signal.h"
+
 #define LEN_VEC(a) sizeof(a)/sizeof(a[0])
 
 int main()
@@ -87,21 +89,18 @@ int main()
   /* logger configuration */
   d=ubx_config_get_data(logger1, "filename");
   char filename[]="/tmp/platform_time.log";
-  len = strlen(filename)+1;
-  ubx_data_resize(d, len);
-  strncpy((char *)d->data, filename, len);
+  ubx_data_resize(d, strlen(filename)+1);
+  strcpy((char *)d->data, filename);
 
   d=ubx_config_get_data(logger1, "report_conf");
   char report_conf[]="{{ blockname='plat1', portname='pos'},{ blockname='control1', portname='commanded_vel'}}";
-  len = strlen(report_conf)+1;
-  ubx_data_resize(d, len);
-  strncpy((char *)d->data, report_conf, len);
+  ubx_data_resize(d, strlen(report_conf)+1);
+  strcpy((char *)d->data, report_conf);
 
   d=ubx_config_get_data(logger1, "separator");
   char separator[]=",";
-  len = strlen(separator)+1;
-  ubx_data_resize(d, len);
-  strncpy((char *)d->data, separator, len);
+  ubx_data_resize(d, strlen(separator)+1);
+  strcpy((char *)d->data, separator);
 
   /* ptrig config */
   d=ubx_config_get_data(ptrig1, "period");
@@ -112,27 +111,26 @@ int main()
 
   d=ubx_config_get_data(ptrig1, "sched_policy");
   char policy[]="SCHED_OTHER";
-  len = strlen(policy)+1;
-  ubx_data_resize(d, len);
-  strncpy((char *)d->data, policy, len);
+  ubx_data_resize(d, strlen(policy)+1);
+  strcpy((char *)d->data, policy);
   d=ubx_config_get_data(ptrig1, "sched_priority");
   *((int*)d->data)=0;
 
   d=ubx_config_get_data(ptrig1, "trig_blocks");
   len= 3;
   ubx_data_resize(d, len);
-  ((struct ptrig_config*)d->data)[0].b= plat1;
+  ((struct ubx_trig_spec*)d->data)[0].b= plat1;
   /*As alternative: the block can be retieved by name:
-   *(struct ptrig_config*)d->data)[0].b= ubx_block_get(&ni, "plat1")*/
+   *(struct ubx_trig_spec*)d->data)[0].b= ubx_block_get(&ni, "plat1")*/
 
-  ((struct ptrig_config*)d->data)[0].num_steps = 1;
-  ((struct ptrig_config*)d->data)[0].measure = 0;
-  ((struct ptrig_config*)d->data)[1].b= control1;
-  ((struct ptrig_config*)d->data)[1].num_steps = 1;
-  ((struct ptrig_config*)d->data)[1].measure = 0;
-  ((struct ptrig_config*)d->data)[2].b= logger1;
-  ((struct ptrig_config*)d->data)[2].num_steps = 1;
-  ((struct ptrig_config*)d->data)[2].measure = 0;
+  ((struct ubx_trig_spec*)d->data)[0].num_steps = 1;
+  ((struct ubx_trig_spec*)d->data)[0].measure = 0;
+  ((struct ubx_trig_spec*)d->data)[1].b= control1;
+  ((struct ubx_trig_spec*)d->data)[1].num_steps = 1;
+  ((struct ubx_trig_spec*)d->data)[1].measure = 0;
+  ((struct ubx_trig_spec*)d->data)[2].b= logger1;
+  ((struct ubx_trig_spec*)d->data)[2].num_steps = 1;
+  ((struct ubx_trig_spec*)d->data)[2].measure = 0;
 
 
 
