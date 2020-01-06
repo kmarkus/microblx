@@ -640,7 +640,6 @@ return bd.system
 {
    imports = {
       "stdtypes",
-      "stattypes",
       "ptrig",
       "lfds_cyclic",
       "logger",
