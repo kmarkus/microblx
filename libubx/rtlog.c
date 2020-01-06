@@ -22,7 +22,7 @@ const char *loglevel_str[] = {
 #define CONFIG_LOGGING_SHM
 
 /* basic logging function */
-void __ubx_log(int level, ubx_node_info_t *ni, const char* src, const char* fmt, ...)
+void __ubx_log(const int level, const ubx_node_info_t *ni, const char* src, const char* fmt, ...)
 {
 	va_list args;
 	struct ubx_log_msg msg;
@@ -50,7 +50,7 @@ void __ubx_log(int level, ubx_node_info_t *ni, const char* src, const char* fmt,
 }
 
 #ifdef CONFIG_SIMPLE_LOGGING
-static void ubx_log_simple(struct ubx_node_info* ni, struct ubx_log_msg *msg)
+static void ubx_log_simple(const struct ubx_node_info* ni, const struct ubx_log_msg *msg)
 {
 	FILE *stream;
 	const char *level_str;
@@ -123,7 +123,7 @@ void log_inc_woff(uint32_t inc)
 	inf.buf_ptr->w = next;
 }
 
-static void ubx_log_shm(struct ubx_node_info* ni, struct ubx_log_msg *msg)
+static void ubx_log_shm(const struct ubx_node_info* ni, const struct ubx_log_msg *msg)
 {
 	struct ubx_log_msg *frame;
 	(void)(ni);

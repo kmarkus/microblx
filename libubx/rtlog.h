@@ -43,7 +43,7 @@ void ubx_log_cleanup(ubx_node_info_t *ni);
 
 /* generic, low-level logging function. blocks should prefer the
  * standard ubx_* functions */
-void __ubx_log(int level, ubx_node_info_t *ni, const char* src, const char* fmt, ...)
+void __ubx_log(const int level, const ubx_node_info_t *ni, const char* src, const char* fmt, ...)
 	__attribute__((format(printf, 4, 5)));
 
 #endif /* _UBX_RTLOG_H */

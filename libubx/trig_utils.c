@@ -73,14 +73,14 @@ void tstat_print(const char *profile_path, struct ubx_tstat *stats)
 
 	fp = fopen(profile_path, "a+");
 	if (fp != NULL)
-		fprintf(fp, "%s: cnt: %lu. min: %11.9f, max: %11.9f, avg: %11.9f\n",
+		fprintf(fp, "%s: cnt: %lu, min: %11.9f, max: %11.9f, avg: %11.9f\n",
 		stats->block_name,
 		stats->cnt,
 		ubx_ts_to_double(&stats->min),
 		ubx_ts_to_double(&stats->max),
 		ubx_ts_to_double(&avg));
 	else
-		fprintf(stderr, "%s: cnt: %lu. min: %11.9f, max: %11.9f, avg: %11.9f",
+		fprintf(stderr, "%s: cnt: %lu, min: %11.9f, max: %11.9f, avg: %11.9f",
 			stats->block_name,
 			stats->cnt,
 			ubx_ts_to_double(&stats->min),

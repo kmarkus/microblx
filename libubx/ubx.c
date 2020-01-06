@@ -2326,7 +2326,7 @@ out:
  * @return return 1 if t1 is greater than t2, -1 if t1 is less than t2
  * 	   and 0 if t1 and t2 are equal.
  */
-int ubx_ts_cmp(struct ubx_timespec *ts1, struct ubx_timespec *ts2)
+int ubx_ts_cmp(const struct ubx_timespec *ts1, const struct ubx_timespec *ts2)
 {
 	if (ts1->sec > ts2->sec) return 1;
 	else if (ts1->sec < ts2->sec) return -1;
@@ -2373,8 +2373,8 @@ void ubx_ts_norm(struct ubx_timespec *ts)
  * @param ts2
  * @param out
  */
-void ubx_ts_sub(struct ubx_timespec *ts1,
-		struct ubx_timespec *ts2,
+void ubx_ts_sub(const struct ubx_timespec *ts1,
+		const struct ubx_timespec *ts2,
 		struct ubx_timespec *out)
 {
 	out->sec = ts1->sec - ts2->sec;
@@ -2389,8 +2389,8 @@ void ubx_ts_sub(struct ubx_timespec *ts1,
  * @param ts2
  * @param out
  */
-void ubx_ts_add(struct ubx_timespec *ts1,
-		struct ubx_timespec *ts2,
+void ubx_ts_add(const struct ubx_timespec *ts1,
+		const struct ubx_timespec *ts2,
 		struct ubx_timespec *out)
 {
 	out->sec = ts1->sec + ts2->sec;
@@ -2405,7 +2405,7 @@ void ubx_ts_add(struct ubx_timespec *ts1,
  * @param div
  * @param out
  */
-void ubx_ts_div(struct ubx_timespec *ts, long div, struct ubx_timespec *out)
+void ubx_ts_div(const struct ubx_timespec *ts, const long div, struct ubx_timespec *out)
 {
 	int64_t tmp_nsec = (ts->sec * NSEC_PER_SEC) + ts->nsec;
 	tmp_nsec /= div;
@@ -2420,7 +2420,7 @@ void ubx_ts_div(struct ubx_timespec *ts, long div, struct ubx_timespec *out)
  *
  * @return time in seconds
  */
-double ubx_ts_to_double(struct ubx_timespec *ts)
+double ubx_ts_to_double(const struct ubx_timespec *ts)
 {
 	return ((double) ts->sec) + ((double) ts->nsec/NSEC_PER_SEC);
 }
@@ -2432,7 +2432,7 @@ double ubx_ts_to_double(struct ubx_timespec *ts)
  *
  * @return time in nanoseconds
  */
-uint64_t ubx_ts_to_ns(struct ubx_timespec *ts)
+uint64_t ubx_ts_to_ns(const struct ubx_timespec *ts)
 {
 	return ts->sec * (uint64_t)NSEC_PER_SEC + ts->nsec;
 }
