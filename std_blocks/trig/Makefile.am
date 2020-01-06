@@ -1,7 +1,7 @@
 # trig: simple trigger block
 
 AM_CFLAGS = -I$(top_srcdir)/libubx \
-	-I$(top_srcdir)/std_types/stattypes/ $(UBX_CFLAGS)
+	-I$(top_srcdir)/std_types/stdtypes/ $(UBX_CFLAGS)
 ubxmoddir = $(UBX_MODDIR)
 
 ubxmod_LTLIBRARIES = trig.la ptrig.la
@@ -14,7 +14,7 @@ BUILT_SOURCES = types/trig_config.h.hexarr \
                 types/trig_period.h.hexarr \
 		types/ptrig_config.h.hexarr \
                 types/ptrig_period.h.hexarr \
-                $(top_srcdir)/std_types/stattypes/types/tstat.h.hexarr
+                $(top_srcdir)/std_types/stdtypes/types/tstat.h.hexarr
 
 CLEANFILES = $(BUILT_SOURCES)
 
