@@ -6,6 +6,8 @@
 
 #include "trig_utils.h"
 
+static const char* log_fmt = "cnt: %lu, min: %11.9f, max: %11.9f, avg: %11.9f\n";
+
 /**
  * initialise a tstat structure
  */
@@ -88,4 +90,25 @@ void tstat_print(const char *profile_path, struct ubx_tstat *stats)
 			ubx_ts_to_double(&avg));
 	if (fp)
 		fclose(fp);
+}
+
+/**
+ * log timing statistics
+ */
+void tstat_log(const ubx_node_info_t *ni, const struct ubx_tstat *stats)
+{
+	struct ubx_timespec avg;
+
+	if (stats->cnt == 0) {
+		ubx_log(UBX_LOGLEVEL_INFO, ni, stats->block_name, "cnt: 0 - no statistics aquired");
+		return;
+	}
+	ubx_ts_div(&stats->total, stats->cnt, &avg);
+
+	ubx_log(UBX_LOGLEVEL_INFO, ni, stats->block_name,
+		log_fmt,
+		stats->cnt,
+		ubx_ts_to_double(&stats->min),
+		ubx_ts_to_double(&stats->max),
+		ubx_ts_to_double(&avg));
 }

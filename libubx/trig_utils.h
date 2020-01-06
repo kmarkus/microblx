@@ -13,3 +13,5 @@ void tstat_update(struct ubx_tstat *stats,
 		  struct ubx_timespec *start,
 		  struct ubx_timespec *end);
 void tstat_print(const char *profile_path, struct ubx_tstat *stats);
+
+void tstat_log(const ubx_node_info_t *ni, const struct ubx_tstat *stats);
