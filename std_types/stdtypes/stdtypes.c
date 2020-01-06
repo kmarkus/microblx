@@ -9,6 +9,9 @@
 #include "types/tstat.h"
 #include "types/tstat.h.hexarr"
 
+#include "types/trig_spec.h"
+#include "types/trig_spec.h.hexarr"
+
 /* declare types */
 ubx_type_t basic_types[] = {
 	/* basic types */
@@ -29,6 +32,7 @@ ubx_type_t basic_types[] = {
 
 	/* std struct types */
 	def_struct_type(struct ubx_tstat, &tstat_h),
+	def_struct_type(struct ubx_trig_spec, &trig_spec_h),
 
 	{ NULL },
 };

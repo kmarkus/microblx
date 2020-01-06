@@ -21,17 +21,10 @@
 #include <limits.h>	/* PTHREAD_STACK_MIN */
 
 #include "ubx.h"
-
-#include "types/ptrig_config.h"
-#include "types/ptrig_config.h.hexarr"
+#include "trig_utils.h"
 
 #include "types/ptrig_period.h"
 #include "types/ptrig_period.h.hexarr"
-
-#include "types/tstat.h"
-#include "types/tstat.h.hexarr"
-
-#include "trig_utils.h"
 
 /* ptrig metadata */
 char ptrig_meta[] =
@@ -53,7 +46,6 @@ ubx_port_t ptrig_ports[] = {
 
 /* types defined by ptrig block */
 ubx_type_t ptrig_types[] = {
-	def_struct_type(struct ptrig_config, &ptrig_config_h),
 	def_struct_type(struct ptrig_period, &ptrig_period_h),
 	{ NULL },
 };
@@ -69,7 +61,7 @@ ubx_config_t ptrig_config[] = {
 	{ .name="sched_priority", .type_name = "int" },
 	{ .name="sched_policy", .type_name = "char" },
 	{ .name="thread_name", .type_name = "char" },
-	{ .name="trig_blocks", .type_name = "struct ptrig_config",
+	{ .name="trig_blocks", .type_name = "struct ubx_trig_spec",
 	  .doc="trigger conf: which block and how to trigger"
 	},
 	{ .name="profile_path", .type_name = "char" },
@@ -99,7 +91,7 @@ struct ptrig_inf {
 	pthread_mutex_t mutex;
 	pthread_cond_t active_cond;
 
-	const struct ptrig_config *trig_list;
+	const struct ubx_trig_spec *trig_list;
 	unsigned int trig_list_len;
 
 	struct ptrig_period* period;
