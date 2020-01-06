@@ -24,18 +24,10 @@ ubx_port_t trig_ports[] = {
 /* configuration */
 ubx_config_t trig_config[] = {
 	{ .name="trig_blocks", .type_name = "struct trig_config", .doc="describes which blocks to trigger" },
-	{ .name="profile_path", .type_name = "char" },
-	{ .name="tstats_enabled", .type_name = "int",
-	  .doc="enable timing statistics over all blocks",
-	},
-	{ .name="tstats_output_rate",
-	  .type_name = "unsigned int",
-	  .doc="output tstats only on every tstats_output_rate'th trigger (0 to disable)"
-	},
-	{ .name="tstats_print_on_stop",
-	  .type_name = "int",
-	  .doc="print tstats in stop()",
-	},
+	{ .name="profile_path", .type_name = "char", .doc="file to which to write the timing statistics" },
+	{ .name="tstats_enabled", .type_name = "int", .doc="enable timing statistics over all blocks", },
+	{ .name="tstats_output_rate", .type_name = "unsigned int", .doc="output tstats only on every N'th trigger (0 to disable)" },
+	{ .name="tstats_print_on_stop", .type_name = "int", .doc="print tstats in stop hook", },
 	{ .name="loglevel", .type_name="int" },
 	{ NULL },
 };

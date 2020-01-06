@@ -33,14 +33,8 @@ char ptrig_meta[] =
 	"}";
 
 ubx_port_t ptrig_ports[] = {
-	{ .name="tstats",
-	  .out_type_name="struct ubx_tstat",
-	  .doc="out port for totals and per block timing statistics"
-	},
-	{ .name="shutdown",
-	  .in_type_name="int",
-	  .doc="in port for stopping ptrig"
-	},
+	{ .name="tstats", .out_type_name="struct ubx_tstat", .doc="out port for totals and per block timing statistics" },
+	{ .name="shutdown", .in_type_name="int", .doc="input port for stopping ptrig" },
 	{ NULL },
 };
 
@@ -52,30 +46,16 @@ ubx_type_t ptrig_types[] = {
 
 /* configuration */
 ubx_config_t ptrig_config[] = {
-	{ .name="period", .type_name = "struct ptrig_period",
-	  .doc="trigger period in { sec, ns }",
-	},
-	{ .name="stacksize", .type_name = "size_t",
-	  .doc="stacksize as per pthread_attr_setstacksize(3)"
-	},
-	{ .name="sched_priority", .type_name = "int" },
-	{ .name="sched_policy", .type_name = "char" },
-	{ .name="thread_name", .type_name = "char" },
-	{ .name="trig_blocks", .type_name = "struct ubx_trig_spec",
-	  .doc="trigger conf: which block and how to trigger"
-	},
-	{ .name="profile_path", .type_name = "char" },
-	{ .name="tstats_enabled", .type_name = "int",
-	  .doc="enable timing statistics over all blocks",
-	},
-	{ .name="tstats_output_rate",
-	  .type_name = "unsigned int",
-	  .doc="output tstats only on every tstats_output_rate'th trigger (0 to disable)"
-	},
-	{ .name="tstats_print_on_stop",
-	  .type_name = "int",
-	  .doc="print tstats in stop()",
-	},
+	{ .name="period", .type_name = "struct ptrig_period", .doc="trigger period in { sec, ns }", },
+	{ .name="stacksize", .type_name = "size_t", .doc="stacksize as per pthread_attr_setstacksize(3)" },
+	{ .name="sched_priority", .type_name = "int", .doc="pthread priority" },
+	{ .name="sched_policy", .type_name = "char", .doc="pthread scheduling policy" },
+	{ .name="thread_name", .type_name = "char", .doc="thread name (for dbg), default is block name" },
+	{ .name="trig_blocks", .type_name = "struct ubx_trig_spec", .doc="specification of blocks to trigger" },
+	{ .name="profile_path", .type_name = "char", .doc="file to which to write the timing statistics" },
+	{ .name="tstats_enabled", .type_name = "int", .doc="enable timing statistics over all blocks", },
+	{ .name="tstats_output_rate", .type_name = "unsigned int", .doc="output tstats only on every tstats_output_rate'th trigger (0 to disable)" },
+	{ .name="tstats_print_on_stop", .type_name = "int", .doc="print tstats in stop hook", },
 	{ NULL },
 };
 
