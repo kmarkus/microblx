@@ -3,7 +3,7 @@
 return bd.system
 {
    imports = {
-      "stdtypes", "stattypes", "random", "trig",
+      "stdtypes", "random", "trig",
    },
 
    blocks = {

@@ -12,7 +12,6 @@ return bd.system
 {
    imports = {
       "stdtypes",
-      "stattypes",
       "ptrig",
       "random",
       "mqueue",

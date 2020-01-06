@@ -362,7 +362,6 @@ The code is the following.
    {
       imports = {
          "stdtypes",
-         "stattypes",
          "ptrig",
          "lfds_cyclic",
          "logger",
@@ -561,13 +560,12 @@ the libraries
      ubx_node_init(&ni, "platform_and_control");
    const char *modules[8];
    modules[0]= "/usr/local/lib/ubx/0.6/stdtypes.so";
-   modules[1]= "/usr/local/lib/ubx/0.6/stattypes.so";
-   modules[2]= "/usr/local/lib/ubx/0.6/ptrig.so";
-   modules[3]= "/usr/local/lib/ubx/0.6/platform_2dof.so";
-   modules[4]= "/usr/local/lib/ubx/0.6/platform_2dof_control.so";
-   modules[5]= "/usr/local/lib/ubx/0.6/webif.so";
-   modules[6]= "/usr/local/lib/ubx/0.6/logger.so";
-   modules[7]= "/usr/local/lib/ubx/0.6/lfds_cyclic.so";
+   modules[1]= "/usr/local/lib/ubx/0.6/ptrig.so";
+   modules[2]= "/usr/local/lib/ubx/0.6/platform_2dof.so";
+   modules[3]= "/usr/local/lib/ubx/0.6/platform_2dof_control.so";
+   modules[4]= "/usr/local/lib/ubx/0.6/webif.so";
+   modules[5]= "/usr/local/lib/ubx/0.6/logger.so";
+   modules[6]= "/usr/local/lib/ubx/0.6/lfds_cyclic.so";
      /* load modules */
    for (int i=0; i<LEN_VEC(modules);i++)
      if(ubx_module_load(&ni, modules[i]) != 0){
