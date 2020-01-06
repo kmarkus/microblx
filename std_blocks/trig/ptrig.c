@@ -31,7 +31,7 @@
 #include "types/tstat.h"
 #include "types/tstat.h.hexarr"
 
-#include "tstat_utils.h"
+#include "trig_utils.h"
 
 /* ptrig metadata */
 char ptrig_meta[] =

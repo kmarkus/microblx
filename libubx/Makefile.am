@@ -8,7 +8,7 @@ lib_LTLIBRARIES = libubx.la \
 
 libubx_includes = ubx.h ubx_uthash_ffi.h \
 		  ubx_types.h ubx_proto.h md5.h \
-		  tstat_utils.h rtlog.h
+		  trig_utils.h rtlog.h
 
 internalincludedir = $(includedir)/ubx/internal
 internalinclude_HEADERS = internal/rtlog_common.h \
@@ -19,12 +19,12 @@ pkginclude_HEADERS = ubx.h \
 		  ubx_types_cpp.h \
 		  ubx_proto.h \
 		  ubx_uthash_ffi.h \
-		  tstat_utils.h \
+		  trig_utils.h \
 		  rtlog.h \
 		  rtlog_client.h
 
 libubx_la_SOURCES = $(libubx_includes) \
-		    md5.c ubx.c tstat_utils.c rtlog.c
+		    md5.c ubx.c trig_utils.c rtlog.c
 
 libubx_la_LDFLAGS = -version-info $(UBX_LT_VER) -lrt -lpthread -ldl
 

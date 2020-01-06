@@ -5,6 +5,9 @@ This file tracks user visible API changes.
 
 ## unreleased
 
+- `tstat_utils`: rename to `trig_utils` in preparation of moving more
+  generic trigger handling code to these files.
+
 - `stattypes`: merge into `stdtypes` as this only contains the
   ubx_tstat type. There is hence no need to import `stattypes`
   anymore.

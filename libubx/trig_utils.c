@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-#include "ubx.h"
-#include "types/tstat.h"
+#include "trig_utils.h"
+
 /**
  * initialise a tstat structure
  */
