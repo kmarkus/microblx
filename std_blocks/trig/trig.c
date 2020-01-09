@@ -24,10 +24,9 @@ ubx_port_t trig_ports[] = {
 /* configuration */
 ubx_config_t trig_config[] = {
 	{ .name="trig_blocks", .type_name = "struct trig_config", .doc="describes which blocks to trigger" },
-	{ .name="profile_path", .type_name = "char", .doc="file to which to write the timing statistics" },
 	{ .name="tstats_enabled", .type_name = "int", .doc="enable timing statistics over all blocks", },
+	{ .name="tstats_profile_path", .type_name = "char", .doc="file to which to write the timing statistics" },
 	{ .name="tstats_output_rate", .type_name = "unsigned int", .doc="output tstats only on every N'th trigger (0 to disable)" },
-	{ .name="tstats_print_on_stop", .type_name = "int", .doc="print tstats in stop hook", },
 	{ .name="loglevel", .type_name="int" },
 	{ NULL },
 };
@@ -38,9 +37,8 @@ struct trig_inf {
 	unsigned int trig_list_len;
 
 	/* timing statistics */
-	const char *profile_path;
+	const char *tstats_profile_path;
 	int tstats_enabled;
-	int tstats_print_on_stop;
 
 	struct ubx_tstat *tstats;
 
@@ -56,16 +54,12 @@ void trig_tstats_print(struct trig_inf *inf)
 {
 	unsigned int i;
 
-	if (!inf->tstats_print_on_stop)
-		goto out;
-
 	if (inf->tstats_enabled) {
 		for (i = 0; i < inf->trig_list_len; i++)
 			if (inf->trig_list[i].measure)
-				tstat_print(inf->profile_path, &inf->tstats[i]);
+				tstat_print(inf->tstats_profile_path, &inf->tstats[i]);
 	}
 
-out:
 	return;
 }
 
@@ -165,21 +159,16 @@ int trig_start(ubx_block_t *b)
 			   inf->trig_list[i].b->name);
 	}
 
-	if ((len = cfg_getptr_char(b, "profile_path", &inf->profile_path)) < 0) {
-		ubx_err(b, "unable to retrieve profile_path parameter");
+	if ((len = cfg_getptr_char(b, "tstats_profile_path", &inf->tstats_profile_path)) < 0) {
+		ubx_err(b, "unable to retrieve tstats_profile_path parameter");
 		goto out;
 	}
 	/* truncate the file if it exists */
 	if (len > 0) {
-		fp = fopen(inf->profile_path, "w");
+		fp = fopen(inf->tstats_profile_path, "w");
 		if (fp)
 			fclose(fp);
 	}
-
-	if((len = cfg_getptr_int(b, "tstats_print_on_stop", &val)) < 0)
-		goto out;
-
-	inf->tstats_print_on_stop = (len > 0) ? *val : 0;
 
 	if((len = cfg_getptr_int(b, "tstats_enabled", &val)) < 0)
 		goto out;

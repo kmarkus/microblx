@@ -5,6 +5,11 @@ This file tracks user visible API changes.
 
 ## unreleased
 
+- `trig`, `ptrig`:
+  - config `profile_path` renamed to `tstats_profile_path`
+  - config `tstats_print_on_stop` dropped. New behavior is: if
+    `tstats_enabled`, then stats will be logged on stop.
+
 - `tstat_utils`: rename to `trig_utils` in preparation of moving more
   generic trigger handling code to these files.
 
