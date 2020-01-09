@@ -52,10 +52,9 @@ ubx_config_t ptrig_config[] = {
 	{ .name="sched_policy", .type_name = "char", .doc="pthread scheduling policy" },
 	{ .name="thread_name", .type_name = "char", .doc="thread name (for dbg), default is block name" },
 	{ .name="trig_blocks", .type_name = "struct ubx_trig_spec", .doc="specification of blocks to trigger" },
-	{ .name="profile_path", .type_name = "char", .doc="file to which to write the timing statistics" },
 	{ .name="tstats_enabled", .type_name = "int", .doc="enable timing statistics over all blocks", },
+	{ .name="tstats_profile_path", .type_name = "char", .doc="file to which to write the timing statistics" },
 	{ .name="tstats_output_rate", .type_name = "unsigned int", .doc="output tstats only on every tstats_output_rate'th trigger (0 to disable)" },
-	{ .name="tstats_print_on_stop", .type_name = "int", .doc="print tstats in stop hook", },
 	{ NULL },
 };
 
@@ -77,9 +76,8 @@ struct ptrig_inf {
 	struct ptrig_period* period;
 
 	/* timing statistics */
-	const char *profile_path;
 	int tstats_enabled;
-	int tstats_print_on_stop;
+	const char *tstats_profile_path;
 
 	struct ubx_tstat global_tstats;
 	struct ubx_tstat *blk_tstats;
@@ -96,16 +94,12 @@ void ptrig_tstats_print(struct ptrig_inf *inf)
 {
 	unsigned int i;
 
-	if (!inf->tstats_print_on_stop)
-		goto out;
-
 	if (inf->tstats_enabled) {
 		for (i = 0; i < inf->trig_list_len; i++)
 			if (inf->trig_list[i].measure)
-				tstat_print(inf->profile_path, &inf->blk_tstats[i]);
+				tstat_print(inf->tstats_profile_path, &inf->blk_tstats[i]);
 	}
 
-out:
 	return;
 }
 
@@ -399,21 +393,16 @@ static int ptrig_start(ubx_block_t *b)
 			   inf->trig_list[i].b->name);
 	}
 
-	if ((len = cfg_getptr_char(b, "profile_path", &inf->profile_path)) < 0) {
-		ubx_err(b, "unable to retrieve profile_path parameter");
+	if ((len = cfg_getptr_char(b, "tstats_profile_path", &inf->tstats_profile_path)) < 0) {
+		ubx_err(b, "unable to retrieve tstats_profile_path parameter");
 		goto out;
 	}
 	/* truncate the file if it exists */
 	if (len > 0) {
-		fp = fopen(inf->profile_path, "w");
+		fp = fopen(inf->tstats_profile_path, "w");
 		if (fp)
 			fclose(fp);
 	}
-
-	if((len = cfg_getptr_int(b, "tstats_print_on_stop", &val)) < 0)
-		goto out;
-
-	inf->tstats_print_on_stop = (len > 0) ? *val : 0;
 
 	if((len = cfg_getptr_int(b, "tstats_enabled", &val)) < 0)
 		goto out;
