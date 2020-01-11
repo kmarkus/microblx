@@ -23,7 +23,7 @@ ubx_port_t trig_ports[] = {
 
 /* configuration */
 ubx_config_t trig_config[] = {
-	{ .name="trig_blocks", .type_name = "struct trig_config", .doc="describes which blocks to trigger" },
+	{ .name="trig_blocks", .type_name = "struct ubx_trig_spec", .doc="specification of blocks to trigger" },
 	{ .name="tstats_enabled", .type_name = "int", .doc="enable timing statistics over all blocks", },
 	{ .name="tstats_profile_path", .type_name = "char", .doc="file to which to write the timing statistics" },
 	{ .name="tstats_output_rate", .type_name = "unsigned int", .doc="output tstats only on every N'th trigger (0 to disable)" },
