@@ -7,6 +7,7 @@
  */
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/inotify.h>
 
 #include "ubx.h"
@@ -66,6 +67,10 @@ void log_data(logc_info_t *inf, int color)
 #define ERRC(color, fmt, args...) ( fprintf(stderr, "%s", (color==1) ? RED : ""), \
 				    fprintf(stderr, fmt, ##args),		  \
 				    fprintf(stderr, "%s", (color==1) ? RESET : "") )
+
+
+const char* sepstr = "--------------------------------------------------------------------------------\n";
+#define SEP(color) fprintf(stderr, "%s%s%s", (color==1) ? MAG : "", sepstr, (color==1) ? RESET : "")
 
 /*
  * The code below utilises inotify to detect when a shm becomes
@@ -325,6 +330,11 @@ int check_new_shm(struct ubx_log_info *inf, int show_old, int color)
 	return ret;
 }
 
+ssize_t ngetc (char *c)
+{
+	return read (0, c, 1);
+}
+
 void print_help(char **argv)
 {
 	printf("usage:\n");
@@ -340,6 +350,7 @@ int main(int argc, char **argv)
 {
 	int opt, color = 1, show_old = 1, ret = EOUTOFMEM;
 	struct ubx_log_info *inf;
+	char c;
 
 	while ((opt = getopt(argc, argv, "ONh")) != -1) {
 		switch (opt) {
@@ -365,6 +376,8 @@ int main(int argc, char **argv)
 	inf->lcinf = NULL;
 	inf->uininf = NULL;
 
+	fcntl (0, F_SETFL, O_NONBLOCK);
+
 	ret = lc_init(inf);
 	if (ret != 0)
 		goto out_free;
@@ -381,6 +394,12 @@ int main(int argc, char **argv)
 		ret = logc_has_data(inf->lcinf);
 		switch (ret) {
 		case NO_DATA:
+			if (ngetc(&c) > 0) {
+				if (c=='\n') {
+					SEP(color);
+				}
+			}
+
 			usleep(100000);
 			continue;
 
