@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <termios.h>
 #include <sys/inotify.h>
 
 #include "ubx.h"
@@ -350,6 +351,7 @@ int main(int argc, char **argv)
 {
 	int opt, color = 1, show_old = 1, ret = EOUTOFMEM;
 	struct ubx_log_info *inf;
+	struct termios tp;
 	char c;
 
 	while ((opt = getopt(argc, argv, "ONh")) != -1) {
@@ -376,7 +378,17 @@ int main(int argc, char **argv)
 	inf->lcinf = NULL;
 	inf->uininf = NULL;
 
-	fcntl (0, F_SETFL, O_NONBLOCK);
+	/* make stdin nonblocking */
+	fcntl (STDIN_FILENO, F_SETFL, O_NONBLOCK);
+
+	/* turn echo off */
+	if (tcgetattr(STDIN_FILENO, &tp) == -1)
+		fprintf(stderr, "tcgetattr: %m");
+
+	tp.c_lflag &= ~ECHO;
+
+	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &tp) == -1)
+		fprintf(stderr, "tcsetattr: %m");
 
 	ret = lc_init(inf);
 	if (ret != 0)
