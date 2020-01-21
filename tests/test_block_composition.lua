@@ -156,7 +156,71 @@ local leaf = bd.system {
    },
 }
 
+--
+-- Node config tests
+--
+
+local ndcfg1 = bd.system {
+   imports = { "stdtypes", "random" },
+
+   node_configurations = {
+      rnd_conf = { type="struct random_config", config= { min=1000, max=2000 } }
+   },
+
+   blocks = {
+      { name = "rnd1", type="random/random" },
+      { name = "rnd2", type="random/random" },
+   },
+   configurations = {
+      {	name="rnd1", config = { min_max_config = "&rnd_conf" } },
+      {	name="rnd2", config = { min_max_config = "&rnd_conf" } },
+   },
+}
+
 function TestComp:test_nodecfg1()
+   local num_err, res = ndcfg1:validate(UMF_CHECK_VERBOSE)
+   lu.assert_equals(num_err, 0)
+   NI =	ndcfg1:launch({ nodename="test_nodecfg1", nostart=true})
+   lu.assert_not_nil(NI)
+
+      -- check configs
+   lu.assert_equals( NI:b("rnd1"):c("min_max_config"):tolua(), { min=1000, max=2000 } )
+   lu.assert_equals( NI:b("rnd2"):c("min_max_config"):tolua(), { min=1000, max=2000 } )
+end
+
+
+local ndcfg2 = bd.system {
+   imports = { "stdtypes", "random" },
+
+   node_configurations = {
+      rnd_conf = { type="struct random_config", config = { min=999, max=1111 } }
+   },
+
+   subsystems = { sub1 = utils.deepcopy(ndcfg1)  },
+
+   blocks = {
+      { name = "rnd1", type="random/random" },
+      { name = "rnd2", type="random/random" },
+   },
+
+   configurations = {
+      {	name="rnd1", config = { min_max_config = "&rnd_conf" } },
+      {	name="rnd2", config = { min_max_config = "&rnd_conf" } },
+   },
+}
+
+function TestComp:test_nodecfg2()
+   local num_err, res = ndcfg2:validate(UMF_CHECK_VERBOSE)
+   lu.assert_equals(num_err, 0)
+   NI =	ndcfg2:launch({ nodename="test_nodecfg2", nostart=true})
+   lu.assert_not_nil(NI)
+
+   -- check configs
+   lu.assert_equals( NI:b("rnd1"):c("min_max_config"):tolua(), { min=999, max=1111 } )
+   lu.assert_equals( NI:b("rnd2"):c("min_max_config"):tolua(), { min=999, max=1111 } )
+   lu.assert_equals( NI:b("sub1/rnd1"):c("min_max_config"):tolua(), { min=999, max=1111 } )
+   lu.assert_equals( NI:b("sub1/rnd2"):c("min_max_config"):tolua(), { min=999, max=1111 } )
+
 end
 
 -- TODO
