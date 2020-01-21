@@ -668,12 +668,6 @@ function system.launch(self, t)
       if not t.nostart then system.startup(self, ni) end
    end
 
-   print("fqn lists")
-   mapsys(
-      function(s,n,p)
-	 print("name: "..tostring(n), "fqn: "..fqn_get(s))
-      end, self)
-
    -- fire it up
    t = t or {}
    t.nodename = t.nodename or "n"
