@@ -241,7 +241,6 @@ local function block_fqn_get(b)
    return sys_fqn_get(b._parent)..b.name
 end
 
-
 --- System constructor
 function system:init()
    self.imports = self.imports or {}
@@ -499,6 +498,46 @@ local function create_blocks(ni, root_sys)
       end, root_sys)
 end
 
+
+---
+--- configuration handling
+---
+
+--- Preprocess configs
+-- Substitute #blockname with corresponding ubx_block_t ptrs
+-- @param ni node_info
+-- @param c configuration
+local function preproc_configs(ni, c, s)
+   local function replace_hash(val, tab, key)
+      local name = string.match(val, ".*#([%w_-%/]+)")
+      if not name then return end
+      local bfqn = sys_fqn_get(s)..name
+      local ptr = ubx.block_get(ni, bfqn)
+      if ptr==nil then
+	 err_exit(-1, "error: failed to resolve # blockref to block "..bfqn)
+      elseif ubx.is_proto(ptr) then
+	 err_exit("error: block #"..bfqn.." is a proto block")
+      end
+      info(magenta("resolved # blockref to "..bfqn))
+      tab[key]=ptr
+   end
+
+   utils.maptree(replace_hash, c, function(v,_) return type(v)=='string' end)
+end
+
+
+--- configure all blocks
+-- @param ni node_info
+-- @param root_sys root system
+-- @param NC
+local function configure_blocks(ni, root_sys, NC)
+
+   -- substitue #blockname syntax
+   mapconfigs(function(c, i, s) preproc_configs(ni, c, s) end, root_sys)
+
+end
+
+
 --- Launch a blockdiagram system
 -- @param self system specification to load
 -- @param t configuration table
@@ -507,32 +546,6 @@ function system.launch(self, t)
    if self:validate(false) > 0 then
       self:validate(true)
       os.exit(1)
-   end
-
-   --- Preprocess configs
-   -- @param ni node_info
-   -- @param c configuration
-   -- Substitute #blockanme with corresponding ubx_block_t ptrs
-   local function preproc_configs(ni, c)
-      local ret=true
-
-      --- Substitute #blockname with ubx_block_t ptr
-      local function subs_blck_ptrs(val, tab, key)
-	 local name=string.match(val, ".*#([%w_-]+)")
-	 if not name then return end
-	 local ptr=ubx.block_get(ni, name)
-	 if ptr==nil then
-	    err_exit(-1, "error: failed to resolve block #"..
-		     name.." for ubx_block_t* conversion")
-	 elseif ubx.is_proto(ptr) then
-	    err_exit("error: block #"..name.." is a proto block")
-	 end
-	 info(magenta("resolved block #"..name))
-	 tab[key]=ptr
-      end
-      utils.maptree(subs_blck_ptrs, c, function(v,k) return type(v)=='string' end)
-
-      return ret
    end
 
    --- Configure a the given block with a config
@@ -577,10 +590,6 @@ function system.launch(self, t)
    -- @param ni node_info
    local function __launch(self, t, ni)
       info("launching system in node "..ts(t.nodename))
-
-      if not preproc_configs(ni, self.configurations) then
-	 err_exit(1, "preprocessing configs failed")
-      end
 
       -- apply configuration
       if #self.configurations > 0 then
@@ -704,7 +713,7 @@ function system.launch(self, t)
 
    _NC = build_nodecfg_tab(ni, self)
 
-   -- configure_blocks(ni, self, NC)
+   configure_blocks(ni, self, _NC)
 
    -- connect_blocks
 

@@ -28,11 +28,17 @@ local rnd1 = bd.system {
    },
 
    blocks = {
+      { name='ptrig', type="std_triggers/ptrig" },
       { name="rnd", type="random/random" },
    },
 
    configurations = {
-      {	name="rnd", config = { min_max_config = {min=127, max=256} } }
+      {	name="rnd", config = { min_max_config = {min=127, max=256} } },
+      { name="ptrig", config = { period = {sec=1, usec=0 },
+				 trig_blocks={
+				    { b="#rnd", num_steps=1, measure=0 },
+				    { b="#sub21/rnd", num_steps=1, measure=0 } } } },
+
    },
 }
 
@@ -59,7 +65,10 @@ return bd.system
       {	name="sub11/sub21/rnd", config = { min_max_config={min=11, max=44} } },
       { name="ptrig", config = { period = {sec=1, usec=0 },
 				 trig_blocks={
-				    { b="#rnd", num_steps=1, measure=0 } } } },
+				    { b="#rnd", num_steps=1, measure=0 },
+				    { b="#sub11/rnd", num_steps=1, measure=0 },
+				    { b="#sub12/rnd", num_steps=1, measure=0 },
+				    { b="#sub11/sub21/rnd", num_steps=1, measure=0 }} } },
 
    },
 
