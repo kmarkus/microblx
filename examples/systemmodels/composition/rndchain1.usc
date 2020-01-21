@@ -12,6 +12,8 @@ return bd.system
    },
 
    configurations = {
+      {	name="rnd1", config = { min_max_config={min=1, max=1024} } },
+
       { name="trig", config = { trig_blocks={ { b="#rnd1", num_steps=1, measure=0 } } } },
    }
 }

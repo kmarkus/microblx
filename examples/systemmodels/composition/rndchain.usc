@@ -29,6 +29,7 @@ return bd.system
    },
 
    configurations = {
+      {	name="rnd0", config = { min_max_config={min=127, max=256} } },
       { name="ptrig", config = { period = {sec=1, usec=0 },
 				 trig_blocks={ { b="#rnd0", num_steps=1, measure=0 },
 					       -- trigger the included subsystems trigger:
