@@ -101,6 +101,8 @@ local function mapconns(func, root)
 end
 
 --- return the fqn of system s
+-- @param sys system whos fqn to determine
+-- @return fqn string
 local function sys_fqn_get(sys)
    local fqn = {}
    local function __fqn_get(s)
@@ -115,6 +117,9 @@ local function sys_fqn_get(sys)
    return table.concat(fqn)
 end
 
+--- return the fqn of block b
+-- @param b block whos fqn to determine
+-- @return fqn string
 local function block_fqn_get(b)
    return sys_fqn_get(b._parent)..b.name
 end
@@ -122,7 +127,6 @@ end
 
 --- System constructor
 function system:init()
-
    self.imports = self.imports or {}
    self.subsystems = self.subsystems or {}
    self.blocks = self.blocks or {}
@@ -321,7 +325,7 @@ local function late_checks(self, conf, ni)
    local res = {}
    info("running late validation ("..
 	   table.concat(conf.checks, ", ")..")")
-   utils.foreach(
+   foreach(
       function (chk)
 	 if not M._checks[chk] then
 	    err_exit(-1, "unknown check "..chk)
@@ -330,7 +334,7 @@ local function late_checks(self, conf, ni)
       end,
       conf.checks or {})
 
-   utils.foreach(function(v) warn(v) end, res)
+   foreach(function(v) warn(v) end, res)
 
    if #res > 0 and conf.werror then
       err_exit(-1, "warnings raised and treating warnings as errors")
@@ -396,7 +400,7 @@ end
 -- @param t configuration table
 -- @return ni node_info handle
 function system.startup(self, ni)
-   utils.foreach(
+   foreach(
       function (bmodel)
 
 	 -- skip the blocks in the start table
@@ -462,13 +466,15 @@ local function build_nodecfg_tab(ni, root_sys)
 end
 
 --- load the systems modules
+-- ensure modules are only loaded once
+-- @param ni ubx_node_info into which to import
 -- @param s system
 local function import_modules(ni, s)
    local loaded = {}
 
    mapsys(
       function(s)
-	 utils.foreach(
+	 foreach(
 	    function(m)
 	       if loaded[m] then
 		  info("skipping already loaded module "..magenta(m))
@@ -482,7 +488,8 @@ local function import_modules(ni, s)
 end
 
 --- Instantiate blocks
--- @param s system
+-- @param ni ubx_node_info into which to instantiate the blocks
+-- @param root_sys system
 local function create_blocks(ni, root_sys)
    mapblocks(
       function(b,i,p)
@@ -589,7 +596,7 @@ function system.launch(self, t)
 		  apply_conf(c, b)
 		  local walker = self._parent
 		  while walker ~= nil do
-		     utils.foreach(function (cc)
+		     foreach(function (cc)
 				      if cc.name==c.name then apply_conf(cc, b) end
 				   end, walker.configurations)
 		     walker = walker._parent
@@ -606,7 +613,7 @@ function system.launch(self, t)
 
       -- create connections
       if #self.connections > 0 then
-	 utils.foreach(function(c)
+	 foreach(function(c)
 			  local bnamesrc,pnamesrc = unpack(utils.split(c.src, "%."))
 			  local bnametgt,pnametgt = unpack(utils.split(c.tgt, "%."))
 
