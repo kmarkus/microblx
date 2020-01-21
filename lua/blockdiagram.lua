@@ -17,6 +17,9 @@ local M={}
 
 local strict = require "strict"
 
+-- shortcuts
+local foreach = utils.foreach
+
 -- node configuration
 _NC = nil
 
@@ -60,7 +63,7 @@ local function mapsys(func, root)
 
    local function __mapsys(sys,name,psys)
       res[#res+1] = func(sys, name, psys)
-      for k,s in pairs(sys.subsystems or {}) do __mapsys(s, k, sys) end
+      for k,s in pairs(sys.subsystems) do __mapsys(s, k, sys) end
    end
    __mapsys(root)
    return res
@@ -75,7 +78,7 @@ local function mapblocks(func, root)
    local res = {}
 
    local function __mapblocks(s)
-      for i,bt in ipairs(s.blocks or {}) do
+      for i,bt in ipairs(s.blocks) do
 	 res[#res+1] = func(bt, i, s)
       end
    end
@@ -90,7 +93,7 @@ local function mapconns(func, root)
    local res = {}
 
    local function __mapconns(s)
-      for i,ct in ipairs(s.connections or {}) do
+      for i,ct in ipairs(s.connections) do
 	 res[#res+1] = func(ct, i, s)
       end
    end
@@ -98,7 +101,7 @@ local function mapconns(func, root)
 end
 
 --- return the fqn of system s
-local function fqn_get(s)
+local function sys_fqn_get(sys)
    local fqn = {}
    local function __fqn_get(s)
       if s._parent == nil then return
@@ -106,26 +109,39 @@ local function fqn_get(s)
       fqn[#fqn+1] = s._name
       fqn[#fqn+1] = '/'
    end
-   __fqn_get(s)
+
+   assert(M.is_system(sys), "fqn_get: argument not a system")
+   __fqn_get(sys)
    return table.concat(fqn)
+end
+
+local function block_fqn_get(b)
+   return sys_fqn_get(b._parent)..b.name
 end
 
 
 --- System constructor
 function system:init()
+
+   self.imports = self.imports or {}
+   self.subsystems = self.subsystems or {}
+   self.blocks = self.blocks or {}
+   self.node_configurations = self.node_configurations or {}
+   self.configurations = self.configurations or {}
+   self.connections = self.connections or {}
+   self.start = self.start or {}
+
    -- create system _name fields
    mapsys(
       function(s,n,p)
 	 if p==nil then s._name='root' else s._name = n end
       end, self)
 
+   -- add system _parent links
+   mapsys(function(s,n,p) if p ~= nil then s._parent = p end end, self)
 
-   -- add _parent links
-   mapsys(
-      function(s,n,p)
-	 if p ~= nil then s._parent = p end
-      end, self)
-
+   -- add block _parent links
+   mapblocks(function(b,i,p) b._parent = p end, self)
 end
 
 --- imports spec
@@ -148,8 +164,9 @@ local blocks_spec = TableSpec
       TableSpec
       {
 	 name='block',
-	 dict = { name=StringSpec{}, type=StringSpec{} },
+	 dict = { name=StringSpec{}, type=StringSpec{}, _parent=AnySpec{}, },
 	 sealed='both',
+	 optional = { '_parent' }
       }
    },
    sealed='both',
@@ -403,23 +420,46 @@ function system.startup(self, ni)
    end
 end
 
---- Instantiate ubx_data for node configuration
--- @param node_config bd.configurations.node field
--- @return table of initialized config_name=ubx_data pairs
-local function create_node_config(ni, node_config)
-   local res = {}
-   local function __create_nc(cfg, name)
+--- Instantiate ubx_data for all node configurations incl. subsystems
+-- NCs defined higher in the composition tree override lower ones.
+-- @param root_sys root system
+-- @return table of initialized config-name=ubx_data tuples
+local function build_nodecfg_tab(ni, root_sys)
+   local NC = {}
+   local queue = { root_sys }
+
+   -- instantiate node config and add it to global table
+   -- skip it and if a config of the same name exists
+   local function __create_nc(cfg, name, s)
+      if NC[name] then
+	 notice("node config "..sys_fqn_get(s)..name.." shadowed by a higher one")
+	 return
+      end
+
       local d = ubx.data_alloc(ni, cfg.type, 1)
       ubx.data_set(d, cfg.config, true)
-      res[name]=d
+      NC[name] = d
       info("creating node config "..blue(name)..
-	     "["..magenta(cfg.type).."] "..
-	     yellow(utils.tab2str(cfg.config)))
+	      "["..magenta(cfg.type).."] "..
+	      yellow(utils.tab2str(cfg.config)))
    end
-   utils.foreach(__create_nc, node_config)
-   return res
-end
 
+   -- breadth first
+   while #queue > 0 do
+      local next = table.remove(queue, 1)
+
+      -- process all nc's of s
+      foreach(
+	 function (nc, name)
+	    __create_nc(nc, name, next)
+	 end, next.node_configurations)
+
+      -- add s's subsystems to queue
+      foreach(function (subsys) queue[#queue+1] = subsys end, next.subsystems)
+   end
+
+   return NC
+end
 
 --- load the systems modules
 -- @param s system
@@ -446,7 +486,7 @@ end
 local function create_blocks(ni, root_sys)
    mapblocks(
       function(b,i,p)
-	 local bfqn = fqn_get(p)..b.name
+	 local bfqn = block_fqn_get(b)
 	 info("creating block "..green(bfqn).." ["..blue(b.type).."]")
 	 ubx.block_create(ni, b.type, bfqn)
       end, root_sys)
@@ -529,13 +569,6 @@ function system.launch(self, t)
    -- @param t global configuration
    -- @param ni node_info
    local function __launch(self, t, ni)
-      self.include = self.include or {}
-      self.imports = self.imports or {}
-      self.blocks = self.blocks or {}
-      self.configurations = self.configurations or {}
-      self.connections = self.connections or {}
-      self.start = self.start or {}
-
       info("launching system in node "..ts(t.nodename))
 
       if not preproc_configs(ni, self.configurations) then
@@ -667,7 +700,7 @@ function system.launch(self, t)
    import_modules(ni, self)
    create_blocks(ni, self)
 
-   -- _NC = build_nodecfg_tab(self)
+   _NC = build_nodecfg_tab(ni, self)
 
    -- configure_blocks(ni, self, NC)
 
@@ -676,10 +709,6 @@ function system.launch(self, t)
    -- startup blocks
    -- start_system(ni, self)
 
-
-   if self.node_configurations then
-      _NC = create_node_config(ni, self.node_configurations)
-   end
    -- configure and connect
    __launch(self, t, ni)
    return ni
