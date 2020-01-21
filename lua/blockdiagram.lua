@@ -214,9 +214,36 @@ local function mapobj(func, root_sys, systab)
    mapsys(__mapobj, root_sys)
 end
 
+--- Apply func to all objs of system[systab] in a breadth first
+-- @param func function(obj, index, parent_system)
+-- @param root_sys root system
+-- @param systab which system table to map (blocks, configurations, ...)
+-- @return list of return values of func
+local function mapobj_bf(func, root_sys, systab)
+   local res = {}
+   local queue = { root_sys }
+
+   -- breadth first
+   while #queue > 0 do
+      local next_sys = table.remove(queue, 1) -- pop
+
+      -- process all nc's of s
+      foreach(
+	 function (o, k)
+	    res[#res+1] = func(o, k, next_sys)
+	 end, next_sys[systab])
+
+      -- add s's subsystems to queue
+      foreach(function (subsys) queue[#queue+1] = subsys end, next_sys.subsystems)
+   end
+
+   return res
+end
+
+
 local function mapblocks(func, root_sys) return mapobj(func, root_sys, 'blocks') end
 local function mapconns(func, root_sys) return mapobj(func, root_sys, 'connections') end
-local function mapconfigs(func, root_sys) return mapobj(func, root_sys, 'configurations') end
+local function mapconfigs(func, root_sys) return mapobj_bf(func, root_sys, 'configurations') end
 local function mapimports(func, root_sys) return mapobj(func, root_sys, 'imports') end
 
 --- return the fqn of system s
@@ -442,13 +469,50 @@ end
 --- Find and return ubx_block ptr
 -- @param ni node_info
 -- @param obj config or block table
+-- @return bptr, bfqn
 local function find_block(ni, obj)
    assert(obj.name, "missing name entry of " .. tostring(obj))
    assert(obj._parent, "missing _parent link of ".. tostring(obj.name))
    local bfqn = sys_fqn_get(obj._parent)..obj.name
    local bptr = ubx.block_get(ni, bfqn)
-   return bptr
+   return bptr, bfqn
 end
+
+--- load the systems modules
+-- ensure modules are only loaded once
+-- @param ni ubx_node_info into which to import
+-- @param s system
+local function import_modules(ni, s)
+   local loaded = {}
+
+   mapimports(
+      function(m)
+	 if loaded[m] then return
+	 else
+	    info("importing module "..magenta(m))
+	    ubx.load_module(ni, m)
+	    loaded[m]=true
+	 end
+      end, s)
+end
+
+--- Instantiate blocks
+-- @param ni ubx_node_info into which to instantiate the blocks
+-- @param root_sys system
+local function create_blocks(ni, root_sys)
+   mapblocks(
+      function(b,i,p)
+	 local bfqn = block_fqn_get(b)
+	 info("creating block "..green(bfqn).." ["..blue(b.type).."]")
+	 ubx.block_create(ni, b.type, bfqn)
+      end, root_sys)
+end
+
+
+---
+--- configuration handling
+---
+
 
 --- Instantiate ubx_data for all node configurations incl. subsystems
 -- NCs defined higher in the composition tree override lower ones.
@@ -490,41 +554,6 @@ local function build_nodecfg_tab(ni, root_sys)
 
    return NC
 end
-
---- load the systems modules
--- ensure modules are only loaded once
--- @param ni ubx_node_info into which to import
--- @param s system
-local function import_modules(ni, s)
-   local loaded = {}
-
-   mapimports(
-      function(m)
-	 if loaded[m] then return
-	 else
-	    info("importing module "..magenta(m))
-	    ubx.load_module(ni, m)
-	    loaded[m]=true
-	 end
-      end, s)
-end
-
---- Instantiate blocks
--- @param ni ubx_node_info into which to instantiate the blocks
--- @param root_sys system
-local function create_blocks(ni, root_sys)
-   mapblocks(
-      function(b,i,p)
-	 local bfqn = block_fqn_get(b)
-	 info("creating block "..green(bfqn).." ["..blue(b.type).."]")
-	 ubx.block_create(ni, b.type, bfqn)
-      end, root_sys)
-end
-
-
----
---- configuration handling
----
 
 --- Substitute #blockname with corresponding ubx_block_t ptrs
 -- @param ni node_info
@@ -586,7 +615,7 @@ end
 -- @param cfg system.config table
 -- @param NC node (global) configuration table
 local function configure_block(ni, cfg, NC, i)
-   local b = find_block(ni, cfg)
+   local b, bfqn = find_block(ni, cfg)
 
    if b==nil then
       err_exit(-1, "error: config "..config_tostr(cfg, i).." no ubx block instance found")
@@ -606,12 +635,22 @@ end
 -- @param root_sys root system
 -- @param NC
 local function configure_blocks(ni, root_sys, NC)
+   local configured = {}
 
    -- substitue #blockname syntax
    mapconfigs(function(c, i, s) preproc_configs(ni, c, s, i) end, root_sys)
 
    -- apply configurations to blocks
-   mapconfigs(function(c, i) configure_block(ni, c, NC, i) end, root_sys)
+   mapconfigs(
+      function(c, i)
+	 local bfqn = sys_fqn_get(c._parent)..c.name
+	 if configured[bfqn] then
+	    info("skipping "..bfqn.." config "..utils.tab2str(c.config)..": already configured")
+	    return
+	 end
+	 configure_block(ni, c, NC, i)
+	 configured[bfqn] = true
+      end, root_sys)
 
    -- configure all blocks
    mapblocks(
