@@ -62,7 +62,7 @@ local function mapsys(func, root)
       res[#res+1] = func(sys, name, psys)
       for k,s in pairs(sys.subsystems or {}) do __mapsys(s, k, sys) end
    end
-   __mapsys(root, 'root')
+   __mapsys(root)
    return res
 end
 
@@ -98,9 +98,30 @@ local function mapconns(func, root)
 end
 
 
+--- determine and apply fully qualified name to all relevant entities
+local function apply_fqn(root_sys)
+   -- setup system FQNs
+   mapsys(
+      function(s,n,p)
+	 if p==nil then s._fqn='/' else s._fqn = p._fqn..n end
+	 print("fqn", n, s._fqn)
+      end, root_sys)
+
+
+   -- update blocks
+   -- higher global configs replace lower ones
+   -- update references
+   --    connections
+   --    configurations
+   --    support relative refs ./ ?
+end
+
 function system:init()
    local function create_parent_links(subsys) subsys._parent=self end
    utils.foreach(create_parent_links, self.include or {})
+
+   -- apply fqn
+   apply_fqn(self)
 end
 
 --- imports spec
@@ -214,9 +235,11 @@ local system_spec = ObjectSpec
       configurations=configs_spec,
       start=start_spec,
       _parent=AnySpec{},
+      _fqn=StringSpec{},
    },
    optional={ 'subsystems', 'imports', 'blocks', 'connections',
-	      'node_configurations', 'configurations', 'start', '_parent' },
+	      'node_configurations', 'configurations', 'start',
+	      '_parent', '_fqn' },
 }
 
 -- add self references to subsystems dictionary
