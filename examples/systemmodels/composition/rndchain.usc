@@ -14,8 +14,8 @@ logger_report_conf = [[
 return bd.system
 {
    -- include subsystems
-   include = {
-      bd.load("rndchain1.usc")
+   subsystems = {
+      rnd1 = bd.load("rndchain1.usc")
    },
 
    imports = {
