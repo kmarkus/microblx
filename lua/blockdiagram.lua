@@ -97,16 +97,20 @@ local function mapconns(func, root)
    mapsys(__mapconns, root)
 end
 
+--- return the fqn of system s
+local function fqn_get(s)
+   local fqn = {}
+   local function __fqn_get(s)
+      if s._parent == nil then return
+      else __fqn_get(s._parent) end
+      fqn[#fqn+1] = s._name
+   end
+   __fqn_get(s)
+   return table.concat(fqn, "/")
+end
 
 --- determine and apply fully qualified name to all relevant entities
 local function apply_fqn(root_sys)
-   -- setup system FQNs
-   mapsys(
-      function(s,n,p)
-	 if p==nil then s._fqn='/' else s._fqn = p._fqn..n end
-	 print("fqn", n, s._fqn)
-      end, root_sys)
-
 
    -- update blocks
    -- higher global configs replace lower ones
@@ -116,12 +120,23 @@ local function apply_fqn(root_sys)
    --    support relative refs ./ ?
 end
 
-function system:init()
-   local function create_parent_links(subsys) subsys._parent=self end
-   utils.foreach(create_parent_links, self.include or {})
 
-   -- apply fqn
-   apply_fqn(self)
+function system:init()
+
+   -- create system _name fields
+   mapsys(
+      function(s,n,p)
+	 if p==nil then s._name='root' else s._name = n end
+      end, self)
+
+
+   -- add parent links
+   mapsys(
+      function(s,n,p)
+	 if p ~= nil then s._parent = p end
+      end, self)
+
+   -- apply_fqn(self)
 end
 
 --- imports spec
@@ -236,10 +251,11 @@ local system_spec = ObjectSpec
       start=start_spec,
       _parent=AnySpec{},
       _fqn=StringSpec{},
+      _name=StringSpec{},
    },
    optional={ 'subsystems', 'imports', 'blocks', 'connections',
 	      'node_configurations', 'configurations', 'start',
-	      '_parent', '_fqn' },
+	      '_parent', '_fqn', '_name' },
 }
 
 -- add self references to subsystems dictionary
@@ -647,6 +663,13 @@ function system.launch(self, t)
       -- startup
       if not t.nostart then system.startup(self, ni) end
    end
+
+   print("fqn lists")
+   mapsys(
+      function(s,n,p)
+	 print("name: "..tostring(n), "fqn: "..fqn_get(s))
+      end, self)
+
 
    -- fire it up
    t = t or {}
