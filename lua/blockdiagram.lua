@@ -51,6 +51,53 @@ local ObjectSpec=umf.ObjectSpec
 
 local system = umf.class("system")
 
+--- apply func to systems including all subsystems
+-- @param func function(system, name, parent-system)
+-- @param root root system
+-- @return list of return values of func
+local function mapsys(func, root)
+   local res = {}
+
+   local function __mapsys(sys,name,psys)
+      res[#res+1] = func(sys, name, psys)
+      for k,s in pairs(sys.subsystems or {}) do __mapsys(s, k, sys) end
+   end
+   __mapsys(root, 'root')
+   return res
+end
+
+
+--- Apply func to all blocks include subsystem blocks
+-- @param func function(block, block_index, parent_system)
+-- @param root root system
+-- @return list of return values of func
+local function mapblocks(func, root)
+   local res = {}
+
+   local function __mapblocks(s)
+      for i,bt in ipairs(s.blocks or {}) do
+	 res[#res+1] = func(bt, i, s)
+      end
+   end
+   mapsys(__mapblocks, root)
+end
+
+--- Apply func to all connections including subsystems
+-- @param func function(conn, conn_index, parent_system)
+-- @param root root system
+-- @return list of return values of func
+local function mapconns(func, root)
+   local res = {}
+
+   local function __mapconns(s)
+      for i,ct in ipairs(s.connections or {}) do
+	 res[#res+1] = func(ct, i, s)
+      end
+   end
+   mapsys(__mapconns, root)
+end
+
+
 function system:init()
    local function create_parent_links(subsys) subsys._parent=self end
    utils.foreach(create_parent_links, self.include or {})
