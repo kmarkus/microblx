@@ -3,7 +3,7 @@
 -- compositions
 --
 -- Copyright (C) 2013 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
--- Copyright (C) 2014-2018 Markus Klotzbuecher <mk@mkio.de>
+-- Copyright (C) 2014-2019 Markus Klotzbuecher <mk@mkio.de>
 --
 -- SPDX-License-Identifier: BSD-3-Clause
 --
@@ -195,7 +195,6 @@ local system_spec = ObjectSpec
 -- add self references to subsystems dictionary
 system_spec.dict.subsystems.dict.__other = { system_spec }
 
-
 --- apply func to systems including all subsystems
 -- @param func function(system, name, parent-system)
 -- @param root root system
@@ -318,7 +317,7 @@ function system:init()
    self.connections = self.connections or {}
    self.start = self.start or {}
 
-   -- create meta _x table convenience data
+   -- populate _x table with convenience data
    mapsys(
       function(s,n,p)
 	 s._x = {}
@@ -328,7 +327,7 @@ function system:init()
       end, self)
 
 
-   -- add _parent links
+   -- populate _x tables
    mapblocks(
       function(b,i,p)
 	 b._x = {}
@@ -565,7 +564,6 @@ end
 ---
 --- configuration handling
 ---
-
 
 --- Instantiate ubx_data for all node configurations incl. subsystems
 -- NCs defined higher in the composition tree override lower ones.
