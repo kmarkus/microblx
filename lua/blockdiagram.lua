@@ -575,11 +575,6 @@ function system.launch(self, t)
 	 err_exit(1, "preprocessing configs failed")
       end
 
-      -- launch subsystems
-      if #self.include > 0 then
-	 utils.foreach(function(s) __launch(s, t, ni) end, self.include)
-      end
-
       -- apply configuration
       if #self.configurations > 0 then
 	 utils.imap(
