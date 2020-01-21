@@ -476,17 +476,14 @@ end
 local function import_modules(ni, s)
    local loaded = {}
 
-   mapsys(
-      function(s)
-	 foreach(
-	    function(m)
-	       if loaded[m] then return
-	       else
-		  info("importing module "..magenta(m))
-		  ubx.load_module(ni, m)
-		  loaded[m]=true
-	       end
-	    end, s.imports)
+   mapimports(
+      function(m)
+	 if loaded[m] then return
+	 else
+	    info("importing module "..magenta(m))
+	    ubx.load_module(ni, m)
+	    loaded[m]=true
+	 end
       end, s)
 end
 
