@@ -19,6 +19,7 @@ local strict = require "strict"
 
 -- shortcuts
 local foreach = utils.foreach
+local ts = tostring
 
 -- node configuration
 _NC = nil
@@ -133,8 +134,9 @@ local configs_spec = TableSpec
       TableSpec
       {
 	 name='configuration',
-	 dict = { name=StringSpec{}, config=AnySpec{} },
-	 sealed='both'
+	 dict = { name=StringSpec{}, config=AnySpec{}, _parent=AnySpec{} },
+	 sealed='both',
+	 optional = { '_parent' }
       },
    },
    sealed='both'
@@ -260,8 +262,17 @@ function system:init()
    -- add system _parent links
    mapsys(function(s,n,p) if p ~= nil then s._parent = p end end, self)
 
-   -- add block _parent links
-   mapblocks(function(b,i,p) b._parent = p end, self)
+   -- add _parent links
+   mapblocks(function(b,_,p) b._parent = p end, self)
+   mapconfigs(function(c,_,p) c._parent = p end, self)
+end
+
+--- Convert a config to a string (for debugging)
+-- @param cfg config table
+-- @return string
+local function config_tostr(cfg, idx)
+   local sfqn =	sys_fqn_get(cfg._parent)
+   return string.format("config %s #%i for block %s", sfqn, idx, cfg.name)
 end
 
 local function is_system(s)
@@ -427,6 +438,18 @@ function system.startup(self, ni)
    end
 end
 
+
+--- Find and return ubx_block ptr
+-- @param ni node_info
+-- @param obj config or block table
+local function find_block(ni, obj)
+   assert(obj.name, "missing name entry of " .. tostring(obj))
+   assert(obj._parent, "missing _parent link of ".. tostring(obj.name))
+   local bfqn = sys_fqn_get(obj._parent)..obj.name
+   local bptr = ubx.block_get(ni, bfqn)
+   return bptr
+end
+
 --- Instantiate ubx_data for all node configurations incl. subsystems
 -- NCs defined higher in the composition tree override lower ones.
 -- @param root_sys root system
@@ -503,8 +526,7 @@ end
 --- configuration handling
 ---
 
---- Preprocess configs
--- Substitute #blockname with corresponding ubx_block_t ptrs
+--- Substitute #blockname with corresponding ubx_block_t ptrs
 -- @param ni node_info
 -- @param c configuration
 local function preproc_configs(ni, c, s)
@@ -522,9 +544,62 @@ local function preproc_configs(ni, c, s)
       tab[key]=ptr
    end
 
-   utils.maptree(replace_hash, c, function(v,_) return type(v)=='string' end)
+   utils.maptree(replace_hash, c.config, function(v,_) return type(v)=='string' end)
 end
 
+--- Configure a the given block with a config
+-- (scalar, table or node cfg reference '&ndcfg'
+-- @param c blockdiagram.config
+-- @param b ubx_block_t
+-- @param NC global config table
+local function apply_config(blkconf, b, NC)
+   local function check_noderef(val)
+      if type(val) ~= 'string' then return end
+      return string.match(val, "^%s*&([%w_-]+)")
+   end
+
+   for name,val in pairs(blkconf.config) do
+      -- check for references to node configs
+      local nodecfg = check_noderef(val)
+
+      if nodecfg then
+	 if not NC[nodecfg] then
+	    err_exit(1, "invalid node config reference '"..val.."'")
+	 end
+	 local blkcfg = ubx.block_config_get(b, name)
+
+	 if blkcfg==nil then
+	    err_exit(1, "non-existing config '"..blkconf.name.. "."..name.."'")
+	 end
+
+	 info("cfg "..green(blkconf.name.."."..blue(name)).." -> node cfg "..yellow(nodecfg))
+	 ubx.config_assign(blkcfg, NC[nodecfg])
+      else -- regular config
+	 info("cfg "..green(blkconf.name).."."..blue(name)..": "..yellow(utils.tab2str(val)))
+	 ubx.set_config(b, name, val)
+      end
+   end
+end
+
+--- Configure apply the given cfg to it's block in ni
+-- @param ni node_info
+-- @param cfg system.config table
+-- @param NC node (global) configuration table
+local function configure_block(ni, cfg, NC, i)
+   local b = find_block(ni, cfg)
+
+   if b==nil then
+      err_exit(-1, "error: config "..config_tostr(cfg, i).." no ubx block instance found")
+   end
+
+   local bstate = b:get_block_state()
+   if bstate ~= 'preinit' then
+      warn("block "..bfqn.." not in state preinit but "..bstate)
+      return
+   end
+
+   apply_config(cfg, b, NC)
+end
 
 --- configure all blocks
 -- @param ni node_info
@@ -533,8 +608,21 @@ end
 local function configure_blocks(ni, root_sys, NC)
 
    -- substitue #blockname syntax
-   mapconfigs(function(c, i, s) preproc_configs(ni, c, s) end, root_sys)
+   mapconfigs(function(c, i, s) preproc_configs(ni, c, s, i) end, root_sys)
 
+   -- apply configurations to blocks
+   mapconfigs(function(c, i) configure_block(ni, c, NC, i) end, root_sys)
+
+   -- configure all blocks
+   mapblocks(
+      function(btab,i,p)
+	 local b = find_block(ni, btab)
+	 info("running block "..ubx.safe_tostr(b.name).." init")
+	 local ret = ubx.block_init(b)
+	 if ret ~= 0 then
+	    err_exit(ret, "failed to initialize block "..btab.name..": "..tonumber(ret))
+	 end
+      end, root_sys)
 end
 
 
@@ -548,77 +636,12 @@ function system.launch(self, t)
       os.exit(1)
    end
 
-   --- Configure a the given block with a config
-   -- (scalar, table or node cfg reference '&ndcfg'
-   -- @param c blockdiagram.config
-   -- @param b ubx_block_t
-   local function apply_conf(blkconf, b)
-      local function check_noderef(val)
-	 if type(val) ~= 'string' then return end
-	 return string.match(val, "^%s*&([%w_-]+)")
-      end
-
-      for name,val in pairs(blkconf.config) do
-
-	 -- check for references to node configs
-	 local nodecfg = check_noderef(val)
-
-	 if nodecfg then
-	    if not _NC[nodecfg] then
-	       err_exit(1, "invalid node config reference '"..val.."'")
-	    end
-	    local blkcfg = ubx.block_config_get(b, name)
-
-	    if blkcfg==nil then
-	       err_exit(1, "non-existing config '"..blkconf.name.. "."..name.."'")
-	    end
-
-	    ubx.config_assign(blkcfg, _NC[nodecfg])
-	    info("cfg "..green(blkconf.name.."."..blue(name))..
-		    " -> node cfg "..yellow(nodecfg))
-	 else -- regular config
-	    info("cfg "..green(blkconf.name).."."..blue(name)
-		    ..": "..yellow(utils.tab2str(val)))
-	    ubx.set_config(b, name, val)
-	 end
-      end
-   end
-
    -- Instatiate the system recursively.
    -- @param self system
    -- @param t global configuration
    -- @param ni node_info
    local function __launch(self, t, ni)
       info("launching system in node "..ts(t.nodename))
-
-      -- apply configuration
-      if #self.configurations > 0 then
-	 utils.imap(
-	    function(c)
-	       local b = ubx.block_get(ni, c.name)
-	       if b==nil then
-		  info(red("no block "..c.name.." ignoring configuration "..utils.tab2str(c.config)))
-	       elseif b:get_block_state()~='preinit' then return
-	       else
-		  -- apply this config to and then find configs for
-		  -- this block in super-systems (parent systems)
-		  apply_conf(c, b)
-		  local walker = self._parent
-		  while walker ~= nil do
-		     foreach(function (cc)
-			   if cc.name==c.name then apply_conf(cc, b) end
-			     end, walker.configurations)
-		     walker = walker._parent
-		  end
-		  -- configure the block
-		  local ret = ubx.block_init(b)
-		  if ret ~= 0 then
-		     err_exit(ret, "failed to initialize block "..c.name..
-				 ": "..tonumber(ret))
-		  end
-	       end
-	    end, self.configurations)
-      end
 
       -- create connections
       if #self.connections > 0 then

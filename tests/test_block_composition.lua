@@ -88,7 +88,6 @@ function TestComp:test_comp1()
    lu.assert_equals(
       NI:b("rnd2"):c("min_max_config"):tolua(), { min=444, max=555 })
 
-   -- currently fails due non-hierarchical config application
    lu.assert_equals(
       NI:b("leaf/rnd1"):c("min_max_config"):tolua(), { min=11, max=22 })
 
