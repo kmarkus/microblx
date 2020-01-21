@@ -211,7 +211,7 @@ local function mapsys(func, root)
 end
 
 --- Apply func to all objs of system[systab] in breadth first
--- @param func function(obj, index, parent_system)
+-- @param func function(obj, index/key, parent_system)
 -- @param root_sys root system
 -- @param systab which system table to map (blocks, configurations, ...)
 -- @return list of return values of func
@@ -240,7 +240,9 @@ end
 local function mapblocks(func, root_sys) return mapobj_bf(func, root_sys, 'blocks') end
 local function mapconns(func, root_sys) return mapobj_bf(func, root_sys, 'connections') end
 local function mapconfigs(func, root_sys) return mapobj_bf(func, root_sys, 'configurations') end
+local function mapndconfigs(func, root_sys) return mapobj_bf(func, root_sys, 'node_configurations') end
 local function mapimports(func, root_sys) return mapobj_bf(func, root_sys, 'imports') end
+
 
 --- return the fqn of system s
 -- @param sys system whos fqn to determine
@@ -571,11 +573,10 @@ end
 -- @return table of initialized config-name=ubx_data tuples
 local function build_nodecfg_tab(ni, root_sys)
    local NC = {}
-   local queue = { root_sys }
 
-   -- instantiate node config and add it to global table
-   -- skip it and if a config of the same name exists
-   local function __create_nc(cfg, name, s)
+   -- instantiate a node config and add it to global table. skip it if
+   -- a config of the same name exists
+   local function create_nc(cfg, name, s)
       if NC[name] then
 	 notice("node config "..cfg._x.fqn.." shadowed by a higher one")
 	 return
@@ -589,20 +590,7 @@ local function build_nodecfg_tab(ni, root_sys)
 	      yellow(utils.tab2str(cfg.config)))
    end
 
-   -- breadth first
-   while #queue > 0 do
-      local next = table.remove(queue, 1)
-
-      -- process all nc's of s
-      foreach(
-	 function (nc, name)
-	    __create_nc(nc, name, next)
-	 end, next.node_configurations)
-
-      -- add s's subsystems to queue
-      foreach(function (subsys) queue[#queue+1] = subsys end, next.subsystems)
-   end
-
+   mapndconfigs(create_nc, root_sys)
    return NC
 end
 
