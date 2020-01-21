@@ -1,0 +1,69 @@
+-- -*- mode: lua; -*-
+
+-- This is a trivial example of a chain of random blocks. The output
+-- of block N is connected to the seed of random block N+1.  The
+-- system is constructed by hierarchically composing these blocks.
+local utils = require("utils")
+
+local rnd2 = bd.system {
+
+   imports = {
+      "stdtypes", "logger",
+   },
+
+   blocks = {
+      { name="rnd", type="random/random" },
+   },
+
+   configurations = {
+      {	name="rnd", config = { min_max_config = {min=127, max=256} } }
+   },
+}
+
+
+local rnd1 = bd.system {
+   subsystems = {
+      sub21 = utils.deepcopy(rnd2),
+      sub22 = utils.deepcopy(rnd2),
+   },
+
+   blocks = {
+      { name="rnd", type="random/random" },
+   },
+
+   configurations = {
+      {	name="rnd", config = { min_max_config = {min=127, max=256} } }
+   },
+}
+
+
+return bd.system
+{
+   imports = {
+      "stdtypes", "random", "ptrig", "lfds_cyclic", "logger",
+   },
+
+   subsystems = {
+      sub11 = utils.deepcopy(rnd1),
+      sub12 = utils.deepcopy(rnd1),
+   },
+
+   blocks = {
+      { name='ptrig', type="std_triggers/ptrig" },
+      { name="rnd", type="random/random" },
+   },
+
+   configurations = {
+      {	name="rnd", config = { min_max_config={min=1, max=2} } },
+      {	name="sub11/rnd", config = { min_max_config={min=11, max=33} } },
+      {	name="sub11/sub21/rnd", config = { min_max_config={min=11, max=44} } },
+      { name="ptrig", config = { period = {sec=1, usec=0 },
+				 trig_blocks={
+				    { b="#rnd", num_steps=1, measure=0 } } } },
+
+   },
+
+   connections = {
+      { src="rnd0.rnd", tgt="sub11/rnd1.seed" },
+   },
+}
