@@ -1,24 +1,27 @@
 local luaunit=require("luaunit")
 local ffi=require("ffi")
 local ubx=require("ubx")
-local utils=require("utils")
 local bd = require("blockdiagram")
 
 ubx.color=false
 
-local NUM_BLOCKS = 100
+local assert_not_nil = luaunit.assert_not_nil
+
+local NUM_BLOCKS = 10
 
 local luablock = [[
 local ubx=require "ubx"
+local ffi=require("ffi")
 
 function init(block)
-   ubx.port_add(block, "in", "test in-port", "uint32_t", 1, nil, 0, 0)
+   assert(ubx.port_add(block, "in", "test in-port", "uint32_t", 1, nil, 0, 0))
    return true
 end
 
 function cleanup(block)
-   print("stop")
-   print("rm'ing", ubx.port_rm(block, "in"))
+   local b=ffi.cast("ubx_block_t*", block)
+   assert(ubx.port_rm(block, "in"))
+   ubx.info(b.ni, b.name, "cleanup, removed port 'in'")
 end
 ]]
 
@@ -65,7 +68,9 @@ local sys1 = bd.system {
 }
 
 function test_launch()
-   return sys1:launch{nodename="sys1", loglevel=ffi.C.UBX_LOGLEVEL_WARN }
+   local ni=sys1:launch{nodename="sys1", nostart=true }
+   assert_not_nil(ni)
+   ubx.node_cleanup(ni)
 end
 
 os.exit( luaunit.LuaUnit.run() )
