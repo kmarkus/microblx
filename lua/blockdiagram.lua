@@ -144,8 +144,8 @@ function system:init()
    -- add system _parent links
    mapsys(function(s,n,p) if p ~= nil then s._parent = p end end, self)
 
-   -- add block _parent links
-   mapblocks(function(b,i,p) b._parent = p end, self)
+      -- add block _parent links
+      mapblocks(function(b,i,p) b._parent = p end, self)
 end
 
 --- imports spec
@@ -283,13 +283,13 @@ end
 local function lc_unconn_inports(ni, res)
    local function blk_chk_unconn_inports(b)
       ubx.ports_foreach(b,
-		      function(p)
-			 if p.in_interaction == nil then
-			    res[#res+1] = yellow("unconnected input port ", true) ..
-			       green(ubx.safe_tostr(b.name)) .. "." ..
-			       cyan(ubx.safe_tostr(p.name))
-			 end
-		      end, ubx.is_inport)
+			function(p)
+			   if p.in_interaction == nil then
+			      res[#res+1] = yellow("unconnected input port ", true) ..
+				 green(ubx.safe_tostr(b.name)) .. "." ..
+				 cyan(ubx.safe_tostr(p.name))
+			   end
+			end, ubx.is_inport)
    end
    ubx.blocks_map(ni, blk_chk_unconn_inports, ubx.is_cblock_instance)
 end
@@ -298,13 +298,13 @@ end
 local function lc_unconn_outports(ni, res)
    local function blk_chk_unconn_outports(b)
       ubx.ports_foreach(b,
-		      function(p)
-			 if p.out_interaction == nil then
-			    res[#res+1] = yellow("unconnected output port ", true) ..
-			       green(ubx.safe_tostr(b.name)) .. "." ..
-			       cyan(ubx.safe_tostr(p.name))
-			 end
-		      end, ubx.is_outport)
+			function(p)
+			   if p.out_interaction == nil then
+			      res[#res+1] = yellow("unconnected output port ", true) ..
+				 green(ubx.safe_tostr(b.name)) .. "." ..
+				 cyan(ubx.safe_tostr(p.name))
+			   end
+			end, ubx.is_outport)
    end
    ubx.blocks_map(ni, blk_chk_unconn_outports, ubx.is_cblock_instance)
 end
@@ -354,7 +354,7 @@ local function load(fn, file_type)
    end
 
    if file_type == nil then
-       file_type = string.match(fn, "^.+%.(.+)$")
+      file_type = string.match(fn, "^.+%.(.+)$")
    end
 
    local suc, mod
@@ -597,8 +597,8 @@ function system.launch(self, t)
 		  local walker = self._parent
 		  while walker ~= nil do
 		     foreach(function (cc)
-				      if cc.name==c.name then apply_conf(cc, b) end
-				   end, walker.configurations)
+			   if cc.name==c.name then apply_conf(cc, b) end
+			     end, walker.configurations)
 		     walker = walker._parent
 		  end
 		  -- configure the block
@@ -614,75 +614,75 @@ function system.launch(self, t)
       -- create connections
       if #self.connections > 0 then
 	 foreach(function(c)
-			  local bnamesrc,pnamesrc = unpack(utils.split(c.src, "%."))
-			  local bnametgt,pnametgt = unpack(utils.split(c.tgt, "%."))
+	       local bnamesrc,pnamesrc = unpack(utils.split(c.src, "%."))
+	       local bnametgt,pnametgt = unpack(utils.split(c.tgt, "%."))
 
-			  -- are we connecting to an interaction?
-			  if pnamesrc==nil then
-			     -- src="iblock", tgt="block.port"
-			     local ib = ubx.block_get(ni, bnamesrc)
+	       -- are we connecting to an interaction?
+	       if pnamesrc==nil then
+		  -- src="iblock", tgt="block.port"
+		  local ib = ubx.block_get(ni, bnamesrc)
 
-			     if ib==nil then
-				err_exit(1, "unkown block "..ts(bnamesrc))
-			     end
+		  if ib==nil then
+		     err_exit(1, "unkown block "..ts(bnamesrc))
+		  end
 
-			     if not ubx.is_iblock_instance(ib) then
-				err_exit(1, ts(bnamesrc).." not a valid iblock instance")
-			     end
+		  if not ubx.is_iblock_instance(ib) then
+		     err_exit(1, ts(bnamesrc).." not a valid iblock instance")
+		  end
 
-			     local btgt = ubx.block_get(ni, bnametgt)
-			     local ptgt = ubx.port_get(btgt, pnametgt)
+		  local btgt = ubx.block_get(ni, bnametgt)
+		  local ptgt = ubx.port_get(btgt, pnametgt)
 
-			     if ubx.port_connect_in(ptgt, ib) ~= 0 then
-				err_exit(1, "failed to connect interaction "..bnamesrc..
-					    " to port "..ts(bnametgt).."."..ts(pnametgt))
-			     end
-			     info("connecting "..green(bnamesrc).." (iblock) -> "
-				    ..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
+		  if ubx.port_connect_in(ptgt, ib) ~= 0 then
+		     err_exit(1, "failed to connect interaction "..bnamesrc..
+				 " to port "..ts(bnametgt).."."..ts(pnametgt))
+		  end
+		  info("connecting "..green(bnamesrc).." (iblock) -> "
+			  ..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
 
-			  elseif pnametgt==nil then
-			     -- src="block.port", tgt="iblock"
-			     local ib = ubx.block_get(ni, bnametgt)
+	       elseif pnametgt==nil then
+		  -- src="block.port", tgt="iblock"
+		  local ib = ubx.block_get(ni, bnametgt)
 
-			     if ib==nil then
-				err_exit(1, "unkown block "..ts(bnametgt))
-			     end
+		  if ib==nil then
+		     err_exit(1, "unkown block "..ts(bnametgt))
+		  end
 
-			     if not ubx.is_iblock_instance(ib) then
-				err_exit(1, ts(bnametgt).." not a valid iblock instance")
-			     end
+		  if not ubx.is_iblock_instance(ib) then
+		     err_exit(1, ts(bnametgt).." not a valid iblock instance")
+		  end
 
-			     local bsrc = ubx.block_get(ni, bnamesrc)
-			     local psrc = ubx.port_get(bsrc, pnamesrc)
+		  local bsrc = ubx.block_get(ni, bnamesrc)
+		  local psrc = ubx.port_get(bsrc, pnamesrc)
 
-			     if ubx.port_connect_out(psrc, ib) ~= 0 then
-				err_exit(1, "failed to connect "
-					    ..ts(bnamesrc).."." ..ts(pnamesrc).." to "
-					    ..ts(bnametgt).." (iblock)")
-			     end
-			     info("connecting "..green(ts(bnamesrc)).."."..cyan(ts(pnamesrc)).." -> "
-				     ..green(bnametgt).." (iblock)")
-			  else
-			     -- standard connection between two cblocks
-			     local bufflen = c.buffer_length or 1
+		  if ubx.port_connect_out(psrc, ib) ~= 0 then
+		     err_exit(1, "failed to connect "
+				 ..ts(bnamesrc).."." ..ts(pnamesrc).." to "
+				 ..ts(bnametgt).." (iblock)")
+		  end
+		  info("connecting "..green(ts(bnamesrc)).."."..cyan(ts(pnamesrc)).." -> "
+			  ..green(bnametgt).." (iblock)")
+	       else
+		  -- standard connection between two cblocks
+		  local bufflen = c.buffer_length or 1
 
-			     info("connecting "..green(ts(bnamesrc))..'.'..cyan(ts(pnamesrc))
-				     .." -["..yellow(ts(bufflen), true).."]".."-> "
-				     ..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
+		  info("connecting "..green(ts(bnamesrc))..'.'..cyan(ts(pnamesrc))
+			  .." -["..yellow(ts(bufflen), true).."]".."-> "
+			  ..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
 
-			     local bsrc = ubx.block_get(ni, bnamesrc)
-			     local btgt = ubx.block_get(ni, bnametgt)
+		  local bsrc = ubx.block_get(ni, bnamesrc)
+		  local btgt = ubx.block_get(ni, bnametgt)
 
-			     if bsrc==nil then
-				err_exit(1, "ERR: no block named "..bnamesrc.. " found")
-			     end
+		  if bsrc==nil then
+		     err_exit(1, "ERR: no block named "..bnamesrc.. " found")
+		  end
 
-			     if btgt==nil then
-				err_exit(1, "ERR: no block named "..bnametgt.. " found")
-			     end
-			     ubx.conn_lfds_cyclic(bsrc, pnamesrc, btgt, pnametgt, bufflen)
-			  end
-		       end, self.connections)
+		  if btgt==nil then
+		     err_exit(1, "ERR: no block named "..bnametgt.. " found")
+		  end
+		  ubx.conn_lfds_cyclic(bsrc, pnamesrc, btgt, pnametgt, bufflen)
+	       end
+		 end, self.connections)
       end
 
       -- run late checks
