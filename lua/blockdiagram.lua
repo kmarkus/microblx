@@ -43,6 +43,7 @@ end
 
 local function err_exit(code, msg)
    err(msg)
+   utils.stderr(msg)
    os.exit(code)
 end
 
@@ -705,6 +706,84 @@ local function configure_blocks(ni, root_sys, NC)
       end, root_sys)
 end
 
+--- Connect blocks
+-- @param ni node_info
+-- @param root_sys root system
+local function connect_blocks(ni, root_sys)
+   local function do_connect(c, i, p)
+      local srcblk = c._x.src._x.fqn
+      local srcport = c._x.srcport
+      local tgtblk = c._x.tgt._x.fqn
+      local tgtport = c._x.tgtport
+
+      -- are we connecting to an interaction?
+      if c._x.srcport==nil then
+	 -- src is interaction, target a port
+	 local ib = ubx.block_get(ni, srcblk)
+
+	 if ib==nil then
+	    err_exit(1, "unkown block "..ts(srcblk))
+	 end
+
+	 if not ubx.is_iblock_instance(ib) then
+	    err_exit(1, ts(srcblk).." not a valid iblock instance")
+	 end
+
+	 local btgt = ubx.block_get(ni, tgtblk)
+	 local ptgt = ubx.port_get(btgt, tgtport)
+
+	 if ubx.port_connect_in(ptgt, ib) ~= 0 then
+	    err_exit(1, "failed to connect interaction "..srcblk..
+			" to port "..ts(tgtblk).."."..ts(tgtport))
+	 end
+	 info("connecting "..green(srcblk).." (iblock) -> "
+		 ..green(ts(tgtblk)).."."..cyan(ts(tgtport)))
+
+      elseif tgtport==nil then
+	 -- src is a port, target is an interaction
+	 local ib = ubx.block_get(ni, tgtblk)
+
+	 if ib==nil then
+	    err_exit(1, "unkown block "..ts(tgtblk))
+	 end
+
+	 if not ubx.is_iblock_instance(ib) then
+	    err_exit(1, ts(tgtblk).." not a valid iblock instance")
+	 end
+
+	 local bsrc = ubx.block_get(ni, srcblk)
+	 local psrc = ubx.port_get(bsrc, srcport)
+
+	 if ubx.port_connect_out(psrc, ib) ~= 0 then
+	    err_exit(1, "failed to connect "
+			..ts(srcblk).."." ..ts(srcport).." to "
+			..ts(tgtblk).." (iblock)")
+	 end
+	 info("connecting "..green(ts(srcblk)).."."..cyan(ts(srcport)).." -> "
+		 ..green(tgtblk).." (iblock)")
+      else
+	 -- both src and target are ports
+	 local bufflen = c.buffer_length or 1
+
+	 info("connecting "..green(ts(srcblk))..'.'..cyan(ts(srcport))
+		 .." -["..yellow(ts(bufflen), true).."]".."-> "
+		 ..green(ts(tgtblk)).."."..cyan(ts(tgtport)))
+
+	 local bsrc = ubx.block_get(ni, srcblk)
+	 local btgt = ubx.block_get(ni, tgtblk)
+
+	 if bsrc==nil then
+	    err_exit(1, "ERR: no block named "..srcblk.. " found")
+	 end
+
+	 if btgt==nil then
+	    err_exit(1, "ERR: no block named "..tgtblk.. " found")
+	 end
+	 ubx.conn_lfds_cyclic(bsrc, srcport, btgt, tgtport, bufflen)
+      end
+   end
+   mapconns(do_connect, root_sys)
+end
 
 --- Launch a blockdiagram system
 -- @param self system specification to load
@@ -712,95 +791,6 @@ end
 -- @return ni node_info handle
 function system.launch(self, t)
 
-   -- Instatiate the system recursively.
-   -- @param self system
-   -- @param t global configuration
-   -- @param ni node_info
-   local function __launch(self, t, ni)
-      info("launching system in node "..ts(t.nodename))
-
-      -- create connections
-      if #self.connections > 0 then
-	 foreach(function(c)
-	       local bnamesrc,pnamesrc = unpack(utils.split(c.src, "%."))
-	       local bnametgt,pnametgt = unpack(utils.split(c.tgt, "%."))
-
-	       -- are we connecting to an interaction?
-	       if pnamesrc==nil then
-		  -- src="iblock", tgt="block.port"
-		  local ib = ubx.block_get(ni, bnamesrc)
-
-		  if ib==nil then
-		     err_exit(1, "unkown block "..ts(bnamesrc))
-		  end
-
-		  if not ubx.is_iblock_instance(ib) then
-		     err_exit(1, ts(bnamesrc).." not a valid iblock instance")
-		  end
-
-		  local btgt = ubx.block_get(ni, bnametgt)
-		  local ptgt = ubx.port_get(btgt, pnametgt)
-
-		  if ubx.port_connect_in(ptgt, ib) ~= 0 then
-		     err_exit(1, "failed to connect interaction "..bnamesrc..
-				 " to port "..ts(bnametgt).."."..ts(pnametgt))
-		  end
-		  info("connecting "..green(bnamesrc).." (iblock) -> "
-			  ..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
-
-	       elseif pnametgt==nil then
-		  -- src="block.port", tgt="iblock"
-		  local ib = ubx.block_get(ni, bnametgt)
-
-		  if ib==nil then
-		     err_exit(1, "unkown block "..ts(bnametgt))
-		  end
-
-		  if not ubx.is_iblock_instance(ib) then
-		     err_exit(1, ts(bnametgt).." not a valid iblock instance")
-		  end
-
-		  local bsrc = ubx.block_get(ni, bnamesrc)
-		  local psrc = ubx.port_get(bsrc, pnamesrc)
-
-		  if ubx.port_connect_out(psrc, ib) ~= 0 then
-		     err_exit(1, "failed to connect "
-				 ..ts(bnamesrc).."." ..ts(pnamesrc).." to "
-				 ..ts(bnametgt).." (iblock)")
-		  end
-		  info("connecting "..green(ts(bnamesrc)).."."..cyan(ts(pnamesrc)).." -> "
-			  ..green(bnametgt).." (iblock)")
-	       else
-		  -- standard connection between two cblocks
-		  local bufflen = c.buffer_length or 1
-
-		  info("connecting "..green(ts(bnamesrc))..'.'..cyan(ts(pnamesrc))
-			  .." -["..yellow(ts(bufflen), true).."]".."-> "
-			  ..green(ts(bnametgt)).."."..cyan(ts(pnametgt)))
-
-		  local bsrc = ubx.block_get(ni, bnamesrc)
-		  local btgt = ubx.block_get(ni, bnametgt)
-
-		  if bsrc==nil then
-		     err_exit(1, "ERR: no block named "..bnamesrc.. " found")
-		  end
-
-		  if btgt==nil then
-		     err_exit(1, "ERR: no block named "..bnametgt.. " found")
-		  end
-		  ubx.conn_lfds_cyclic(bsrc, pnamesrc, btgt, pnametgt, bufflen)
-	       end
-		 end, self.connections)
-      end
-
-      -- run late checks
-      late_checks(t, ni)
-
-      -- startup
-      if not t.nostart then system.startup(self, ni) end
-   end
-
-   -- check
    if self:validate(false) > 0 then self:validate(true) os.exit(1) end
 
    -- fire it up
@@ -812,18 +802,13 @@ function system.launch(self, t)
    def_loggers(ni, "launch")
    import_modules(ni, self)
    create_blocks(ni, self)
-
    _NC = build_nodecfg_tab(ni, self)
-
    configure_blocks(ni, self, _NC)
+   connect_blocks(ni, self)
+   late_checks(t, ni)
 
-   -- connect_blocks
+   if not t.nostart then system.startup(self, ni) end
 
-   -- startup blocks
-   -- start_system(ni, self)
-
-   -- configure and connect
-   __launch(self, t, ni)
    return ni
 end
 
