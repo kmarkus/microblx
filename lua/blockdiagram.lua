@@ -244,13 +244,11 @@ local function mapobj_bf(func, root_sys, systab)
    return res
 end
 
-
 local function mapblocks(func, root_sys) return mapobj_bf(func, root_sys, 'blocks') end
 local function mapconns(func, root_sys) return mapobj_bf(func, root_sys, 'connections') end
 local function mapconfigs(func, root_sys) return mapobj_bf(func, root_sys, 'configurations') end
 local function mapndconfigs(func, root_sys) return mapobj_bf(func, root_sys, 'node_configurations') end
 local function mapimports(func, root_sys) return mapobj_bf(func, root_sys, 'imports') end
-
 
 --- return the fqn of system s
 -- @param sys system whos fqn to determine
@@ -586,7 +584,7 @@ local function build_nodecfg_tab(ni, root_sys)
    -- a config of the same name exists
    local function create_nc(cfg, name, s)
       if NC[name] then
-	 notice("node config "..cfg._x.fqn.." shadowed by a higher one")
+	 notice("node config "..name.." in "..s._x.fqn.." shadowed by a higher one")
 	 return
       end
 
@@ -606,6 +604,7 @@ end
 -- @param ni node_info
 -- @param c configuration
 local function preproc_configs(ni, c, s)
+
    local function replace_hash(val, tab, key)
       local name = string.match(val, ".*#([%w_-%/]+)")
       if not name then return end
@@ -648,7 +647,8 @@ local function apply_config(blkconf, b, NC)
 	    err_exit(1, "non-existing config '"..blkconf.name.. "."..name.."'")
 	 end
 
-	 info("cfg "..green(blkconf.name.."."..blue(name)).." -> node cfg "..yellow(nodecfg))
+	 info("configuring "..green(blkconf._x.tgt._x.fqn.."."..blue(name))
+		 .." with nodecfg "..yellow(nodecfg).." "..yellow(utils.tab2str(NC[nodecfg])))
 	 ubx.config_assign(blkcfg, NC[nodecfg])
       else -- regular config
 	 info("cfg "..green(blkconf.name).."."..blue(name)..": "..yellow(utils.tab2str(val)))
