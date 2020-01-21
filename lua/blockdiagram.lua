@@ -22,6 +22,7 @@ local ts = tostring
 
 -- node configuration
 _NC = nil
+USE_STDERR = false
 
 local red=ubx.red
 local blue=ubx.blue
@@ -32,18 +33,21 @@ local magenta=ubx.magenta
 
 local crit, err, warn, notice, info = nil, nil, nil, nil, nil
 
+local function stderr(msg)
+   if USE_STDERR then utils.stderr(msg) end
+end
+
 --- Create logging helper functions.
 local function def_loggers(ni, src)
-   crit = function(msg) ubx.crit(ni, src, msg) end
-   err = function(msg) ubx.err(ni, src, msg) end
-   warn = function(msg) ubx.warn(ni, src, msg) end
-   notice = function(msg) ubx.notice(ni, src, msg) end
-   info = function(msg) ubx.info(ni, src, msg) end
+   crit = function(msg) stderr(msg); ubx.crit(ni, src, msg) end
+   err = function(msg) stderr(msg); ubx.err(ni, src, msg) end
+   warn = function(msg) stderr(msg); ubx.warn(ni, src, msg) end
+   notice = function(msg) stderr(msg); ubx.notice(ni, src, msg) end
+   info = function(msg) stderr(msg); ubx.info(ni, src, msg) end
 end
 
 local function err_exit(code, msg)
    err(msg)
-   utils.stderr(msg)
    os.exit(code)
 end
 
@@ -796,6 +800,7 @@ function system.launch(self, t)
    -- fire it up
    t = t or {}
    t.nodename = t.nodename or "n"
+   USE_STDERR = t.use_stderr or false
 
    local ni = ubx.node_create(t.nodename, t.loglevel)
 

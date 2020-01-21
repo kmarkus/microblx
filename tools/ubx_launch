@@ -20,6 +20,7 @@ microblx function block model system launcher
       -t               time to run in seconds
       -validate        don't run, just validate configuration file
       -loglevel N      set global loglevel [0..7]
+      -s               log to stderr (in addition to ubx_log)
       -webif <port>    create and start webinterface block.
                        The optional port defaults to 8888.
       -check chk1,...  enable additional warnings
@@ -45,6 +46,7 @@ local conf_type
 local monitorblock
 local checks
 local loglevel
+local use_stderr
 
 if #arg==1 or opttab['-h'] then
    usage(); os.exit(1)
@@ -100,6 +102,8 @@ if opttab['-loglevel'] then
    end
 end
 
+if opttab['-s'] then use_stderr=true end
+
 if opttab['-check'] then
    if not opttab['-check'][1] then
       print("-check option requires name argument)")
@@ -113,6 +117,7 @@ print("using prefix "..ubx.get_prefix())
 ni = model:launch{nodename=nodename,
 		  verbose=true,
 		  loglevel=loglevel,
+		  use_stderr=use_stderr,
 		  nostart=opttab['-nostart'],
 		  checks=checks or nil,
 		  werror=opttab['-werror'],

@@ -5,6 +5,10 @@ This file tracks user visible API changes.
 
 ## unreleased
 
+- `ubx_launch`: `-s` option added for printing usc launch messages to
+  stderr (in additon to the rtlog). Useful for debugging when long
+  messages may get truncated in the rtlog.
+
 - `trig`, `ptrig`:
   - config `profile_path` renamed to `tstats_profile_path`
   - config `tstats_print_on_stop` dropped. New behavior is: if
