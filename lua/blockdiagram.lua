@@ -197,23 +197,6 @@ local function mapsys(func, root)
    return res
 end
 
-
---- Apply func to all objs of system[systab]
--- @param func function(obj, index, parent_system)
--- @param root root system
--- @param systab which system table to map (blocks, configurations, ...)
--- @return list of return values of func
-local function mapobj(func, root_sys, systab)
-   local res = {}
-
-   local function __mapobj(s)
-      for i,o in ipairs(s[systab]) do
-	 res[#res+1] = func(o, i, s)
-      end
-   end
-   mapsys(__mapobj, root_sys)
-end
-
 --- Apply func to all objs of system[systab] in a breadth first
 -- @param func function(obj, index, parent_system)
 -- @param root_sys root system
@@ -241,10 +224,10 @@ local function mapobj_bf(func, root_sys, systab)
 end
 
 
-local function mapblocks(func, root_sys) return mapobj(func, root_sys, 'blocks') end
-local function mapconns(func, root_sys) return mapobj(func, root_sys, 'connections') end
+local function mapblocks(func, root_sys) return mapobj_bf(func, root_sys, 'blocks') end
+local function mapconns(func, root_sys) return mapobj_bf(func, root_sys, 'connections') end
 local function mapconfigs(func, root_sys) return mapobj_bf(func, root_sys, 'configurations') end
-local function mapimports(func, root_sys) return mapobj(func, root_sys, 'imports') end
+local function mapimports(func, root_sys) return mapobj_bf(func, root_sys, 'imports') end
 
 --- return the fqn of system s
 -- @param sys system whos fqn to determine
