@@ -110,18 +110,8 @@ local function fqn_get(s)
    return table.concat(fqn)
 end
 
---- determine and apply fully qualified name to all relevant entities
-local function apply_fqn(root_sys)
 
-   -- update blocks
-   -- higher global configs replace lower ones
-   -- update references
-   --    connections
-   --    configurations
-   --    support relative refs ./ ?
-end
-
-
+--- System constructor
 function system:init()
    -- create system _name fields
    mapsys(
@@ -130,7 +120,7 @@ function system:init()
       end, self)
 
 
-   -- add parent links
+   -- add _parent links
    mapsys(
       function(s,n,p)
 	 if p ~= nil then s._parent = p end
@@ -676,6 +666,15 @@ function system.launch(self, t)
    def_loggers(ni, "launch")
    import_modules(ni, self)
    create_blocks(ni, self)
+
+   -- _NC = build_nodecfg_tab(self)
+
+   -- configure_blocks(ni, self, NC)
+
+   -- connect_blocks
+
+   -- startup blocks
+   -- start_system(ni, self)
 
 
    if self.node_configurations then
