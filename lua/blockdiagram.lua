@@ -489,8 +489,7 @@ local function import_modules(ni, s)
       function(s)
 	 foreach(
 	    function(m)
-	       if loaded[m] then
-		  info("skipping already loaded module "..magenta(m))
+	       if loaded[m] then return
 	       else
 		  info("importing module "..magenta(m))
 		  ubx.load_module(ni, m)
