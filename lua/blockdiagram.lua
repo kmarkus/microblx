@@ -46,6 +46,9 @@ local function err_exit(code, msg)
    os.exit(code)
 end
 
+---
+--- Model
+---
 local AnySpec=umf.AnySpec
 local NumberSpec=umf.NumberSpec
 local StringSpec=umf.StringSpec
@@ -53,100 +56,6 @@ local TableSpec=umf.TableSpec
 local ObjectSpec=umf.ObjectSpec
 
 local system = umf.class("system")
-
---- apply func to systems including all subsystems
--- @param func function(system, name, parent-system)
--- @param root root system
--- @return list of return values of func
-local function mapsys(func, root)
-   local res = {}
-
-   local function __mapsys(sys,name,psys)
-      res[#res+1] = func(sys, name, psys)
-      for k,s in pairs(sys.subsystems) do __mapsys(s, k, sys) end
-   end
-   __mapsys(root)
-   return res
-end
-
-
---- Apply func to all blocks include subsystem blocks
--- @param func function(block, block_index, parent_system)
--- @param root root system
--- @return list of return values of func
-local function mapblocks(func, root)
-   local res = {}
-
-   local function __mapblocks(s)
-      for i,bt in ipairs(s.blocks) do
-	 res[#res+1] = func(bt, i, s)
-      end
-   end
-   mapsys(__mapblocks, root)
-end
-
---- Apply func to all connections including subsystems
--- @param func function(conn, conn_index, parent_system)
--- @param root root system
--- @return list of return values of func
-local function mapconns(func, root)
-   local res = {}
-
-   local function __mapconns(s)
-      for i,ct in ipairs(s.connections) do
-	 res[#res+1] = func(ct, i, s)
-      end
-   end
-   mapsys(__mapconns, root)
-end
-
---- return the fqn of system s
--- @param sys system whos fqn to determine
--- @return fqn string
-local function sys_fqn_get(sys)
-   local fqn = {}
-   local function __fqn_get(s)
-      if s._parent == nil then return
-      else __fqn_get(s._parent) end
-      fqn[#fqn+1] = s._name
-      fqn[#fqn+1] = '/'
-   end
-
-   assert(M.is_system(sys), "fqn_get: argument not a system")
-   __fqn_get(sys)
-   return table.concat(fqn)
-end
-
---- return the fqn of block b
--- @param b block whos fqn to determine
--- @return fqn string
-local function block_fqn_get(b)
-   return sys_fqn_get(b._parent)..b.name
-end
-
-
---- System constructor
-function system:init()
-   self.imports = self.imports or {}
-   self.subsystems = self.subsystems or {}
-   self.blocks = self.blocks or {}
-   self.node_configurations = self.node_configurations or {}
-   self.configurations = self.configurations or {}
-   self.connections = self.connections or {}
-   self.start = self.start or {}
-
-   -- create system _name fields
-   mapsys(
-      function(s,n,p)
-	 if p==nil then s._name='root' else s._name = n end
-      end, self)
-
-   -- add system _parent links
-   mapsys(function(s,n,p) if p ~= nil then s._parent = p end end, self)
-
-      -- add block _parent links
-      mapblocks(function(b,i,p) b._parent = p end, self)
-end
 
 --- imports spec
 local imports_spec = TableSpec
@@ -270,6 +179,101 @@ local system_spec = ObjectSpec
 -- add self references to subsystems dictionary
 system_spec.dict.subsystems.dict.__other = { system_spec }
 
+
+--- apply func to systems including all subsystems
+-- @param func function(system, name, parent-system)
+-- @param root root system
+-- @return list of return values of func
+local function mapsys(func, root)
+   local res = {}
+
+   local function __mapsys(sys,name,psys)
+      res[#res+1] = func(sys, name, psys)
+      for k,s in pairs(sys.subsystems) do __mapsys(s, k, sys) end
+   end
+   __mapsys(root)
+   return res
+end
+
+
+--- Apply func to all blocks include subsystem blocks
+-- @param func function(block, block_index, parent_system)
+-- @param root root system
+-- @return list of return values of func
+local function mapblocks(func, root)
+   local res = {}
+
+   local function __mapblocks(s)
+      for i,bt in ipairs(s.blocks) do
+	 res[#res+1] = func(bt, i, s)
+      end
+   end
+   mapsys(__mapblocks, root)
+end
+
+--- Apply func to all connections including subsystems
+-- @param func function(conn, conn_index, parent_system)
+-- @param root root system
+-- @return list of return values of func
+local function mapconns(func, root)
+   local res = {}
+
+   local function __mapconns(s)
+      for i,ct in ipairs(s.connections) do
+	 res[#res+1] = func(ct, i, s)
+      end
+   end
+   mapsys(__mapconns, root)
+end
+
+--- return the fqn of system s
+-- @param sys system whos fqn to determine
+-- @return fqn string
+local function sys_fqn_get(sys)
+   local fqn = {}
+   local function __fqn_get(s)
+      if s._parent == nil then return
+      else __fqn_get(s._parent) end
+      fqn[#fqn+1] = s._name
+      fqn[#fqn+1] = '/'
+   end
+
+   assert(M.is_system(sys), "fqn_get: argument not a system")
+   __fqn_get(sys)
+   return table.concat(fqn)
+end
+
+--- return the fqn of block b
+-- @param b block whos fqn to determine
+-- @return fqn string
+local function block_fqn_get(b)
+   return sys_fqn_get(b._parent)..b.name
+end
+
+
+--- System constructor
+function system:init()
+   self.imports = self.imports or {}
+   self.subsystems = self.subsystems or {}
+   self.blocks = self.blocks or {}
+   self.node_configurations = self.node_configurations or {}
+   self.configurations = self.configurations or {}
+   self.connections = self.connections or {}
+   self.start = self.start or {}
+
+   -- create system _name fields
+   mapsys(
+      function(s,n,p)
+	 if p==nil then s._name='root' else s._name = n end
+      end, self)
+
+   -- add system _parent links
+   mapsys(function(s,n,p) if p ~= nil then s._parent = p end end, self)
+
+   -- add block _parent links
+   mapblocks(function(b,i,p) b._parent = p end, self)
+end
+
 local function is_system(s)
    return umf.uoo_type(s) == 'instance' and umf.instance_of(system, s)
 end
@@ -277,68 +281,6 @@ end
 --- Validate a blockdiagram model.
 function system:validate(verbose)
    return umf.check(self, system_spec, verbose)
-end
-
---- late checks
-local function lc_unconn_inports(ni, res)
-   local function blk_chk_unconn_inports(b)
-      ubx.ports_foreach(b,
-			function(p)
-			   if p.in_interaction == nil then
-			      res[#res+1] = yellow("unconnected input port ", true) ..
-				 green(ubx.safe_tostr(b.name)) .. "." ..
-				 cyan(ubx.safe_tostr(p.name))
-			   end
-			end, ubx.is_inport)
-   end
-   ubx.blocks_map(ni, blk_chk_unconn_inports, ubx.is_cblock_instance)
-end
-
---- late checks
-local function lc_unconn_outports(ni, res)
-   local function blk_chk_unconn_outports(b)
-      ubx.ports_foreach(b,
-			function(p)
-			   if p.out_interaction == nil then
-			      res[#res+1] = yellow("unconnected output port ", true) ..
-				 green(ubx.safe_tostr(b.name)) .. "." ..
-				 cyan(ubx.safe_tostr(p.name))
-			   end
-			end, ubx.is_outport)
-   end
-   ubx.blocks_map(ni, blk_chk_unconn_outports, ubx.is_cblock_instance)
-end
-
-
--- list of late checks
-M._checks = {
-   unconn_inports = {
-      fun=lc_unconn_inports, desc="warn about unconnected input ports"
-   },
-   unconn_outports = {
-      fun=lc_unconn_outports, desc="warn about unconnected output ports"
-   }
-}
-
-local function late_checks(self, conf, ni)
-   if not conf.checks then return end
-   local res = {}
-   info("running late validation ("..
-	   table.concat(conf.checks, ", ")..")")
-   foreach(
-      function (chk)
-	 if not M._checks[chk] then
-	    err_exit(-1, "unknown check "..chk)
-	 end
-	 M._checks[chk].fun(ni,res)
-      end,
-      conf.checks or {})
-
-   foreach(function(v) warn(v) end, res)
-
-   if #res > 0 and conf.werror then
-      err_exit(-1, "warnings raised and treating warnings as errors")
-   end
 end
 
 --- read blockdiagram system file from usc or json file
@@ -378,6 +320,77 @@ local function load(fn, file_type)
 
    return mod
 end
+
+
+---
+--- late checking
+---
+
+--- check for unconnected input ports
+local function lc_unconn_inports(ni, res)
+   local function blk_chk_unconn_inports(b)
+      ubx.ports_foreach(b,
+			function(p)
+			   if p.in_interaction == nil then
+			      res[#res+1] = yellow("unconnected input port ", true) ..
+				 green(ubx.safe_tostr(b.name)) .. "." ..
+				 cyan(ubx.safe_tostr(p.name))
+			   end
+			end, ubx.is_inport)
+   end
+   ubx.blocks_map(ni, blk_chk_unconn_inports, ubx.is_cblock_instance)
+end
+
+--- check for unconnected output ports
+local function lc_unconn_outports(ni, res)
+   local function blk_chk_unconn_outports(b)
+      ubx.ports_foreach(b,
+			function(p)
+			   if p.out_interaction == nil then
+			      res[#res+1] = yellow("unconnected output port ", true) ..
+				 green(ubx.safe_tostr(b.name)) .. "." ..
+				 cyan(ubx.safe_tostr(p.name))
+			   end
+			end, ubx.is_outport)
+   end
+   ubx.blocks_map(ni, blk_chk_unconn_outports, ubx.is_cblock_instance)
+end
+
+-- table of late checks
+-- this is used by by ubx_launch for help and cmdline handling
+M._checks = {
+   unconn_inports = {
+      fun=lc_unconn_inports, desc="warn about unconnected input ports"
+   },
+   unconn_outports = {
+      fun=lc_unconn_outports, desc="warn about unconnected output ports"
+   }
+}
+
+--- Run a late validation
+-- @param conf launch configuration
+-- @param ni ubx_node_info
+local function late_checks(conf, ni)
+   if not conf.checks then return end
+   local res = {}
+   info("running late validation ("..
+	   table.concat(conf.checks, ", ")..")")
+   foreach(
+      function (chk)
+	 if not M._checks[chk] then
+	    err_exit(-1, "unknown check "..chk)
+	 end
+	 M._checks[chk].fun(ni,res)
+      end,
+      conf.checks or {})
+
+   foreach(function(v) warn(v) end, res)
+
+   if #res > 0 and conf.werror then
+      err_exit(-1, "warnings raised and treating warnings as errors")
+   end
+end
+
 
 --- Pulldown a blockdiagram system
 -- @param self system specification to load
@@ -686,7 +699,7 @@ function system.launch(self, t)
       end
 
       -- run late checks
-      late_checks(self, t, ni)
+      late_checks(t, ni)
 
       -- startup
       if not t.nostart then system.startup(self, ni) end
