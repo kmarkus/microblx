@@ -223,6 +223,42 @@ function TestComp:test_nodecfg2()
 
 end
 
+local ndcfg3 = bd.system {
+   imports = { "stdtypes", "random" },
+
+   node_configurations = {
+      rnd_conf = { type="struct random_config", config = { min=4444, max=8888 } }
+   },
+
+   subsystems = { sub2 = utils.deepcopy(ndcfg2)  },
+
+   blocks = {
+      { name = "rnd1", type="random/random" },
+      { name = "rnd2", type="random/random" },
+   },
+
+   configurations = {
+      {	name="rnd1", config = { min_max_config = "&rnd_conf" } },
+      {	name="rnd2", config = { min_max_config = "&rnd_conf" } },
+   },
+}
+
+function TestComp:test_nodecfg3()
+   local num_err, res = ndcfg3:validate(UMF_CHECK_VERBOSE)
+   lu.assert_equals(num_err, 0)
+   NI =	ndcfg3:launch({ nodename="test_nodecfg3", nostart=true})
+   lu.assert_not_nil(NI)
+
+   -- check configs
+   lu.assert_equals( NI:b("rnd1"):c("min_max_config"):tolua(), { min=4444, max=8888 } )
+   lu.assert_equals( NI:b("rnd2"):c("min_max_config"):tolua(), { min=4444, max=8888 } )
+   lu.assert_equals( NI:b("sub2/rnd1"):c("min_max_config"):tolua(), { min=4444, max=8888 } )
+   lu.assert_equals( NI:b("sub2/rnd2"):c("min_max_config"):tolua(), { min=4444, max=8888 } )
+   lu.assert_equals( NI:b("sub2/sub1/rnd1"):c("min_max_config"):tolua(), { min=4444, max=8888 } )
+   lu.assert_equals( NI:b("sub2/sub1/rnd2"):c("min_max_config"):tolua(), { min=4444, max=8888 } )
+
+end
+
 -- TODO
 --  - node configs
 --  - connection testing (add is_connected?)
