@@ -104,9 +104,10 @@ local function fqn_get(s)
       if s._parent == nil then return
       else __fqn_get(s._parent) end
       fqn[#fqn+1] = s._name
+      fqn[#fqn+1] = '/'
    end
    __fqn_get(s)
-   return table.concat(fqn, "/")
+   return table.concat(fqn)
 end
 
 --- determine and apply fully qualified name to all relevant entities
@@ -450,6 +451,17 @@ local function import_modules(ni, s)
       end, s)
 end
 
+--- Instantiate blocks
+-- @param s system
+local function create_blocks(ni, root_sys)
+   mapblocks(
+      function(b,i,p)
+	 local bfqn = fqn_get(p)..b.name
+	 info("creating block "..green(bfqn).." ["..blue(b.type).."]")
+	 ubx.block_create(ni, b.type, bfqn)
+      end, root_sys)
+end
+
 --- Launch a blockdiagram system
 -- @param self system specification to load
 -- @param t configuration table
@@ -458,19 +470,6 @@ function system.launch(self, t)
    if self:validate(false) > 0 then
       self:validate(true)
       os.exit(1)
-   end
-
-   --- Generate a list of all blockdiagram.blocks to be created
-   -- @param blockdiagram.system
-   -- @return list of blocks
-   local function make_block_list(c)
-      local res = {}
-      local function __make_block_list(c)
-	 utils.foreach(__make_block_list, c.include or {})
-	 for _,b in ipairs(c.blocks or {}) do res[#res+1] = b end
-      end
-      __make_block_list(c)
-      return res
    end
 
    --- Preprocess configs
@@ -675,15 +674,9 @@ function system.launch(self, t)
    local ni = ubx.node_create(t.nodename, t.loglevel)
 
    def_loggers(ni, "launch")
-
    import_modules(ni, self)
+   create_blocks(ni, self)
 
-   --- create blocks
-   local blocks = make_block_list(self)
-   utils.foreach(function(b)
-		    info("creating block "..green(b.name).." ["..blue(b.type).."]")
-		    ubx.block_create(ni, b.type, b.name)
-		 end, blocks)
 
    if self.node_configurations then
       _NC = create_node_config(ni, self.node_configurations)
