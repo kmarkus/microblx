@@ -193,6 +193,11 @@ local start_spec = TableSpec
    array = { StringSpec },
 }
 
+local subsystems_spec = TableSpec {
+   name='subsystems',
+   dict={}, -- self reference added below
+   sealed='both',
+}
 
 --- system spec
 local system_spec = ObjectSpec
@@ -201,11 +206,7 @@ local system_spec = ObjectSpec
    type=system,
    sealed='both',
    dict={
-      include = TableSpec {
-	 name='include', -- subsystems
-	 array={ }, -- self reference added below
-	 sealed='both',
-      },
+      subsystems = subsystems_spec,
       imports=imports_spec,
       blocks=blocks_spec,
       connections=connections_spec,
@@ -214,12 +215,12 @@ local system_spec = ObjectSpec
       start=start_spec,
       _parent=AnySpec{},
    },
-   optional={ 'include', 'imports', 'blocks', 'connections',
+   optional={ 'subsystems', 'imports', 'blocks', 'connections',
 	      'node_configurations', 'configurations', 'start', '_parent' },
 }
 
--- add self include reference
-system_spec.dict.include.array[#system_spec.dict.include.array+1] = system_spec
+-- add self references to subsystems dictionary
+system_spec.dict.subsystems.dict.__other = { system_spec }
 
 local function is_system(s)
    return umf.uoo_type(s) == 'instance' and umf.instance_of(system, s)
