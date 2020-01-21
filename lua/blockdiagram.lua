@@ -12,7 +12,6 @@ local ubx = require "ubx"
 local umf = require "umf"
 local utils = require "utils"
 local has_json, json = pcall(require, "cjson")
-local ts = tostring
 local M={}
 
 local strict = require "strict"
@@ -64,10 +63,6 @@ local imports_spec = TableSpec
    name='imports',
    sealed='both',
    array = { StringSpec{} },
-   postcheck=function(self, obj, vres)
-      -- extra checks
-      return true
-   end
 }
 
 -- blocks
@@ -78,15 +73,28 @@ local blocks_spec = TableSpec
       TableSpec
       {
 	 name='block',
-	 dict = { name=StringSpec{}, type=StringSpec{}, _parent=AnySpec{}, },
+	 dict = { name=StringSpec{}, type=StringSpec{}, _x=AnySpec{}, },
 	 sealed='both',
-	 optional = { '_parent' }
+	 optional = { '_x' }
       }
    },
    sealed='both',
 }
 
 -- connections
+local function conn_check_srctgt(class, conn, vres)
+   local res = true
+   if not conn._x.src then
+      umf.add_msg(vres, "err", "invalid src block ".. conn.src)
+      res = false
+   end
+   if not conn._x.tgt then
+      umf.add_msg(vres, "err", "invalid tgt block ".. conn.tgt)
+      res = false
+   end
+   return res
+end
+
 local connections_spec = TableSpec
 {
    name='connections',
@@ -94,13 +102,15 @@ local connections_spec = TableSpec
       TableSpec
       {
 	 name='connection',
+	 postcheck = conn_check_srctgt,
 	 dict = {
 	    src=StringSpec{},
 	    tgt=StringSpec{},
-	    buffer_length=NumberSpec{ min=0 }
+	    buffer_length=NumberSpec{ min=0 },
+	    _x=AnySpec{},
 	 },
 	 sealed='both',
-	 optional={'buffer_length'},
+	 optional={'buffer_length', '_x'},
       }
    },
    sealed='both',
@@ -125,18 +135,24 @@ local node_config_spec = TableSpec {
 }
 
 -- configuration
+local function config_check_tgt(class, cfg, vres)
+   if cfg._x and cfg._x.tgt then return true end
+   umf.add_msg(vres, "err", "invalid target block ".. cfg.name)
+   return false
+end
+
 local configs_spec = TableSpec
 {
    name='configurations',
-
    -- regular block configs
    array = {
       TableSpec
       {
 	 name='configuration',
-	 dict = { name=StringSpec{}, config=AnySpec{}, _parent=AnySpec{} },
+	 postcheck = config_check_tgt,
+	 dict = { name=StringSpec{}, config=AnySpec{}, _x=AnySpec{} },
 	 sealed='both',
-	 optional = { '_parent' }
+	 optional = { '_x' }
       },
    },
    sealed='both'
@@ -170,12 +186,10 @@ local system_spec = ObjectSpec
       node_configurations=node_config_spec,
       configurations=configs_spec,
       start=start_spec,
-      _parent=AnySpec{},
-      _name=StringSpec{},
+      _x=AnySpec{},
    },
    optional={ 'subsystems', 'imports', 'blocks', 'connections',
-	      'node_configurations', 'configurations', 'start',
-	      '_parent', '_name' },
+	      'node_configurations', 'configurations', 'start', '_x' },
 }
 
 -- add self references to subsystems dictionary
@@ -197,7 +211,7 @@ local function mapsys(func, root)
    return res
 end
 
---- Apply func to all objs of system[systab] in a breadth first
+--- Apply func to all objs of system[systab] in breadth first
 -- @param func function(obj, index, parent_system)
 -- @param root_sys root system
 -- @param systab which system table to map (blocks, configurations, ...)
@@ -235,9 +249,9 @@ local function mapimports(func, root_sys) return mapobj_bf(func, root_sys, 'impo
 local function sys_fqn_get(sys)
    local fqn = {}
    local function __fqn_get(s)
-      if s._parent == nil then return
-      else __fqn_get(s._parent) end
-      fqn[#fqn+1] = s._name
+      if s._x.parent == nil then return
+      else __fqn_get(s._x.parent) end
+      fqn[#fqn+1] = s._x.name
       fqn[#fqn+1] = '/'
    end
 
@@ -246,11 +260,52 @@ local function sys_fqn_get(sys)
    return table.concat(fqn)
 end
 
---- return the fqn of block b
--- @param b block whos fqn to determine
--- @return fqn string
-local function block_fqn_get(b)
-   return sys_fqn_get(b._parent)..b.name
+
+
+--- Return the block table identified by bfqn at the level of sys
+-- @param sys system
+-- @param bfqn block fqn string
+local function blocktab_get(sys, bfqn)
+   local s = sys
+
+   -- first index to the right subsystem
+   local elem = utils.split(bfqn, "%/")
+   local bname = elem[#elem]
+
+   for i=1,#elem-1 do
+      s = s.subsystems[elem[i]]
+      if not M.is_system(s) then return false end
+   end
+
+   -- then locate the right block
+   for _,v in pairs(s.blocks) do
+      if v.name==bname then return v end
+   end
+   return false
+end
+
+--- Resolve config and connection references to blocks
+-- checking will be done in the check function
+-- @param root_sys
+local function resolve_refs(root_sys)
+   local function connref_resolve(sys, connref)
+      local bref, portname = unpack(utils.split(connref, "%."))
+      local btab = blocktab_get(sys, bref)
+      return btab, portname
+   end
+
+   -- extend config _x tab with a ref to the target block
+   mapconfigs(
+      function(c,_,p)
+	 c._x.tgt = blocktab_get(p, c.name)
+      end, root_sys)
+
+   -- conn _x = { src=tab, srcport=string, tgt=tab, tgtport=string }
+   mapconns(
+      function(c,_,p)
+	 c._x.src, c._x.srcport = connref_resolve(p, c.src)
+	 c._x.tgt, c._x.tgtport = connref_resolve(p, c.tgt)
+      end, root_sys)
 end
 
 --- System constructor
@@ -263,27 +318,46 @@ function system:init()
    self.connections = self.connections or {}
    self.start = self.start or {}
 
-   -- create system _name fields
+   -- create meta _x table convenience data
    mapsys(
       function(s,n,p)
-	 if p==nil then s._name='root' else s._name = n end
+	 s._x = {}
+	 if p == nil then s._x.name='root' else s._x.name = n end
+	 if p ~= nil then s._x.parent = p end
+	 s._x.fqn = sys_fqn_get(s)
       end, self)
 
-   -- add system _parent links
-   mapsys(function(s,n,p) if p ~= nil then s._parent = p end end, self)
 
    -- add _parent links
-   mapblocks(function(b,_,p) b._parent = p end, self)
-   mapconfigs(function(c,_,p) c._parent = p end, self)
+   mapblocks(
+      function(b,i,p)
+	 b._x = {}
+	 b._x.parent = p
+	 b._x.index = i
+	 b._x.fqn = p._x.fqn ..b.name
+      end, self)
+
+   mapconfigs(
+      function(c,i,p)
+	 c._x = {}
+	 c._x.parent = p
+	 c._x.index = i
+	 c._x.fqn = p._x.fqn..'configurations['..ts(i)..']'
+      end, self)
+
+   mapconns(
+      function(c,i,p)
+	 c._x = {}
+	 c._x.parent = p
+	 c._x.index = i
+	 c._x.fqn = p._x.fqn..'connections['..ts(i)..']'
+      end, self)
+
+   -- just try to resolv, checking will complain if unresolved
+   -- references remain
+   resolve_refs(self)
 end
 
---- Convert a config to a string (for debugging)
--- @param cfg config table
--- @return string
-local function config_tostr(cfg, idx)
-   local sfqn =	sys_fqn_get(cfg._parent)
-   return string.format("config %s #%i for block %s", sfqn, idx, cfg.name)
-end
 
 local function is_system(s)
    return umf.uoo_type(s) == 'instance' and umf.instance_of(system, s)
@@ -320,7 +394,7 @@ local function load(fn, file_type)
    elseif file_type == 'usc' or file_type == 'lua' then
       suc, mod = pcall(dofile, fn)
    else
-      print("ubx_launch error: unknown file type "..tostring(file_type))
+      print("ubx_launch error: unknown file type "..ts(file_type))
       os.exit(1)
    end
 
@@ -451,14 +525,11 @@ end
 
 --- Find and return ubx_block ptr
 -- @param ni node_info
--- @param obj config or block table
--- @return bptr, bfqn
-local function find_block(ni, obj)
-   assert(obj.name, "missing name entry of " .. tostring(obj))
-   assert(obj._parent, "missing _parent link of ".. tostring(obj.name))
-   local bfqn = sys_fqn_get(obj._parent)..obj.name
-   local bptr = ubx.block_get(ni, bfqn)
-   return bptr, bfqn
+-- @param btab block table
+-- @return bptr
+local function get_ubx_block(ni, btab)
+   assert(btab._x.fqn, "missing fqn entry of " .. ts(btab))
+   return ubx.block_get(ni, btab._x.fqn)
 end
 
 --- load the systems modules
@@ -485,9 +556,8 @@ end
 local function create_blocks(ni, root_sys)
    mapblocks(
       function(b,i,p)
-	 local bfqn = block_fqn_get(b)
-	 info("creating block "..green(bfqn).." ["..blue(b.type).."]")
-	 ubx.block_create(ni, b.type, bfqn)
+	 info("creating block "..green(b._x.fqn).." ["..blue(b.type).."]")
+	 ubx.block_create(ni, b.type, b._x.fqn)
       end, root_sys)
 end
 
@@ -509,7 +579,7 @@ local function build_nodecfg_tab(ni, root_sys)
    -- skip it and if a config of the same name exists
    local function __create_nc(cfg, name, s)
       if NC[name] then
-	 notice("node config "..sys_fqn_get(s)..name.." shadowed by a higher one")
+	 notice("node config "..cfg._x.fqn.." shadowed by a higher one")
 	 return
       end
 
@@ -545,7 +615,7 @@ local function preproc_configs(ni, c, s)
    local function replace_hash(val, tab, key)
       local name = string.match(val, ".*#([%w_-%/]+)")
       if not name then return end
-      local bfqn = sys_fqn_get(s)..name
+      local bfqn = s._x.fqn..name
       local ptr = ubx.block_get(ni, bfqn)
       if ptr==nil then
 	 err_exit(-1, "error: failed to resolve # blockref to block "..bfqn)
@@ -598,10 +668,12 @@ end
 -- @param cfg system.config table
 -- @param NC node (global) configuration table
 local function configure_block(ni, cfg, NC, i)
-   local b, bfqn = find_block(ni, cfg)
+   local bfqn =	cfg._x.tgt._x.fqn
+   local b = get_ubx_block(ni, cfg._x.tgt)
 
    if b==nil then
-      err_exit(-1, "error: config "..config_tostr(cfg, i).." no ubx block instance found")
+      err_exit(-1, "error: config "..cfg._x.fqn.." for block "..
+		  cfg.name.."no ubx block instance found")
    end
 
    local bstate = b:get_block_state()
@@ -626,7 +698,7 @@ local function configure_blocks(ni, root_sys, NC)
    -- apply configurations to blocks
    mapconfigs(
       function(c, i)
-	 local bfqn = sys_fqn_get(c._parent)..c.name
+	 local bfqn = c._x.tgt._x.fqn
 	 if configured[bfqn] then
 	    info("skipping "..bfqn.." config "..utils.tab2str(c.config)..": already configured")
 	    return
@@ -638,7 +710,7 @@ local function configure_blocks(ni, root_sys, NC)
    -- configure all blocks
    mapblocks(
       function(btab,i,p)
-	 local b = find_block(ni, btab)
+	 local b = get_ubx_block(ni, btab)
 	 info("running block "..ubx.safe_tostr(b.name).." init")
 	 local ret = ubx.block_init(b)
 	 if ret ~= 0 then
@@ -653,10 +725,6 @@ end
 -- @param t configuration table
 -- @return ni node_info handle
 function system.launch(self, t)
-   if self:validate(false) > 0 then
-      self:validate(true)
-      os.exit(1)
-   end
 
    -- Instatiate the system recursively.
    -- @param self system
@@ -745,6 +813,9 @@ function system.launch(self, t)
       -- startup
       if not t.nostart then system.startup(self, ni) end
    end
+
+   -- check
+   if self:validate(false) > 0 then self:validate(true) os.exit(1) end
 
    -- fire it up
    t = t or {}
