@@ -170,10 +170,12 @@ local ndcfg1 = bd.system {
    blocks = {
       { name = "rnd1", type="random/random" },
       { name = "rnd2", type="random/random" },
+      { name = "rnd3", type="random/random" },
    },
    configurations = {
       {	name="rnd1", config = { min_max_config = "&rnd_conf" } },
       {	name="rnd2", config = { min_max_config = "&rnd_conf" } },
+      {	name="rnd3", config = { min_max_config = { min=555, max=777 } } },
    },
 }
 
@@ -186,6 +188,7 @@ function TestComp:test_nodecfg1()
       -- check configs
    lu.assert_equals( NI:b("rnd1"):c("min_max_config"):tolua(), { min=1000, max=2000 } )
    lu.assert_equals( NI:b("rnd2"):c("min_max_config"):tolua(), { min=1000, max=2000 } )
+   lu.assert_equals( NI:b("rnd3"):c("min_max_config"):tolua(), { min=555, max=777 } )
 end
 
 
@@ -220,6 +223,7 @@ function TestComp:test_nodecfg2()
    lu.assert_equals( NI:b("rnd2"):c("min_max_config"):tolua(), { min=999, max=1111 } )
    lu.assert_equals( NI:b("sub1/rnd1"):c("min_max_config"):tolua(), { min=999, max=1111 } )
    lu.assert_equals( NI:b("sub1/rnd2"):c("min_max_config"):tolua(), { min=999, max=1111 } )
+   lu.assert_equals( NI:b("sub1/rnd3"):c("min_max_config"):tolua(), { min=555, max=777 } )
 
 end
 
@@ -256,11 +260,10 @@ function TestComp:test_nodecfg3()
    lu.assert_equals( NI:b("sub2/rnd2"):c("min_max_config"):tolua(), { min=4444, max=8888 } )
    lu.assert_equals( NI:b("sub2/sub1/rnd1"):c("min_max_config"):tolua(), { min=4444, max=8888 } )
    lu.assert_equals( NI:b("sub2/sub1/rnd2"):c("min_max_config"):tolua(), { min=4444, max=8888 } )
-
+   lu.assert_equals( NI:b("sub2/sub1/rnd3"):c("min_max_config"):tolua(), { min=555, max=777 } )
 end
 
 -- TODO
---  - node configs
 --  - connection testing (add is_connected?)
 
 os.exit( lu.LuaUnit.run() )
