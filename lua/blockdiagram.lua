@@ -122,7 +122,6 @@ end
 
 
 function system:init()
-
    -- create system _name fields
    mapsys(
       function(s,n,p)
@@ -136,7 +135,6 @@ function system:init()
 	 if p ~= nil then s._parent = p end
       end, self)
 
-   -- apply_fqn(self)
 end
 
 --- imports spec
@@ -250,12 +248,11 @@ local system_spec = ObjectSpec
       configurations=configs_spec,
       start=start_spec,
       _parent=AnySpec{},
-      _fqn=StringSpec{},
       _name=StringSpec{},
    },
    optional={ 'subsystems', 'imports', 'blocks', 'connections',
 	      'node_configurations', 'configurations', 'start',
-	      '_parent', '_fqn', '_name' },
+	      '_parent', '_name' },
 }
 
 -- add self references to subsystems dictionary
