@@ -196,35 +196,26 @@ local function mapsys(func, root)
 end
 
 
---- Apply func to all blocks include subsystem blocks
--- @param func function(block, block_index, parent_system)
+--- Apply func to all objs of system[systab]
+-- @param func function(obj, index, parent_system)
 -- @param root root system
+-- @param systab which system table to map (blocks, configurations, ...)
 -- @return list of return values of func
-local function mapblocks(func, root)
+local function mapobj(func, root_sys, systab)
    local res = {}
 
-   local function __mapblocks(s)
-      for i,bt in ipairs(s.blocks) do
-	 res[#res+1] = func(bt, i, s)
+   local function __mapobj(s)
+      for i,o in ipairs(s[systab]) do
+	 res[#res+1] = func(o, i, s)
       end
    end
-   mapsys(__mapblocks, root)
+   mapsys(__mapobj, root_sys)
 end
 
---- Apply func to all connections including subsystems
--- @param func function(conn, conn_index, parent_system)
--- @param root root system
--- @return list of return values of func
-local function mapconns(func, root)
-   local res = {}
-
-   local function __mapconns(s)
-      for i,ct in ipairs(s.connections) do
-	 res[#res+1] = func(ct, i, s)
-      end
-   end
-   mapsys(__mapconns, root)
-end
+local function mapblocks(func, root_sys) return mapobj(func, root_sys, 'blocks') end
+local function mapconns(func, root_sys) return mapobj(func, root_sys, 'connections') end
+local function mapconfigs(func, root_sys) return mapobj(func, root_sys, 'configurations') end
+local function mapimports(func, root_sys) return mapobj(func, root_sys, 'imports') end
 
 --- return the fqn of system s
 -- @param sys system whos fqn to determine
