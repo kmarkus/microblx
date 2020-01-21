@@ -155,7 +155,10 @@ local configs_spec = TableSpec
       {
 	 name='configuration',
 	 postcheck = config_check_tgt,
-	 dict = { name=StringSpec{}, config=AnySpec{}, _x=AnySpec{} },
+	 dict = {
+	    name=StringSpec{},
+	    config=TableSpec{ name="config" },
+	    _x=AnySpec{} },
 	 sealed='both',
 	 optional = { '_x' }
       },
