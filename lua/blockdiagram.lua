@@ -429,6 +429,27 @@ local function create_node_config(ni, node_config)
    return res
 end
 
+
+--- load the systems modules
+-- @param s system
+local function import_modules(ni, s)
+   local loaded = {}
+
+   mapsys(
+      function(s)
+	 utils.foreach(
+	    function(m)
+	       if loaded[m] then
+		  info("skipping already loaded module "..magenta(m))
+	       else
+		  info("importing module "..magenta(m))
+		  ubx.load_module(ni, m)
+		  loaded[m]=true
+	       end
+	    end, s.imports)
+      end, s)
+end
+
 --- Launch a blockdiagram system
 -- @param self system specification to load
 -- @param t configuration table
@@ -450,20 +471,6 @@ function system.launch(self, t)
       end
       __make_block_list(c)
       return res
-   end
-
-   --- Generate an order list of all modules to be imported
-   -- @param blockdiagram.system
-   -- @return list of imports
-   local function make_import_list(c)
-      local res = {}
-
-      local function __make_import_list(c)
-	 utils.foreach(__make_import_list, c.include or {})
-	 for _,m in ipairs(c.imports) do res[#res+1] = m end
-      end
-      __make_import_list(c)
-      return utils.table_unique(res)
    end
 
    --- Preprocess configs
@@ -667,7 +674,6 @@ function system.launch(self, t)
 	 print("name: "..tostring(n), "fqn: "..fqn_get(s))
       end, self)
 
-
    -- fire it up
    t = t or {}
    t.nodename = t.nodename or "n"
@@ -676,12 +682,7 @@ function system.launch(self, t)
 
    def_loggers(ni, "launch")
 
-   -- import modules
-   local imports = make_import_list(self)
-   utils.foreach(function(m)
-		    info("importing module "..magenta(m) )
-		    ubx.load_module(ni, m)
-		 end, imports)
+   import_modules(ni, self)
 
    --- create blocks
    local blocks = make_block_list(self)
