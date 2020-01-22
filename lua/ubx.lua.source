@@ -75,18 +75,23 @@ local function setup_enums()
    if M.ubx==nil then error("setup_enums called before loading libubx") end
    M.retval_tostr = {
       [0] ='OK',
-      [0] ='OK',
       [ffi.C.EINVALID_BLOCK]		='EINVALID_BLOCK',
       [ffi.C.EINVALID_PORT]		='EINVALID_PORT',
       [ffi.C.EINVALID_CONFIG]		='EINVALID_CONFIG',
+      [ffi.C.EINVALID_TYPE]		='EINVALID_TYPE',
 
       [ffi.C.EINVALID_BLOCK_TYPE]	='EINVALID_BLOCK_TYPE',
       [ffi.C.EINVALID_PORT_TYPE]	='EINVALID_PORT_TYPE',
       [ffi.C.EINVALID_CONFIG_TYPE]	='EINVALID_CONFIG_TYPE',
 
+      [ffi.C.EINVALID_CONFIG_LEN]	='EINVALID_CONFIG_LEN',
+
       [ffi.C.EINVALID_PORT_DIR]		='EINVALID_PORT_DIR',
 
+      [ffi.C.EINVALID_ARG]		='EINVALID_ARG',
+      [ffi.C.EWRONG_STATE]		='EWRONG_STATE',
       [ffi.C.ENOSUCHENT]		='ENOSUCHENT',
+      [ffi.C.EENTEXISTS]		='EENTEXISTS',
       [ffi.C.EALREADY_REGISTERED]	='EALREADY_REGISTERED',
       [ffi.C.ETYPE_MISMATCH]		='ETYPE_MISMATCH',
       [ffi.C.EOUTOFMEM]			='EOUTOFMEM',
