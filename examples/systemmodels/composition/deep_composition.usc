@@ -73,6 +73,6 @@ return bd.system
    },
 
    connections = {
-      { src="rnd.rnd", tgt="sub11/rnd1.seed" },
+      { src="rnd.rnd", tgt="sub11/rnd.seed" },
    },
 }
