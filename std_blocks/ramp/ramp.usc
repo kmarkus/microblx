@@ -43,9 +43,4 @@ return bd.system
       { name="int32_ramp", config = { start = -10 , slope = -100 } },
       { name="int64_ramp", config = { start = -1000, slope = 1 } }
    },
-
-   start = { "float_ramp", "double_ramp",
-	     "uint8_ramp", "uint16_ramp", "uint32_ramp", "uint64_ramp",
-	     "int8_ramp", "int16_ramp", "int32_ramp", "int64_ramp",
-   }
 }

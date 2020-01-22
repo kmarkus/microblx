@@ -40,6 +40,4 @@ return bd.system
       { name="const1", config = {value=47} },
       { name="logger1", config = { lua_str=logger_block } },
    },
-
-   start = { "const1", "logger1" }
 }
