@@ -40,6 +40,4 @@ return bd.system
 				  trig_blocks={ { b="#rnd", num_steps=1, measure=0 },
 						{ b="#logger1", num_steps=1, measure=0 } } } }
    },
-
-   start = { "ptrig1" }
 }

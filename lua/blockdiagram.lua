@@ -166,14 +166,6 @@ local configs_spec = TableSpec
    sealed='both'
 }
 
--- start
-local start_spec = TableSpec
-{
-   name='start',
-   sealed='both',
-   array = { StringSpec },
-}
-
 local subsystems_spec = TableSpec {
    name='subsystems',
    dict={}, -- self reference added below
@@ -193,11 +185,10 @@ local system_spec = ObjectSpec
       connections=connections_spec,
       node_configurations=node_config_spec,
       configurations=configs_spec,
-      start=start_spec,
       _x=AnySpec{},
    },
    optional={ 'subsystems', 'imports', 'blocks', 'connections',
-	      'node_configurations', 'configurations', 'start', '_x' },
+	      'node_configurations', 'configurations', '_x' },
 }
 
 -- add self references to subsystems dictionary
@@ -323,7 +314,6 @@ function system:init()
    self.node_configurations = self.node_configurations or {}
    self.configurations = self.configurations or {}
    self.connections = self.connections or {}
-   self.start = self.start or {}
 
    -- populate _x table with convenience data
    mapsys(
@@ -484,51 +474,51 @@ local function late_checks(conf, ni)
 end
 
 
---- Pulldown a blockdiagram system
--- @param self system specification to load
--- @param t configuration table
-function system.pulldown(self, ni)
-   if #self.start > 0 then
-      -- stop the start table blocks in reverse order
-      for i = #self.start, 1, -1 do
-	 info("stopping " .. green(self.start[i]))
-	 ubx.block_unload(ni, self.start[i])
-      end
-   end
-   info("stopping remaining blocks")
-   ubx.node_rm(ni)
+local function is_active_inst(b)
+   return ubx.is_instance(b) and ubx.block_isactive(b)
 end
 
+local function is_inactive_inst(b)
+   return ubx.is_instance(b) and not ubx.block_isactive(b)
+end
 
 --- Start up a system
 -- @param self system specification to load
--- @param t configuration table
--- @return ni node_info handle
+-- @param ni node info
 function system.startup(self, ni)
-   foreach(
-      function (bmodel)
 
-	 -- skip the blocks in the start table
-	 if utils.table_has(self.start, bmodel.name) then return end
-	 local b = ubx.block_get(ni, bmodel.name)
-	 info("starting ".. green(bmodel.name))
-
-	 local ret = ubx.block_tostate(b, 'active')
-	 if ret ~= 0 then
-	    err_exit(ret, "failed to start block "..bmodel.name..": "..ubx.retval_tostr[ret])
-	 end
-      end, self.blocks)
-   -- start the start table blocks in order
-   for _,trigname in ipairs(self.start) do
-      local b = ubx.block_get(ni, trigname)
-      info("starting ".. green(trigname))
+   local function block_start(b)
+      local bname = ubx.safe_tostr(b.name)
+      info("starting ".. green(bname))
       local ret = ubx.block_tostate(b, 'active')
       if ret ~= 0 then
-	 err_exit(ret, "failed to start block "..trigname..": ", ret)
+	 err_exit(ret, "failed to start block "..bname..": "..(ubx.retval_tostr[ret] or ts(ret)))
       end
    end
+
+   -- start all non-active blocks
+   ubx.blocks_map(ni, block_start, is_inactive_inst)
+
+   -- start the active blocks
+   ubx.blocks_map(ni, block_start, is_active_inst)
 end
 
+-- Pulldown a blockdiagram system
+-- @param self system specification to load
+-- @param ni configuration table
+function system.pulldown(self, ni)
+
+   local function block_stop (b)
+      info("stopping active block "..ubx.safe_tostr((b.name)))
+      ubx.block_tostate(b, 'inactive')
+   end
+
+   -- stop all active blocks first
+   ubx.blocks_map(ni, block_stop, is_active_inst)
+
+   info("unloading all blocks")
+   ubx.node_rm(ni)
+end
 
 --- Find and return ubx_block ptr
 -- @param ni node_info

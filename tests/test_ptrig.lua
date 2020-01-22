@@ -5,7 +5,7 @@ local bd = require("blockdiagram")
 local time = require("time")
 local ffi = require("ffi")
 
-local LOGLEVEL = ffi.C.UBX_LOGLEVEL_WARN
+local LOGLEVEL = ffi.C.UBX_LOGLEVEL_INFO
 
 local assert_equals = luaunit.assert_equals
 local assert_true = luaunit.assert_true

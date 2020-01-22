@@ -37,5 +37,4 @@ return bd.system
 	      { b="#b1", num_steps=1, measure=0 },
 	      { b="#b2", num_steps=1, measure=0 } } } }
    },
-   start = { "ptrig1" }
 }

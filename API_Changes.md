@@ -5,6 +5,15 @@ This file tracks user visible API changes.
 
 ## unreleased
 
+- blockdiagram: drop the `start` directive that was used to pass the
+  last blocks to be started (i.e. ptrig) to the launch logic. This is
+  not necessary anymore, as the launch logic will ensure to startup
+  active blocks (see `BLOCK_ATTR_ACTIVE`) after all others.
+
+- blockdiagram: add composition support to permit hierarchical
+  composition of usc systems. This change introduces the `subsystems`
+  keyword and is backwards compatible with existing compositions.
+
 - `ubx_launch`: `-s` option added for printing usc launch messages to
   stderr (in additon to the rtlog). Useful for debugging when long
   messages may get truncated in the rtlog.

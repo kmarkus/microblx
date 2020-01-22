@@ -77,10 +77,11 @@ introspected via a browser.
 
 Unless the ``-nostart`` option is provided, all blocks will be
 initialized, configured and started. ``ubx_launch`` takes care to do
-this is safe way by starting up active blocks and triggers after all
-other blocks (In earlier versions, there was ``start`` directive to
-list these types of blocks, today this attribute is defined active and
-trigger blocks)
+this is safe way by starting up active blocks after all other blocks
+(In earlier versions, there was ``start`` directive to list the blocks
+to be started, however now this information is obtained by means of
+the block attributes ``BLOCK_ATTR_ACTIVE`` and
+``BLOCK_ATTR_TRIGGER``.)
 
 
 Node configs

@@ -1341,7 +1341,7 @@ end
 
 --- Call a function on every block of the given list.
 -- @param ni node info
--- @param fun functionw
+-- @param fun function
 -- @param pred predicate function to filter
 -- @param result table
 function M.blocks_map(ni, fun, pred)
