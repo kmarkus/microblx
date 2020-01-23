@@ -306,8 +306,11 @@ local function resolve_refs(root_sys)
       end, root_sys)
 end
 
---- System constructor
-function system:init()
+--- system_populate_x
+-- populate the meta data of a system
+-- can be called multiple times
+-- @param system
+local function system_populate_meta(self)
    self.imports = self.imports or {}
    self.subsystems = self.subsystems or {}
    self.blocks = self.blocks or {}
@@ -353,6 +356,11 @@ function system:init()
    -- just try to resolv, checking will complain if unresolved
    -- references remain
    resolve_refs(self)
+end
+
+--- System constructor
+function system:init()
+   system_populate_meta(self)
 end
 
 
