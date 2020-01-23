@@ -101,6 +101,12 @@ By using these passive `trig` blocks, a triggering `hierarchy` is
 formed, which can be controlled by the system builder. Moreover, this
 approach can easily be replaced by automatic schedule calculation.
 
+#### Update 2020-01-23
+
+Reconsidering, the above `-a` option seems to limited. What it
+basically permits is to compose two systems at a late stage. So a more
+generic mechanism would be simply to alloc `-c` to accept multiple
+systems and to merge these into one before launching.
 
 ### Example
 
