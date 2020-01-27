@@ -12,9 +12,9 @@ local ubx = require "ubx"
 local umf = require "umf"
 local utils = require "utils"
 local has_json, json = pcall(require, "cjson")
-local M={}
-
 local strict = require "strict"
+
+local M={}
 
 -- shortcuts
 local foreach = utils.foreach
@@ -363,7 +363,6 @@ function system:init()
    system_populate_meta(self)
 end
 
-
 local function is_system(s)
    return umf.uoo_type(s) == 'instance' and umf.instance_of(system, s)
 end
@@ -375,8 +374,7 @@ end
 
 --- read blockdiagram system file from usc or json file
 -- @param fn file name of file (usc or json)
--- @param file_type optional file type - either \em usc or \em json. If not specified, the type will be auto-detected from the extension of the file
--- @return system model or will exit(1)
+-- @param file_type optional file type (usc|json). Auto-detected from extension if not provided
 local function load(fn, file_type)
 
    local function read_json()
@@ -481,11 +479,12 @@ local function late_checks(conf, ni)
    end
 end
 
-
+--- is active block instance predicate
 local function is_active_inst(b)
    return ubx.is_instance(b) and ubx.block_isactive(b)
 end
 
+--- is inactive block instance predicate
 local function is_inactive_inst(b)
    return ubx.is_instance(b) and not ubx.block_isactive(b)
 end
