@@ -7,31 +7,36 @@ local utils = require("utils")
 local ts = tostring
 
 local function usage()
-   print(utils.preproc(
+   local res, str = utils.preproc(
 	    [=[
 microblx function block model system launcher
-   usage: ubx_launch OPTIONS -c <conf file>
-      -b               listen on given block state to shutdown
-      -c               .usc or .json model file to launch
-      -ctype <type>    type of the model file. Either ucs or json.
-                       If not specified, auto-detected from extension
-      -nodename        name to give to node
-      -nostart         instantiate and configure, but don't start
-      -t               time to run in seconds
-      -validate        don't run, just validate configuration file
-      -loglevel N      set global loglevel [0..7]
-      -s               log to stderr (in addition to ubx_log)
-      -webif <port>    create and start webinterface block.
-                       The optional port defaults to 8888.
-      -check chk1,...  enable additional warnings
-          available checks:
-@      for k,v in pairs(checks) do
-              $(k): $(v.desc)
-@      end
+usage: ubx_launch [OPTION] -c <model file>
+  -b BLOCK		monitor BLOCK and shutdown when it becomes inactive
+  -c FILE[,FILE2]	.usc or .json model file to launch
+			if multiple models are given, these will be merged prior
+			to launching.
+  -ctype TYPE		type of the model file. Either ucs or json. If not specified,
+			auto-detected from extension
+  -nodename NAME	set nodename to NAME
+  -nostart		instantiate and configure, but don't start
+  -t SECONDS		run for SECONDS and then shutdown
+  -validate		don't run, just validate configuration file
+  -loglevel N		set global loglevel [0..7]
+  -s			log to stderr (in addition to ubx_log)
+  -webif [PORT]		create and start webinterface block.
+			the optional port defaults to 8888.
+  -check CHK1[,CHK2]    carry out additional validation
+    available checks:
+@   for k,v in pairs(checks) do
+      $(k): $(v.desc)
+@   end
 
-      -werror          treat warnings as errors
-      -h               show this.
-]=], {checks=bd._checks, pairs=pairs, table=table}))
+  -werror		treat warnings as errors
+  -version		print version and exit
+  -h			display this help and exit
+]=], {checks=bd._checks, pairs=pairs, table=table})
+   assert(res, "failed to generate usage string")
+   print(str)
 end
 
 local function isempty(s)
@@ -47,6 +52,11 @@ local monitorblock
 local checks
 local loglevel
 local use_stderr
+
+if opttab['-version'] then
+   print("microblx "..ubx.safe_tostr(ubx.version()))
+   os.exit(0)
+end
 
 if #arg==1 or opttab['-h'] then
    usage(); os.exit(1)
