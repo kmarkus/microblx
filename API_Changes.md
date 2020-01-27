@@ -5,6 +5,11 @@ This file tracks user visible API changes.
 
 ## unreleased
 
+- `ubx_launch`: `-c` options now supports multiple arguments and will
+  merge all models into the first before launching. Use-case is for
+  adding policy (e.g. `ptrig` blocks etc.) to otherwise reusable
+  compositions.
+
 - blockdiagram: drop the `start` directive that was used to pass the
   last blocks to be started (i.e. ptrig) to the launch logic. This is
   not necessary anymore, as the launch logic will ensure to startup
