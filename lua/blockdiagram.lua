@@ -19,6 +19,7 @@ local M={}
 -- shortcuts
 local foreach = utils.foreach
 local ts = tostring
+local insert = table.insert
 
 -- node configuration
 _NC = nil
@@ -203,6 +204,7 @@ local function mapsys(func, root)
 
    local function __mapsys(sys,name,psys)
       res[#res+1] = func(sys, name, psys)
+      if not sys.subsystems then return end
       for k,s in pairs(sys.subsystems) do __mapsys(s, k, sys) end
    end
    __mapsys(root)
@@ -312,7 +314,6 @@ end
 -- @param system
 local function system_populate_meta(self)
    self.imports = self.imports or {}
-   self.subsystems = self.subsystems or {}
    self.blocks = self.blocks or {}
    self.node_configurations = self.node_configurations or {}
    self.configurations = self.configurations or {}
@@ -787,6 +788,43 @@ local function connect_blocks(ni, root_sys)
       end
    end
    mapconns(do_connect, root_sys)
+end
+
+--- Merge one system into another
+-- No duplicate handling. Running the validation after a merge is strongly recommended.
+-- @param self targed of the merge
+-- @param sys system which to merge into self
+function system.merge(self, sys)
+   local function do_merge(dest, src)
+      foreach(function (imp) insert(dest.imports, imp) end, src.imports)
+      foreach(function (blk) insert(dest.blocks, blk) end, src.blocks)
+      foreach(function (cfg) insert(dest.configurations, cfg) end, src.configurations)
+      foreach(function (conn) insert(dest.connections, conn) end, src.connections)
+
+      foreach(
+	 function (ndcfg, name)
+	    if dest.node_configurations[name] then
+	       warn("merge: overriding existing destination system node_config "..name)
+	    end
+	    dest.node_configurations[name] = ndcfg
+	 end, src.node_configurations)
+
+      if src.subsystems and not dest.subsystems then dest.subsystems={} end
+
+      foreach(
+	 function (subsys, name)
+	    if dest.subsystems[name] then
+	       warn("merge: overriding existing destination subsystem "..name)
+	    end
+	    dest.subsystems[name] = subsys
+	 end, src.subsystems)
+
+      if src.subsystems then
+	 do_merge(dest.subsystems, src.subsystems)
+      end
+   end
+
+   do_merge(self, sys)
 end
 
 --- Launch a blockdiagram system

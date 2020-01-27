@@ -1,0 +1,16 @@
+-- -*- mode: lua; -*-
+
+return bd.system {
+   imports = { "stdtypes", "ptrig" },
+
+   blocks = {
+      { name="ptrig1", type="std_triggers/ptrig" },
+   },
+
+   configurations = {
+      { name="ptrig1", config = { period = {sec=1, usec=0 },
+				  trig_blocks={
+				     { b="#trig", num_steps=1, measure=0 } } }
+      },
+   }
+}

@@ -15,7 +15,7 @@ usage: ubx_launch [OPTION] -c <model file>
   -c FILE[,FILE2]	.usc or .json model file to launch
 			if multiple models are given, these will be merged prior
 			to launching.
-  -ctype TYPE		type of the model file. Either ucs or json. If not specified,
+  -ctype TYPE[,TYPE2]	types of the model file. Either ucs or json. If not specified,
 			auto-detected from extension
   -nodename NAME	set nodename to NAME
   -nostart		instantiate and configure, but don't start
@@ -46,8 +46,8 @@ end
 local opttab=utils.proc_args(arg)
 local nodename
 local model
-local conf_file
-local conf_type
+local conf_files
+local conf_types = {}
 local monitorblock
 local checks
 local loglevel
@@ -63,35 +63,47 @@ if #arg==1 or opttab['-h'] then
 end
 
 if not (opttab['-c'] and opttab['-c'][1]) then
-   print("no configuration file given (-c option)")
+   print("error: no configuration file(s) given (-c option)")
    os.exit(1)
 else
-   conf_file = opttab['-c'][1]
+   conf_files = utils.split(opttab['-c'][1], ',')
 end
 
 if opttab['-ctype'] then
     if not opttab['-ctype'][1] then
-        print("-ctype option requires a type argument")
+        print("error: -ctype option requires a type argument")
         os.exit(1)
     else
-        conf_type = opttab['-ctype'][1]
+       conf_types = utils.split(opttab['-ctype'][1], ',')
+    end
+    if #conf_files ~= #conf_types then
+       print("error: the use of -ctype requires the same number of parameters as -c")
+       os.exit(1)
     end
 end
 
-model = bd.load(conf_file, conf_type)
 if (opttab['-b'] and opttab['-b'][1]) then
    monitorblock = opttab['-b'][1]
 end
 
+-- load first model and merge others into it
+model = bd.load(conf_files[1], conf_types[1])
+
 if not bd.is_system(model) then
    print(model)
-   print("ubx_launch failed to load file "..ts(conf_file))
+   print("error: failed to load files "..table.concat(conf_files, ', '))
    os.exit(1)
+end
+
+for i=2,#conf_files do
+   local m = bd.load(conf_files[i], conf_types[i])
+   print("merging "..conf_files[i])
+   model:merge(m)
 end
 
 if opttab['-nodename'] then
    if not opttab['-nodename'][1] then
-      print("-nodename option requires a node name argument)")
+      print("error: -nodename option requires a node name argument)")
       os.exit(1)
    else
       nodename = opttab['-nodename'][1]
@@ -105,7 +117,7 @@ end
 
 if opttab['-loglevel'] then
    if not opttab['-loglevel'][1] then
-      print("-loglevel option requres a level argument")
+      print("error: -loglevel option requres a level argument")
       os.exit(1)
    else
       loglevel = tonumber(opttab['-loglevel'][1])
@@ -116,7 +128,7 @@ if opttab['-s'] then use_stderr=true end
 
 if opttab['-check'] then
    if not opttab['-check'][1] then
-      print("-check option requires name argument)")
+      print("error: -check option requires name argument)")
       os.exit(1)
    end
    checks = utils.split(opttab['-check'][1], ",")

@@ -8,7 +8,7 @@ local utils = require("utils")
 local rnd2 = bd.system {
 
    imports = {
-      "stdtypes", "logger",
+      "stdtypes", "random",
    },
 
    blocks = {
@@ -28,25 +28,23 @@ local rnd1 = bd.system {
    },
 
    blocks = {
-      { name='ptrig', type="std_triggers/ptrig" },
+      { name='trig', type="std_triggers/trig" },
       { name="rnd", type="random/random" },
    },
 
    configurations = {
       {	name="rnd", config = { min_max_config = {min=127, max=256} } },
-      { name="ptrig", config = { period = {sec=1, usec=0 },
-				 trig_blocks={
-				    { b="#rnd", num_steps=1, measure=0 },
-				    { b="#sub21/rnd", num_steps=1, measure=0 } } } },
-
-   },
+      { name="trig", config = { trig_blocks={
+				   { b="#rnd", num_steps=1, measure=0 },
+				   { b="#sub21/rnd", num_steps=1, measure=0 },
+				   { b="#sub22/rnd", num_steps=1, measure=0 } } } }
+   }
 }
-
 
 return bd.system
 {
    imports = {
-      "stdtypes", "random", "ptrig", "lfds_cyclic", "logger",
+      "stdtypes", "random", "trig", "lfds_cyclic", "logger",
    },
 
    subsystems = {
@@ -55,7 +53,7 @@ return bd.system
    },
 
    blocks = {
-      { name='ptrig', type="std_triggers/ptrig" },
+      { name='trig', type="std_triggers/trig" },
       { name="rnd", type="random/random" },
    },
 
@@ -63,12 +61,10 @@ return bd.system
       {	name="rnd", config = { min_max_config={min=1, max=2} } },
       {	name="sub11/rnd", config = { min_max_config={min=11, max=33} } },
       {	name="sub11/sub21/rnd", config = { min_max_config={min=11, max=44} } },
-      { name="ptrig", config = { period = {sec=1, usec=0 },
-				 trig_blocks={
-				    { b="#rnd", num_steps=1, measure=0 },
-				    { b="#sub11/rnd", num_steps=1, measure=0 },
-				    { b="#sub12/rnd", num_steps=1, measure=0 },
-				    { b="#sub11/sub21/rnd", num_steps=1, measure=0 }} } },
+      { name="trig", config = { trig_blocks={
+				   { b="#rnd", num_steps=1, measure=0 },
+				   { b="#sub11/trig", num_steps=1, measure=0 },
+				   { b="#sub12/trig", num_steps=1, measure=0 } } } },
 
    },
 
