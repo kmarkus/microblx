@@ -673,6 +673,9 @@ end
 -- @return ubx_data_t
 function M.data_alloc(ni, type_name, num)
    local t = M.type_get(ni, type_name)
+   if t==nil then
+      error(M.safe_tostr(ni.name)..": data_alloc: unkown type '"..M.safe_tostr(type_name).."'")
+   end
    return M.__data_alloc(ni, t, num)
 end
 
