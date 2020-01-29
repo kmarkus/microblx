@@ -22,7 +22,7 @@ const char *loglevel_str[] = {
 #define CONFIG_LOGGING_SHM
 
 /* basic logging function */
-void __ubx_log(const int level, const ubx_node_info_t *ni, const char* src, const char* fmt, ...)
+void __ubx_log(const int level, const ubx_node_info_t *ni, const char *src, const char *fmt, ...)
 {
 	va_list args;
 	struct ubx_log_msg msg;
@@ -50,7 +50,7 @@ void __ubx_log(const int level, const ubx_node_info_t *ni, const char* src, cons
 }
 
 #ifdef CONFIG_SIMPLE_LOGGING
-static void ubx_log_simple(const struct ubx_node_info* ni, const struct ubx_log_msg *msg)
+static void ubx_log_simple(const struct ubx_node_info *ni, const struct ubx_log_msg *msg)
 {
 	FILE *stream;
 	const char *level_str;
@@ -66,14 +66,14 @@ static void ubx_log_simple(const struct ubx_node_info* ni, const struct ubx_log_
 		level_str, ni->name, msg->src, msg->msg);
 }
 
-int ubx_log_init(struct ubx_node_info* ni)
+int ubx_log_init(struct ubx_node_info *ni)
 {
 	ni->log = ubx_log_simple;
 	ni->log_data = NULL;
 	return 0;
 }
 
-void ubx_log_cleanup(struct ubx_node_info* ni)
+void ubx_log_cleanup(struct ubx_node_info *ni)
 {
 	ni->log = NULL;
 }
@@ -109,8 +109,10 @@ void log_inc_woff(uint32_t inc)
 {
 	log_wrap_off_t next;
 
-	/* read current wrap and write offset to preserve wrap
-	 * counter */
+	/*
+	 * read current wrap and write offset to preserve wrap
+	 * counter
+	 */
 	next = inf.buf_ptr->w;
 	next.off += inc;
 
@@ -123,7 +125,7 @@ void log_inc_woff(uint32_t inc)
 	inf.buf_ptr->w = next;
 }
 
-static void ubx_log_shm(const struct ubx_node_info* ni, const struct ubx_log_msg *msg)
+static void ubx_log_shm(const struct ubx_node_info *ni, const struct ubx_log_msg *msg)
 {
 	struct ubx_log_msg *frame;
 	(void)(ni);
@@ -136,7 +138,7 @@ static void ubx_log_shm(const struct ubx_node_info* ni, const struct ubx_log_msg
 	pthread_spin_unlock(&inf.loglock);
 }
 
-int ubx_log_init(struct ubx_node_info* ni)
+int ubx_log_init(struct ubx_node_info *ni)
 {
 	int ret = -1;
 
@@ -153,12 +155,13 @@ int ubx_log_init(struct ubx_node_info* ni)
 	inf.shm_fd = shm_open(LOG_SHM_FILENAME, O_CREAT | O_RDWR, 0640);
 
 	if (inf.shm_fd == -1) {
-		fprintf(stderr, "%s: cannot open shm file\n", __FUNCTION__);
+		fprintf(stderr, "%s: cannot open shm file\n", __func__);
 		goto out;
 	}
 
-	if((ret = ftruncate(inf.shm_fd, inf.shm_size)) != 0) {
-		fprintf(stderr, "%s: cannot resize shm file\n", __FUNCTION__);
+	ret = ftruncate(inf.shm_fd, inf.shm_size);
+	if (ret != 0) {
+		fprintf(stderr, "%s: cannot resize shm file\n", __func__);
 		goto out_close;
 	}
 
@@ -168,7 +171,7 @@ int ubx_log_init(struct ubx_node_info* ni)
 
 	if (inf.buf_ptr == MAP_FAILED) {
 		ret = -1;
-		fprintf(stderr, "%s: cannot mmap shm\n", __FUNCTION__);
+		fprintf(stderr, "%s: cannot mmap shm\n", __func__);
 		goto out_unlink;
 	}
 
@@ -187,13 +190,13 @@ out:
 	return ret;
 }
 
-void ubx_log_cleanup(struct ubx_node_info* ni)
+void ubx_log_cleanup(struct ubx_node_info *ni)
 {
 	pthread_spin_destroy(&inf.loglock);
 	ni->log = NULL;
 
 	/* clean up shm */
-	munmap((void*) inf.buf_ptr, inf.shm_size);
+	munmap((void *) inf.buf_ptr, inf.shm_size);
 
 	shm_unlink(LOG_SHM_FILENAME);
 
