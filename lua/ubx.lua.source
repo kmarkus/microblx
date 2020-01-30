@@ -1107,15 +1107,17 @@ end
 --- Read from a port.
 --
 function M.port_read(p, rval)
-   if type(rval)~='cdata' then
+   if not M.is_data(rval) then
       rval=M.port_alloc_read_sample(p)
    end
    return ubx.__port_read(p, rval), rval
 end
 
 function M.port_write(p, wval)
-   if type(wval) == 'cdata' then
+   if M.is_data(wval) then
       ubx.__port_write(p, wval)
+   elseif type(wval) == 'cdata' then
+      error("port_write: invalid cdata. expected ubx_data, got "..ffi.typeof(wval))
    else
       local sample = M.port_alloc_write_sample(p)
       sample:set(wval)
