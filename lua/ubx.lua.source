@@ -1107,6 +1107,7 @@ end
 --- Read from a port.
 --
 function M.port_read(p, rval)
+   assert(p, "invalid port")
    if not M.is_data(rval) then
       rval=M.port_alloc_read_sample(p)
    end
@@ -1114,6 +1115,7 @@ function M.port_read(p, rval)
 end
 
 function M.port_write(p, wval)
+   assert(p, "invalid port")
    if M.is_data(wval) then
       ubx.__port_write(p, wval)
    elseif type(wval) == 'cdata' then
