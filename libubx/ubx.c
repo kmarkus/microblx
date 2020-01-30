@@ -2164,7 +2164,7 @@ void __port_write(ubx_port_t* port, ubx_data_t* data)
 	ubx_block_t **iaptr;
 
 	if (port==NULL) {
-		ubx_err(port->block, "port null");
+		ERR("port null");
 		goto out;
 	};
 
