@@ -88,32 +88,108 @@ Node configs
 ~~~~~~~~~~~~
 
 Node configs allow to assign the same configuration to multiple
-blocks. This is useful for global configuration values which are the
-same for all blocks.
+blocks. This is useful to avoid repeating global configuration values
+that are identical for multiple blocks.
 
-For this, a new top level section ``node_configurations`` is
-introduced, which allows to defined named configurations.
+The ``node_configurations`` keyword allows to define one or more named
+node configurations.
 
 .. code:: lua
 
      node_configurations = {
-         global_rnd_conf = {
-             type = "struct random_config",
+	 global_rnd_conf = {
+	     type = "struct random_config",
 	     config = { min=333, max=999 },
-         }
+	 }
      }
 
 
 These configurations can then be assigned to multiple blocks:
 
 .. code:: lua
-	  
+
       { name="b1", config = { min_max_config = "&global_rnd_conf"} },
       { name="b2", config = { min_max_config = "&global_rnd_conf"} },
 
 
 Please refer to ``examples/systemmodels/node_config_demo.usc`` for a
 full example.
+
+
+Hierarchical compositions
+-------------------------
+
+Hierarchical composition [#f1]_ allow to compose a system from other
+compositions. The motivation is to permit reuse of the individual
+compositions.
+
+The ``subsystems`` accepts a list of namespace-subsystem entries:
+
+.. code:: lua
+
+	  return bd.system {
+	      import = ...
+	      subsystems = {
+		  subsys1 = bd.load("subsys1.usc"),
+		  subsys2 = bd.load("subsys1.usc"),
+	      }
+	  }
+
+Subsystem elements can be accessed by higher levels by prefixing the
+subsystem namespace (the opposite is not possible for obvious
+reasons). For example, the following lines override a configuration
+value of the ``blk`` blocks in subsystems ``sub11`` and
+``sub11/sub21``:
+
+.. code:: lua
+
+	  configurations = {
+	      { name="sub11/blk",       config = { cfgA=1, cfgB=2 } },
+	      { name="sub11/sub21/blk", config = { cfgA=5, cfgB=6 } },
+	  }
+
+Note how the subsystem namespaces prevent name collisions of the two
+identically names blocks. Similar to configurations, connections can
+be added among subsystems blocks:
+
+.. code:: lua
+	  
+	  connections = {
+	      { src="sub11/sub21/blk.portX", tgt="sub11/blk.portY" },
+	  },
+
+
+When launched, a hierarchical system is instantiated in a similar way
+to a non-hierarchical one, however:
+
+* modules are only imported once
+* blocks from all hierarchy levels are instantiated, configured and
+  started together, i.e. the hierarchy has no implications on the
+  startup sequence.
+* microblx block names use the fully qualified name including the
+  namespace. Therefore, the #blockname syntax for resolving block
+  pointers works just the same.
+* if multiple configs for the same block exist, only the highest one
+  in the hierarchy will be applied.
+* in case of multiple identically named node configs, the one at the
+  highest level will be used.
+
+
+Model mixins
+------------
+
+To obtain a reusable composition, it is important to avoid introducing
+platform specifics such as ``ptrig`` blocks and their
+configurations. Instead, passive ``trig`` blocks can be used to
+encapsulate the trigger schedule. `ptrig` or similar active blocks can
+then be added at launch time by merging an activity model with the
+primary model by specifying both on the ``ubx_launch`` command line.
+
+See the example in ``examples/systemmodels/composition``
+
+.. code:: sh
+	  
+	  ubx_launch -webif -c deep_composition.usc,ptrig.usc
 
 
 Alternatives
@@ -130,3 +206,11 @@ others way to launch a microblx application:
 2. by assembling everything in C/C++. Possible, but somewhat painful
    to do by hand. This would be better solved by introducing a
    usc-compiler tool. Please ask on the mailing list.
+
+.. rubric:: Footnotes
+
+.. [#f1] This feature was introduced in the context of the COCORF
+	 RobMoSys Integrated Technical Project. Please see
+	 `docs/dev/001-blockdiagram-composition.md
+	 <https://github.com/kmarkus/microblx/blob/cocorf/docs/dev/001-blockdiagram-composition.md>`_
+	 for background information.
