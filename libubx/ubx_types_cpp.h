@@ -11,13 +11,13 @@
 
 struct ubx_port_cpp : public ubx_port
 {
-	ubx_port_cpp (
-		const char* _name,
-		const char* _in_type_name,
+	ubx_port_cpp(
+		const char *_name,
+		const char *_in_type_name,
 		unsigned long _in_data_len,
-		const char* _out_type_name,
+		const char *_out_type_name,
 		unsigned long _out_data_len,
-		const char* _doc)
+		const char *_doc)
 	{
 		ubx_port::name = _name;
 		ubx_port::doc = _doc;
@@ -32,16 +32,16 @@ struct ubx_port_cpp : public ubx_port
 		ubx_port::in_interaction = NULL;
 		ubx_port::out_interaction = NULL;
 		ubx_port::stat_writes = 0;
-		ubx_port::stat_reades = 0;
+		ubx_port::stat_reads = 0;
 	};
 };
 
 struct ubx_config_cpp : public ubx_config
 {
 	ubx_config_cpp(
-	const char* _name,
-	const char* _type_name,
-	const char* _doc)
+	const char *_name,
+	const char *_type_name,
+	const char *_doc)
 	{
 		name = _name;
 		type_name = _type_name;
@@ -52,11 +52,11 @@ struct ubx_config_cpp : public ubx_config
 
 struct ubx_type_cpp : public ubx_type
 {
-	ubx_type_cpp (
-		const char* _name,
+	ubx_type_cpp(
+		const char *_name,
 		uint32_t _type_class,
 		unsigned long _size,
-		const void* _private_data)
+		const void *_private_data)
 	{
 		ubx_type::name = _name;
 		ubx_type::type_class = _type_class;
@@ -67,17 +67,17 @@ struct ubx_type_cpp : public ubx_type
 
 struct ubx_block_cpp : public ubx_block
 {
-	ubx_block_cpp (
-		const char* _name,
+	ubx_block_cpp(
+		const char *_name,
 		uint32_t _type,
-		const char* _meta_data,
-		ubx_config_t* _configs,
-		ubx_port_t* _ports,
-		int(*_init) (struct ubx_block*),
-		int(*_start) (struct ubx_block*),
-		void(*_stop) (struct ubx_block*),
-		void(*_step) (struct ubx_block*),
-		void(*_cleanup) (struct ubx_block*))
+		const char *_meta_data,
+		ubx_config_t *_configs,
+		ubx_port_t *_ports,
+		int (*_init)(struct ubx_block *),
+		int (*_start)(struct ubx_block *),
+		void (*_stop)(struct ubx_block *),
+		void (*_step)(struct ubx_block *),
+		void (*_cleanup)(struct ubx_block *))
 	{
 		name = _name;
 		meta_data = _meta_data;

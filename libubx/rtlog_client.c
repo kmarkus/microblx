@@ -23,9 +23,9 @@
 #include "rtlog_client.h"
 
 #ifdef DEBUG
-# define DBG(fmt, args...) ( fprintf(stderr, "%s: ", __FUNCTION__), \
-			     fprintf(stderr, fmt, ##args),	    \
-			     fprintf(stderr, "\n") )
+# define DBG(fmt, args...) (fprintf(stderr, "%s: ", __func__), \
+			    fprintf(stderr, fmt, ##args),	    \
+			    fprintf(stderr, "\n"))
 #else
 # define DBG(fmt, args...)  do {} while (0)
 #endif
@@ -37,24 +37,22 @@
  * @param shm_file filename of shm file
  * @return 0 if successful, non-zero (errno) in case of failure.
  */
-static int get_shm_file_size(const char* shm_file, int* sz)
+static int get_shm_file_size(const char *shm_file, int *sz)
 {
 	int ret = EINVAL;
 	struct stat st;
 	char shm_path[NAME_MAX];
 
-	if(snprintf(shm_path,
+	if (snprintf(shm_path,
 		    NAME_MAX,
 		    "/dev/shm/%s",
 		    shm_file) < 0) {
-
 		DBG("failed to create shm file path\n");
 		ret = ENAMETOOLONG;
 		goto out;
 	}
 
-	if(stat(shm_path, &st) == -1)
-	{
+	if (stat(shm_path, &st) == -1) {
 		ret = errno;
 		DBG("failed to stat file %s: %s\n",
 		    shm_path,
@@ -80,27 +78,35 @@ void logc_seek_to_oldest(logc_info_t *inf)
 {
 	log_wrap_off_t new = inf->buf_ptr->w;
 
-	/* advance by LOGC_SEEK_OLDEST_CRUSH_ZONE elem. Moving beyond
-	 * wptr means we need to remember to decrement wrap. */
+	/*
+	 * advance by LOGC_SEEK_OLDEST_CRUSH_ZONE elem. Moving beyond
+	 * wptr means we need to remember to decrement wrap.
+	 */
 	new.off += LOGC_SEEK_OLDEST_CRUSH_ZONE * inf->frame_size;
 
 	/* wrap? */
 	if (new.off > inf->shm_size - inf->frame_size - sizeof(log_buf_t)) {
-		/* yes. No need to decrement wrap because we moved
-		 * ahead of wptr, which already "decremented" it. */
+		/*
+		 * yes. No need to decrement wrap because we moved
+		 * ahead of wptr, which already "decremented" it.
+		 */
 		new.off = new.off - inf->shm_size + sizeof(log_buf_t);
 		DBG("wrapped");
 	} else {
-		/* no wrap occurred and buffer has never wrapped
+		/*
+		 * no wrap occurred and buffer has never wrapped
 		 * before. This means 0 is our oldest message (if its
-		 * there at all). */
-		if(new.wrap == 0) {
+		 * there at all).
+		 */
+		if (new.wrap == 0) {
 			DBG("no wrap and wrap=0. starting at off=0");
 			new.off = 0;
 		} else {
-		        /* no wrap occurreed and buffer is full (has
+			/*
+			 * no wrap occurreed and buffer is full (has
 			 * wrapped before), so we need to decrement
-			 * wrap for moving beyond wptr */
+			 * wrap for moving beyond wptr
+			 */
 			DBG("no wrap and wrap=%u. decrementing wrap", new.wrap);
 			new.wrap--;
 		}
@@ -131,19 +137,19 @@ void logc_reset_read(logc_info_t *inf)
  * @return 0 if successfull, non-zero (errno) in case of failure.
  */
 int logc_init(logc_info_t *inf,
-	     const char* filename,
+	     const char *filename,
 	     uint32_t frame_size)
 {
 	int ret = EINVAL;
 
 	inf->frame_size = frame_size;
 
-	if((ret = get_shm_file_size(filename, &inf->shm_size)) != 0)
+	ret = get_shm_file_size(filename, &inf->shm_size);
+	if (ret != 0)
 		goto out;
 
 	inf->shm_fd = shm_open(filename, O_RDONLY, 0640);
-
-	if(inf->shm_fd == -1) {
+	if (inf->shm_fd == -1) {
 		ret = errno;
 		DBG("shm_open failed: %s", strerror(errno));
 		goto out;
@@ -152,7 +158,6 @@ int logc_init(logc_info_t *inf,
 	inf->buf_ptr = mmap(0, inf->shm_size,
 			    PROT_READ, MAP_SHARED,
 			    inf->shm_fd, 0);
-
 	if (inf->buf_ptr == MAP_FAILED) {
 		ret = errno;
 		DBG("mmap failed: %s", strerror(errno));
@@ -164,8 +169,8 @@ int logc_init(logc_info_t *inf,
 	DBG("inf->buf_ptr:          %p", inf->buf_ptr);
 	DBG("inf->buf_ptr->data:    %p", inf->buf_ptr->data);
 	DBG("inf->frame_size:       %u", inf->frame_size);
-	DBG("inf->buf_ptr->w.off:    %u", inf->buf_ptr->w.off);
-	DBG("inf->r.off:             %u", inf->r.off);
+	DBG("inf->buf_ptr->w.off:   %u", inf->buf_ptr->w.off);
+	DBG("inf->r.off:            %u", inf->r.off);
 
 	/* all OK */
 	ret = 0;
@@ -180,7 +185,7 @@ out:
  */
 void logc_close(logc_info_t *inf)
 {
-	munmap((void*) inf->buf_ptr, inf->shm_size);
+	munmap((void *) inf->buf_ptr, inf->shm_size);
 	close(inf->shm_fd);
 }
 
@@ -200,7 +205,7 @@ static log_wrap_off_t calc_next_roff(logc_info_t *inf)
 	new.off = inf->r.off + inf->frame_size;
 
 	/* check for wrapping */
-	if(new.off > inf->shm_size - inf->frame_size - sizeof(log_buf_t)) {
+	if (new.off > inf->shm_size - inf->frame_size - sizeof(log_buf_t)) {
 		new.off = 0;
 		new.wrap++;
 	}
@@ -216,21 +221,21 @@ static log_wrap_off_t calc_next_roff(logc_info_t *inf)
  */
 enum READ_STATUS logc_has_data(const logc_info_t *inf)
 {
-	int ret=NO_DATA;
+	int ret = NO_DATA;
 	log_wrap_off_t w, r;	/* write and read wrap and offsets */
 
 	/* atomic */
 	w = inf->buf_ptr->w;
 	r = inf->r;
 
-	if(w.off == r.off && w.wrap == r.wrap) {
+	if (w.off == r.off && w.wrap == r.wrap) {
 		ret = NO_DATA;
 		goto out;
-	} else if((w.off > r.off && w.wrap == r.wrap) ||
+	} else if ((w.off > r.off && w.wrap == r.wrap) ||
 		  (w.off < r.off && w.wrap - r.wrap == 1)) {
 		ret = NEW_DATA;
 		goto new_data;
-	} else if(w.wrap - r.wrap >= 2 ||
+	} else if (w.wrap - r.wrap >= 2 ||
 		  (w.off >= r.off && w.wrap - r.wrap == 1)) {
 		ret = OVERRUN;
 		goto out;
@@ -257,7 +262,7 @@ out:
  * @param frame outvalue to store the read frame.
  * @return READ_STATUS
  */
-enum READ_STATUS logc_read_frame(logc_info_t *inf, volatile log_frame_t** frame)
+enum READ_STATUS logc_read_frame(logc_info_t *inf, volatile log_frame_t **frame)
 {
 	int ret = NO_DATA;
 
@@ -267,12 +272,12 @@ enum READ_STATUS logc_read_frame(logc_info_t *inf, volatile log_frame_t** frame)
 	 * if we have anything but NEW_DATA (NO_DATA, OVERRUN),
 	 * return that there is nothing to read.
 	 */
-	if(ret != NEW_DATA)
+	if (ret != NEW_DATA)
 		goto out;
 
 	/* we have valid new data, return current and advance roff */
-	*frame = (volatile log_frame_t*) &inf->buf_ptr->data[inf->r.off];
-	inf->r =  calc_next_roff(inf);
+	*frame = (volatile log_frame_t *)&inf->buf_ptr->data[inf->r.off];
+	inf->r = calc_next_roff(inf);
 out:
 	return ret;
 }
@@ -284,7 +289,7 @@ out:
  * @param inf local data
  * @return pointer to the frame payload
  */
-void* logc_dataptr_get(volatile log_frame_t* frame)
+void *logc_dataptr_get(volatile log_frame_t *frame)
 {
 	return (void *)frame;
 }

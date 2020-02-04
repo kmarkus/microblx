@@ -1,8 +1,10 @@
 /*
  * microblx: embedded, realtime safe, reflective function blocks.
  *
- * Copyright (C) 2013,2014 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
- * Copyright (C) 2014-2018 Markus Klotzbuecher <mk@mkio.de>
+ * Copyright (C) 2013,2014 Markus Klotzbuecher
+ *                    <markus.klotzbuecher@mech.kuleuven.be>
+ * Copyright (C) 2014-2018 Markus Klotzbuecher
+ *                    <mk@mkio.de>
  *
  * SPDX-License-Identifier: MPL-2.0
  */
@@ -31,20 +33,20 @@
 #define log_notice(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_NOTICE, ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
 #define log_info(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_INFO,   ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
 
-#define logf_emerg(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_EMERG,  ni, __FUNCTION__, fmt, ##__VA_ARGS__)
-#define logf_alert(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_ALERT,  ni, __FUNCTION__, fmt, ##__VA_ARGS__)
-#define logf_crit(ni,  fmt, ...)	ubx_log(UBX_LOGLEVEL_CRIT,   ni, __FUNCTION__, fmt, ##__VA_ARGS__)
-#define logf_err(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_ERR,    ni, __FUNCTION__, fmt, ##__VA_ARGS__)
-#define logf_warn(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_WARN,   ni, __FUNCTION__, fmt, ##__VA_ARGS__)
-#define logf_notice(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_NOTICE, ni, __FUNCTION__, fmt, ##__VA_ARGS__)
-#define logf_info(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_INFO,   ni, __FUNCTION__, fmt, ##__VA_ARGS__)
+#define logf_emerg(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_EMERG,  ni, __func__, fmt, ##__VA_ARGS__)
+#define logf_alert(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_ALERT,  ni, __func__, fmt, ##__VA_ARGS__)
+#define logf_crit(ni,  fmt, ...)	ubx_log(UBX_LOGLEVEL_CRIT,   ni, __func__, fmt, ##__VA_ARGS__)
+#define logf_err(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_ERR,    ni, __func__, fmt, ##__VA_ARGS__)
+#define logf_warn(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_WARN,   ni, __func__, fmt, ##__VA_ARGS__)
+#define logf_notice(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_NOTICE, ni, __func__, fmt, ##__VA_ARGS__)
+#define logf_info(ni, fmt, ...)		ubx_log(UBX_LOGLEVEL_INFO,   ni, __func__, fmt, ##__VA_ARGS__)
 
 #ifdef UBX_DEBUG
 # define log_debug(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_DEBUG,  ni, CORE_LOG_SRC, fmt, ##__VA_ARGS__)
-# define logf_debug(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_DEBUG,  ni, __FUNCTION__, fmt, ##__VA_ARGS__)
+# define logf_debug(ni, fmt, ...)	ubx_log(UBX_LOGLEVEL_DEBUG,  ni, __func__, fmt, ##__VA_ARGS__)
 #else
-# define log_debug(ni, fmt, ...) 	do {} while (0)
-# define logf_debug(ni, fmt, ...) 	do {} while (0)
+# define log_debug(ni, fmt, ...)	do {} while (0)
+# define logf_debug(ni, fmt, ...)	do {} while (0)
 #endif
 
 
@@ -58,9 +60,9 @@ const char *block_states[] = {	"preinit", "inactive", "active" };
  *
  * @return const char pointer to string name.
  */
-const char* block_state_tostr(unsigned int state)
+const char *block_state_tostr(unsigned int state)
 {
-	if(state>=sizeof(block_states))
+	if (state >= sizeof(block_states))
 		return "invalid";
 	return block_states[state];
 }
@@ -73,9 +75,9 @@ const char* block_state_tostr(unsigned int state)
  *
  * @return type name
  */
-const char* get_typename(ubx_data_t *data)
+const char *get_typename(ubx_data_t *data)
 {
-	if(data && data->type)
+	if (data && data->type)
 		return data->type->name;
 	return NULL;
 }
@@ -88,39 +90,43 @@ const char* get_typename(ubx_data_t *data)
  *
  * @return 0 if Ok, non-zero otherwise.
  */
-int ubx_module_load(ubx_node_info_t* ni, const char *lib)
+int ubx_module_load(ubx_node_info_t *ni, const char *lib)
 {
 	int ret = -1;
-	char* err;
-	ubx_module_t* mod;
+	char *err;
+	ubx_module_t *mod;
 
 	HASH_FIND_STR(ni->modules, lib, mod);
 
-	if(mod != NULL) {
+	if (mod != NULL) {
 		logf_err(ni, "module %s already loaded", lib);
 		goto out;
-	};
+	}
 
 	/* allocate data */
-	if((mod = calloc(sizeof(ubx_module_t), 1)) == NULL) {
+	mod = calloc(sizeof(ubx_module_t), 1);
+	if (mod == NULL) {
 		logf_err(ni, "failed to alloc module data");
 		goto out;
 	}
 
-	if((mod->id = strdup(lib))==NULL) {
+	mod->id = strdup(lib);
+	if (mod->id == NULL) {
 		logf_err(ni, "cloning mod name failed");
 		goto out_err_free_mod;
 	}
 
-	if((mod->handle = dlopen(lib, RTLD_NOW)) == NULL) {
-		ubx_log(UBX_LOGLEVEL_ERR, ni, "dlopen", "%s", dlerror())
+	mod->handle = dlopen(lib, RTLD_NOW);
+	if (mod->handle == NULL) {
+		ubx_log(UBX_LOGLEVEL_ERR, ni, "dlopen", "%s", dlerror());
 		goto out_err_free_id;
 	}
 
 	dlerror();
 
 	mod->init = dlsym(mod->handle, "__ubx_initialize_module");
-	if ((err = dlerror()) != NULL)  {
+	err = dlerror();
+	if (err != NULL)  {
 		logf_err(ni, "no module_init for mod %s found: %s", lib, err);
 		goto out_err_close;
 	}
@@ -128,7 +134,8 @@ int ubx_module_load(ubx_node_info_t* ni, const char *lib)
 	dlerror();
 
 	mod->cleanup = dlsym(mod->handle, "__ubx_cleanup_module");
-	if ((err = dlerror()) != NULL)  {
+	err = dlerror();
+	if (err != NULL)  {
 		logf_err(ni, "no module_cleanup found for %s: %s", lib, err);
 		goto out_err_close;
 	}
@@ -136,12 +143,12 @@ int ubx_module_load(ubx_node_info_t* ni, const char *lib)
 	dlerror();
 
 	mod->spdx_license_id = dlsym(mod->handle, "__ubx_module_license_spdx");
-	if ((err = dlerror()) != NULL)  {
+	err = dlerror();
+	if (err != NULL)
 		logf_warn(ni, "missing UBX_MODULE_LICENSE_SPDX in module %s", lib);
-	}
 
 	/* execute module init */
-	if(mod->init(ni) != 0) {
+	if (mod->init(ni) != 0) {
 		logf_err(ni, "module_init of %s failed", lib);
 		goto out_err_close;
 	}
@@ -150,19 +157,18 @@ int ubx_module_load(ubx_node_info_t* ni, const char *lib)
 	HASH_ADD_KEYPTR(hh, ni->modules, mod->id, strlen(mod->id), mod);
 
 	logf_debug(ni, "loaded %s", lib);
-	ret=0;
+	ret = 0;
 	goto out;
 
  out_err_close:
 	dlclose(mod->handle);
  out_err_free_id:
-	free((char*) mod->id);
+	free((char *)mod->id);
  out_err_free_mod:
 	free(mod);
  out:
 	return ret;
 }
-
 
 /**
  * ubx_module_unload - unload a module from a node.
@@ -170,13 +176,13 @@ int ubx_module_load(ubx_node_info_t* ni, const char *lib)
  * @param ni node_info
  * @param lib name of module library to unload
  */
-void ubx_module_unload(ubx_node_info_t* ni, const char *lib)
+void ubx_module_unload(ubx_node_info_t *ni, const char *lib)
 {
 	ubx_module_t *mod;
 
 	HASH_FIND_STR(ni->modules, lib, mod);
 
-	if(mod==NULL) {
+	if (mod == NULL) {
 		logf_err(ni, "unknown module %s", lib);
 		goto out;
 	}
@@ -186,12 +192,11 @@ void ubx_module_unload(ubx_node_info_t* ni, const char *lib)
 	mod->cleanup(ni);
 
 	dlclose(mod->handle);
-	free((char*) mod->id);
+	free((char *)mod->id);
 	free(mod);
  out:
 	return;
 }
-
 
 /**
  * initalize node_info
@@ -200,32 +205,33 @@ void ubx_module_unload(ubx_node_info_t* ni, const char *lib)
  *
  * @return 0 if ok, -1 otherwise.
  */
-int ubx_node_init(ubx_node_info_t* ni, const char *name)
+int ubx_node_init(ubx_node_info_t *ni, const char *name)
 {
-	int ret=-1;
+	int ret = -1;
 
 	ni->loglevel = (ni->loglevel == 0) ?
 		UBX_LOGLEVEL_DEFAULT : ni->loglevel;
 
-	if(ubx_log_init(ni)) {
+	if (ubx_log_init(ni)) {
 		fprintf(stderr, "Error: failed to initalize logging.");
 		goto out;
 	}
 
-	if(name==NULL) {
+	if (name == NULL) {
 		logf_err(ni, "node name is NULL");
 		goto out;
 	}
 
 	logf_notice(ni, "node_init: %s, loglevel: %u", name, ni->loglevel);
 
-	if((ni->name=strdup(name))==NULL) {
+	ni->name = strdup(name);
+	if (ni->name == NULL) {
 		logf_err(ni, "strdup failed: %m");
 		goto out;
 	}
 
 #ifdef CONFIG_DUMPABLE
-	if(prctl(PR_SET_DUMPABLE, 1, 0, 0, 0)!=0) {
+	if (prctl(PR_SET_DUMPABLE, 1, 0, 0, 0) != 0) {
 		logf_err(ni, "setting PR_SET_DUMPABLE failed: %m");
 		goto out;
 	}
@@ -233,18 +239,18 @@ int ubx_node_init(ubx_node_info_t* ni, const char *name)
 #endif
 
 #ifdef CONFIG_MLOCK_ALL
-	if(mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
+	if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
 		logf_err(ni, "mlockall failed: %m");
 		goto out;
 	};
 	logf_info(ni, "locking memory succeeded");
 #endif
 
-	ni->blocks=NULL;
-	ni->types=NULL;
-	ni->modules=NULL;
-	ni->cur_seqid=0;
-	ret=0;
+	ni->blocks = NULL;
+	ni->types = NULL;
+	ni->modules = NULL;
+	ni->cur_seqid = 0;
+	ret = 0;
  out:
 	return ret;
 }
@@ -257,7 +263,7 @@ int ubx_node_init(ubx_node_info_t* ni, const char *name)
  *
  * @param ni
  */
-void ubx_node_cleanup(ubx_node_info_t* ni)
+void ubx_node_cleanup(ubx_node_info_t *ni)
 {
 	int cnt;
 	ubx_module_t *m, *mtmp;
@@ -285,7 +291,7 @@ void ubx_node_cleanup(ubx_node_info_t* ni)
 
 	/* rm all non prototype blocks */
 	HASH_ITER(hh, ni->blocks, b, btmp) {
-		if (b->block_state == BLOCK_STATE_PREINIT && b->prototype!=NULL) {
+		if (b->block_state == BLOCK_STATE_PREINIT && b->prototype != NULL) {
 			logf_debug(ni, "removing block %s", b->name);
 			if (ubx_block_rm(ni, b->name) != 0)
 				logf_err(ni, "ubx_block_rm failed for %s", b->name);
@@ -298,11 +304,14 @@ void ubx_node_cleanup(ubx_node_info_t* ni)
 		ubx_module_unload(ni, m->id);
 	}
 
-	if ((cnt = ubx_num_types(ni)) > 0)
+	cnt = ubx_num_types(ni);
+	if (cnt > 0)
 		logf_warn(ni, "%d types after cleanup", cnt);
-	if ((cnt = ubx_num_modules(ni)) > 0)
+	cnt = ubx_num_modules(ni);
+	if (cnt > 0)
 		logf_warn(ni, "%d modules after cleanup", cnt);
-	if ((cnt = ubx_num_blocks(ni)) > 0)
+	cnt = ubx_num_blocks(ni);
+	if (cnt > 0)
 		logf_warn(ni, "%d blocks after cleanup", cnt);
 }
 
@@ -314,13 +323,13 @@ void ubx_node_cleanup(ubx_node_info_t* ni)
  *
  * @param ni
  */
-void ubx_node_rm(ubx_node_info_t* ni)
+void ubx_node_rm(ubx_node_info_t *ni)
 {
 	logf_info(ni, "removing node %s", ni->name);
 	ubx_node_cleanup(ni);
 	ubx_log_cleanup(ni);
-	free((char*) ni->name);
-	ni->name=NULL;
+	free((char *) ni->name);
+	ni->name = NULL;
 }
 
 /**
@@ -331,30 +340,35 @@ void ubx_node_rm(ubx_node_info_t* ni)
  *
  * @return 0 if Ok, < 0 otherwise.
  */
-int ubx_block_register(ubx_node_info_t *ni, ubx_block_t* block)
+int ubx_block_register(ubx_node_info_t *ni, ubx_block_t *block)
 {
 	int ret = -1;
 	ubx_config_t *c;
 	ubx_block_t *tmpc;
 
-	/* don't allow instances to be registered into more than one node_info */
-	if(block->prototype != NULL && block->ni != NULL) {
+	/*
+	 * don't allow instances to be registered into more
+	 * than one node_info
+	 */
+	if (block->prototype != NULL && block->ni != NULL) {
 		logf_err(ni, "block %s already registered", block->name);
 		goto out;
 	}
 
-	if(block->type!=BLOCK_TYPE_COMPUTATION &&
-	   block->type!=BLOCK_TYPE_INTERACTION) {
+	if (block->type != BLOCK_TYPE_COMPUTATION &&
+	    block->type != BLOCK_TYPE_INTERACTION) {
 		logf_err(ni, "invalid block type %d", block->type);
 		goto out;
 	}
 
 	/* consistency checks */
-	for(unsigned int i=0; i<get_num_configs(block); i++) {
+	for (unsigned int i = 0; i < get_num_configs(block); i++) {
 		c = &block->configs[i];
 
-		/* if min is set and max is unset, then max defaults
-		 * to CONFIG_LEN_MAX */
+		/*
+		 * if min is set and max is unset, then max defaults
+		 * to CONFIG_LEN_MAX
+		 */
 		if (c->max == 0 && c->min > 0)
 			c->max = CONFIG_LEN_MAX;
 
@@ -367,20 +381,21 @@ int ubx_block_register(ubx_node_info_t *ni, ubx_block_t* block)
 
 	HASH_FIND_STR(ni->blocks, block->name, tmpc);
 
-	if(tmpc!=NULL) {
+	if (tmpc != NULL) {
 		log_err(ni, "block %s already registered", block->name);
 		goto out;
-	};
+	}
 
-	block->ni=ni;
+	block->ni = ni;
 
 	/* resolve types */
-	if((ret=ubx_resolve_types(block)) !=0)
+	ret = ubx_resolve_types(block);
+	if (ret != 0)
 		goto out;
 
 	HASH_ADD_KEYPTR(hh, ni->blocks, block->name, strlen(block->name), block);
 	logf_debug(ni, "registered %s", block->name);
-	ret=0;
+	ret = 0;
  out:
 	return ret;
 }
@@ -393,11 +408,12 @@ int ubx_block_register(ubx_node_info_t *ni, ubx_block_t* block)
  *
  * @return ubx_block_t*
  */
-ubx_block_t* ubx_block_get(ubx_node_info_t *ni, const char *name)
+ubx_block_t *ubx_block_get(ubx_node_info_t *ni, const char *name)
 {
-	ubx_block_t *tmpc=NULL;
+	ubx_block_t *tmpc = NULL;
 
-	if(name==NULL) goto out;
+	if (name == NULL)
+		goto out;
 
 	HASH_FIND_STR(ni->blocks, name, tmpc);
 out:
@@ -413,13 +429,13 @@ out:
  *
  * @return the unregistered block or NULL in case of failure.
  */
-ubx_block_t* ubx_block_unregister(ubx_node_info_t* ni, const char* name)
+ubx_block_t *ubx_block_unregister(ubx_node_info_t *ni, const char *name)
 {
-	ubx_block_t *tmpc=NULL;
+	ubx_block_t *tmpc = NULL;
 
 	HASH_FIND_STR(ni->blocks, name, tmpc);
 
-	if(tmpc==NULL) {
+	if (tmpc == NULL) {
 		logf_err(ni, "block %s not registered", name);
 		goto out;
 	}
@@ -438,40 +454,41 @@ ubx_block_t* ubx_block_unregister(ubx_node_info_t* ni, const char* name)
  *
  * @return
  */
-int ubx_type_register(ubx_node_info_t* ni, ubx_type_t* type)
+int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type)
 {
 	int ret;
-	ubx_type_ref_t* typref;
+	ubx_type_ref_t *typeref;
 
-	if (type==NULL) {
+	if (type == NULL) {
 		logf_err(ni, "type is NULL");
 		ret = EINVALID_TYPE;
 		goto out;
 	}
 
 	/* TODO consistency checkm type->name must exists,... */
-	HASH_FIND_STR(ni->types, type->name, typref);
+	HASH_FIND_STR(ni->types, type->name, typeref);
 
-	if (typref != NULL) {
+	if (typeref != NULL) {
 		/* check if types are the same, if yes no error */
 		logf_err(ni, "%s already registered.", type->name);
 		ret = EALREADY_REGISTERED;
 		goto out;
-	};
+	}
 
-	if ((typref = malloc(sizeof(ubx_type_ref_t))) == NULL) {
+	typeref = malloc(sizeof(ubx_type_ref_t));
+	if (typeref == NULL) {
 		logf_err(ni, "failed to alloc struct type_ref");
 		ret = EOUTOFMEM;
 		goto out;
 	}
 
-	typref->type_ptr=type;
-	typref->seqid=ni->cur_seqid++;
+	typeref->type_ptr = type;
+	typeref->seqid = ni->cur_seqid++;
 
 	/* compute md5 fingerprint for type */
-	md5((const unsigned char*) type->name, strlen(type->name), type->hash);
+	md5((const unsigned char *)type->name, strlen(type->name), type->hash);
 
-	HASH_ADD_KEYPTR(hh, ni->types, type->name, strlen(type->name), typref);
+	HASH_ADD_KEYPTR(hh, ni->types, type->name, strlen(type->name), typeref);
 	ret = 0;
  out:
 	return ret;
@@ -487,21 +504,22 @@ int ubx_type_register(ubx_node_info_t* ni, ubx_type_t* type)
  *
  * @return
  */
-ubx_type_t* ubx_type_unregister(ubx_node_info_t* ni, const char* name)
+ubx_type_t *ubx_type_unregister(ubx_node_info_t *ni, const char *name)
 {
-	ubx_type_t* ret = NULL;
-	ubx_type_ref_t* typref = NULL;
+	ubx_type_t *ret = NULL;
+	ubx_type_ref_t *typeref = NULL;
 
-	HASH_FIND_STR(ni->types, name, typref);
+	HASH_FIND_STR(ni->types, name, typeref);
 
-	if(typref==NULL) {
+	if (typeref == NULL) {
 		logf_err(ni, "type %s not registered", name);
 		goto out;
-	};
+	}
 
-	HASH_DEL(ni->types, typref);
-	ret=typref->type_ptr;
-	free(typref);
+	HASH_DEL(ni->types, typeref);
+	ret = typeref->type_ptr;
+	free(typeref);
+
  out:
 	return ret;
 }
@@ -514,14 +532,14 @@ ubx_type_t* ubx_type_unregister(ubx_node_info_t* ni, const char* name)
  *
  * @return pointer to ubx_type or NULL if not found.
  */
-ubx_type_t* ubx_type_get(ubx_node_info_t* ni, const char* name)
+ubx_type_t *ubx_type_get(ubx_node_info_t *ni, const char *name)
 {
-	ubx_type_ref_t* typref=NULL;
+	ubx_type_ref_t *typeref = NULL;
 
-	HASH_FIND_STR(ni->types, name, typref);
+	HASH_FIND_STR(ni->types, name, typeref);
 
-	if(typref)
-		return typref->type_ptr;
+	if (typeref)
+		return typeref->type_ptr;
 
 	return NULL;
 }
@@ -537,47 +555,48 @@ ubx_type_t* ubx_type_get(ubx_node_info_t* ni, const char* name)
  *
  * @return 0 if all types are resolved, -1 if not.
  */
-int ubx_resolve_types(ubx_block_t* b)
+int ubx_resolve_types(ubx_block_t *b)
 {
 	int ret = EINVALID_TYPE;
-	ubx_type_t* typ;
-	ubx_port_t* port_ptr;
+	ubx_type_t *typ;
+	ubx_port_t *port_ptr;
 	ubx_config_t *config_ptr;
-
-	ubx_node_info_t* ni = b->ni;
+	ubx_node_info_t *ni = b->ni;
 
 	/* for each port locate type and resolve */
-	if(b->ports) {
-		for(port_ptr=b->ports; port_ptr->name!=NULL; port_ptr++) {
+	if (b->ports) {
+		for (port_ptr = b->ports; port_ptr->name != NULL; port_ptr++) {
 			/* in-type */
-			if(port_ptr->in_type_name) {
-				if((typ = ubx_type_get(ni, port_ptr->in_type_name)) == NULL) {
+			if (port_ptr->in_type_name) {
+				typ = ubx_type_get(ni, port_ptr->in_type_name);
+				if (typ == NULL) {
 					ubx_err(b, "in-port %s: unknown type %s",
 						port_ptr->name,
 						port_ptr->in_type_name);
 					goto out;
 				}
-				port_ptr->in_type=typ;
+				port_ptr->in_type = typ;
 			}
 
 			/* out-type */
-			if(port_ptr->out_type_name) {
-				if((typ = ubx_type_get(ni, port_ptr->out_type_name)) == NULL) {
+			if (port_ptr->out_type_name) {
+				typ = ubx_type_get(ni, port_ptr->out_type_name);
+				if (typ == NULL) {
 					ubx_err(b, "out-port %s: unknown type %s",
 						port_ptr->name,
 						port_ptr->out_type_name);
-					
 					goto out;
 				}
-				port_ptr->out_type=typ;
+				port_ptr->out_type = typ;
 			}
 		}
 	}
 
 	/* configs */
-	if(b->configs!=NULL) {
-		for(config_ptr=b->configs; config_ptr->name!=NULL; config_ptr++) {
-			if((typ=ubx_type_get(ni, config_ptr->type_name)) == NULL)  {
+	if (b->configs != NULL) {
+		for (config_ptr = b->configs; config_ptr->name != NULL; config_ptr++) {
+			typ = ubx_type_get(ni, config_ptr->type_name);
+			if (typ == NULL)  {
 				ubx_err(b, "config %s: unknown type %s",
 					config_ptr->name,
 					config_ptr->type_name);
@@ -603,27 +622,30 @@ int ubx_resolve_types(ubx_block_t* b)
  *
  * @return ubx_data_t* or NULL in case of error.
  */
-ubx_data_t* __ubx_data_alloc(const ubx_type_t* typ, const long array_len)
+ubx_data_t *__ubx_data_alloc(const ubx_type_t *typ, const long array_len)
 {
-	ubx_data_t* d = NULL;
+	ubx_data_t *d = NULL;
 
-	if(typ==NULL)
+	if (typ == NULL)
 		goto out;
 
-	if((d=calloc(1, sizeof(ubx_data_t)))==NULL)
+	d = calloc(1, sizeof(ubx_data_t));
+	if (d == NULL)
 		goto out_nomem;
 
 	d->type = typ;
 	d->len = array_len;
 
-	if((d->data=calloc(array_len, typ->size))==NULL)
+	d->data = calloc(array_len, typ->size);
+	if (d->data == NULL)
 		goto out_nomem;
 
 	/* all ok */
 	goto out;
 
  out_nomem:
-	if(d) free(d);
+	if (d)
+		free(d);
 	d = NULL;
 
  out:
@@ -641,26 +663,27 @@ ubx_data_t* __ubx_data_alloc(const ubx_type_t* typ, const long array_len)
  *
  * @return ubx_data_t* or NULL in case of error.
  */
-ubx_data_t* ubx_data_alloc(ubx_node_info_t *ni,
-			   const char* typname,
+ubx_data_t *ubx_data_alloc(ubx_node_info_t *ni,
+			   const char *typname,
 			   long array_len)
 {
-	ubx_type_t* t = NULL;
-	ubx_data_t* d = NULL;
+	ubx_type_t *t = NULL;
+	ubx_data_t *d = NULL;
 
-	if(ni==NULL) {
+	if (ni == NULL) {
 		logf_err(ni, "node_info NULL");
 		goto out;
 	}
 
-	if((t=ubx_type_get(ni, typname))==NULL) {
+	t = ubx_type_get(ni, typname);
+	if (t == NULL) {
 		logf_err(ni, "unknown type %s", typname);
 		goto out;
 	}
 
 	d = __ubx_data_alloc(t, array_len);
 
-	if(!d)
+	if (!d)
 		logf_err(ni, "failed to alloc type %s[%ld]", typname, array_len);
  out:
 	return d;
@@ -668,16 +691,17 @@ ubx_data_t* ubx_data_alloc(ubx_node_info_t *ni,
 
 int ubx_data_resize(ubx_data_t *d, long newlen)
 {
-	int ret=-1;
+	int ret = -1;
 	void *ptr;
 	unsigned int newsz = newlen * d->type->size;
 
-	if((ptr=realloc(d->data, newsz))==NULL)
+	ptr = realloc(d->data, newsz);
+	if (ptr == NULL)
 		goto out;
 
-	d->data=ptr;
-	d->len=newlen;
-	ret=0;
+	d->data = ptr;
+	d->len = newlen;
+	ret = 0;
  out:
 	return ret;
 }
@@ -689,11 +713,11 @@ int ubx_data_resize(ubx_data_t *d, long newlen)
  * @param ni
  * @param d
  */
-void ubx_data_free(ubx_data_t* d)
+void ubx_data_free(ubx_data_t *d)
 {
 	d->refcnt--;
 
-	if(d->refcnt < 0) {
+	if (d->refcnt < 0) {
 		free(d->data);
 		free(d);
 	}
@@ -707,7 +731,7 @@ void ubx_data_free(ubx_data_t* d)
  *
  * @return length in bytes if OK, <=0 otherwise
  */
-long data_size(ubx_data_t* d)
+long data_size(ubx_data_t *d)
 {
 	if (d == NULL)
 		return EINVALID_TYPE;
@@ -718,25 +742,42 @@ long data_size(ubx_data_t* d)
 	return d->len * d->type->size;
 }
 
-int ubx_num_blocks(ubx_node_info_t* ni) { return HASH_COUNT(ni->blocks); }
-int ubx_num_types(ubx_node_info_t* ni) { return HASH_COUNT(ni->types); }
-int ubx_num_modules(ubx_node_info_t* ni) { return HASH_COUNT(ni->modules); }
+int ubx_num_blocks(ubx_node_info_t *ni)
+{
+	return HASH_COUNT(ni->blocks);
+}
+
+int ubx_num_types(ubx_node_info_t *ni)
+{
+	return HASH_COUNT(ni->types);
+}
+
+int ubx_num_modules(ubx_node_info_t *ni)
+{
+	return HASH_COUNT(ni->modules);
+}
 
 /**
  * ubx_port_free_data - free additional memory used by port.
  *
  * @param p port pointer
  */
-void ubx_port_free_data(ubx_port_t* p)
+void ubx_port_free_data(ubx_port_t *p)
 {
-	if(p->out_type_name) free((char*) p->out_type_name);
-	if(p->in_type_name) free((char*) p->in_type_name);
+	if (p->out_type_name)
+		free((char *)p->out_type_name);
+	if (p->in_type_name)
+		free((char *)p->in_type_name);
 
-	if(p->in_interaction) free((struct ubx_block_t*) p->in_interaction);
-	if(p->out_interaction) free((struct ubx_block_t*) p->out_interaction);
+	if (p->in_interaction)
+		free((struct ubx_block_t *)p->in_interaction);
+	if (p->out_interaction)
+		free((struct ubx_block_t *)p->out_interaction);
 
-	if(p->doc) free((char*) p->doc);
-	if(p->name) free((char*) p->name);
+	if (p->doc)
+		free((char *)p->doc);
+	if (p->name)
+		free((char *)p->name);
 
 	memset(p, 0x0, sizeof(ubx_port_t));
 }
@@ -760,9 +801,9 @@ void ubx_port_free_data(ubx_port_t* p)
  *
  * This function allocates memory.
  */
-int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* doc,
-			ubx_type_t* in_type, long in_data_len,
-			ubx_type_t* out_type, long out_data_len, uint32_t state)
+int ubx_clone_port_data(ubx_port_t *p, const char *name, const char *doc,
+			ubx_type_t *in_type, long in_data_len,
+			ubx_type_t *out_type, long out_data_len, uint32_t state)
 {
 	int ret = EOUTOFMEM;
 
@@ -770,34 +811,39 @@ int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* doc,
 
 	memset(p, 0x0, sizeof(ubx_port_t));
 
-	if((p->name=strdup(name))==NULL)
+	p->name = strdup(name);
+	if (p->name == NULL)
 		goto out;
 
-	if(doc)
-		if((p->doc=strdup(doc))==NULL)
+	if (doc) {
+		p->doc = strdup(doc);
+		if (p->doc == NULL)
 			goto out_err_free;
-
-	if(in_type!=NULL) {
-		if((p->in_type_name=strdup(in_type->name))==NULL)
-			goto out_err_free;
-		p->in_type=in_type;
-		p->attrs|=PORT_DIR_IN;
 	}
 
-	if(out_type!=NULL) {
-		if((p->out_type_name=strdup(out_type->name))==NULL)
+	if (in_type != NULL) {
+		p->in_type_name = strdup(in_type->name);
+		if (p->in_type_name == NULL)
 			goto out_err_free;
-		p->out_type=out_type;
-		p->attrs|=PORT_DIR_OUT;
+		p->in_type = in_type;
+		p->attrs |= PORT_DIR_IN;
 	}
 
-	p->in_data_len = (in_data_len==0) ? 1 : in_data_len;
-	p->out_data_len = (out_data_len==0) ? 1 : out_data_len;
+	if (out_type != NULL) {
+		p->out_type_name = strdup(out_type->name);
+		if (p->out_type_name == NULL)
+			goto out_err_free;
+		p->out_type = out_type;
+		p->attrs |= PORT_DIR_OUT;
+	}
 
-	p->state=state;
+	p->in_data_len = (in_data_len == 0) ? 1 : in_data_len;
+	p->out_data_len = (out_data_len == 0) ? 1 : out_data_len;
+
+	p->state = state;
 
 	/* all ok */
-	ret=0;
+	ret = 0;
 	goto out;
 
  out_err_free:
@@ -813,10 +859,14 @@ int ubx_clone_port_data(ubx_port_t *p, const char* name, const char* doc,
  */
 static void ubx_config_free_data(ubx_config_t *c)
 {
-	if(c->name) free((char*) c->name);
-	if(c->doc) free((char*) c->doc);
-	if(c->type_name) free((char*) c->type_name);
-	if(c->value) ubx_data_free(c->value);
+	if (c->name)
+		free((char *)c->name);
+	if (c->doc)
+		free((char *)c->doc);
+	if (c->type_name)
+		free((char *)c->type_name);
+	if (c->value)
+		ubx_data_free(c->value);
 	memset(c, 0x0, sizeof(ubx_config_t));
 }
 
@@ -833,21 +883,25 @@ static void ubx_config_free_data(ubx_config_t *c)
  * This function allocates memory.
  */
 static int ubx_clone_config_data(ubx_config_t *cnew,
-				 const char* name,
-				 const char* doc,
-				 const ubx_type_t* type,
+				 const char *name,
+				 const char *doc,
+				 const ubx_type_t *type,
 				 const long len)
 {
 	memset(cnew, 0x0, sizeof(ubx_config_t));
 
-	if((cnew->name=strdup(name))==NULL)
+	cnew->name = strdup(name);
+	if (cnew->name == NULL)
 		goto out_err;
 
-	if(doc)
-		if((cnew->doc=strdup(doc))==NULL)
+	if (doc) {
+		cnew->doc = strdup(doc);
+		if (cnew->doc == NULL)
 			goto out_err;
+	}
 
-	if((cnew->type_name=strdup(type->name))==NULL)
+	cnew->type_name = strdup(type->name);
+	if (cnew->type_name == NULL)
 		goto out_err;
 
 	cnew->value = __ubx_data_alloc(type, len);
@@ -856,7 +910,7 @@ static int ubx_clone_config_data(ubx_config_t *cnew,
 
  out_err:
 	ubx_config_free_data(cnew);
-	return EOUTOFMEM;
+	return -EOUTOFMEM;
 }
 
 /**
@@ -871,10 +925,10 @@ static int ubx_clone_config_data(ubx_config_t *cnew,
  */
 int ubx_config_assign(ubx_config_t *c, ubx_data_t *d)
 {
-	if(c->type != d->type)
+	if (c->type != d->type)
 		return ETYPE_MISMATCH;
 
-	if(c->value)
+	if (c->value)
 		ubx_data_free(c->value);
 
 	d->refcnt++;
@@ -898,25 +952,27 @@ void ubx_block_free(ubx_block_t *b)
 	ubx_config_t *config_ptr;
 
 	/* configs */
-	if(b->configs!=NULL) {
-		for(config_ptr=b->configs; config_ptr->name!=NULL; config_ptr++)
+	if (b->configs != NULL) {
+		for (config_ptr = b->configs; config_ptr->name != NULL; config_ptr++)
 			ubx_config_free_data(config_ptr);
-
 		free(b->configs);
 	}
 
 	/* ports */
-	if(b->ports!=NULL) {
-		for(port_ptr=b->ports; port_ptr->name!=NULL; port_ptr++)
+	if (b->ports != NULL) {
+		for (port_ptr = b->ports; port_ptr->name != NULL; port_ptr++)
 			ubx_port_free_data(port_ptr);
-
 		free(b->ports);
 	}
 
-	if(b->prototype) free(b->prototype);
-	if(b->meta_data) free((char*) b->meta_data);
-	if(b->name) free((char*) b->name);
-	if(b) free(b);
+	if (b->prototype)
+		free(b->prototype);
+	if (b->meta_data)
+		free((char *)b->meta_data);
+	if (b->name)
+		free((char *)b->name);
+	if (b)
+		free(b);
 }
 
 
@@ -928,14 +984,15 @@ void ubx_block_free(ubx_block_t *b)
  *
  * @return a pointer to the newly allocated block. Must be freed with
  */
-static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
+static ubx_block_t *ubx_block_clone(ubx_block_t *prot, const char *name)
 {
 	int i;
 	ubx_block_t *newb;
 	ubx_port_t *srcport, *tgtport;
 	ubx_config_t *srcconf, *tgtconf;
 
-	if((newb = calloc(1, sizeof(ubx_block_t)))==NULL)
+	newb = calloc(1, sizeof(ubx_block_t));
+	if (newb == NULL)
 		goto out_free;
 
 	newb->block_state = BLOCK_STATE_PREINIT;
@@ -944,24 +1001,31 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 	newb->type = prot->type;
 	newb->attrs = prot->attrs;
 
-	if((newb->name=strdup(name))==NULL) goto out_free;
-	if((newb->meta_data=strdup(prot->meta_data))==NULL) goto out_free;
-	if((newb->prototype=strdup(prot->name))==NULL) goto out_free;
+	newb->name = strdup(name);
+	if (newb->name == NULL)
+		goto out_free;
+	newb->meta_data = strdup(prot->meta_data);
+	if (newb->meta_data == NULL)
+		goto out_free;
+	newb->prototype = strdup(prot->name);
+	if (newb->prototype == NULL)
+		goto out_free;
 
 	/* copy configuration */
-	if(prot->configs) {
+	if (prot->configs) {
 		i = get_num_configs(prot);
 
-		if((newb->configs = calloc(i+1, sizeof(ubx_config_t)))==NULL)
+		newb->configs = calloc(i + 1, sizeof(ubx_config_t));
+		if (newb->configs == NULL)
 			goto out_free;
 
-		for(srcconf=prot->configs, tgtconf=newb->configs;
-		    srcconf->name!=NULL; srcconf++,tgtconf++) {
-			if(ubx_clone_config_data(tgtconf,
-						 srcconf->name,
-						 srcconf->doc,
-						 srcconf->type,
-						 srcconf->data_len) != 0)
+		for (srcconf = prot->configs, tgtconf = newb->configs;
+		    srcconf->name != NULL; srcconf++, tgtconf++) {
+			if (ubx_clone_config_data(tgtconf,
+						  srcconf->name,
+						  srcconf->doc,
+						  srcconf->type,
+						  srcconf->data_len) != 0)
 				goto out_free;
 			tgtconf->min = srcconf->min;
 			tgtconf->max = srcconf->max;
@@ -970,41 +1034,40 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
 
 
 	/* do we have ports? */
-	if(prot->ports) {
+	if (prot->ports) {
 		i = get_num_ports(prot);
 
-		if((newb->ports = calloc(i+1, sizeof(ubx_port_t)))==NULL)
+		newb->ports = calloc(i + 1, sizeof(ubx_port_t));
+		if (newb->ports == NULL)
 			goto out_free;
 
-		for(srcport=prot->ports, tgtport=newb->ports;
-		    srcport->name!=NULL;
-		    srcport++,tgtport++) {
-
-			if(ubx_clone_port_data(tgtport, srcport->name, srcport->doc,
-					       srcport->in_type, srcport->in_data_len,
-					       srcport->out_type, srcport->out_data_len,
-					       srcport->state) != 0)
+		for (srcport = prot->ports, tgtport = newb->ports;
+		     srcport->name != NULL;
+		     srcport++, tgtport++) {
+			if (ubx_clone_port_data(tgtport, srcport->name, srcport->doc,
+						srcport->in_type, srcport->in_data_len,
+						srcport->out_type, srcport->out_data_len,
+						srcport->state) != 0)
 				goto out_free;
-
 			tgtport->block = newb;
 		}
 	}
 
 	/* ops */
-	newb->init=prot->init;
-	newb->start=prot->start;
-	newb->stop=prot->stop;
-	newb->cleanup=prot->cleanup;
+	newb->init = prot->init;
+	newb->start = prot->start;
+	newb->stop = prot->stop;
+	newb->cleanup = prot->cleanup;
 
 	/* copy special ops */
-	switch(prot->type) {
+	switch (prot->type) {
 	case BLOCK_TYPE_COMPUTATION:
-		newb->step=prot->step;
+		newb->step = prot->step;
 		newb->stat_num_steps = 0;
 		break;
 	case BLOCK_TYPE_INTERACTION:
-		newb->read=prot->read;
-		newb->write=prot->write;
+		newb->read = prot->read;
+		newb->write = prot->write;
 		newb->stat_num_reads = 0;
 		newb->stat_num_writes = 0;
 		break;
@@ -1028,12 +1091,13 @@ static ubx_block_t* ubx_block_clone(ubx_block_t* prot, const char* name)
  *
  * @return the newly created block or NULL
  */
-ubx_block_t* ubx_block_create(ubx_node_info_t *ni, const char *type, const char* name)
+ubx_block_t *ubx_block_create(ubx_node_info_t *ni, const char *type, const char *name)
 {
 	ubx_block_t *prot, *newb;
-	newb=NULL;
 
-	if(name==NULL) {
+	newb = NULL;
+
+	if (name == NULL) {
 		logf_err(ni, "block_create: name is NULL");
 		goto out;
 	}
@@ -1041,7 +1105,7 @@ ubx_block_t* ubx_block_create(ubx_node_info_t *ni, const char *type, const char*
 	/* find prototype */
 	HASH_FIND_STR(ni->blocks, type, prot);
 
-	if(prot==NULL) {
+	if (prot == NULL) {
 		logf_err(ni, "no such block %s", type);
 		goto out;
 	}
@@ -1049,20 +1113,21 @@ ubx_block_t* ubx_block_create(ubx_node_info_t *ni, const char *type, const char*
 	/* check if name is already used */
 	HASH_FIND_STR(ni->blocks, name, newb);
 
-	if(newb!=NULL) {
+	if (newb != NULL) {
 		logf_err(ni, "existing block named %s", name);
-		newb=NULL;
+		newb = NULL;
 		goto out;
 	}
 
-	if((newb=ubx_block_clone(prot, name))==NULL) {
+	newb = ubx_block_clone(prot, name);
+	if (newb == NULL) {
 		logf_crit(ni, "failed to create block %s of type %s: out of mem",
 			  type, name);
 		goto out;
 	}
 
 	/* register block */
-	if(ubx_block_register(ni, newb) !=0){
+	if (ubx_block_register(ni, newb) != 0) {
 		logf_crit(ni, "failed to register block %s", name);
 		ubx_block_free(newb);
 		goto out;
@@ -1085,7 +1150,7 @@ ubx_block_t* ubx_block_create(ubx_node_info_t *ni, const char *type, const char*
  *
  * @return 0 if ok, error code otherwise.
  */
-int ubx_block_rm(ubx_node_info_t *ni, const char* name)
+int ubx_block_rm(ubx_node_info_t *ni, const char *name)
 {
 	int ret = -1;
 	ubx_block_t *b;
@@ -1110,12 +1175,11 @@ int ubx_block_rm(ubx_node_info_t *ni, const char* name)
 		goto out;
 	}
 
-	if (ubx_block_unregister(ni, name) == NULL) {
+	if (ubx_block_unregister(ni, name) == NULL)
 		logf_err(ni, "block %s failed to unregister", name);
-	}
 
 	ubx_block_free(b);
-	ret=0;
+	ret = 0;
  out:
 	return ret;
 }
@@ -1136,48 +1200,52 @@ static int array_block_add(ubx_block_t ***arr, ubx_block_t *newblock)
 	long newlen; /* new length of array including NULL element */
 	ubx_block_t **tmpb;
 
-	/* determine newlen
-	 * with one element, the array is size two to hold the terminating NULL element.
+	/*
+	 * determine newlen
+	 * with one element, the array is size two to hold the terminating NULL
+	 * element.
 	 */
-	if(*arr==NULL)
-		newlen=2;
+	if (*arr == NULL)
+		newlen = 2;
 	else
-		for(tmpb=*arr, newlen=2; *tmpb!=NULL; tmpb++,newlen++);
+		for (tmpb = *arr, newlen = 2; *tmpb != NULL; tmpb++, newlen++)
+			;
 
-	if((*arr=realloc(*arr, sizeof(ubx_block_t*) * newlen))==NULL) {
+	*arr = realloc(*arr, sizeof(ubx_block_t *) * newlen);
+	if (*arr == NULL) {
 		ret = EOUTOFMEM;
 		goto out;
 	}
 
-	(*arr)[newlen-2]=newblock;
-	(*arr)[newlen-1]=NULL;
-	ret=0;
+	(*arr)[newlen - 2] = newblock;
+	(*arr)[newlen - 1] = NULL;
+	ret = 0;
  out:
 	return ret;
 }
 
 static int array_block_rm(ubx_block_t ***arr, ubx_block_t *rmblock)
 {
-	int ret=-1, cnt, match=-1;
+	int ret = -1, cnt, match = -1;
 	ubx_block_t **tmpb;
 
-	for(tmpb=*arr,cnt=0; *tmpb!=NULL; tmpb++,cnt++) {
-		if (*tmpb==rmblock)
-			match=cnt;
+	for (tmpb = *arr, cnt = 0; *tmpb != NULL; tmpb++, cnt++) {
+		if (*tmpb == rmblock)
+			match = cnt;
 	}
 
-	if(match==-1)
+	if (match == -1)
 		goto out;
 
 	/* case 1: remove last */
-	if (match==cnt-1)
-		(*arr)[match]=NULL;
+	if (match == cnt - 1)
+		(*arr)[match] = NULL;
 	else {
-		(*arr)[match]=(*arr)[cnt-1];
-		(*arr)[cnt-1]=NULL;
+		(*arr)[match] = (*arr)[cnt - 1];
+		(*arr)[cnt - 1] = NULL;
 	}
 
-	ret=0;
+	ret = 0;
 out:
 	return ret;
 }
@@ -1190,12 +1258,13 @@ out:
  *
  * @return  < 0 in case of error, 0 otherwise.
  */
-int ubx_port_connect_out(ubx_port_t* p, ubx_block_t* iblock)
+int ubx_port_connect_out(ubx_port_t *p, ubx_block_t *iblock)
 {
 	int ret = -1;
 
 	if (p->attrs & PORT_DIR_OUT) {
-		if((ret=array_block_add(&p->out_interaction, iblock))!=0)
+		ret = array_block_add(&p->out_interaction, iblock);
+		if (ret != 0)
 			goto out;
 	} else {
 		ret = EINVALID_PORT_DIR;
@@ -1217,15 +1286,16 @@ out:
  * @return < 0 in case of error, 0 otherwise.
  */
 
-int ubx_port_connect_in(ubx_port_t* p, ubx_block_t* iblock)
+int ubx_port_connect_in(ubx_port_t *p, ubx_block_t *iblock)
 {
 	int ret;
 
-	if(p->attrs & PORT_DIR_IN) {
-		if((ret=array_block_add(&p->in_interaction, iblock))!=0)
+	if (p->attrs & PORT_DIR_IN) {
+		ret = array_block_add(&p->in_interaction, iblock);
+		if (ret != 0)
 			goto out;
 	} else {
-		ret = EINVALID_PORT_DIR;		
+		ret = EINVALID_PORT_DIR;
 		goto out;
 	}
 
@@ -1236,7 +1306,8 @@ out:
 }
 
 /**
- * ubx_ports_connect_uni - connect a port out- to a port in-channel using an interaction iblock.
+ * ubx_ports_connect_uni
+ *   - connect a port out- to a port in-channel using an interaction iblock.
  *
  * @param out_port
  * @param in_port
@@ -1244,7 +1315,7 @@ out:
  *
  * @return < 0  in case of error, 0 otherwise.
  */
-int ubx_ports_connect_uni(ubx_port_t* out_port, ubx_port_t* in_port, ubx_block_t* iblock)
+int ubx_ports_connect_uni(ubx_port_t *out_port, ubx_port_t *in_port, ubx_block_t *iblock)
 {
 	int ret;
 
@@ -1263,13 +1334,17 @@ int ubx_ports_connect_uni(ubx_port_t* out_port, ubx_port_t* in_port, ubx_block_t
 		return EINVALID_PORT;
 	}
 
-	if(iblock->type != BLOCK_TYPE_INTERACTION) {
+	if (iblock->type != BLOCK_TYPE_INTERACTION) {
 		logf_err(iblock->ni, "block not of type interaction");
 		return EINVALID_BLOCK_TYPE;
 	}
 
-	if((ret=ubx_port_connect_out(out_port, iblock))!=0) goto out;
-	if((ret=ubx_port_connect_in(in_port, iblock))!=0) goto out;
+	ret = ubx_port_connect_out(out_port, iblock);
+	if (ret != 0)
+		goto out;
+	ret = ubx_port_connect_in(in_port, iblock);
+	if (ret != 0)
+		goto out;
 
 	ret = 0;
 out:
@@ -1285,11 +1360,13 @@ out:
  *
  * @return < 0 in case of error, 0 otherwise.
  */
-int ubx_port_disconnect_out(ubx_port_t* out_port, ubx_block_t* iblock)
+int ubx_port_disconnect_out(ubx_port_t *out_port, ubx_block_t *iblock)
 {
-	int ret = -1;;
+	int ret = -1;
+
 	if (out_port->attrs & PORT_DIR_OUT) {
-		if((ret=array_block_rm(&out_port->out_interaction, iblock))!=0)
+		ret = array_block_rm(&out_port->out_interaction, iblock);
+		if (ret != 0)
 			goto out;
 	} else {
 		logf_err(iblock->ni,
@@ -1298,7 +1375,8 @@ int ubx_port_disconnect_out(ubx_port_t* out_port, ubx_block_t* iblock)
 		ret = EINVALID_PORT_TYPE;
 		goto out;
 	}
-	ret=0;
+	ret = 0;
+
 out:
 	return ret;
 }
@@ -1311,18 +1389,21 @@ out:
  *
  * @return < 0 in case of error, 0 otherwise.
  */
-int ubx_port_disconnect_in(ubx_port_t* in_port, ubx_block_t* iblock)
+int ubx_port_disconnect_in(ubx_port_t *in_port, ubx_block_t *iblock)
 {
 	int ret = -1;
+
 	if (in_port->attrs & PORT_DIR_IN) {
-		if((ret=array_block_rm(&in_port->in_interaction, iblock))!=0)
+		ret = array_block_rm(&in_port->in_interaction, iblock);
+		if (ret != 0)
 			goto out;
 	} else {
 		logf_err(iblock->ni, "port %s is not an in-port", in_port->name);
-		ret = EINVALID_PORT_TYPE;		
+		ret = EINVALID_PORT_TYPE;
 		goto out;
 	}
-	ret=0;
+	ret = 0;
+
 out:
 	return ret;
 }
@@ -1337,9 +1418,9 @@ out:
  *
  * @return < 0 in case of error, 0 otherwise.
  */
-int ubx_ports_disconnect_uni(ubx_port_t* out_port, ubx_port_t* in_port, ubx_block_t* iblock)
+int ubx_ports_disconnect_uni(ubx_port_t *out_port, ubx_port_t *in_port, ubx_block_t *iblock)
 {
-	int ret=-1;
+	int ret = -1;
 
 	if (iblock == NULL) {
 		logf_err(iblock->ni, "iblock NULL");
@@ -1353,18 +1434,22 @@ int ubx_ports_disconnect_uni(ubx_port_t* out_port, ubx_port_t* in_port, ubx_bloc
 
 	if (in_port == NULL) {
 		logf_err(iblock->ni, "in_port NULL");
-		return EINVALID_PORT;		
+		return EINVALID_PORT;
 	}
 
-	if(iblock->type != BLOCK_TYPE_INTERACTION) {
+	if (iblock->type != BLOCK_TYPE_INTERACTION) {
 		logf_err(iblock->ni, "block not of type interaction");
 		return EINVALID_BLOCK_TYPE;
 	}
 
-	if((ret=ubx_port_disconnect_out(out_port, iblock))!=0) goto out;
-	if((ret=ubx_port_disconnect_in(in_port, iblock))!=0) goto out;
+	ret = ubx_port_disconnect_out(out_port, iblock);
+	if (ret != 0)
+		goto out;
+	ret = ubx_port_disconnect_in(in_port, iblock);
+	if (ret != 0)
+		goto out;
 
-	ret=0;
+	ret = 0;
 out:
 	return ret;
 }
@@ -1381,14 +1466,15 @@ out:
  *
  * @return number of configs of block b
  */
-unsigned int get_num_configs(const ubx_block_t* b)
+unsigned int get_num_configs(const ubx_block_t *b)
 {
 	unsigned int n;
 
-	if(b->configs==NULL)
-		n=0;
+	if (b->configs == NULL)
+		n = 0;
 	else
-		for(n=0; b->configs[n].name!=NULL; n++);
+		for (n = 0; b->configs[n].name != NULL; n++)
+			;
 
 	return n;
 }
@@ -1401,20 +1487,21 @@ unsigned int get_num_configs(const ubx_block_t* b)
  *
  * @return ubx_config_t pointer or NULL if not found.
  */
-ubx_config_t* ubx_config_get(ubx_block_t* b, const char* name)
+ubx_config_t *ubx_config_get(ubx_block_t *b, const char *name)
 {
-	ubx_config_t* conf = NULL;
+	ubx_config_t *conf = NULL;
 
-	if(b==NULL)
+	if (b == NULL)
 		goto out;
 
-	if(b->configs==NULL || name==NULL)
+	if (b->configs == NULL || name == NULL)
 		goto out;
 
-	for(conf=b->configs; conf->name!=NULL; conf++)
-		if(strcmp(conf->name, name)==0)
+	for (conf = b->configs; conf->name != NULL; conf++)
+		if (strcmp(conf->name, name) == 0)
 			goto out;
-	conf=NULL;
+	conf = NULL;
+
  out:
 	return conf;
 }
@@ -1427,15 +1514,17 @@ ubx_config_t* ubx_config_get(ubx_block_t* b, const char* name)
  *
  * @return ubx_data_t pointer or NULL
  */
-ubx_data_t* ubx_config_get_data(ubx_block_t* b, const char *name)
+ubx_data_t *ubx_config_get_data(ubx_block_t *b, const char *name)
 {
 	ubx_config_t *conf;
-	ubx_data_t *data=NULL;
+	ubx_data_t *data = NULL;
 
-	if((conf=ubx_config_get(b, name))==NULL)
+	conf = ubx_config_get(b, name);
+	if (conf == NULL)
 		goto out;
 
-	data=conf->value;
+	data = conf->value;
+
  out:
 	return data;
 }
@@ -1447,18 +1536,20 @@ ubx_data_t* ubx_config_get_data(ubx_block_t* b, const char *name)
  * @param name name of the requested configuration value
  * @param ptr if successfull, this ptr will be set to the ubx_data_t.
  *
- * @return lenght of configuration (>0), 0 if unconfigured, < 0 in case of error
+ * @return length of configuration (>0), 0 if unconfigured, < 0 in case of error
  */
-long int ubx_config_get_data_ptr(ubx_block_t *b, const char *name, void **ptr)
+long ubx_config_get_data_ptr(ubx_block_t *b, const char *name, void **ptr)
 {
 	ubx_data_t *d;
-	long int ret = -1;
+	long ret = -1;
 
-	if((d = ubx_config_get_data(b, name))==NULL)
+	d = ubx_config_get_data(b, name);
+	if (d == NULL)
 		goto out;
 
 	*ptr = d->data;
 	ret = d->len;
+
  out:
 	return ret;
 }
@@ -1471,11 +1562,11 @@ long int ubx_config_get_data_ptr(ubx_block_t *b, const char *name, void **ptr)
  *
  * @return array length of the given configuration value
  */
-long int ubx_config_data_len(ubx_block_t *b, const char *cfg_name)
+long ubx_config_data_len(ubx_block_t *b, const char *cfg_name)
 {
 	ubx_data_t *d = ubx_config_get_data(b, cfg_name);
 
-	if(!d)
+	if (!d)
 		return -1;
 
 	return d->len;
@@ -1493,22 +1584,23 @@ long int ubx_config_data_len(ubx_block_t *b, const char *cfg_name)
  *
  * @return 0 if Ok, !=0 otherwise.
  */
-int ubx_config_add(ubx_block_t* b,
-		   const char* name,
-		   const char* meta,
-		   const char* type_name,
+int ubx_config_add(ubx_block_t *b,
+		   const char *name,
+		   const char *meta,
+		   const char *type_name,
 		   const long len)
 {
-	ubx_type_t* typ;
-	ubx_config_t* carr;
+	ubx_type_t *typ;
+	ubx_config_t *carr;
 	int i, ret;
 
-	if(b==NULL) {
+	if (b == NULL) {
 		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
-	if((typ=ubx_type_get(b->ni, type_name))==NULL) {
+	typ = ubx_type_get(b->ni, type_name);
+	if (typ == NULL) {
 		ubx_err(b, "unkown type %s", type_name);
 		ret = EINVALID_TYPE;
 		goto out;
@@ -1520,29 +1612,31 @@ int ubx_config_add(ubx_block_t* b,
 		goto out;
 	}
 
-	if(b->configs==NULL)
-		i=0;
+	if (b->configs == NULL)
+		i = 0;
 	else
-		for(i=0; b->configs[i].name!=NULL; i++);
+		for (i = 0; b->configs[i].name != NULL; i++)
+			;
 
-	carr=realloc(b->configs, (i+2) * sizeof(ubx_config_t));
+	carr = realloc(b->configs, (i + 2) * sizeof(ubx_config_t));
 
-	if(carr==NULL) {
+	if (carr == NULL) {
 		ubx_err(b, "out of mem, config not added");
 		ret = EOUTOFMEM;
 		goto out;
 	}
 
-	b->configs=carr;
+	b->configs = carr;
 
-	if((ret=ubx_clone_config_data(&b->configs[i], name, meta, typ, len)) != 0) {
+	ret = ubx_clone_config_data(&b->configs[i], name, meta, typ, len);
+	if (ret != 0) {
 		ubx_err(b, "cloning config data failed");
 		goto out;
 	}
 
-	memset(&b->configs[i+1], 0x0, sizeof(ubx_config_t));
+	memset(&b->configs[i + 1], 0x0, sizeof(ubx_config_t));
 
-	ret=0;
+	ret = 0;
  out:
 	return ret;
 }
@@ -1555,46 +1649,46 @@ int ubx_config_add(ubx_block_t* b,
  *
  * @return < 0 in case of error, 0 otherwise.
  */
-int ubx_config_rm(ubx_block_t* b, const char* name)
+int ubx_config_rm(ubx_block_t *b, const char *name)
 {
-	int ret=-1, i, num_configs;
+	int ret = -1, i, num_configs;
 
-	if(!b) {
+	if (!b) {
 		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
-	if(b->prototype==NULL) {
+	if (b->prototype == NULL) {
 		ubx_err(b, "modifying prototype block not allowed");
 		ret = EINVALID_BLOCK_TYPE;
 		goto out;
 	}
 
-	if(b->configs==NULL) {
+	if (b->configs == NULL) {
 		ubx_err(b, "no config %s found", name);
 		ret = ENOSUCHENT;
 		goto out;
 	}
 
-	num_configs=get_num_configs(b);
+	num_configs = get_num_configs(b);
 
-	for(i=0; i<num_configs; i++)
-		if(strcmp(b->configs[i].name, name)==0)
+	for (i = 0; i < num_configs; i++)
+		if (strcmp(b->configs[i].name, name) == 0)
 			break;
 
-	if(i>=num_configs) {
+	if (i >= num_configs) {
 		ubx_err(b, "no config %s found", name);
 		goto out;
 	}
 
 	ubx_config_free_data(&b->configs[i]);
 
-	if(i<num_configs-1) {
-		b->configs[i]=b->configs[num_configs-1];
-		memset(&b->configs[num_configs-1], 0x0, sizeof(ubx_config_t));
+	if (i < num_configs - 1) {
+		b->configs[i] = b->configs[num_configs - 1];
+		memset(&b->configs[num_configs - 1], 0x0, sizeof(ubx_config_t));
 	}
 
-	ret=0;
+	ret = 0;
  out:
 	return ret;
 }
@@ -1603,11 +1697,11 @@ int ubx_config_rm(ubx_block_t* b, const char* name)
  * validate_configs - validate array length of configs
  *
  * possible min,max settings:
- *   - 0,0:		 no constraints
- *   - 0,1:  		 zero or one
+ *   - 0,0:              no constraints
+ *   - 0,1:              zero or one
  *   - 0,CONFIG_LEN_MAX: zero to many
- *   - N,unset: 	 zero to many (for N>0)
- *   - N,N: 		 exactly N
+ *   - N,unset:          zero to many (for N>0)
+ *   - N,N:              exactly N
  *
  *   basic sanity checks are in ubx_block_register
  *
@@ -1621,17 +1715,16 @@ static int validate_configs(const ubx_block_t *b, const int checklate)
 	int ret = 0;
 	ubx_config_t *c;
 
-	for(unsigned int i=0; i<get_num_configs(b); i++) {
+	for (unsigned int i = 0; i < get_num_configs(b); i++) {
 
 		c = &b->configs[i];
 
 		/* no constraints defined */
-		if (c->min == 0 && c->max == 0) {
+		if (c->min == 0 && c->max == 0)
 			continue;
-		}
 
 		if (((c->attrs & CONFIG_ATTR_CHECKLATE) != 0 && !checklate) ||
-		    ((c->attrs & CONFIG_ATTR_CHECKLATE) == 0 && checklate) ) {
+		    ((c->attrs & CONFIG_ATTR_CHECKLATE) == 0 && checklate)) {
 			ubx_debug(b, "skipping checking of %s", c->name);
 			continue;
 		}
@@ -1645,7 +1738,7 @@ static int validate_configs(const ubx_block_t *b, const int checklate)
 				c->name, c->value->len, c->min, c->max);
 			ret = EINVALID_CONFIG_LEN;
 		}
-		ubx_debug(b, "%s %s OK", __FUNCTION__, c->name);
+		ubx_debug(b, "%s %s OK", __func__, c->name);
 	}
 
 	return ret;
@@ -1663,61 +1756,64 @@ static int validate_configs(const ubx_block_t *b, const int checklate)
  *
  * @return number of ports of block b
  */
-unsigned int get_num_ports(ubx_block_t* b)
+unsigned int get_num_ports(ubx_block_t *b)
 {
 	unsigned int n;
 
-	if(b->ports==NULL)
-		n=0;
+	if (b->ports == NULL)
+		n = 0;
 	else
-		for(n=0; b->ports[n].name!=NULL; n++); /* find number of ports */
+		for (n = 0; b->ports[n].name != NULL; n++)
+			; /* find number of ports */
 
 	return n;
 }
 
 /**
-  * ubx_port_add - a port to a block instance and resolve types.
-  *
-  * @param b
-  * @param name
-  * @param doc
-  * @param in_type_name
-  * @param in_data_len
-  * @param out_type_name
-  * @param out_data_len
-  * @param state
-  *
-  * @return < 0 in case of error, 0 otherwise.
-  */
-int ubx_port_add(ubx_block_t* b, const char* name, const char* doc,
-	     const char* in_type_name, long in_data_len,
-	     const char* out_type_name, long out_data_len, uint32_t state)
+ * ubx_port_add - a port to a block instance and resolve types.
+ *
+ * @param b
+ * @param name
+ * @param doc
+ * @param in_type_name
+ * @param in_data_len
+ * @param out_type_name
+ * @param out_data_len
+ * @param state
+ *
+ * @return < 0 in case of error, 0 otherwise.
+ */
+int ubx_port_add(ubx_block_t *b, const char *name, const char *doc,
+	     const char *in_type_name, long in_data_len,
+	     const char *out_type_name, long out_data_len, uint32_t state)
 {
 	int i, ret;
-	ubx_port_t* parr;
-	ubx_type_t *in_type=NULL, *out_type=NULL;
+	ubx_port_t *parr;
+	ubx_type_t *in_type = NULL, *out_type = NULL;
 
-	if(b==NULL) {
+	if (b == NULL) {
 		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
-	if(b->prototype==NULL) {
+	if (b->prototype == NULL) {
 		ubx_err(b, "modifying prototype block not allowed");
 		ret = EINVALID_BLOCK_TYPE;
 		goto out;
 	}
 
-	if(in_type_name) {
-		if((in_type = ubx_type_get(b->ni, in_type_name))==NULL) {
+	if (in_type_name) {
+		in_type = ubx_type_get(b->ni, in_type_name);
+		if (in_type == NULL) {
 			ubx_err(b, "failed to resolve in_type %s", in_type_name);
 			ret = EINVALID_TYPE;
 			goto out;
 		}
 	}
 
-	if(out_type_name) {
-		if((out_type = ubx_type_get(b->ni, out_type_name))==NULL) {
+	if (out_type_name) {
+		out_type = ubx_type_get(b->ni, out_type_name);
+		if (out_type == NULL) {
 			ubx_err(b, "failed to resolve out_type %s", out_type_name);
 			ret = EINVALID_TYPE;
 			goto out;
@@ -1730,33 +1826,34 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* doc,
 		goto out;
 	}
 
-	i=get_num_ports(b);
+	i = get_num_ports(b);
 
-	parr=realloc(b->ports, (i+2) * sizeof(ubx_port_t));
+	parr = realloc(b->ports, (i + 2) * sizeof(ubx_port_t));
 
-	if(parr==NULL) {
+	if (parr == NULL) {
 		ubx_err(b, "out of mem, port not added");
-		ret = EOUTOFMEM;		
+		ret = EOUTOFMEM;
 		goto out;
 	}
 
-	b->ports=parr;
+	b->ports = parr;
 
 	/* setup port */
-	ret=ubx_clone_port_data(&b->ports[i], name, doc,
+	ret = ubx_clone_port_data(&b->ports[i], name, doc,
 				in_type, in_data_len,
 				out_type, out_data_len, state);
 
 	b->ports[i].block = b;
 
-	if(ret) {
+	if (ret) {
 		ubx_err(b, "cloning port data failed");
 		memset(&b->ports[i], 0x0, sizeof(ubx_port_t));
 		/* nothing else to cleanup, really */
 	}
 
 	/* set dummy stopper to NULL */
-	memset(&b->ports[i+1], 0x0, sizeof(ubx_port_t));
+	memset(&b->ports[i + 1], 0x0, sizeof(ubx_port_t));
+
  out:
 	return ret;
 }
@@ -1770,8 +1867,8 @@ int ubx_port_add(ubx_block_t* b, const char* name, const char* doc,
  * @param out_data_len
  * @return < 0 in case of error, 0 otherwise
  */
-int ubx_outport_add(ubx_block_t* b, const char* name, const char* doc,
-		    const char* out_type_name, long out_data_len)
+int ubx_outport_add(ubx_block_t *b, const char *name, const char *doc,
+		    const char *out_type_name, long out_data_len)
 {
 	return ubx_port_add(b, name, doc, NULL, 0, out_type_name, out_data_len, 1);
 }
@@ -1785,8 +1882,8 @@ int ubx_outport_add(ubx_block_t* b, const char* name, const char* doc,
  * @param in_data_len
  * @return < 0 in case of error, 0 otherwise
  */
-int ubx_inport_add(ubx_block_t* b, const char* name, const char* doc,
-		   const char* in_type_name, long in_data_len)
+int ubx_inport_add(ubx_block_t *b, const char *name, const char *doc,
+		   const char *in_type_name, long in_data_len)
 {
 	return ubx_port_add(b, name, doc, in_type_name, in_data_len, NULL, 0, 1);
 }
@@ -1799,47 +1896,49 @@ int ubx_inport_add(ubx_block_t* b, const char* name, const char* doc,
  *
  * @return
  */
-int ubx_port_rm(ubx_block_t* b, const char* name)
+int ubx_port_rm(ubx_block_t *b, const char *name)
 {
-	int ret=-1, i, num_ports;
+	int ret = -1, i, num_ports;
 
-	if(!b) {
+	if (!b) {
 		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
-	if(b->prototype==NULL) {
+	if (b->prototype == NULL) {
 		ubx_err(b, "modifying prototype block not allowed");
 		goto out;
 	}
 
-	if(b->ports==NULL) {
+	if (b->ports == NULL) {
 		ubx_err(b, "no port %s found", name);
 		goto out;
 	}
 
-	num_ports=get_num_ports(b);
+	num_ports = get_num_ports(b);
 
-	for(i=0; i<num_ports; i++)
-		if(strcmp(b->ports[i].name, name)==0)
+	for (i = 0; i < num_ports; i++)
+		if (strcmp(b->ports[i].name, name) == 0)
 			break;
 
-	if(i>=num_ports) {
+	if (i >= num_ports) {
 		ubx_err(b, "no port %s found", name);
 		goto out;
 	}
 
 	ubx_port_free_data(&b->ports[i]);
 
-	/* if the removed port is the last in list, there is nothing
+	/*
+	 * if the removed port is the last in list, there is nothing
 	 * to do. if not, copy the last port into the removed one [i]
-	 * and zero last one */
-	if(i<num_ports-1) {
-		b->ports[i]=b->ports[num_ports-1];
-		memset(&b->ports[num_ports-1], 0x0, sizeof(ubx_port_t));
+	 * and zero last one
+	 */
+	if (i < num_ports - 1) {
+		b->ports[i] = b->ports[num_ports - 1];
+		memset(&b->ports[num_ports - 1], 0x0, sizeof(ubx_port_t));
 	}
 
-	ret=0;
+	ret = 0;
  out:
 	return ret;
 }
@@ -1853,26 +1952,28 @@ int ubx_port_rm(ubx_block_t* b, const char* name)
  *
  * @return port pointer or NULL
  */
-ubx_port_t* ubx_port_get(ubx_block_t* b, const char *name)
+ubx_port_t *ubx_port_get(ubx_block_t *b, const char *name)
 {
-	ubx_port_t *port_ptr=NULL;
+	ubx_port_t *port_ptr = NULL;
 
-	if(b==NULL)
+	if (b == NULL)
 		goto out;
 
-	if(name==NULL) {
+	if (name == NULL) {
 		ubx_err(b, "port_get: name is NULL");
 		goto out;
 	}
 
-	if(b->ports==NULL)
+	if (b->ports == NULL)
 		goto out_notfound;
 
-	for(port_ptr=b->ports; port_ptr->name!=NULL; port_ptr++)
-		if(strcmp(port_ptr->name, name)==0)
+	for (port_ptr = b->ports; port_ptr->name != NULL; port_ptr++)
+		if (strcmp(port_ptr->name, name) == 0)
 			goto out;
+
  out_notfound:
-	port_ptr=NULL;
+	port_ptr = NULL;
+
  out:
 	return port_ptr;
 }
@@ -1886,45 +1987,47 @@ ubx_port_t* ubx_port_get(ubx_block_t* b, const char *name)
  *
  * @return 0 if state was changed, non-zero otherwise.
  */
-int ubx_block_init(ubx_block_t* b)
+int ubx_block_init(ubx_block_t *b)
 {
 	int ret;
 
-	if(b==NULL) {
+	if (b == NULL) {
 		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
-	ubx_debug(b, __FUNCTION__);
+	ubx_debug(b, __func__);
 
 	/* check and use loglevel config */
 	if (cfg_getptr_int(b, "loglevel", &b->loglevel) <= 0)
-		b->loglevel=NULL;
+		b->loglevel = NULL;
 	else
 		ubx_debug(b, "found loglevel config");
 
-	if(b->block_state!=BLOCK_STATE_PREINIT) {
+	if (b->block_state != BLOCK_STATE_PREINIT) {
 		ubx_err(b, "init: not in state preinit (but %s)",
 			block_state_tostr(b->block_state));
 		ret = EWRONG_STATE;
 		goto out;
 	}
 
-	if((ret = validate_configs(b, 0)) < 0) {
+	ret = validate_configs(b, 0);
+	if (ret < 0)
 		goto out;
-	}
 
-	if(b->init==NULL)
+	if (b->init == NULL)
 		goto out_ok;
 
-	if((ret = b->init(b)) !=0) {
+	ret = b->init(b);
+	if (ret != 0) {
 		ubx_err(b, "init failed");
 		goto out;
 	}
 
  out_ok:
-	b->block_state=BLOCK_STATE_INACTIVE;
-	ret=0;
+	b->block_state = BLOCK_STATE_INACTIVE;
+	ret = 0;
+
  out:
 	return ret;
 }
@@ -1937,39 +2040,41 @@ int ubx_block_init(ubx_block_t* b)
  *
  * @return 0 if state was changed, non-zero otherwise.
  */
-int ubx_block_start(ubx_block_t* b)
+int ubx_block_start(ubx_block_t *b)
 {
 	int ret;
 
-	if(b==NULL) {
+	if (b == NULL) {
 		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
-	ubx_debug(b, __FUNCTION__);
+	ubx_debug(b, __func__);
 
-	if(b->block_state != BLOCK_STATE_INACTIVE) {
+	if (b->block_state != BLOCK_STATE_INACTIVE) {
 		ubx_err(b, "start: not in state inactive (but %s)",
 			block_state_tostr(b->block_state));
 		ret = EWRONG_STATE;
 		goto out;
 	}
 
-	if((ret = validate_configs(b, 1)) < 0) {
+	ret = validate_configs(b, 1);
+	if (ret < 0)
 		goto out;
-	}
 
-	if(b->start==NULL)
+	if (b->start == NULL)
 		goto out_ok;
 
-	if((ret = b->start(b)) !=0) {
+	ret = b->start(b);
+	if (ret != 0) {
 		ubx_err(b, "start failed");
 		goto out;
 	}
 
  out_ok:
-	b->block_state=BLOCK_STATE_ACTIVE;
-	ret=0;
+	b->block_state = BLOCK_STATE_ACTIVE;
+	ret = 0;
+
  out:
 	return ret;
 }
@@ -1982,32 +2087,33 @@ int ubx_block_start(ubx_block_t* b)
  *
  * @return
  */
-int ubx_block_stop(ubx_block_t* b)
+int ubx_block_stop(ubx_block_t *b)
 {
 	int ret;
 
-	if(b==NULL) {
+	if (b == NULL) {
 		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
-	ubx_debug(b, __FUNCTION__);
+	ubx_debug(b, __func__);
 
-	if(b->block_state!=BLOCK_STATE_ACTIVE) {
+	if (b->block_state != BLOCK_STATE_ACTIVE) {
 		ubx_err(b, "stop: not in state active (but %s)",
 			block_state_tostr(b->block_state));
 		ret = EWRONG_STATE;
 		goto out;
 	}
 
-	if(b->stop==NULL)
+	if (b->stop == NULL)
 		goto out_ok;
 
 	b->stop(b);
 
  out_ok:
-	b->block_state=BLOCK_STATE_INACTIVE;
-	ret=0;
+	b->block_state = BLOCK_STATE_INACTIVE;
+	ret = 0;
+
  out:
 	return ret;
 }
@@ -2020,32 +2126,33 @@ int ubx_block_stop(ubx_block_t* b)
  *
  * @return 0 if state was changed, non-zero otherwise.
  */
-int ubx_block_cleanup(ubx_block_t* b)
+int ubx_block_cleanup(ubx_block_t *b)
 {
 	int ret;
 
-	if(b==NULL) {
+	if (b == NULL) {
 		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
-	ubx_debug(b, __FUNCTION__);
+	ubx_debug(b, __func__);
 
-	if(b->block_state!=BLOCK_STATE_INACTIVE) {
+	if (b->block_state != BLOCK_STATE_INACTIVE) {
 		ubx_err(b, "cleanup: not in state inactive (but %s)",
 			block_state_tostr(b->block_state));
 		ret = EWRONG_STATE;
 		goto out;
 	}
 
-	if(b->cleanup==NULL)
+	if (b->cleanup == NULL)
 		goto out_ok;
 
 	b->cleanup(b);
 
  out_ok:
-	b->block_state=BLOCK_STATE_PREINIT;
-	ret=0;
+	b->block_state = BLOCK_STATE_PREINIT;
+	ret = 0;
+
  out:
 	return ret;
 }
@@ -2058,34 +2165,36 @@ int ubx_block_cleanup(ubx_block_t* b)
  *
  * @return 0 if OK, else -1
  */
-int ubx_cblock_step(ubx_block_t* b)
+int ubx_cblock_step(ubx_block_t *b)
 {
 	int ret;
 
-	if(b==NULL) {
+	if (b == NULL) {
 		ret = EINVALID_BLOCK;
 		goto out;
 	}
 
-	if(b->type!=BLOCK_TYPE_COMPUTATION) {
+	if (b->type != BLOCK_TYPE_COMPUTATION) {
 		ubx_err(b, "invalid block type %u", b->type);
 		ret = EINVALID_BLOCK_TYPE;
 		goto out;
 	}
 
-	if(b->block_state!=BLOCK_STATE_ACTIVE) {
+	if (b->block_state != BLOCK_STATE_ACTIVE) {
 		ubx_err(b, "block not active");
 		ret = EWRONG_STATE;
 		goto out;
 	}
 
-	if(b->step==NULL)
+	if (b->step == NULL)
 		goto out_ok;
 
 	b->step(b);
 	b->stat_num_steps++;
+
 out_ok:
-	ret=0;
+	ret = 0;
+
 out:
 	return ret;
 }
@@ -2099,7 +2208,7 @@ out:
  *
  * @return status value
  */
-long __port_read(ubx_port_t* port, ubx_data_t* data)
+long __port_read(ubx_port_t *port, ubx_data_t *data)
 {
 	int ret = 0;
 	ubx_block_t **iaptr;
@@ -2107,24 +2216,24 @@ long __port_read(ubx_port_t* port, ubx_data_t* data)
 	if (!port) {
 		ret = EINVALID_PORT;
 		goto out;
-	};
+	}
 
-	if(!data) {
-		ret = EINVALID_ARG;
-		goto out;
-	};
-
-	if(data->len<=0) {
+	if (!data) {
 		ret = EINVALID_ARG;
 		goto out;
 	}
 
-	if((port->attrs & PORT_DIR_IN) == 0) {
+	if (data->len <= 0) {
+		ret = EINVALID_ARG;
+		goto out;
+	}
+
+	if ((port->attrs & PORT_DIR_IN) == 0) {
 		ret = EINVALID_PORT_DIR;
 		goto out;
 	};
 
-	if(port->in_type != data->type) {
+	if (port->in_type != data->type) {
 		ret = ETYPE_MISMATCH;
 		ubx_err(port->block, "port_read %s: type mismatch: data: %s, port: %s",
 			port->name,
@@ -2134,18 +2243,20 @@ long __port_read(ubx_port_t* port, ubx_data_t* data)
 	}
 
 	/* port completely unconnected? */
-	if(port->in_interaction==NULL)
+	if (port->in_interaction == NULL)
 		goto out;
 
-	for(iaptr=port->in_interaction; *iaptr!=NULL; iaptr++) {
-		if((*iaptr)->block_state==BLOCK_STATE_ACTIVE) {
-			if((ret=(*iaptr)->read(*iaptr, data)) > 0) {
-				port->stat_reades++;
+	for (iaptr = port->in_interaction; *iaptr != NULL; iaptr++) {
+		if ((*iaptr)->block_state == BLOCK_STATE_ACTIVE) {
+			ret = (*iaptr)->read(*iaptr, data);
+			if (ret > 0) {
+				port->stat_reads++;
 				(*iaptr)->stat_num_reads++;
 				goto out;
 			}
 		}
 	}
+
  out:
 	return ret;
 }
@@ -2157,24 +2268,24 @@ long __port_read(ubx_port_t* port, ubx_data_t* data)
  *
  * This function will check if the type matches.
  */
-void __port_write(ubx_port_t* port, ubx_data_t* data)
+void __port_write(ubx_port_t *port, ubx_data_t *data)
 {
 	/* int i; */
 	const char *tp;
 	ubx_block_t **iaptr;
 
-	if (port==NULL) {
+	if (port == NULL) {
 		ubx_err(port->block, "port null");
 		goto out;
-	};
+	}
 
 	if ((port->attrs & PORT_DIR_OUT) == 0) {
 		ubx_err(port->block, "not an OUT-port");
 		goto out;
 	};
 
-	if(port->out_type != data->type) {
-		tp=get_typename(data);
+	if (port->out_type != data->type) {
+		tp = get_typename(data);
 		ubx_err(port->block,
 			"port_write %s: type mismatch: data: %s, port: %s",
 			port->name, tp, port->out_type->name);
@@ -2182,18 +2293,19 @@ void __port_write(ubx_port_t* port, ubx_data_t* data)
 	}
 
 	/* port completely unconnected? */
-	if(port->out_interaction==NULL)
+	if (port->out_interaction == NULL)
 		goto out;
 
 	/* pump it out */
-	for(iaptr=port->out_interaction; *iaptr!=NULL; iaptr++) {
-		if((*iaptr)->block_state==BLOCK_STATE_ACTIVE) {
+	for (iaptr = port->out_interaction; *iaptr != NULL; iaptr++) {
+		if ((*iaptr)->block_state == BLOCK_STATE_ACTIVE) {
 			(*iaptr)->write(*iaptr, data);
 			(*iaptr)->stat_num_writes++;
 		}
 	}
 
 	port->stat_writes++;
+
  out:
 	return;
 }
@@ -2209,6 +2321,7 @@ void __port_write(ubx_port_t* port, ubx_data_t* data)
 static uint64_t rdtscp(void)
 {
 	uint64_t tsc;
+
 	__asm__ __volatile__(
 		"rdtscp;"
 		"shl $32, %%rdx;"
@@ -2253,13 +2366,14 @@ int ubx_gettime(struct ubx_timespec *uts)
 }
 #else
 /**
- * ubx_clock_mono_gettime - get current time using clock_gettime(CLOCK_MONOTONIC).
+ * ubx_clock_mono_gettime
+ *           - get current time using clock_gettime(CLOCK_MONOTONIC).
  *
  * @param uts
  *
  * @return non-zero in case of error, 0 otherwise.
  */
-static int ubx_clock_mono_gettime(struct ubx_timespec* uts)
+static int ubx_clock_mono_gettime(struct ubx_timespec *uts)
 {
 	int ret = EINVALID_ARG;
 	struct timespec ts;
@@ -2267,12 +2381,14 @@ static int ubx_clock_mono_gettime(struct ubx_timespec* uts)
 	if (uts == NULL)
 		goto out;
 
-	if ((ret = clock_gettime(CLOCK_MONOTONIC, &ts)) != 0)
+	ret = clock_gettime(CLOCK_MONOTONIC, &ts);
+	if (ret != 0)
 		goto out;
 
 	uts->sec = ts.tv_sec;
 	uts->nsec = ts.tv_nsec;
 	ret = 0;
+
 out:
 	return ret;
 }
@@ -2290,27 +2406,27 @@ int ubx_gettime(struct ubx_timespec *uts)
  *
  * @return non-zero in case of error, 0 otherwise
  */
-int ubx_clock_mono_nanosleep(struct ubx_timespec* uts)
+int ubx_clock_mono_nanosleep(struct ubx_timespec *uts)
 {
 	int ret;
 	struct timespec ts;
 
-	if ((ret = clock_gettime(CLOCK_MONOTONIC, &ts)))
+	ret = clock_gettime(CLOCK_MONOTONIC, &ts);
+	if (ret)
 		goto out;
 
 	ts.tv_sec += uts->sec;
 	ts.tv_nsec += uts->nsec;
 
-	if(ts.tv_nsec >= NSEC_PER_SEC) {
-		ts.tv_sec+=ts.tv_nsec / NSEC_PER_SEC;
-		ts.tv_nsec=ts.tv_nsec % NSEC_PER_SEC;
+	if (ts.tv_nsec >= NSEC_PER_SEC) {
+		ts.tv_sec += ts.tv_nsec / NSEC_PER_SEC;
+		ts.tv_nsec = ts.tv_nsec % NSEC_PER_SEC;
 	}
 
 	for (;;) {
 		ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
-		if (ret != EINTR) {
+		if (ret != EINTR)
 			goto out;
-		}
 	}
 
 out:
@@ -2324,15 +2440,20 @@ out:
  * @param ts2
  *
  * @return return 1 if t1 is greater than t2, -1 if t1 is less than t2
- * 	   and 0 if t1 and t2 are equal.
+ *         and 0 if t1 and t2 are equal.
  */
 int ubx_ts_cmp(const struct ubx_timespec *ts1, const struct ubx_timespec *ts2)
 {
-	if (ts1->sec > ts2->sec) return 1;
-	else if (ts1->sec < ts2->sec) return -1;
-	else if (ts1->nsec > ts2->nsec) return 1;
-	else if (ts1->nsec < ts2->nsec) return -1;
-	else return 0;
+	if (ts1->sec > ts2->sec)
+		return 1;
+	else if (ts1->sec < ts2->sec)
+		return -1;
+	else if (ts1->nsec > ts2->nsec)
+		return 1;
+	else if (ts1->nsec < ts2->nsec)
+		return -1;
+	else
+		return 0;
 }
 
 /**
@@ -2343,25 +2464,25 @@ int ubx_ts_cmp(const struct ubx_timespec *ts1, const struct ubx_timespec *ts2)
 void ubx_ts_norm(struct ubx_timespec *ts)
 {
 
-	if(ts->nsec >= NSEC_PER_SEC) {
-		ts->sec+=ts->nsec / NSEC_PER_SEC;
-		ts->nsec=ts->nsec % NSEC_PER_SEC;
+	if (ts->nsec >= NSEC_PER_SEC) {
+		ts->sec += ts->nsec / NSEC_PER_SEC;
+		ts->nsec = ts->nsec % NSEC_PER_SEC;
 	}
 
 	/* normalize negative nsec */
-	if(ts->nsec <= -NSEC_PER_SEC) {
+	if (ts->nsec <= -NSEC_PER_SEC) {
 		ts->sec += ts->nsec / NSEC_PER_SEC;
-		ts->nsec=ts->nsec % -NSEC_PER_SEC;
+		ts->nsec = ts->nsec % -NSEC_PER_SEC;
 	}
 
-	if(ts->sec>0 && ts->nsec<0) {
-		ts->sec-=1;
-		ts->nsec+=NSEC_PER_SEC;
+	if (ts->sec > 0 && ts->nsec < 0) {
+		ts->sec -= 1;
+		ts->nsec += NSEC_PER_SEC;
 	}
 
-	if(ts->sec<0 && ts->nsec>0) {
+	if (ts->sec < 0 && ts->nsec > 0) {
 		ts->sec++;
-		ts->nsec-=NSEC_PER_SEC;
+		ts->nsec -= NSEC_PER_SEC;
 	}
 }
 
@@ -2408,6 +2529,7 @@ void ubx_ts_add(const struct ubx_timespec *ts1,
 void ubx_ts_div(const struct ubx_timespec *ts, const long div, struct ubx_timespec *out)
 {
 	int64_t tmp_nsec = (ts->sec * NSEC_PER_SEC) + ts->nsec;
+
 	tmp_nsec /= div;
 	out->sec = tmp_nsec / NSEC_PER_SEC;
 	out->nsec = tmp_nsec % NSEC_PER_SEC;
@@ -2442,12 +2564,12 @@ uint64_t ubx_ts_to_ns(const struct ubx_timespec *ts)
  *
  * @return version string major.minor.patchlevel
  */
-const char* ubx_version()
+const char *ubx_version(void)
 {
 	return VERSION;
 }
 
-int checktype(ubx_node_info_t* ni,
+int checktype(ubx_node_info_t *ni,
 	      ubx_type_t *required,
 	      const char *tcheck_str,
 	      const char *portname, int isrd)
@@ -2455,14 +2577,14 @@ int checktype(ubx_node_info_t* ni,
 #ifdef CONFIG_TYPECHECK_EXTRA
 	ubx_type_t *tcheck = ubx_type_get(ni, tcheck_str);
 
-	assert(ni!=NULL);
-	assert(required!=NULL);
-	assert(tcheck_str!=NULL);
-	assert(portname!=NULL);
+	assert(ni != NULL);
+	assert(required != NULL);
+	assert(tcheck_str != NULL);
+	assert(portname != NULL);
 
 	if (required != tcheck) {
 		logf_err(ni, "port %s %s: type mismatch: is %s but should be %s",
-			 portname, (isrd==1) ? "read" : "write",
+			 portname, (isrd == 1) ? "read" : "write",
 			 tcheck_str, required->name);
 		return -1;
 	}

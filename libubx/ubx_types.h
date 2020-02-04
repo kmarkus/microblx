@@ -1,7 +1,8 @@
 /*
  * microblx: embedded, realtime safe, reflective function blocks.
  *
- * Copyright (C) 2013,2014 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
+ * Copyright (C) 2013,2014 Markus Klotzbuecher
+			   <markus.klotzbuecher@mech.kuleuven.be>
  * Copyright (C) 2014-2018 Markus Klotzbuecher <mk@mkio.de>
  *
  * SPDX-License-Identifier: MPL-2.0
@@ -15,8 +16,10 @@
 enum {
 	BLOCK_NAME_MAXLEN	= 30,
 	TYPE_HASH_LEN		= 16,   /* md5 */
-	TYPE_HASH_LEN_UNIQUE	= 8,	/* Number of characters of the
-					   type checksum to compare */
+	TYPE_HASH_LEN_UNIQUE	= 8,	/*
+					 * Number of characters of the
+					 * type checksum to compare
+					 */
 	LOG_MSG_MAXLEN		= 120,
 };
 
@@ -36,38 +39,45 @@ void __ubx_cleanup_module(struct ubx_node_info *ni);
 /* type and value (data) */
 
 enum {
-	TYPE_CLASS_BASIC=1,
+	TYPE_CLASS_BASIC = 1,
 	TYPE_CLASS_STRUCT,	/* simple sequential memory struct */
 	TYPE_CLASS_CUSTOM	/* requires custom serialization */
 };
 
-typedef struct ubx_type
-{
-	const char* name;		/* name: dir/header.h/struct foo*/
-	const char* doc;		/* short documentation string */
-	uint32_t type_class;		/* CLASS_STRUCT=1, CLASS_CUSTOM, CLASS_FOO ... */
+typedef struct ubx_type {
+	const char *name;		/* name: dir/header.h/struct foo*/
+	const char *doc;		/* short documentation string */
+	uint32_t type_class;		/*
+					 * CLASS_STRUCT=1, CLASS_CUSTOM,
+					 * CLASS_FOO ...
+					 */
 	long size;			/* size in bytes */
-	const void* private_data;	/* private data. */
+	const void *private_data;	/* private data. */
 	uint8_t hash[TYPE_HASH_LEN];
 } ubx_type_t;
 
-/* This struct is used to store a reference to the type and contains
-   mutable, node specific fields. Since unlike blocks, types are
-   mostly immutable, there is no need to take a copy.
-*/
-typedef struct ubx_type_ref
-{
+/*
+ * This struct is used to store a reference to the type and contains
+ * mutable, node specific fields. Since unlike blocks, types are
+ * mostly immutable, there is no need to take a copy.
+ */
+typedef struct ubx_type_ref {
 	ubx_type_t *type_ptr;
-	unsigned long seqid;		/* remember registration order for ffi parsing */
+	unsigned long seqid;	/*
+				 * remember registration order for
+				 * ffi parsing
+				 */
 	UT_hash_handle hh;
 } ubx_type_ref_t;
 
-typedef struct ubx_data
-{
+typedef struct ubx_data {
 	int refcnt;		/* reference counting, num refs = refcnt + 1 */
-	const ubx_type_t* type;	/* link to ubx_type */
-	long len;		/* if length> 1 then length of array, else ignored */
-	void* data;		/* buffer with size (type->size * length) */
+	const ubx_type_t *type;	/* link to ubx_type */
+	long len;		/*
+				 * if length> 1 then length of array, else
+				 * ignored
+				 */
+	void *data;		/* buffer with size (type->size * length) */
 } ubx_data_t;
 
 
@@ -102,7 +112,7 @@ enum {
 	EINVALID_CONFIG_TYPE,		/* invalid port type */
 
 	EINVALID_CONFIG_LEN,		/* invalid config array length */
-	
+
 	EINVALID_PORT_DIR,		/* invalid port direction */
 
 	EINVALID_ARG,			/* UBX EINVAL */
@@ -116,42 +126,41 @@ enum {
 };
 
 enum {
-	UBX_LOGLEVEL_EMERG 	= 0,	/* system unusable */
-	UBX_LOGLEVEL_ALERT 	= 1,	/* immediate action required */
-	UBX_LOGLEVEL_CRIT 	= 2,	/* critical */
-	UBX_LOGLEVEL_ERR 	= 3,	/* error */
-	UBX_LOGLEVEL_WARN 	= 4,	/* warning conditions */
-	UBX_LOGLEVEL_NOTICE 	= 5,	/* normal but significant */
-	UBX_LOGLEVEL_INFO 	= 6,	/* info msg */
-	UBX_LOGLEVEL_DEBUG 	= 7	/* debug messages */
+	UBX_LOGLEVEL_EMERG	= 0,	/* system unusable */
+	UBX_LOGLEVEL_ALERT	= 1,	/* immediate action required */
+	UBX_LOGLEVEL_CRIT	= 2,	/* critical */
+	UBX_LOGLEVEL_ERR	= 3,	/* error */
+	UBX_LOGLEVEL_WARN	= 4,	/* warning conditions */
+	UBX_LOGLEVEL_NOTICE	= 5,	/* normal but significant */
+	UBX_LOGLEVEL_INFO	= 6,	/* info msg */
+	UBX_LOGLEVEL_DEBUG	= 7	/* debug messages */
 };
 
 /* Port
  * no distinction between type and value
  */
-typedef struct ubx_port
-{
-	const char* name;		/* name of port */
-	const char* doc;		/* documentation string. */
+typedef struct ubx_port {
+	const char *name;		/* name of port */
+	const char *doc;		/* documentation string. */
 
 	uint32_t attrs;			/* FP_DIR_IN or FP_DIR_OUT */
 	uint32_t state;			/* active/inactive */
 
-	const char* in_type_name;	/* string data type name */
-	const char* out_type_name;	/* string data type name */
+	const char *in_type_name;	/* string data type name */
+	const char *out_type_name;	/* string data type name */
 
-	ubx_type_t* in_type;		/* resolved in automatically */
-	ubx_type_t* out_type;		/* resolved in automatically */
+	ubx_type_t *in_type;		/* resolved in automatically */
+	ubx_type_t *out_type;		/* resolved in automatically */
 
 	long in_data_len;		/* max array size of in/out data */
 	long out_data_len;
 
-	struct ubx_block** in_interaction;
-	struct ubx_block** out_interaction;
+	struct ubx_block **in_interaction;
+	struct ubx_block **out_interaction;
 
 	/* statistics */
 	unsigned long stat_writes;
-	unsigned long stat_reades;
+	unsigned long stat_reads;
 
 	struct ubx_block *block;	/* used for extra typechecks */
 
@@ -162,11 +171,10 @@ typedef struct ubx_port
 /*
  * ubx configuration
  */
-typedef struct ubx_config
-{
-	const char* name;
-	const char* doc;
-	const char* type_name;
+typedef struct ubx_config {
+	const char *name;
+	const char *doc;
+	const char *type_name;
 	ubx_type_t *type;
 	ubx_data_t *value;		/* reference to actual value */
 	long data_len;			/* array size of value */
@@ -180,9 +188,11 @@ typedef struct ubx_config
 
 enum {
 	CONFIG_ATTR_RDONLY =	 1<<0,
-	CONFIG_ATTR_CHECKLATE =  2<<1	/* perform checking of min,
+	CONFIG_ATTR_CHECKLATE =  2<<1	/*
+					 * perform checking of min,
 					 * max before start instead of
-					 * before init hook */
+					 * before init hook
+					 */
 };
 
 /*
@@ -191,14 +201,14 @@ enum {
 
 /* Block types */
 enum {
-	BLOCK_TYPE_COMPUTATION=1,
+	BLOCK_TYPE_COMPUTATION = 1,
 	BLOCK_TYPE_INTERACTION
 };
 
 /* Block attributes */
 enum {
-	BLOCK_ATTR_TRIGGER = 	1<<0,	/* block is a trigger */
-	BLOCK_ATTR_ACTIVE = 	1<<1,	/* block is active (has a thread) */
+	BLOCK_ATTR_TRIGGER =	1<<0,	/* block is a trigger */
+	BLOCK_ATTR_ACTIVE =	1<<1,	/* block is active (has a thread) */
 };
 
 /* block states */
@@ -209,33 +219,32 @@ enum {
 };
 
 /* block definition */
-typedef struct ubx_block
-{
-	const char* name;	/* type name */
-	const char* meta_data;	/* doc, etc. */
+typedef struct ubx_block {
+	const char *name;	/* type name */
+	const char *meta_data;	/* doc, etc. */
 	uint32_t type;		/* type, (computation, interaction) */
 	uint32_t attrs;		/* attributes */
 
-	ubx_port_t* ports;
-	ubx_config_t* configs;
+	ubx_port_t *ports;
+	ubx_config_t *configs;
 
 	int block_state;  /* state of lifecycle */
 	char *prototype; /* name of prototype, NULL if none */
 
-	struct ubx_node_info* ni;
+	struct ubx_node_info *ni;
 
 	const int *loglevel;
 
-	int(*init) (struct ubx_block*);
-	int(*start) (struct ubx_block*);
-	void(*stop) (struct ubx_block*);
-	void(*cleanup) (struct ubx_block*);
+	int (*init)(struct ubx_block *b);
+	int (*start)(struct ubx_block *b);
+	void (*stop)(struct ubx_block *b);
+	void (*cleanup)(struct ubx_block *b);
 
 	/* type dependent block methods */
 	union {
 		/* COMP_TYPE_COMPUTATION */
 		struct {
-			void(*step) (struct ubx_block* cblock);
+			void (*step)(struct ubx_block *cblock);
 
 			/* statistics, todo step duration */
 			unsigned long stat_num_steps;
@@ -243,10 +252,14 @@ typedef struct ubx_block
 
 		/* COMP_TYPE_INTERACTION */
 		struct {
-			/* read and write: these are implemented by interactions and
-			 * called by the ports read/write */
-			long(*read)(struct ubx_block* iblock, ubx_data_t* value);
-			void(*write)(struct ubx_block* iblock, ubx_data_t* value);
+			/*
+			 * read and write: these are implemented by
+			 * interactions and called by the port's read/write
+			 */
+			long (*read)(struct ubx_block *iblock,
+				     ubx_data_t *value);
+			void (*write)(struct ubx_block *iblock,
+				     ubx_data_t *value);
 			unsigned long stat_num_reads;
 			unsigned long stat_num_writes;
 		};
@@ -254,7 +267,7 @@ typedef struct ubx_block
 
 
 
-	void* private_data;
+	void *private_data;
 
 	UT_hash_handle hh;
 
@@ -262,13 +275,12 @@ typedef struct ubx_block
 
 
 /* ubx_module - information to maintain a module */
-typedef struct ubx_module
-{
-	const char* id; /* name or path/name */
+typedef struct ubx_module {
+	const char *id; /* name or path/name */
 	void *handle;
-	int(*init)(struct ubx_node_info* ni);
-	void(*cleanup)(struct ubx_node_info* ni);
-	const char* spdx_license_id;
+	int (*init)(struct ubx_node_info *ni);
+	void (*cleanup)(struct ubx_node_info *ni);
+	const char *spdx_license_id;
 	UT_hash_handle hh;
 } ubx_module_t;
 
@@ -276,8 +288,7 @@ typedef struct ubx_module
 /* node information
  * holds references to all known blocks and types
  */
-typedef struct ubx_node_info
-{
+typedef struct ubx_node_info {
 	const char *name;
 	ubx_block_t *blocks; /* instances, only one list */
 	ubx_type_ref_t *types; /* known types */
@@ -285,15 +296,14 @@ typedef struct ubx_node_info
 	unsigned long cur_seqid;
 
 	int loglevel;
-	void(*log)(const struct ubx_node_info*, const struct ubx_log_msg*);
+	void (*log)(const struct ubx_node_info *inf, const struct ubx_log_msg *msg);
 	void *log_data;
 } ubx_node_info_t;
 
 /* OS stuff */
-struct ubx_timespec
-{
-	long int sec;
-	long int nsec;
+struct ubx_timespec {
+	long sec;
+	long nsec;
 };
 
 /**
@@ -303,8 +313,7 @@ struct ubx_timespec
  * @src:	source of log message (typically block or node name)
  * @msg:	log message
  */
-struct ubx_log_msg
-{
+struct ubx_log_msg {
 	int level;
 	struct ubx_timespec ts;
 	char src[BLOCK_NAME_MAXLEN + 1];
