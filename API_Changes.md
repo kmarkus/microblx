@@ -5,6 +5,10 @@ This file tracks user visible API changes.
 
 ## v0.7.1
 
+- core: add environment variable `UBX_PATH` that can be used to
+  specify alternative installation paths. If defined, ubx will search
+  the colon separated list of directories for ubx headers and modules.
+
 - core: ffi: types: strip preprocessor directives from types that are
   fed to the ffi. This is to allow include guards in these header
   files.

@@ -131,6 +131,10 @@ local load_files = {
 
 -- possible file prefixes for above headers and libraries
 local prefixes = { "/usr", "/usr/local" }
+for _,p in ipairs(utils.split(os.getenv("UBX_PATH") or "", ':')) do
+   prefixes[#prefixes+1] = p
+end
+
 
 local function find_prefix()
    for _,pf in ipairs(prefixes) do
