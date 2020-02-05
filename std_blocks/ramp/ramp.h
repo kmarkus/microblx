@@ -28,23 +28,24 @@ char ramp_meta[] =
 
 /* declaration of block configuration */
 ubx_config_t ramp_config[] = {
-	{ .name="start", .type_name = QUOTE(RAMP_T), .doc="ramp starting value (def 0)" },
-	{ .name="slope", .type_name = QUOTE(RAMP_T), .doc="rate of change (def: 1)" },
+	{ .name = "start", .type_name = QUOTE(RAMP_T), .doc = "ramp starting value (def 0)" },
+	{ .name = "slope", .type_name = QUOTE(RAMP_T), .doc = "rate of change (def: 1)" },
 	{ NULL },
 };
 
 /* declaration port block ports */
 ubx_port_t ramp_ports[] = {
-	{ .name="out", .out_type_name=QUOTE(RAMP_T), .out_data_len=1, .doc="ramp generator output"  },
+	{ .name = "out", .out_type_name = QUOTE(RAMP_T), .out_data_len = 1, .doc = "ramp generator output"  },
 	{ NULL },
 };
 
 /* declare a struct port_cache */
 struct ramp_port_cache {
-	ubx_port_t* out;
+	ubx_port_t *out;
 };
 
-/* declare a helper function to update the port cache this is necessary
+/*
+ * declare a helper function to update the port cache this is necessary
  * because the port ptrs can change if ports are dynamically added or
  * removed. This function should hence be called after all
  * initialization is done, i.e. typically in 'start'
@@ -80,21 +81,20 @@ ubx_block_t ramp_block = {
 
 
 /* ramp module init and cleanup functions */
-int ramp_mod_init(ubx_node_info_t* ni)
+int ramp_mod_init(ubx_node_info_t *ni)
 {
 	int ret = -1;
 	ubx_type_t *tptr;
 
-	for(tptr=types; tptr->name!=NULL; tptr++) {
-		if(ubx_type_register(ni, tptr) != 0) {
+	for (tptr = types; tptr->name != NULL; tptr++) {
+		if (ubx_type_register(ni, tptr) != 0)
 			goto out;
-		}
 	}
 
-	if(ubx_block_register(ni, &ramp_block) != 0)
+	if (ubx_block_register(ni, &ramp_block) != 0)
 		goto out;
 
-	ret=0;
+	ret = 0;
 out:
 	return ret;
 }
@@ -103,13 +103,15 @@ void ramp_mod_cleanup(ubx_node_info_t *ni)
 {
 	const ubx_type_t *tptr;
 
-	for(tptr=types; tptr->name!=NULL; tptr++)
+	for (tptr = types; tptr->name != NULL; tptr++)
 		ubx_type_unregister(ni, tptr->name);
 
 	ubx_block_unregister(ni, "ramp_" QUOTE(BLOCK_NAME));
 }
 
-/* declare module init and cleanup functions, so that the ubx core can
- * find these when the module is loaded/unloaded */
+/*
+ * declare module init and cleanup functions, so that the ubx core can
+ * find these when the module is loaded/unloaded
+ */
 UBX_MODULE_INIT(ramp_mod_init)
 UBX_MODULE_CLEANUP(ramp_mod_cleanup)
