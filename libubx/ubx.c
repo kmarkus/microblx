@@ -1874,6 +1874,44 @@ int ubx_outport_add(ubx_block_t *b, const char *name, const char *doc,
 }
 
 /**
+ * ubx_inport_resize - change the array length of the port
+ *
+ * This will fail unless the block is in state BLOCK_STATE_PREINIT
+ * @param p port to resize
+ * @param len new length
+ * @return 0 if	OK, <0 otherwise
+ */
+int ubx_inport_resize(struct ubx_port* p, long len)
+{
+	if (p->block->block_state != BLOCK_STATE_PREINIT) {
+		ubx_err(p->block, "inport_resize %s: can't resize block in state %s",
+			p->name, block_state_tostr(p->block->block_state));
+		return -1;
+	}
+	p->in_data_len = len;
+	return 0;
+}
+
+/**
+ * ubx_outport_resize - change the array length of the port
+ *
+ * This will fail unless the block is in state BLOCK_STATE_PREINIT
+ * @param p port to resize
+ * @param len new length
+ * @return 0 if	OK, <0 otherwise
+ */
+int ubx_outport_resize(struct ubx_port* p, long len)
+{
+	if (p->block->block_state != BLOCK_STATE_PREINIT) {
+		ubx_err(p->block, "outport_resize %s: can't resize block in state %s",
+			p->name, block_state_tostr(p->block->block_state));
+		return -1;
+	}
+	p->out_data_len = len;
+	return 0;
+}
+
+/**
  * ubx_inport_add - add an input-port
  *
  * @param b
