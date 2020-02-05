@@ -22,27 +22,27 @@ char fifometa[] =
 
 /* configuration */
 ubx_config_t fifo_config[] = {
-	{ .name="fifo_size", .type_name = "uint32_t" },
-	{ .name="overrun_policy", .type_name = "uint32_t" },
+	{ .name = "fifo_size", .type_name = "uint32_t" },
+	{ .name = "overrun_policy", .type_name = "uint32_t" },
 	{ NULL },
 };
 
 /* interaction private data */
 struct fifo_block_info {
-	int mode;	 		/* circular, ... */
-	long size;			/* size in bytes */
+	int mode;		/* circular, ... */
+	long size;		/* size in bytes */
 	uint8_t *buff;
 	uint8_t *rdptr;
 	uint8_t *wrptr;
-	const ubx_type_t* type;		/* the type handled, set on first write */
+	const ubx_type_t *type;	/* the type handled, set on first write */
 	uint32_t overrun_policy;
-	pthread_mutex_t mutex; 		/* naive mutex implementation */
-	unsigned long overruns;		/* stats */
+	pthread_mutex_t mutex;	/* naive mutex implementation */
+	unsigned long overruns;	/* stats */
 };
 
 enum {
-	DROP_NEW=1,
-	DROP_OLD=2,
+	DROP_NEW = 1,
+	DROP_OLD = 2,
 };
 
 /* init */
@@ -50,36 +50,38 @@ static int fifo_init(ubx_block_t *i)
 {
 	int len, ret = -1;
 	const uint32_t *val;
-	struct fifo_block_info* bbi;
+	struct fifo_block_info *bbi;
 
-	if((i->private_data = calloc(1, sizeof(struct fifo_block_info)))==NULL) {
+	i->private_data = calloc(1, sizeof(struct fifo_block_info));
+	if (i->private_data == NULL) {
 		ubx_err(i, "failed to alloc fifo_block_info");
 		goto out;
 	}
 
-	bbi = (struct fifo_block_info*) i->private_data;
+	bbi = (struct fifo_block_info *)i->private_data;
 	pthread_mutex_init(&bbi->mutex, NULL);
 
 	len = cfg_getptr_uint32(i, "fifo_size", &val);
 
-	bbi->size = (len>0) ? *val : 16;
+	bbi->size = (len > 0) ? *val : 16;
 
-	if(bbi->size==0) {
+	if (bbi->size == 0) {
 		ubx_err(i, "%s: invalid config fifo_size 0", i->name);
 		goto out_free_priv_data;
 	}
 
-	if((bbi->buff=malloc(bbi->size))==NULL) {
+	bbi->buff = malloc(bbi->size);
+	if (bbi->buff == NULL) {
 		ubx_err(i, "failed to allocate fifo");
 		goto out_free_priv_data;
 	}
 
 	/* set to empty */
 	bbi->rdptr = bbi->wrptr = bbi->buff;
-	bbi->type=NULL;
+	bbi->type = NULL;
 
 	ubx_debug(i, "allocated fifo of size %ld", bbi->size);
-	ret=0;
+	ret = 0;
 	goto out;
 
  out_free_priv_data:
@@ -91,8 +93,7 @@ static int fifo_init(ubx_block_t *i)
 /* cleanup */
 static void fifo_cleanup(ubx_block_t *i)
 {
-	struct fifo_block_info *bbi;
-	bbi = (struct fifo_block_info*) i->private_data;
+	struct fifo_block_info *bbi = (struct fifo_block_info *)i->private_data;
 
 	free(bbi->buff);
 	free(bbi);
@@ -109,31 +110,30 @@ static void fifo_cleanup(ubx_block_t *i)
 	 : (bbi->wrptr - bbi->rdptr))
 
 /* write */
-static void fifo_write(ubx_block_t *i, ubx_data_t* msg)
+static void fifo_write(ubx_block_t *i, ubx_data_t *msg)
 {
 	int ret;
-	long len, empty, len2=0;
-	struct fifo_block_info *bbi;
+	long len, empty, len2 = 0;
+	struct fifo_block_info *bbi = (struct fifo_block_info *)i->private_data;
 
-	bbi = (struct fifo_block_info*) i->private_data;
-
-	if((ret=pthread_mutex_lock(&bbi->mutex))!=0) {
+	ret = pthread_mutex_lock(&bbi->mutex);
+	if (ret != 0) {
 		ERR2(ret, "failed to lock mutex");
 		goto out;
 	}
 
 	len = data_size(msg);
 
-	if(len > bbi->size) {
+	if (len > bbi->size) {
 		ubx_err(i, "can't store %ld bytes of data in a %ld size buffer", len, bbi->size);
 		goto out_unlock;
 	}
 
 	/* remember type, this should better happen in preconnect-hook. */
-	if(bbi->type==NULL) {
+	if (bbi->type == NULL) {
 		ubx_debug(i, "SETTING type to msg->type = %p, %s",
 			msg->type, msg->type->name);
-		bbi->type=msg->type;
+		bbi->type = msg->type;
 	}
 
 	/* enough space?
@@ -142,17 +142,17 @@ static void fifo_write(ubx_block_t *i, ubx_data_t* msg)
 	 */
 	empty = empty_space(bbi);
 
-	if(empty < len) {
+	if (empty < len) {
 		bbi->overruns++;
 
-		if(bbi->overrun_policy==DROP_NEW) {
+		if (bbi->overrun_policy == DROP_NEW) {
 			ubx_debug(i, "fifo overrun (#%ld), dropping new data.", bbi->overruns);
 			goto out_unlock;
-		} else if(bbi->overrun_policy==DROP_OLD) {
+		} else if (bbi->overrun_policy == DROP_OLD) {
 			/* fake a read of len and deal with wrapping */
-			bbi->rdptr+=len;
-			if(bbi->rdptr > bbi->buff+bbi->size)
-				bbi->rdptr-=bbi->size;
+			bbi->rdptr += len;
+			if (bbi->rdptr > bbi->buff + bbi->size)
+				bbi->rdptr -= bbi->size;
 			ubx_debug(i, "fifo overrun (#%ld), dropping old data.", bbi->overruns);
 		} else {
 			ubx_err(i, "unknown overrun_policy 0x%x", bbi->overrun_policy);
@@ -167,26 +167,23 @@ static void fifo_write(ubx_block_t *i, ubx_data_t* msg)
 	 */
 
 	/* compute length of chunk 2 write */
-	if(bbi->wrptr > bbi->rdptr) {
+	if (bbi->wrptr > bbi->rdptr) {
 		len2 = len - (bbi->buff + bbi->size - bbi->wrptr);
-		len2 = (len2>0) ? len2 : 0;
-		len = (len2>0) ? len-len2 : len;
+		len2 = (len2 > 0) ? len2 : 0;
+		len = (len2 > 0) ? len - len2 : len;
 	}
 
 	ubx_debug(i, "empty=%ld, len=%ld, len2=%ld\n", empty, len, len2);
 
 	/* chunk 1 */
 	memcpy(bbi->wrptr, msg->data, len);
-	bbi->wrptr = (bbi->wrptr+len >= bbi->buff+bbi->size) ? bbi->buff : &bbi->wrptr[len];
-	
+	bbi->wrptr = (bbi->wrptr + len >= bbi->buff + bbi->size) ? bbi->buff : &bbi->wrptr[len];
 
 	/* chunk 2 ?*/
-	if(len2 > 0) {
-		memcpy(bbi->buff, &(((uint8_t*) msg->data)[len]), len2);
-		bbi->wrptr=&bbi->buff[len2];
+	if (len2 > 0) {
+		memcpy(bbi->buff, &(((uint8_t *)msg->data)[len]), len2);
+		bbi->wrptr = &bbi->buff[len2];
 	}
-
-
 
  out_unlock:
 	pthread_mutex_unlock(&bbi->mutex);
@@ -195,48 +192,42 @@ static void fifo_write(ubx_block_t *i, ubx_data_t* msg)
 }
 
 /* read */
-static long fifo_read(ubx_block_t *i, ubx_data_t* msg)
+static long fifo_read(ubx_block_t *i, ubx_data_t *msg)
 {
-	int ret=0;
-	unsigned long readsz=0, readsz1=0, readsz2=0, used;
-	struct fifo_block_info *bbi;
+	int ret = 0;
+	unsigned long readsz = 0, readsz1 = 0, readsz2 = 0, used;
+	struct fifo_block_info *bbi = (struct fifo_block_info *)i->private_data;
 
-	bbi = (struct fifo_block_info*) i->private_data;
-
-	if((ret=pthread_mutex_lock(&bbi->mutex))!=0) {
+	ret = pthread_mutex_lock(&bbi->mutex);
+	if (ret != 0) {
 		ERR2(ret, "failed to lock mutex");
 		goto out;
 	}
 
-	if(bbi->rdptr == bbi->wrptr) {
+	if (bbi->rdptr == bbi->wrptr)
 		goto out_unlock;
-	}
 
-	if(msg->type != bbi->type) {
+	if (msg->type != bbi->type) {
 		ubx_err(i, "invalid read type '%s' (expected '%s'",
 			get_typename(msg), bbi->type->name);
-		ret=ETYPE_MISMATCH;
+		ret = ETYPE_MISMATCH;
 		goto out_unlock;
 	}
 
 	/* bytes */
 	used = used_space(bbi);
-	readsz=(used<readsz) ? used : readsz;
+	readsz = (used < readsz) ? used : readsz;
 
 	/* chunk 2*/
-	if(bbi->rdptr > bbi->wrptr) {
+	if (bbi->rdptr > bbi->wrptr) {
 		readsz2 = readsz - (bbi->buff + bbi->size - bbi->wrptr);
-		readsz1 = readsz-readsz2;
+		readsz1 = readsz - readsz2;
 	}
 
 	memcpy(msg->data, bbi->rdptr, readsz1);
-	bbi->rdptr=&bbi->buff[readsz1];
+	bbi->rdptr = &bbi->buff[readsz1];
 
-	if(readsz2>0) {
-		
-	}
-
-	ret=readsz/bbi->type->size;		/* compute # elements read */
+	ret = readsz/bbi->type->size;		/* compute # elements read */
  out_unlock:
 	pthread_mutex_unlock(&bbi->mutex);
  out:
@@ -250,15 +241,15 @@ ubx_block_t fifo_comp = {
 	.meta_data = fifometa,
 	.configs = fifo_config,
 
-	.init=fifo_init,
-	.cleanup=fifo_cleanup,
+	.init = fifo_init,
+	.cleanup = fifo_cleanup,
 
 	/* iops */
-	.write=fifo_write,
-	.read=fifo_read,
+	.write = fifo_write,
+	.read = fifo_read,
 };
 
-static int fifo_mod_init(ubx_node_info_t* ni)
+static int fifo_mod_init(ubx_node_info_t *ni)
 {
 	return ubx_block_register(ni, &fifo_comp);
 }

@@ -23,10 +23,15 @@
 #include "types/random_config.h"
 #include "types/random_config.h.hexarr"
 
-/* declare the type and give the char array type representation as the type private_data */
-ubx_type_t random_config_type = def_struct_type(struct random_config, &random_config_h);
+/*
+ * declare the type and give the char array type representation as the
+ * type private_data
+ */
+ubx_type_t random_config_type = def_struct_type(struct random_config,
+						&random_config_h);
 
-/* function block meta-data
+/*
+ * function block meta-data
  * used by higher level functions.
  */
 char rnd_meta[] =
@@ -42,16 +47,16 @@ char rnd_meta[] =
  * if an array is required, then .value = { .len=<LENGTH> } can be used.
  */
 ubx_config_t rnd_config[] = {
-	{ .name="loglevel", .type_name = "int" },
-	{ .name="min_max_config", .type_name = "struct random_config", .min=1, .max=1 },
+	{ .name = "loglevel", .type_name = "int" },
+	{ .name = "min_max_config", .type_name = "struct random_config", .min = 1, .max = 1 },
 	{ NULL },
 };
 
 /* Ports
  */
 ubx_port_t rnd_ports[] = {
-	{ .name="seed", .in_type_name="unsigned int" },
-	{ .name="rnd", .out_type_name="unsigned int" },
+	{ .name = "seed", .in_type_name = "unsigned int" },
+	{ .name = "rnd", .out_type_name = "unsigned int" },
 	{ NULL },
 };
 
@@ -83,13 +88,15 @@ def_write_fun(write_uint, unsigned int)
  */
 static int rnd_init(ubx_block_t *b)
 {
-	int ret=0;
+	int ret = 0;
 
-	if ((b->private_data = calloc(1, sizeof(struct random_info)))==NULL) {
-		ubx_crit(b, "rnd_init: ENOMEM");
-		ret=EOUTOFMEM;
+	b->private_data = calloc(1, sizeof(struct random_info));
+	if (b->private_data == NULL) {
+		ubx_crit(b, "__func__: ENOMEM");
+		ret = EOUTOFMEM;
 		goto out;
 	}
+
  out:
 	return ret;
 }
@@ -117,15 +124,14 @@ static int rnd_start(ubx_block_t *b)
 {
 	uint32_t seed, ret;
 	long len;
-	struct random_config* rndconf;
-	struct random_info* inf;
+	struct random_config *rndconf;
+	struct random_info *inf;
 
-	inf=(struct random_info*) b->private_data;
+	inf = (struct random_info *)b->private_data;
 
 	/* get and store min_max_config */
-	len = ubx_config_get_data_ptr(b, "min_max_config", (void**) &rndconf);
-
-	if(len > 0) {
+	len = ubx_config_get_data_ptr(b, "min_max_config", (void **)&rndconf);
+	if (len > 0) {
 		inf->min = rndconf->min;
 		inf->max = rndconf->max;
 	} else {
@@ -134,17 +140,19 @@ static int rnd_start(ubx_block_t *b)
 	}
 
 	/* seed is allowed to change at runtime, check if new one available */
-	ubx_port_t* seed_port = ubx_port_get(b, "seed");
+	ubx_port_t *seed_port = ubx_port_get(b, "seed");
+
 	ret = read_uint(seed_port, &seed);
 
-	if(ret>0) {
-		ubx_info(b, "rnd_start: seed: %d, min: %d, max: %d",
+	if (ret > 0) {
+		ubx_info(b, "__func__: seed: %d, min: %d, max: %d",
 			 seed, inf->min, inf->max);
 		srandom(seed);
 	} else {
-		ubx_info(b, "rnd_start: min: %d, max: %d",
+		ubx_info(b, "__func__: min: %d, max: %d",
 			 inf->min, inf->max);
 	}
+
 	return 0;
 }
 
@@ -154,16 +162,15 @@ static int rnd_start(ubx_block_t *b)
  *
  * @param b
  */
-static void rnd_step(ubx_block_t *b) {
+static void rnd_step(ubx_block_t *b)
+{
 	unsigned int rand_val;
-	struct random_info* inf;
+	struct random_info *inf = (struct random_info *)b->private_data;
+	ubx_port_t *rand_port = ubx_port_get(b, "rnd");
 
-	inf=(struct random_info*) b->private_data;
-
-	ubx_port_t* rand_port = ubx_port_get(b, "rnd");
-	rand_val = (unsigned int) random();
-	rand_val = (rand_val > inf->max) ? (rand_val%inf->max) : rand_val;
-	rand_val = (rand_val < inf->min) ? ((inf->min + rand_val)%inf->max) : rand_val;
+	rand_val = (unsigned int)random();
+	rand_val = (rand_val > inf->max) ? (rand_val % inf->max) : rand_val;
+	rand_val = (rand_val < inf->min) ? ((inf->min + rand_val) % inf->max) : rand_val;
 
 	write_uint(rand_port, &rand_val);
 }
@@ -194,16 +201,16 @@ ubx_block_t random_comp = {
  *
  * @param ni
  *
- * @return 0 if OK, non-zero otherwise (this will prevent the loading of the module).
+ * @return 0 if OK, non-zero otherwise (prevents loading the module).
  */
-static int rnd_module_init(ubx_node_info_t* ni)
+static int rnd_module_init(ubx_node_info_t *ni)
 {
 	ubx_type_register(ni, &random_config_type);
 	return ubx_block_register(ni, &random_comp);
 }
 
 /**
- * rnd_module_cleanup - de
+ * rnd_module_cleanup
  *
  * unregister blocks.
  *
