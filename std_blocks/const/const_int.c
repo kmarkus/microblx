@@ -56,7 +56,7 @@ out:
 
 static int const_int_start(ubx_block_t *i)
 {
-	long int len;
+	long len;
 	struct blk_inf *inf;
 
 	inf = (struct blk_inf*) i->private_data;

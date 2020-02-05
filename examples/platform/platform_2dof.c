@@ -31,7 +31,7 @@ struct platform_2dof_info
 int platform_2dof_init(ubx_block_t *b)
 {
   int ret = -1;
-  long int len;
+  long len;
   struct platform_2dof_info *inf;
   //  double pos_vec[2];
   double *pos_vec;

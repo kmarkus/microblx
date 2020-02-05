@@ -188,7 +188,7 @@ static void wi_cleanup(ubx_block_t *c)
 static int wi_start(ubx_block_t *c)
 {
 	const char *port_num;
-	long int len;
+	long len;
 	struct webif_info *inf;
 
 	inf=(struct webif_info*) c->private_data;

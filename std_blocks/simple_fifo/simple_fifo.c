@@ -30,7 +30,7 @@ ubx_config_t fifo_config[] = {
 /* interaction private data */
 struct fifo_block_info {
 	int mode;	 		/* circular, ... */
-	long int size;			/* size in bytes */
+	long size;			/* size in bytes */
 	uint8_t *buff;
 	uint8_t *rdptr;
 	uint8_t *wrptr;
@@ -112,7 +112,7 @@ static void fifo_cleanup(ubx_block_t *i)
 static void fifo_write(ubx_block_t *i, ubx_data_t* msg)
 {
 	int ret;
-	long int len, empty, len2=0;
+	long len, empty, len2=0;
 	struct fifo_block_info *bbi;
 
 	bbi = (struct fifo_block_info*) i->private_data;

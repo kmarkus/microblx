@@ -146,7 +146,7 @@ static int luablock_init(ubx_block_t *b)
 {
 	const char *lua_file = NULL;
 	const char *lua_str = NULL;
-	long int len;
+	long len;
 
 	int ret = -EOUTOFMEM;
 	struct luablock_info* inf;

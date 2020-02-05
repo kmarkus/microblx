@@ -116,7 +116,7 @@ static void rnd_cleanup(ubx_block_t *b)
 static int rnd_start(ubx_block_t *b)
 {
 	uint32_t seed, ret;
-	long int len;
+	long len;
 	struct random_config* rndconf;
 	struct random_info* inf;
 
