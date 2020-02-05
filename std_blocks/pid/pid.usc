@@ -1,0 +1,34 @@
+
+
+local DATA_LEN = 10
+local Kp = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
+local slope = { 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1 }
+
+return bd.system
+{
+   imports = {
+      "stdtypes", "trig", "lfds_cyclic", "pid", "ramp_double",
+   },
+
+   blocks = {
+      { name="pid_1", type="pid" },
+      { name="ramp_msr", type="ramp_double" },
+      { name="ramp_des", type="ramp_double" },
+      { name="trig_1", type="std_triggers/trig" },
+   },
+
+   configurations = {
+      { name="pid_1", config = { Kp=Kp, data_len=DATA_LEN } },
+      { name="ramp_msr", config = { data_len=DATA_LEN, slope=slope } },
+      { name="ramp_des", config = { data_len=DATA_LEN } },
+      { name="trig_1", config = { trig_blocks = {
+				     { b="#ramp_msr", num_steps=1 },
+				     { b="#ramp_des", num_steps=1 },
+				     { b="#pid_1", num_steps=1 } } }
+      }
+   },
+   connections = {
+      { src="ramp_msr.out", tgt="pid_1.msr" },
+      { src="ramp_des.out", tgt="pid_1.des" },
+   },
+}

@@ -79,6 +79,7 @@ std_blocks/lfds_buffers/Makefile
 std_blocks/logging/Makefile
 std_blocks/luablock/Makefile
 std_blocks/mqueue/Makefile
+std_blocks/pid/Makefile
 std_blocks/trig/Makefile
 std_blocks/random/Makefile
 std_blocks/const/Makefile
