@@ -51,10 +51,9 @@ int call_hook(ubx_block_t *b, const char *fname, int require_fun,
 	      int require_res)
 {
 	int ret = 0;
-	struct file_logger_info *inf;
+	struct file_logger_info *inf = (struct file_logger_info *)b->private_data;
 	int num_res = (require_res != 0) ? 1 : 0;
 
-	*inf = (struct file_logger_info *) b->private_data;
 	lua_getglobal(inf->L, fname);
 
 	if (lua_isnil(inf->L, -1)) {

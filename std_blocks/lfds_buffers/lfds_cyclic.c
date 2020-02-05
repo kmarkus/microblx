@@ -58,9 +58,8 @@ def_write_fun(write_ulong, unsigned long)
 
 int cyclic_data_elem_init(void **user_data, void *user_state)
 {
-	struct cyclic_block_info *bbi;
+	struct cyclic_block_info *bbi = (struct cyclic_block_info *)user_state;
 
-	*bbi = (struct cyclic_block_info *) user_state;
 	*user_data = calloc(1, bbi->data_len * bbi->type->size +
 			    sizeof(struct cyclic_elem_header));
 
