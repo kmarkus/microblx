@@ -8,8 +8,10 @@
 #define UBX_LOGLEVEL_DEFAULT		UBX_LOGLEVEL_INFO
 
 #define ubx_log(level, ni, src, fmt, ...)			\
+do {								\
 	if (level <= (ni)->loglevel)				\
-		__ubx_log(level, ni, src, fmt, ##__VA_ARGS__)	\
+		__ubx_log(level, ni, src, fmt, ##__VA_ARGS__);	\
+} while (0)
 
 #ifdef UBX_DEBUG
 # define ubx_debug(b, fmt, ...) ubx_block_log(UBX_LOGLEVEL_DEBUG, b, fmt, ##__VA_ARGS__)
@@ -27,7 +29,7 @@
 #define ubx_info(b, fmt, ...)	ubx_block_log(UBX_LOGLEVEL_INFO, b, fmt, ##__VA_ARGS__)
 
 #define ubx_block_log(level, b, fmt, ...)				      \
-	{                                                                     \
+do {                                                                          \
 	if (b->loglevel) {						      \
 		if (level <= *b->loglevel) {				      \
 			__ubx_log(level, b->ni, b->name, fmt, ##__VA_ARGS__); \
@@ -37,7 +39,7 @@
 			__ubx_log(level, b->ni, b->name, fmt, ##__VA_ARGS__); \
 		}							      \
 	}								      \
-	}                                                                     \
+} while (0)
 
 /* hooks for setting up logging infrastructure */
 int ubx_log_init(ubx_node_info_t *ni);
