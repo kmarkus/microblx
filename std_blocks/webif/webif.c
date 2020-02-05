@@ -208,11 +208,9 @@ static int wi_start(ubx_block_t *c)
 		 port_num, MONGOOSE_NR_THREADS);
 
 	/* List of options. Last element must be NULL. */
-	const char options[] = {
-		"listening_ports", port_num,
-		"num_threads", MONGOOSE_NR_THREADS, NULL};
+	const char *options[] = { "listening_ports", port_num, "num_threads", MONGOOSE_NR_THREADS, NULL};
 
-	inf->ctx = mg_start(&inf->callbacks, inf, &options);
+	inf->ctx = mg_start(&inf->callbacks, inf, options);
 	if (inf->ctx == NULL) {
 		ubx_err(c, "failed to start mongoose on port %s", port_num);
 		goto out_err;
