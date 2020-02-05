@@ -146,7 +146,7 @@ static int32_t function_name(ubx_port_t *port, typename *inval)				\
 	ubx_data_t val;									\
 											\
 	if (port == NULL) {								\
-		ubx_err(port->block, "%s: port is NULL", __func__);			\
+		ERR("%s: port is NULL", __func__);					\
 		return EINVALID_PORT;							\
 	}										\
 	checktype(port->block->ni, port->in_type, QUOTE(typename), port->name, 1);	\
@@ -163,7 +163,7 @@ static void function_name(ubx_port_t *port, typename(*outval)[arrlen])			\
 	ubx_data_t val;									\
 											\
 	if (port == NULL) {								\
-		ubx_err(port->block, "%s: port is NULL", __func__);			\
+		ERR("%s: port is NULL", __func__);					\
 		return;									\
 	}										\
 	checktype(port->block->ni, port->out_type, QUOTE(typename), port->name, 0);	\
@@ -179,7 +179,7 @@ static int32_t function_name(ubx_port_t *port, typename(*inval)[arrlen])		\
 	ubx_data_t val;									\
 											\
 	if (port == NULL) {								\
-		ubx_err(port->block, "%s: port is NULL", __func__);			\
+		ERR("%s: port is NULL", __func__);					\
 		return EINVALID_PORT;							\
 	}										\
 											\
@@ -188,6 +188,53 @@ static int32_t function_name(ubx_port_t *port, typename(*inval)[arrlen])		\
 	val.data = inval;								\
 	val.len = arrlen;								\
 	return __port_read(port, &val);							\
+}
+
+/**
+ * define a helper function for reading	an array of dynamic length
+ * @param port port to read from
+ * @param inval ptr to data structure into which to store the read value
+ * @param len array length of inval buffer
+ * @return actual length read
+ */
+#define def_read_dynarr_fun(function_name, typename)					\
+static int32_t function_name(ubx_port_t *port, typename *inval, long len) 		\
+{											\
+	ubx_data_t val;									\
+											\
+	if (port == NULL) {								\
+		ERR("%s: port is NULL", __func__);					\
+		return EINVALID_PORT;							\
+	}										\
+											\
+	checktype(port->block->ni, port->in_type, QUOTE(typename), port->name, 1);	\
+	val.type = port->in_type;							\
+	val.data = inval;								\
+	val.len = len;									\
+	return __port_read(port, &val);							\
+}
+
+/**
+ * define a helper function for writing	an array of dynamic length
+ * @param port port to write to
+ * @param outval ptr to data structure into which to store the read value
+ * @param len array length of outval buffer
+ */
+#define def_write_dynarr_fun(function_name, typename)					\
+static int32_t function_name(ubx_port_t *port, typename *outval, long len) 		\
+{											\
+	ubx_data_t val;									\
+											\
+	if (port == NULL) {								\
+		ERR("%s: port is NULL", __func__);					\
+		return EINVALID_PORT;							\
+	}										\
+	checktype(port->block->ni, port->out_type, QUOTE(typename), port->name, 0);	\
+	val.data = outval;								\
+	val.type = port->out_type;							\
+	val.len = len;									\
+	__port_write(port, &val);							\
+	return 0;							                \
 }
 
 #define def_cfg_getptr_fun(function_name, typename)					\

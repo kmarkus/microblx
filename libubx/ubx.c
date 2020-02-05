@@ -2634,6 +2634,8 @@ int checktype(ubx_node_info_t *ni,
 def_cfg_getptr_fun(cfg_getptr_char, char)
 def_cfg_getptr_fun(cfg_getptr_int, int)
 def_cfg_getptr_fun(cfg_getptr_uint, unsigned int)
+def_cfg_getptr_fun(cfg_getptr_long, long)
+def_cfg_getptr_fun(cfg_getptr_ulong, unsigned long)
 
 def_cfg_getptr_fun(cfg_getptr_uint8, uint8_t)
 def_cfg_getptr_fun(cfg_getptr_uint16, uint16_t)
