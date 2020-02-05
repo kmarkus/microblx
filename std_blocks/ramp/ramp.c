@@ -19,7 +19,7 @@ struct ramp_info
 int ramp_init(ubx_block_t *b)
 {
 	int ret = -1;
-	long int len;
+	long len;
 	const RAMP_T *val;
 	struct ramp_info *inf;
 

@@ -185,7 +185,7 @@ struct configuration called ``min_max_config``:
 
 .. code:: c
 
-   long int len;
+   long len;
    struct random_config* rndconf;
 
    /*...*/
@@ -206,7 +206,7 @@ scalar ``uint32_t`` and to use a default 47 if unconfigured:
 
 .. code:: c
 
-   long int len;
+   long len;
    uint32_t *value;
 
    if ((len = cfg_getptr_int(b, "myconfig", &value)) < 0)

@@ -74,7 +74,7 @@ void cyclic_data_elem_del(void *user_data, void *user_state)
 static int cyclic_init(ubx_block_t *i)
 {
 	int ret = -1;
-	long int len;
+	long len;
 	const uint32_t *val;
 	const char *type_name;
 	struct cyclic_block_info* bbi;

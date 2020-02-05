@@ -23,7 +23,7 @@ struct platform_2dof_control_info
 int platform_2dof_control_init(ubx_block_t *b)
 {
   int ret = -1;
-  long int len;
+  long len;
   struct platform_2dof_control_info *inf;
 
   /* allocate memory for the block local state */

@@ -41,7 +41,7 @@ struct mqueue_info {
 static int mqueue_init(ubx_block_t *i)
 {
 	int ret=-1;
-	long int len;
+	long len;
 	const uint32_t *val;
 	const char* chrptr;
 

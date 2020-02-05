@@ -100,7 +100,7 @@ This file tracks user visible API changes.
   new prototype is:
 
 ```C
- `long int ubx_config_get_data_ptr(ubx_block_t *b, const char *name,
+ `long ubx_config_get_data_ptr(ubx_block_t *b, const char *name,
  void **ptr)
  ```
   len < 0 signifies and error, 0 that the config is unset and > 0
@@ -118,7 +118,7 @@ This file tracks user visible API changes.
   manner. Example:
 
   ```C
-  long int len;
+  long len;
   uint32_t *val;
 
   len = cfg_getptr_uint32(b, "myconf", &val);
