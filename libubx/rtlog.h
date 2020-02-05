@@ -28,17 +28,17 @@ do {								\
 #define ubx_notice(b, fmt, ...) ubx_block_log(UBX_LOGLEVEL_NOTICE, b, fmt, ##__VA_ARGS__)
 #define ubx_info(b, fmt, ...)	ubx_block_log(UBX_LOGLEVEL_INFO, b, fmt, ##__VA_ARGS__)
 
-#define ubx_block_log(level, b, fmt, ...)				      \
-do {                                                                          \
-	if (b->loglevel) {						      \
-		if (level <= *b->loglevel) {				      \
-			__ubx_log(level, b->ni, b->name, fmt, ##__VA_ARGS__); \
-		}							      \
-	} else {							      \
-		if (level <= b->ni->loglevel) {				      \
-			__ubx_log(level, b->ni, b->name, fmt, ##__VA_ARGS__); \
-		}							      \
-	}								      \
+#define ubx_block_log(level, b, fmt, ...)					\
+do {										\
+	if (b->loglevel) {							\
+		if (level <= *b->loglevel) {					\
+			__ubx_log(level, b->ni, b->name, fmt, ##__VA_ARGS__);	\
+		}								\
+	} else {								\
+		if (level <= b->ni->loglevel) {					\
+			__ubx_log(level, b->ni, b->name, fmt, ##__VA_ARGS__);	\
+		}								\
+	}									\
 } while (0)
 
 /* hooks for setting up logging infrastructure */
