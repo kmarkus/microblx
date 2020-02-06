@@ -10,6 +10,8 @@
  #define BLOCK_NAME RAMP_T
 #endif
 
+#include <string.h>
+#include <math.h>
 #include <ubx.h>
 
 UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
@@ -30,6 +32,7 @@ char ramp_meta[] =
 ubx_config_t ramp_config[] = {
 	{ .name = "start", .type_name = QUOTE(RAMP_T), .doc = "ramp starting value (def 0)" },
 	{ .name = "slope", .type_name = QUOTE(RAMP_T), .doc = "rate of change (def: 1)" },
+	{ .name = "data_len", .type_name = "long", .doc = "length of output data (def: 1)" },
 	{ NULL },
 };
 
@@ -55,9 +58,6 @@ static void update_port_cache(ubx_block_t *b, struct ramp_port_cache *pc)
 	pc->out = ubx_port_get(b, "out");
 }
 
-/* for each port type, declare convenience functions to read/write from ports */
-def_write_fun(write_out, RAMP_T)
-
 /* block operation forward declarations */
 int ramp_init(ubx_block_t *b);
 int ramp_start(ubx_block_t *b);
@@ -75,6 +75,7 @@ ubx_block_t ramp_block = {
 
 	/* ops */
 	.init = ramp_init,
+	.start = ramp_start,
 	.cleanup = ramp_cleanup,
 	.step = ramp_step,
 };
