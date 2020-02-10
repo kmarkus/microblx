@@ -604,7 +604,7 @@ end
 local function preproc_configs(ni, c, s)
 
    local function replace_hash(val, tab, key)
-      local name = string.match(val, ".*#([%w_-%/]+)")
+      local name = string.match(val, ".*#([%w_%-%/]+)")
       if not name then return end
       local bfqn = s._x.fqn..name
       local ptr = ubx.block_get(ni, bfqn)
