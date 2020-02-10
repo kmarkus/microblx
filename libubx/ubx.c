@@ -545,6 +545,72 @@ ubx_type_t *ubx_type_get(ubx_node_info_t *ni, const char *name)
 }
 
 /**
+ * ubx_type_get_by_hash
+ *
+ * @param ni node_info
+ * @param hash binary hash array of TYPE_HASH_LEN+1 size
+ * @return ubx_type_t* or NULL if not found
+ */
+ubx_type_t* ubx_type_get_by_hash(ubx_node_info_t *ni, const uint8_t *hash)
+{
+	ubx_type_ref_t *typeref, *tmptype;
+	HASH_ITER(hh, ni->types, typeref, tmptype) {
+		if (strncmp((char*) typeref->type_ptr->hash,
+			    (char*) hash, TYPE_HASH_LEN) == 0)
+			return typeref->type_ptr;
+	}
+	return NULL;
+}
+
+/**
+ * ubx_type_get_by_hash
+ *
+ * lookup a ubx type by its type hash
+ * @param ni
+ * @param hashstr zero terminated hex string of TYPE_HASHSTR_LEN+1 size
+ * @return ubx_type_t* or NULL if not found
+ */
+ubx_type_t* ubx_type_get_by_hashstr(ubx_node_info_t *ni, const char *hashstr)
+{
+	int len;
+	char tmp[3];
+	uint8_t hash[TYPE_HASH_LEN+1];
+
+	len = strlen(hashstr);
+
+	if (len != TYPE_HASHSTR_LEN) {
+		logf_err(ni, "invalid length of hashstr %u", len);
+		return NULL;
+	}
+
+	/* convert from string to binary array */
+	for (int i=0; i<TYPE_HASH_LEN; i++) {
+		tmp[0] = hashstr[i*2]; tmp[1] = hashstr[i*2+1]; tmp[2] = '\0';
+		hash[i] = (uint8_t) strtoul(tmp, NULL, 16);
+	}
+	hash[TYPE_HASH_LEN] = '\0';
+
+	return ubx_type_get_by_hash(ni, hash);
+}
+
+
+/**
+ * ubx_type_hashstr
+ *
+ * Convert the type hash to an hexstring
+ *
+ * @param t type
+ * @param buf buffer of at least TYPE_HASHSTR_LEN + 1
+ */
+void ubx_type_hashstr(const ubx_type_t *t, char *buf)
+{
+	for (int i=0; i<TYPE_HASH_LEN; i++)
+		sprintf(buf+i*2, "%02x", t->hash[i]);
+	buf[TYPE_HASH_LEN*2] = '\0';
+}
+
+
+/**
  * ubx_resolve_types - resolve string type references to real type object.
  *
  * For each port and config, let the type pointers point to the

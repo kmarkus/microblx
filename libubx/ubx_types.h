@@ -15,11 +15,8 @@
 /* constants */
 enum {
 	BLOCK_NAME_MAXLEN	= 30,
-	TYPE_HASH_LEN		= 16,   /* md5 */
-	TYPE_HASH_LEN_UNIQUE	= 8,	/*
-					 * Number of characters of the
-					 * type checksum to compare
-					 */
+	TYPE_HASH_LEN		= 16,   		/* binary md5 */
+	TYPE_HASHSTR_LEN	= TYPE_HASH_LEN*2,   	/* hexstring md5 */
 	LOG_MSG_MAXLEN		= 120,
 };
 
@@ -53,7 +50,7 @@ typedef struct ubx_type {
 					 */
 	long size;			/* size in bytes */
 	const void *private_data;	/* private data. */
-	uint8_t hash[TYPE_HASH_LEN];
+	uint8_t hash[TYPE_HASH_LEN+1];
 } ubx_type_t;
 
 /*
