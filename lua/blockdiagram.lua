@@ -467,7 +467,7 @@ local function late_checks(conf, ni)
    foreach(
       function (chk)
 	 if not M._checks[chk] then
-	    err_exit(-1, "unknown check "..chk)
+	    err_exit(1, "unknown check "..chk)
 	 end
 	 M._checks[chk].fun(ni,res)
       end,
@@ -476,7 +476,7 @@ local function late_checks(conf, ni)
    foreach(function(v) warn(v) end, res)
 
    if #res > 0 and conf.werror then
-      err_exit(-1, "warnings raised and treating warnings as errors")
+      err_exit(1, "warnings raised and treating warnings as errors")
    end
 end
 
@@ -609,9 +609,9 @@ local function preproc_configs(ni, c, s)
       local bfqn = s._x.fqn..name
       local ptr = ubx.block_get(ni, bfqn)
       if ptr==nil then
-	 err_exit(-1, "error: failed to resolve # blockref to block "..bfqn)
+	 err_exit(1, "error: failed to resolve # blockref to block "..bfqn)
       elseif ubx.is_proto(ptr) then
-	 err_exit("error: block #"..bfqn.." is a proto block")
+	 err_exit(1, "error: block #"..bfqn.." is a proto block")
       end
       info(magenta("resolved # blockref to "..bfqn))
       tab[key]=ptr
@@ -664,7 +664,7 @@ local function configure_block(ni, cfg, NC, i)
    local b = get_ubx_block(ni, cfg._x.tgt)
 
    if b==nil then
-      err_exit(-1, "error: config "..cfg._x.fqn.." for block "..
+      err_exit(1, "error: config "..cfg._x.fqn.." for block "..
 		  cfg.name.."no ubx block instance found")
    end
 
