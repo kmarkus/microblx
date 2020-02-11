@@ -5,6 +5,15 @@ This file tracks user visible API changes.
 
 ## unreleased
 
+- core: added functions for `ubx_type_t` lookup via hash or hashstr.
+
+- added PID controller block and extended ramp block with a `data_len`
+  parameter to allow vector ramp output. Added helper functions for
+  reading/writing dynamically sized arrays (`def_write_dynarr_fun` and
+  `def_read_dynarr_fun`) and for resizing ports (`ubx_inport_resize`
+  and `ubx_outport_resize`).
+
+
 - `ubx_launch`: `-c` options now supports multiple arguments and will
   merge all models into the first before launching. Use-case is for
   adding policy (e.g. `ptrig` blocks etc.) to otherwise reusable
