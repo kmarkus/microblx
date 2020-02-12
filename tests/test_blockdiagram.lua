@@ -51,7 +51,7 @@ end
 local function sys1_gen_configurations()
    local res = {}
    for i=1,NUM_BLOCKS do
-      res[#res+1] = { name="uint32_ramp"..tostring(i), config = {} }
+      res[#res+1] = { name="uint32_ramp"..tostring(i), config = { slope=1} }
    end
 
    for i=1,NUM_BLOCKS do

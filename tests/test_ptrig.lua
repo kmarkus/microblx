@@ -27,14 +27,14 @@ local trig_cnt = 0
 local test_result = 999
 
 function step(b)
-   trig_cnt=trig_cnt+1
-
    local _, res = p_ramp_cnt:read()
    if trig_cnt ~= res:tolua() then
       test_result = -1
    end
 
    ubx.port_write(p_test_result, test_result)
+
+   trig_cnt=trig_cnt+1
 end
 
 function cleanup(b)
