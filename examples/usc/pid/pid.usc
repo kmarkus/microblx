@@ -2,7 +2,15 @@
 
 local DATA_LEN = 10
 local Kp = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
-local slope = { 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1 }
+local Ki = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
+local Kd = { 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 }
+
+local slope_msr = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
+--local slope_des = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
+local slope_des = { 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1 }
+
+local start_des = { 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 }
+local start_msr = { 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 }
 
 return bd.system
 {
@@ -18,9 +26,9 @@ return bd.system
    },
 
    configurations = {
-      { name="pid_1", config = { Kp=Kp, data_len=DATA_LEN } },
-      { name="ramp_msr", config = { data_len=DATA_LEN, slope=slope } },
-      { name="ramp_des", config = { data_len=DATA_LEN } },
+      { name="pid_1", config = { Kp=Kp, Ki=Ki, Kd=Kd, data_len=DATA_LEN } },
+      { name="ramp_msr", config = { data_len=DATA_LEN, slope=slope_msr, start=start_msr } },
+      { name="ramp_des", config = { data_len=DATA_LEN, slope=slope_des, start=start_des } },
       { name="trig_1", config = { trig_blocks = {
 				     { b="#ramp_msr", num_steps=1 },
 				     { b="#ramp_des", num_steps=1 },

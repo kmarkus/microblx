@@ -1,0 +1,37 @@
+--- Overlay the basic PID controller example to export the controller
+--- output
+
+return bd.system {
+   imports = { "stdtypes", "mqueue" },
+
+   subsystems = {
+      controller = bd.load("pid.usc")
+   },
+
+   blocks = {
+      { name="mq_1", type="mqueue" },
+      { name="mq_2", type="mqueue" },
+      { name="mq_3", type="mqueue" },
+   },
+
+   configurations = {
+      { name="mq_1", config = {
+	   mq_name="/controller_pid-out",
+	   type_name = 'double', data_len = 10, buffer_len = 5 }
+      },
+      { name="mq_2", config = {
+	   mq_name="/ramp_msr-out",
+	   type_name = 'double', data_len = 10, buffer_len = 5 }
+      },
+      { name="mq_3", config = {
+	   mq_name="/ramp_des-out",
+	   type_name = 'double', data_len = 10, buffer_len = 5 }
+      },
+   },
+
+   connections = {
+      { src = "controller/pid_1.out", tgt = "mq_1" },
+      { src = "controller/ramp_msr.out", tgt = "mq_2" },
+      { src = "controller/ramp_des.out", tgt = "mq_3" },
+   }
+}
