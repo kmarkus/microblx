@@ -562,7 +562,7 @@ function M.block_pp(b)
 
    if M.is_block(b) then bt = M.block_totab(b) else bt = b end
 
-   if M.is_cblock(b) then
+   if bt.block_type == 'cblock' then
       local fmt = "%s [state: %s, steps: %u] (type: %s, prototype: %s, attrs: %s)"
 
       res[#res+1] = fmt:format(green(bt.name),
@@ -571,7 +571,7 @@ function M.block_pp(b)
 			       bt.block_type,
 			       blue(bt.prototype),
 			       table.concat(bt.attrs, ', '))
-   elseif M.is_iblock(b) then
+   elseif bt.block_type == 'iblock' then
       local fmt = "%s [state: %s, reads: %u, writes: %u] (type: %s, prototype: %s, attrs: %s)"
       res[#res+1] = fmt:format(green(bt.name),
 			       block_state_color(bt.state),
@@ -581,7 +581,7 @@ function M.block_pp(b)
 			       blue(bt.prototype),
 			       table.concat(bt.attrs, ', '))
    else
-      error("unknown block type")
+      error("unknown block type "..bt.block_type)
    end
 
    if #bt.ports > 0 then
