@@ -16,15 +16,15 @@ return bd.system {
 
    configurations = {
       { name="mq_1", config = {
-	   mq_name="/controller_pid-out",
+	   mq_id="controller_pid-out",
 	   type_name = 'double', data_len = 10, buffer_len = 5 }
       },
       { name="mq_2", config = {
-	   mq_name="/ramp_msr-out",
+	   mq_id="ramp_msr-out",
 	   type_name = 'double', data_len = 10, buffer_len = 5 }
       },
       { name="mq_3", config = {
-	   mq_name="/ramp_des-out",
+	   mq_id="ramp_des-out",
 	   type_name = 'double', data_len = 10, buffer_len = 5 }
       },
    },
