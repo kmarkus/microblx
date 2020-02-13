@@ -182,6 +182,12 @@ static long mqueue_read(ubx_block_t *i, ubx_data_t *data)
 	int ret = 0, size;
 	struct mqueue_info *inf;
 
+	if (i->block_state != BLOCK_STATE_ACTIVE) {
+		ubx_err(i, "EWRONG_STATE: mqueue_read in state %s",
+			block_state_tostr(i->block_state));
+		return -1;
+	}
+
 	inf = (struct mqueue_info *)i->private_data;
 	size = data_size(data);
 	ret = mq_receive(inf->mqd, (char *)data->data, size, NULL);
@@ -204,6 +210,12 @@ static void mqueue_write(ubx_block_t *i, ubx_data_t *data)
 {
 	int ret, size;
 	struct mqueue_info *inf;
+
+	if (i->block_state != BLOCK_STATE_ACTIVE) {
+		ubx_err(i, "EWRONG_STATE: mqueue_write in state %s",
+			block_state_tostr(i->block_state));
+		return;
+	}
 
 	inf = (struct mqueue_info *)i->private_data;
 
