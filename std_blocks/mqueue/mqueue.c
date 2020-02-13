@@ -17,16 +17,19 @@ char mqueue_meta[] =
 	"}";
 
 ubx_config_t mqueue_config[] = {
-	{ .name = "mq_name", .type_name = "char", .min = 2, .max = NAME_MAX, .doc = "mqueue name see mq_overview(7)" },
+	{ .name = "mq_id", .type_name = "char", .min = 1, .max = NAME_MAX, .doc = "mqueue base id" },
 	{ .name = "type_name", .type_name = "char", .min = 1, .doc = "name of registered microblx type to transport" },
 	{ .name = "data_len", .type_name = "uint32_t", .max = 1, .doc = "array length (multiplier) of data (default: 1)" },
 	{ .name = "buffer_len", .type_name = "uint32_t", .min = 1, .max = 1, .doc = "max number of data elements the buffer shall hold" },
+	{ .name = "blocking", .type_name = "uint32_t", .min = 0, .max = 1, .doc = "enable blocking mode (def: 0)" },
 	{ NULL }
 };
 
 struct mqueue_info {
 	mqd_t mqd;
-	char *mq_name;
+	const char *mq_id;
+	char mq_name[NAME_MAX+1];
+
 	struct mqueue_msg *msg;
 
 	const ubx_type_t *type;		/* type of contained elements */
@@ -41,14 +44,17 @@ struct mqueue_info {
 static int mqueue_init(ubx_block_t *i)
 {
 	int ret = -1;
-	long len;
+	long len, mq_flags = 0;
 	const uint32_t *val;
 	const char *chrptr;
+
+	char hexhash[TYPE_HASHSTR_LEN+1];
 
 	struct mqueue_info *inf;
 	struct mq_attr mqa;
 
 	i->private_data = calloc(1, sizeof(struct mqueue_info));
+
 	if (i->private_data == NULL) {
 		ubx_err(i, "failed to alloc mqueue_info");
 		ret = EOUTOFMEM;
@@ -57,15 +63,22 @@ static int mqueue_init(ubx_block_t *i)
 
 	inf = (struct mqueue_info *)i->private_data;
 
+	/* retrive mq_id config */
+	len = cfg_getptr_char(i, "mq_id", &inf->mq_id);
+	if (len < 0) {
+		ubx_err(i, "failed to access config mq_id");
+		goto out_free_info;
+	}
+
 	/* config buffer_len */
 	len = cfg_getptr_uint32(i, "buffer_len", &val);
 	if (len < 0) {
-		ubx_err(i, "%s: failed to get buffer_len config", i->name);
+		ubx_err(i, "failed to get buffer_len config");
 		goto out_free_info;
 	}
 
 	if (*val == 0) {
-		ubx_err(i, "%s: illegal value buffer_len=0", i->name);
+		ubx_err(i, "EINVALID_CONFIG: illegal value buffer_len=0");
 		ret = EINVALID_CONFIG;
 		goto out_free_info;
 	}
@@ -77,7 +90,7 @@ static int mqueue_init(ubx_block_t *i)
 	/* config data_len */
 	len = cfg_getptr_uint32(i, "data_len", &val);
 	if (len < 0) {
-		ubx_err(i, "%s: failed to read 'data_len' config", i->name);
+		ubx_err(i, "EINVALID_CONFIG: failed to read 'data_len' config");
 		goto out_free_info;
 	}
 
@@ -86,14 +99,14 @@ static int mqueue_init(ubx_block_t *i)
 	/* config type_name */
 	len = cfg_getptr_char(i, "type_name", &chrptr);
 	if (len < 0) {
-		ubx_err(i, "failed to access config %s", i->name);
+		ubx_err(i, "failed to access config 'type_name'");
 		goto out_free_info;
 	}
 
 	inf->type = ubx_type_get(i->ni, chrptr);
 
 	if (inf->type == NULL) {
-		ubx_err(i, "%s: failed to lookup type %s", i->name, chrptr);
+		ubx_err(i, "failed to lookup type %s", chrptr);
 		ret = EINVALID_CONFIG;
 		goto out_free_info;
 	}
@@ -101,39 +114,46 @@ static int mqueue_init(ubx_block_t *i)
 	/* configure max message size */
 	mqa.mq_msgsize = inf->data_len * inf->type->size;
 
-	/* retrive mq_name config */
-	len = cfg_getptr_char(i, "mq_name", &chrptr);
-	if (len < 0) {
-		ubx_err(i, "failed to access config %s", i->name);
-		goto out_free_info;
-	}
-
-	if (chrptr[0] != '/') {
-		ubx_err(i, "missing '/' in mq_name %s (cfr. mq_overview(1))", i->name);
-		goto out_free_info;
-	}
-
-	inf->mq_name = strdup(chrptr);
-
 	if (mqa.mq_msgsize <= 0) {
-		ubx_err(i, "%s: invalid value for mq_msgsize: %ld", i->name, mqa.mq_msgsize);
-		goto out_free_mq_name;
+		ubx_err(i, "invalid value for mq_msgsize: %ld", mqa.mq_msgsize);
+		goto out_free_info;
 	}
 
-	mqa.mq_flags = O_NONBLOCK;
+	/* construct mq_name */
+	ubx_type_hashstr(inf->type, hexhash);
 
-	inf->mqd = mq_open(inf->mq_name, O_RDWR | O_CREAT | O_NONBLOCK, 0600, &mqa);
+	ret = snprintf(inf->mq_name, NAME_MAX+1, "/ubx_%s_%d_%s",
+		       hexhash, inf->data_len, inf->mq_id);
+
+	if (ret < 0) {
+		ubx_err(i, "failed to construct mqueue name");
+		goto out_free_info;
+	}
+
+	/* blocking mode */
+	len = cfg_getptr_uint32(i, "blocking", &val);
+	if (len < 0) {
+		ubx_err(i, "failed to get blocking config");
+		goto out_free_info;
+	}
+
+	if (len == 0 || (len > 0 && *val == 0))
+		mq_flags = O_NONBLOCK;
+
+	inf->mqd = mq_open(inf->mq_name, O_RDWR | O_CREAT | mq_flags, 0600, &mqa);
 
 	if (inf->mqd < 0) {
-		ubx_err(i, "mq_open failed %s", strerror(errno));
-		goto out_free_mq_name;
+		ubx_err(i, "mq_open for %s failed: %s", inf->mq_name, strerror(errno));
+		goto out_free_info;
 	}
+
+	ubx_info(i, "created %s %s[%u] mq %s with %d elem",
+		 (mq_flags & O_NONBLOCK) ? "non-blocking" : "blocking",
+		 inf->type->name, inf->data_len, inf->mq_id, inf->buffer_len);
 
 	ret = 0;
 	goto out;
 
- out_free_mq_name:
-	free(inf->mq_name);
  out_free_info:
 	free(inf);
  out:
@@ -188,7 +208,7 @@ static void mqueue_write(ubx_block_t *i, ubx_data_t *data)
 	inf = (struct mqueue_info *)i->private_data;
 
 	if (inf->type != data->type) {
-		ubx_err(i, "%s: invalid message type %s", i->name, data->type->name);
+		ubx_err(i, "invalid message type %s", data->type->name);
 		goto out;
 	}
 
@@ -200,7 +220,7 @@ static void mqueue_write(ubx_block_t *i, ubx_data_t *data)
 	if (ret != 0) {
 		inf->cnt_send_err++;
 		if (errno != EAGAIN) {
-			ubx_err(i, "mq_send %s failed: %s", i->name, strerror(errno));
+			ubx_err(i, "mq_send failed: %s", strerror(errno));
 			goto out;
 		}
 	}
