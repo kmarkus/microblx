@@ -1,0 +1,116 @@
+#!/usr/bin/env luajit
+-- -*- lua -*-
+
+local ubx = require("ubx")
+local bd = require("blockdiagram")
+local utils = require("utils")
+local strict = require("strict")
+
+local res,lfs = _G.pcall(_G.require,'lfs')
+
+local MQPATH="/dev/mqueue"
+
+local ts = tostring
+local fmt = string.format
+
+if not res then
+   print("error: ubx-mq requires LuaFileSystem")
+   os.exit(1)
+end
+
+local function usage()
+   print([[
+usage: ubx-mq <command> [<args>]
+commands:
+   list	    	      list all ubx mqueues
+   cat QUEUE          read and output data of mq id QUEUE
+
+global parameters:
+
+   -p m1,m2     list of modules to preload
+                (stdtypes is loaded by default)
+   -h           show help
+]])
+end
+
+--- mqueues_get
+-- reads the mqueue directory and parses the ubx mqueues
+-- into tables with mq_id = { hashstr=..., data_len=... }
+-- @return a table of ubx_mqueues entries
+local function mqueues_get()
+   local res = {}
+
+   for file in lfs.dir(MQPATH) do
+      local hashstr, data_len, mq_id = string.match(file, "ubx_(%w+)_(%d+)_(.+)")
+      if hashstr and data_len and mq_id then
+	 res[#res+1] = { mq_id=mq_id, hashstr=hashstr, data_len=tonumber(data_len) }
+      end
+   end
+   return res
+end
+
+--- read from the given mqueue and print the result
+-- @param mqtab message queue id
+-- @return never returns
+local function cat(mqtab)
+
+   local ni = ubx.node_create("ubx-mq")
+   ubx.load_module(ni, "stdtypes")
+   ubx.load_module(ni, "mqueue")
+   local typ = ubx.type_get_by_hashstr(ni, mqtab.hashstr)
+
+   if typ == nil then
+      print(fmt("no type found for %s, use -p option to preload types", mqtab.hashstr))
+      os.exit(1)
+   end
+
+   local sample = ubx.__data_alloc(ni, typ, mqtab.data_len)
+
+   ubx.block_create(ni, "mqueue", "mq", {
+		       mq_id = mqtab.mq_id,
+		       type_name = ubx.safe_tostr(typ.name),
+		       data_len = mqtab.data_len,
+		       buffer_len = 32,
+		       blocking = 1 } )
+
+   local mq = ni:b("mq")
+
+   ubx.block_tostate(mq, 'active')
+
+   while true do
+      local ret = mq.read(mq, sample)
+      if ret > 0 then print(sample) end
+   end
+end
+
+--- prog starts here
+if #arg < 1 then
+   usage(); os.exit(1)
+end
+
+local opttab = utils.proc_args(arg)
+
+if opttab['-h'] then
+   usage(); os.exit(0)
+end
+
+local mqs = mqueues_get()
+
+if opttab[0][1] == "list" then
+   for _,q in ipairs(mqs) do
+      print(fmt("%s  %s  %s", q.hashstr, utils.rpad(ts(q.data_len), 3), q.mq_id))
+   end
+   os.exit(0)
+elseif opttab[0][1] == "cat" then
+   local mq_id = opttab[0][2]
+   if not mq_id then
+      print("cat expects an argument QUEUE")
+      os.exit(1)
+   end
+
+   for _,m in ipairs(mqs) do
+      if m.mq_id == mq_id then cat(m) end
+   end
+   print(fmt("invalid ubx queue id %s", mq_id))
+   os.exit(1)
+end
