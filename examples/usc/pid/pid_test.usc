@@ -12,6 +12,7 @@ return bd.system {
       { name="mq_1", type="mqueue" },
       { name="mq_2", type="mqueue" },
       { name="mq_3", type="mqueue" },
+      { name="mq_4", type="mqueue" },
    },
 
    configurations = {
@@ -27,11 +28,17 @@ return bd.system {
 	   mq_id="ramp_des-out",
 	   type_name = 'double', data_len = 10, buffer_len = 5 }
       },
+      { name="mq_4", config = {
+	   mq_id="trig-tstats",
+	   type_name = 'struct ubx_tstat', data_len = 1, buffer_len = 5 }
+      },
+      { name="controller/trig_1", config = { tstats_enabled=1 } },
    },
 
    connections = {
       { src = "controller/pid_1.out", tgt = "mq_1" },
       { src = "controller/ramp_msr.out", tgt = "mq_2" },
       { src = "controller/ramp_des.out", tgt = "mq_3" },
+      { src = "controller/trig_1.tstats", tgt = "mq_4" },
    }
 }

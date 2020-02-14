@@ -19,8 +19,14 @@ local leaf = bd.system {
       { name = "trig", type="std_triggers/trig" },
    },
    configurations = {
-      {	name="rnd1", config = { min_max_config = { min=1, max=2 } } },
-      {	name="rnd2", config = { min_max_config = { min=3, max=4 } } },
+      {	name="rnd1", config = {
+	   loglevel=6,
+	   min_max_config = { min=1, max=2 } }
+      },
+      {	name="rnd2", config = {
+	   loglevel=4,
+	   min_max_config = { min=3, max=4 } }
+      },
       { name="trig", config = { trig_blocks={
 				   { b="#rnd1", num_steps=1, measure=0 },
 				   { b="#rnd2", num_steps=1, measure=0 } } } }
@@ -44,7 +50,10 @@ local comp1 = bd.system {
    configurations = {
       {	name="rnd1", config = { min_max_config = { min=10, max=11 } } },
       {	name="rnd2", config = { min_max_config = { min=12, max=13 } } },
-      {	name="leaf/rnd2", config = { min_max_config = { min=14, max=15 } } },
+      {	name="leaf/rnd2", config = {
+	   loglevel=5,
+	   min_max_config = { min=14, max=15 } }
+      },
       { name="trig", config = { trig_blocks={
 				   { b="#rnd1", num_steps=1, measure=0 },
 				   { b="#rnd2", num_steps=1, measure=0 },
@@ -72,7 +81,10 @@ local comp2 = bd.system {
       {	name="rnd1", config = { min_max_config = { min=100, max=101 } } },
       {	name="rnd2", config = { min_max_config = { min=102, max=103 } } },
       {	name="mid/rnd2", config = { min_max_config = { min=104, max=105 } } },
-      {	name="mid/leaf/rnd2", config = { min_max_config = { min=106, max=107 } } },
+      {	name="mid/leaf/rnd2", config = {
+	   loglevel=7,
+	   min_max_config = { min=106, max=107 } }
+      },
       { name="trig", config = { trig_blocks={
 				   { b="#rnd1", num_steps=1, measure=0 },
 				   { b="#rnd2", num_steps=1, measure=0 },
@@ -107,7 +119,8 @@ function TestComp:test_leaf()
    -- check configs
    lu.assert_equals( NI:b("rnd1"):c("min_max_config"):tolua(), { min=1, max=2 } )
    lu.assert_equals( NI:b("rnd2"):c("min_max_config"):tolua(), { min=3, max=4 } )
-
+   lu.assert_equals( NI:b("rnd1"):c("loglevel"):tolua(), 6)
+   lu.assert_equals( NI:b("rnd2"):c("loglevel"):tolua(), 4)
 end
 
 function TestComp:test_comp1()
@@ -121,6 +134,10 @@ function TestComp:test_comp1()
    lu.assert_equals( NI:b("rnd2"):c("min_max_config"):tolua(), { min=12, max=13 } )
    lu.assert_equals( NI:b("leaf/rnd1"):c("min_max_config"):tolua(), { min=1, max=2 } )
    lu.assert_equals( NI:b("leaf/rnd2"):c("min_max_config"):tolua(), { min=14, max=15 } )
+
+   -- test overwriting of individual configs
+   lu.assert_equals( NI:b("leaf/rnd1"):c("loglevel"):tolua(), 6 )
+   lu.assert_equals( NI:b("leaf/rnd2"):c("loglevel"):tolua(), 5 )
 end
 
 function TestComp:test_comp2()
@@ -135,6 +152,10 @@ function TestComp:test_comp2()
    lu.assert_equals( NI:b("mid/rnd2"):c("min_max_config"):tolua(), { min=104, max=105 } )
    lu.assert_equals( NI:b("mid/leaf/rnd1"):c("min_max_config"):tolua(), { min=1, max=2 } )
    lu.assert_equals( NI:b("mid/leaf/rnd2"):c("min_max_config"):tolua(), { min=106, max=107 } )
+
+   -- test overriding of individual configs
+   lu.assert_equals( NI:b("mid/leaf/rnd1"):c("loglevel"):tolua(), 6 )
+   lu.assert_equals( NI:b("mid/leaf/rnd2"):c("loglevel"):tolua(), 7 )
 end
 
 --

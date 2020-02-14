@@ -10,7 +10,7 @@ return bd.system {
    configurations = {
       { name="ptrig1", config = { period = {sec=1, usec=0 },
 				  trig_blocks={
-				     { b="#controller/trig_1", num_steps=1, measure=0 } } }
+				     { b="#controller/trig_1", num_steps=1 } } }
       },
    }
 }
