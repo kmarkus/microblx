@@ -622,16 +622,25 @@ end
 
 --- Configure a the given block with a config
 -- (scalar, table or node cfg reference '&ndcfg'
--- @param c blockdiagram.config
+-- @param cfg config table
 -- @param b ubx_block_t
 -- @param NC global config table
-local function apply_config(blkconf, b, NC)
+-- @param configured table of already configured configs
+local function apply_config(cfg, b, NC, configured)
    local function check_noderef(val)
       if type(val) ~= 'string' then return end
       return string.match(val, "^%s*&([%w_-]+)")
    end
 
-   for name,val in pairs(blkconf.config) do
+   for name,val in pairs(cfg.config) do
+
+      local cfgfqn = cfg._x.tgt._x.fqn..'.'..name
+
+      if configured[cfgfqn] then
+	 notice("skipping "..cfgfqn.." config "..utils.tab2str(val)..": already configured")
+	 goto continue
+      end
+
       -- check for references to node configs
       local nodecfg = check_noderef(val)
 
@@ -642,24 +651,27 @@ local function apply_config(blkconf, b, NC)
 	 local blkcfg = ubx.block_config_get(b, name)
 
 	 if blkcfg==nil then
-	    err_exit(1, "non-existing config '"..blkconf.name.. "."..name.."'")
+	    err_exit(1, "non-existing config '"..cfg.name.. "."..name.."'")
 	 end
 
-	 info("configuring "..green(blkconf._x.tgt._x.fqn.."."..blue(name))
-		 .." with nodecfg "..yellow(nodecfg).." "..yellow(utils.tab2str(NC[nodecfg])))
+	 info("nodecfg "..green(cfg._x.tgt._x.fqn.."."..blue(name))
+		 .." with "..yellow(nodecfg).." "..yellow(utils.tab2str(NC[nodecfg])))
 	 ubx.config_assign(blkcfg, NC[nodecfg])
       else -- regular config
-	 info("cfg "..green(blkconf.name).."."..blue(name)..": "..yellow(utils.tab2str(val)))
+	 info("cfg "..green(cfg._x.tgt._x.fqn).."."..blue(name)..": "..yellow(utils.tab2str(val)))
 	 ubx.set_config(b, name, val)
       end
+      configured[cfgfqn] = true
+      ::continue::
    end
 end
 
 --- Configure apply the given cfg to it's block in ni
 -- @param ni node_info
--- @param cfg system.config table
+-- @param cfg config table
 -- @param NC node (global) configuration table
-local function configure_block(ni, cfg, NC, i)
+-- @param configured table of already configured configs
+local function configure_block(ni, cfg, NC, configured)
    local bfqn =	cfg._x.tgt._x.fqn
    local b = get_ubx_block(ni, cfg._x.tgt)
 
@@ -674,7 +686,7 @@ local function configure_block(ni, cfg, NC, i)
       return
    end
 
-   apply_config(cfg, b, NC)
+   apply_config(cfg, b, NC, configured)
 end
 
 --- configure all blocks
@@ -682,6 +694,8 @@ end
 -- @param root_sys root system
 -- @param NC
 local function configure_blocks(ni, root_sys, NC)
+
+   -- table of already configured configs { [<blockfqn.config>] = true }
    local configured = {}
 
    -- substitue #blockname syntax
@@ -689,17 +703,11 @@ local function configure_blocks(ni, root_sys, NC)
 
    -- apply configurations to blocks
    mapconfigs(
-      function(c, i)
-	 local bfqn = c._x.tgt._x.fqn
-	 if configured[bfqn] then
-	    info("skipping "..bfqn.." config "..utils.tab2str(c.config)..": already configured")
-	    return
-	 end
-	 configure_block(ni, c, NC, i)
-	 configured[bfqn] = true
+      function(cfg, i)
+	 configure_block(ni, cfg, NC, configured)
       end, root_sys)
 
-   -- configure all blocks
+   -- initialize all blocks (brings them to state 'inactive')
    mapblocks(
       function(btab,i,p)
 	 local b = get_ubx_block(ni, btab)
