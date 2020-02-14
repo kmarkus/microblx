@@ -137,25 +137,6 @@ function TestComp:test_comp2()
    lu.assert_equals( NI:b("mid/leaf/rnd2"):c("min_max_config"):tolua(), { min=106, max=107 } )
 end
 
-local leaf = bd.system {
-   imports = { "stdtypes", "random", "lfds_cyclic", "trig" },
-   blocks = {
-      { name = "rnd1", type="random/random" },
-      { name = "rnd2", type="random/random" },
-      { name = "trig", type="std_triggers/trig" },
-   },
-   configurations = {
-      {	name="rnd1", config = { min_max_config = { min=1, max=2 } } },
-      {	name="rnd2", config = { min_max_config = { min=3, max=4 } } },
-      { name="trig", config = { trig_blocks={
-				   { b="#rnd1", num_steps=1, measure=0 },
-				   { b="#rnd2", num_steps=1, measure=0 } } } }
-   },
-   connections = {
-      { src="rnd1.rnd", tgt="rnd2.seed" }
-   },
-}
-
 --
 -- Node config tests
 --
