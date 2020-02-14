@@ -44,28 +44,28 @@ fi
 # required for TSC only
 AC_DEFINE([CPU_HZ], 1600000000, [cpu hz defined])
 
-# check for pthreads
-have_pthreads=no
-AC_SEARCH_LIBS([pthread_create], [pthread], [have_pthreads=yes])
-if test "x${have_pthreads}" = xyes; then
-  AC_CHECK_HEADERS([pthread.h], [], [have_pthreads=no])
-fi
-if test "x${have_pthreads}" = xno; then
-  echo "---------------------------------------"
-  echo "Unable to find pthreads on this system."
-  echo "---------------------------------------"
-  exit 1
-fi
-
 PKG_CHECK_MODULES(LUAJIT, luajit >= 2.0.4)
 PKG_CHECK_MODULES(LFDS, lfds6 >= 6.1.1)
 
-AC_CHECK_HEADERS([uthash.h])
+# pthreads
+AC_SEARCH_LIBS([pthread_create], [pthread], [have_pthreads=yes])
+AS_IF([test "x$have_pthreads" != "xyes"],
+    AC_MSG_ERROR(Unable to find pthreads))
 
+# uthash
+AC_CHECK_HEADERS([uthash.h], [uthash_found=yes; break;])
+AS_IF([test "x$uthash_found" != "xyes"],
+    AC_MSG_ERROR([Unable to find uthash headers (install uthash-dev)]))
+
+# cproto
+AC_CHECK_PROG(CPROTO, [cproto], [yes])
+AS_IF([test x"$CPROTO" != x"yes"],
+    [AC_MSG_ERROR([Please install cproto before configuring])])
+
+# sphinx
 AC_CHECK_PROGS([SPHINXBUILD], [sphinx-build sphinx-build3 sphinx-build2], [no])
-
-AS_IF([test "x$SPHINXBUILD" = xno],
-      AC_MSG_WARN(sphinx-build is required to build documentation))
+AS_IF([test x"$SPHINXBUILD" = x"no"],
+    AC_MSG_WARN(sphinx-build is required to build documentation))
 
 # files to generate via autotools
 AC_CONFIG_FILES([Makefile
