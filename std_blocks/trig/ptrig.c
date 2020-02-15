@@ -52,7 +52,7 @@ ubx_config_t ptrig_config[] = {
 	{ .name = "sched_policy", .type_name = "char", .doc = "pthread scheduling policy" },
 	{ .name = "thread_name", .type_name = "char", .doc = "thread name (for dbg), default is block name" },
 	{ .name = "trig_blocks", .type_name = "struct ubx_trig_spec", .doc = "specification of blocks to trigger" },
-	{ .name = "tstats_enabled", .type_name = "int", .doc = "enable timing statistics over all blocks", },
+	{ .name = "tstats_mode", .type_name = "int", .doc = "enable timing statistics over all blocks", },
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "file to which to write the timing statistics" },
 	{ .name = "tstats_output_rate", .type_name = "unsigned int", .doc = "output tstats only on every tstats_output_rate'th trigger (0 to disable)" },
 	{ NULL },
@@ -70,87 +70,11 @@ struct ptrig_inf {
 	pthread_mutex_t mutex;
 	pthread_cond_t active_cond;
 
-	const struct ubx_trig_spec *trig_list;
-	unsigned int trig_list_len;
-
 	struct ptrig_period *period;
 
-	/* timing statistics */
-	int tstats_enabled;
-	const char *tstats_profile_path;
-
-	struct ubx_tstat global_tstats;
-	struct ubx_tstat *blk_tstats;
-
-	ubx_port_t *p_tstats;
+	struct trig_info trig_inf;
 };
 
-def_write_fun(write_tstat, struct ubx_tstat)
-
-/**
- * print tstats
- */
-void ptrig_tstats_print(struct ptrig_inf *inf)
-{
-	unsigned int i;
-
-	if (inf->tstats_enabled) {
-		for (i = 0; i < inf->trig_list_len; i++)
-			if (inf->trig_list[i].measure)
-				tstat_print(inf->tstats_profile_path,
-					    &inf->blk_tstats[i]);
-	}
-}
-
-/* trigger the configured blocks */
-static int trigger_steps(struct ptrig_inf *inf)
-{
-	int ret = -1;
-	unsigned int i, steps;
-
-	struct ubx_timespec ts_start, ts_end, blk_ts_start, blk_ts_end;
-
-	if (inf->tstats_enabled)
-		ubx_gettime(&ts_start);
-
-	for (i = 0; i < inf->trig_list_len; i++) {
-		if (inf->trig_list[i].measure)
-			ubx_gettime(&blk_ts_start);
-
-		for (steps = 0; steps < inf->trig_list[i].num_steps; steps++) {
-			if (ubx_cblock_step(inf->trig_list[i].b) != 0)
-				goto out;
-
-			/* per block statistics */
-			if (inf->trig_list[i].measure) {
-				ubx_gettime(&blk_ts_end);
-				tstat_update(&inf->blk_tstats[i],
-					     &blk_ts_start,
-					     &blk_ts_end);
-			}
-
-		}
-	}
-
-	/* compute global tstats */
-	if (inf->tstats_enabled) {
-		ubx_gettime(&ts_end);
-		tstat_update(&inf->global_tstats, &ts_start, &ts_end);
-
-		/* output global tstats - TODO throttling */
-		write_tstat(inf->p_tstats, &inf->global_tstats);
-	}
-
-	/* output stats - TODO throttling */
-	for (i = 0; i < inf->trig_list_len; i++) {
-		if (inf->trig_list[i].measure)
-			write_tstat(inf->p_tstats, &inf->blk_tstats[i]);
-	}
-
-	ret = 0;
- out:
-	return ret;
-}
 
 /* helper for normalizing struct timespecs */
 static inline void tsnorm(struct timespec *ts)
@@ -176,7 +100,7 @@ static void *thread_startup(void *arg)
 		pthread_mutex_lock(&inf->mutex);
 
 		while (inf->state != BLOCK_STATE_ACTIVE) {
-			ptrig_tstats_print(inf);
+			trig_info_tstats_log(b, &inf->trig_inf);
 			pthread_cond_wait(&inf->active_cond, &inf->mutex);
 		}
 		pthread_mutex_unlock(&inf->mutex);
@@ -188,7 +112,7 @@ static void *thread_startup(void *arg)
 			goto out;
 		}
 
-		trigger_steps(inf);
+		do_trigger(&inf->trig_inf);
 
 		ts.tv_sec += inf->period->sec;
 		ts.tv_nsec += inf->period->usec * NSEC_PER_USEC;
@@ -368,64 +292,57 @@ static int ptrig_start(ubx_block_t *b)
 	int ret = -1;
 	const int *val;
 	long len;
-	struct ptrig_inf *inf;
 	FILE *fp;
 
-	inf = (struct ptrig_inf *)b->private_data;
+	struct ptrig_inf *inf;
+	struct trig_info *trig_inf;
+	struct ubx_trig_spec *trig_spec;
 
-	len = ubx_config_get_data_ptr(b, "trig_blocks", (void **)&inf->trig_list);
+	inf = (struct ptrig_inf *)b->private_data;
+	trig_inf = &inf->trig_inf;
+
+	len = ubx_config_get_data_ptr(b, "trig_blocks", (void **)&trig_spec);
+
 	if (len < 0)
 		goto out;
 
-	inf->trig_list_len = len;
+	/* populate trig_info and init */
+	trig_inf->trig_list = trig_spec;
+	trig_inf->trig_list_len = len;
+	trig_info_init(trig_inf);
 
-	/* preparing timing statistics */
-	tstat_init(&inf->global_tstats, tstat_global_id);
+	len = cfg_getptr_char(b, "tstats_profile_path", &trig_inf->profile_path);
 
-	/* this is freed in cleanup hook */
-	inf->blk_tstats = realloc(
-		inf->blk_tstats,
-		inf->trig_list_len * sizeof(struct ubx_tstat));
-
-	if (!inf->blk_tstats) {
-		ubx_err(b, "failed to alloc blk_stats");
-		goto out;
-	}
-
-	for (unsigned int i = 0; i < inf->trig_list_len; i++) {
-		tstat_init(&inf->blk_tstats[i],
-			   inf->trig_list[i].b->name);
-	}
-
-	len = cfg_getptr_char(b, "tstats_profile_path", &inf->tstats_profile_path);
 	if (len < 0) {
 		ubx_err(b, "unable to retrieve tstats_profile_path parameter");
 		goto out;
 	}
+
 	/* truncate the file if it exists */
 	if (len > 0) {
-		fp = fopen(inf->tstats_profile_path, "w");
+		fp = fopen(trig_inf->profile_path, "w");
 		if (fp)
 			fclose(fp);
 	}
 
-	len = cfg_getptr_int(b, "tstats_enabled", &val);
+	len = cfg_getptr_int(b, "tstats_mode", &val);
+
 	if (len < 0)
 		goto out;
 
-	inf->tstats_enabled = (len > 0) ? *val : 0;
+	trig_inf->tstats_mode = (len > 0) ? *val : 0;
 
-	if (inf->tstats_enabled)
-		ubx_info(b, "tstats enabled");
+	if (trig_inf->tstats_mode)
+		ubx_info(b, "tstats_mode: %d", trig_inf->tstats_mode);
+
+	trig_inf->p_tstats = ubx_port_get(b, "tstats");
 
 	pthread_mutex_lock(&inf->mutex);
 	inf->state = BLOCK_STATE_ACTIVE;
 	pthread_cond_signal(&inf->active_cond);
 	pthread_mutex_unlock(&inf->mutex);
 
-	inf->p_tstats = ubx_port_get(b, "tstats");
 	ret = 0;
-
 out:
 	return ret;
 }
@@ -457,7 +374,10 @@ static void ptrig_cleanup(ubx_block_t *b)
 
 	pthread_attr_destroy(&inf->attr);
 
-	free(inf->blk_tstats);
+	/* even though we call trig_info_init in start, it is OK to do
+	 * this in cleanup only since start calls realloc which will
+	 * just resize to the current size */
+	trig_info_cleanup(&inf->trig_inf);
 	free(b->private_data);
 }
 

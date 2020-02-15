@@ -113,7 +113,7 @@ local sys2 = bd.system {
       { name="tb2", config = { lua_str=gen_dur_test_block(0, block_dur_us.tb2*1000) } },
       { name="tb3", config = { lua_str=gen_dur_test_block(0, block_dur_us.tb3*1000) } },
       { name="trig", config = { period = {sec=0, usec=100000 },
-				tstats_enabled=1,
+				tstats_mode=2,
 				trig_blocks={
 				   { b="#tb1", num_steps=1, measure=1 },
 				   { b="#tb2", num_steps=1, measure=1 },

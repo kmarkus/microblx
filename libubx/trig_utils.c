@@ -4,14 +4,24 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <limits.h>
 #include "trig_utils.h"
 
-static const char *log_fmt = "cnt: %lu, min: %11.9f, max: %11.9f, avg: %11.9f\n";
+#define LOG_FMT "cnt: %lu, min: %11.9f, max: %11.9f, avg: %11.9f"
+static const char *tstat_global_id = "##total##";
+
+def_write_fun(write_tstat, struct ubx_tstat)
+
+/*
+ * timinig statistics helpers
+ */
 
 /**
  * initialise a tstat structure
  */
-
 void tstat_init(struct ubx_tstat *ts, const char *block_name)
 {
 	strncpy(ts->block_name, block_name, BLOCK_NAME_MAXLEN);
@@ -48,70 +58,157 @@ void tstat_update(struct ubx_tstat *stats,
 }
 
 /**
- * print timing statistics
+ * write timing statistics to file
+ * @param trig_inf struct trig_info's content to write
+ * @return 0 if OK, -1 if opening or writing file failed.
  */
-void tstat_print(const char *profile_path, struct ubx_tstat *stats)
+int tstat_write(FILE *fp, struct ubx_tstat *stats)
 {
-	FILE *fp;
 	struct ubx_timespec avg;
-
-	fp = fopen(profile_path, "a");
 
 	if (stats->cnt > 0) {
 		ubx_ts_div(&stats->total, stats->cnt, &avg);
 
-		fprintf(fp != NULL ? fp : stderr,
-			 "%s: cnt: %lu, min: %11.9f, max: %11.9f, avg: %11.9f\n",
-			 stats->block_name,
-			 stats->cnt,
-			 ubx_ts_to_double(&stats->min),
-			 ubx_ts_to_double(&stats->max),
-			 ubx_ts_to_double(&avg));
+		fprintf(fp,
+			"%s: " LOG_FMT "\n",
+			stats->block_name, stats->cnt,
+			ubx_ts_to_double(&stats->min),
+			ubx_ts_to_double(&stats->max),
+			ubx_ts_to_double(&avg));
 	} else {
-		fprintf(fp != NULL ? fp : stderr,
-			 "%s: cnt is 0 - no statistics acquired\n",
-			 stats->block_name);
+		fprintf(fp, "%s: cnt: 0 - no stats aquired", stats->block_name);
 	}
 
-	fp = fopen(profile_path, "a+");
-	if (fp != NULL)
-		fprintf(fp,
-			"%s: cnt: %lu, min: %11.9f, max: %11.9f, avg: %11.9f\n",
-			stats->block_name,
-			stats->cnt,
-			ubx_ts_to_double(&stats->min),
-			ubx_ts_to_double(&stats->max),
-			ubx_ts_to_double(&avg));
-	else
-		fprintf(stderr,
-			"%s: cnt: %lu, min: %11.9f, max: %11.9f, avg: %11.9f\n",
-			stats->block_name,
-			stats->cnt,
-			ubx_ts_to_double(&stats->min),
-			ubx_ts_to_double(&stats->max),
-			ubx_ts_to_double(&avg));
-	if (fp)
-		fclose(fp);
+	fclose(fp);
+	return 0;
 }
 
 /**
  * log timing statistics
  */
-void tstat_log(const ubx_node_info_t *ni, const struct ubx_tstat *stats)
+void tstat_log(const ubx_block_t *b, const struct ubx_tstat *stats)
 {
 	struct ubx_timespec avg;
 
 	if (stats->cnt == 0) {
-		ubx_log(UBX_LOGLEVEL_INFO, ni, stats->block_name,
-			"cnt: 0 - no statistics aquired");
+		ubx_info(b, "%s: cnt: 0 - no statistics aquired",
+			 stats->block_name);
 		return;
 	}
+
 	ubx_ts_div(&stats->total, stats->cnt, &avg);
 
-	ubx_log(UBX_LOGLEVEL_INFO, ni, stats->block_name,
-		log_fmt,
-		stats->cnt,
-		ubx_ts_to_double(&stats->min),
-		ubx_ts_to_double(&stats->max),
-		ubx_ts_to_double(&avg));
+	ubx_info(b, "%s: " LOG_FMT,
+		 stats->block_name, stats->cnt,
+		 ubx_ts_to_double(&stats->min),
+		 ubx_ts_to_double(&stats->max),
+		 ubx_ts_to_double(&avg));
+}
+
+/*
+ * basic triggering and tstats management
+ */
+
+int do_trigger(struct trig_info* trig_inf)
+{
+	int ret = -1;
+	unsigned int i, steps;
+
+	struct ubx_timespec ts_start, ts_end, blk_ts_start, blk_ts_end;
+
+
+	if (trig_inf->tstats_mode)
+		ubx_gettime(&ts_start);
+
+	for (i = 0; i < trig_inf->trig_list_len; i++) {
+
+		if (trig_inf->tstats_mode)
+			ubx_gettime(&blk_ts_start);
+
+		for (steps = 0; steps < trig_inf->trig_list[i].num_steps; steps++) {
+			if (ubx_cblock_step(trig_inf->trig_list[i].b) != 0)
+				goto out;
+		}
+
+		if (trig_inf->tstats_mode) {
+			ubx_gettime(&blk_ts_end);
+			tstat_update(&trig_inf->blk_tstats[i], &blk_ts_start, &blk_ts_end);
+		}
+	}
+
+	if (trig_inf->tstats_mode) {
+		ubx_gettime(&ts_end);
+		tstat_update(&trig_inf->global_tstats, &ts_start, &ts_end);
+
+		/* output stats */
+		write_tstat(trig_inf->p_tstats, &trig_inf->global_tstats);
+
+		for (i = 0; i < trig_inf->trig_list_len; i++)
+			write_tstat(trig_inf->p_tstats, &trig_inf->blk_tstats[i]);
+	}
+
+	ret = 0;
+ out:
+	return ret;
+}
+
+int trig_info_init(struct trig_info* trig_inf)
+{
+	tstat_init(&trig_inf->global_tstats, tstat_global_id);
+
+	trig_inf->blk_tstats = realloc(
+		trig_inf->blk_tstats,
+		trig_inf->trig_list_len * sizeof(struct ubx_tstat));
+
+	if (!trig_inf->blk_tstats)
+		return EOUTOFMEM;
+
+	for (unsigned int i = 0; i < trig_inf->trig_list_len; i++) {
+		printf("%s: %s\n", __FUNCTION__, trig_inf->trig_list[i].b->name);
+		tstat_init(&trig_inf->blk_tstats[i], trig_inf->trig_list[i].b->name);
+	}
+
+	return 0;
+}
+
+void trig_info_cleanup(struct trig_info* trig_inf)
+{
+	free(trig_inf->blk_tstats);
+}
+
+/**
+ * log all tstats
+ */
+void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf)
+{
+	switch(trig_inf->tstats_mode) {
+	case TSTATS_DISABLED:
+		break;
+	case TSTATS_PERBLOCK:
+		for (unsigned int i=0; i<trig_inf->trig_list_len; i++)
+			tstat_log(b, &trig_inf->blk_tstats[i]);
+		/* fall through */
+	case TSTATS_GLOBAL:
+		tstat_log(b, &trig_inf->global_tstats);
+		break;
+	default:
+		ubx_err(b, "unknown tstats_mode %d", trig_inf->tstats_mode);
+	}
+	return;
+}
+
+/**
+ * write all stats to file
+ */
+int trig_info_tstats_write(struct trig_info *trig_inf)
+{
+	FILE *fp;
+
+	fp = fopen(trig_inf->profile_path, "a");
+
+	/* TODO */
+	if (fp == NULL)
+		return -1;
+
+	return 0;
 }

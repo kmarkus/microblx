@@ -30,7 +30,7 @@ return bd.system
       { name="ramp_msr", config = { data_len=DATA_LEN, slope=slope_msr, start=start_msr } },
       { name="ramp_des", config = { data_len=DATA_LEN, slope=slope_des, start=start_des } },
       { name="trig_1", config = {
-	   tstats_enabled = 0,
+	   tstats_mode = 0,
 	   trig_blocks = {
 	      { b="#ramp_msr", num_steps=1 },
 	      { b="#ramp_des", num_steps=1 },

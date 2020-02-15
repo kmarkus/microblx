@@ -32,7 +32,7 @@ return bd.system {
 	   mq_id="trig-tstats",
 	   type_name = 'struct ubx_tstat', data_len = 1, buffer_len = 5 }
       },
-      { name="controller/trig_1", config = { tstats_enabled=1 } },
+      { name="controller/trig_1", config = { tstats_mode=2 } },
    },
 
    connections = {

@@ -15,7 +15,6 @@
 struct ubx_trig_spec {
 	ubx_block_t *b;
 	unsigned int num_steps;
-	unsigned int measure;
 };
 
 #endif /* UBX_TRIG_SPEC_H */

@@ -23,164 +23,86 @@ ubx_port_t trig_ports[] = {
 
 /* configuration */
 ubx_config_t trig_config[] = {
-	{ .name = "trig_blocks", .type_name = "struct ubx_trig_spec", .doc = "specification of blocks to trigger" },
-	{ .name = "tstats_enabled", .type_name = "int", .doc = "enable timing statistics over all blocks", },
-	{ .name = "tstats_profile_path", .type_name = "char", .doc = "file to which to write the timing statistics" },
-	{ .name = "tstats_output_rate", .type_name = "unsigned int", .doc = "output tstats only on every N'th trigger (0 to disable)" },
+	{ .name = "trig_blocks", .type_name = "struct ubx_trig_spec", .doc = "list of blocks to trigger" },
+	{ .name = "tstats_mode", .type_name = "int", .doc = "0: off (def), 1: global only, 2: per block", },
+	{ .name = "tstats_profile_path", .type_name = "char", .doc = "file to write timing stats to" },
+	{ .name = "tstats_output_rate", .type_name = "unsigned int", .doc = "throttle output on tstats port" },
 	{ .name = "loglevel", .type_name = "int" },
 	{ NULL },
 };
 
-/* instance state */
-struct trig_inf {
-	struct ubx_trig_spec *trig_list;
-	unsigned int trig_list_len;
-
-	/* timing statistics */
-	const char *tstats_profile_path;
-	int tstats_enabled;
-
-	struct ubx_tstat *tstats;
-
-	ubx_port_t *p_tstats;
-};
-
-def_write_fun(write_tstat, struct ubx_tstat)
-
-/**
- * print tstats
- */
-void trig_tstats_print(struct trig_inf *inf)
-{
-	unsigned int i;
-
-	if (inf->tstats_enabled) {
-		for (i = 0; i < inf->trig_list_len; i++)
-			if (inf->trig_list[i].measure)
-				tstat_print(inf->tstats_profile_path,
-					    &inf->tstats[i]);
-	}
-}
-
-/* trigger the configured blocks */
-int do_trigger(ubx_block_t *b)
-{
-	struct trig_inf *inf = (struct trig_inf *) b->private_data;
-	int ret = -1;
-	unsigned int i, steps;
-	struct ubx_timespec blk_ts_start, blk_ts_end;
-
-	for (i = 0; i < inf->trig_list_len; i++) {
-		if (inf->trig_list[i].measure)
-			ubx_gettime(&blk_ts_start);
-
-		for (steps = 0; steps < inf->trig_list[i].num_steps; steps++) {
-			ubx_debug(b, "step: %s", inf->trig_list[i].b->name);
-			if (ubx_cblock_step(inf->trig_list[i].b) != 0)
-				goto out;
-
-			/* per block statistics */
-			if (inf->trig_list[i].measure) {
-				ubx_gettime(&blk_ts_end);
-				tstat_update(&inf->tstats[i],
-					     &blk_ts_start,
-					     &blk_ts_end);
-			}
-		}
-	}
-
-	/* output stats - TODO throttling */
-	for (i = 0; i < inf->trig_list_len; i++) {
-		if (inf->trig_list[i].measure)
-			write_tstat(inf->p_tstats, &inf->tstats[i]);
-	}
-
-	ret = 0;
- out:
-	return ret;
-}
 
 /* step */
 void trig_step(ubx_block_t *b)
 {
-	if (do_trigger(b) != 0)
+	struct trig_info *trig_inf;
+	trig_inf = (struct trig_info *)b->private_data;
+
+	if (do_trigger(trig_inf) != 0)
 		ubx_err(b, "do_trigger failed");
 }
-
 
 /* init */
 int trig_init(ubx_block_t *b)
 {
-	int ret = EOUTOFMEM;
+	b->private_data = calloc(1, sizeof(struct trig_info));
 
-	b->private_data = calloc(1, sizeof(struct trig_inf));
 	if (b->private_data == NULL) {
-		ubx_err(b, "failed to alloc");
-		goto out;
+		ubx_err(b, "failed to alloc trig_info");
+		return EOUTOFMEM;
 	}
 
-	ret = 0;
-	goto out;
-
- out:
-	return ret;
+	return 0;
 }
 
 int trig_start(ubx_block_t *b)
 {
 	int ret = -1;
-	struct trig_inf *inf;
-	ubx_data_t *trig_list_data;
+	const int *val;
 	long len;
 	FILE *fp;
-	const int *val;
 
-	inf = (struct trig_inf *)b->private_data;
+	struct trig_info *trig_inf;
+	struct ubx_trig_spec *trig_spec;
 
-	trig_list_data = ubx_config_get_data(b, "trig_blocks");
+	trig_inf = (struct trig_info *) b->private_data;
 
-	/* make a copy? */
-	inf->trig_list = trig_list_data->data;
-	inf->trig_list_len = trig_list_data->len;
+	len = ubx_config_get_data_ptr(b, "trig_blocks", (void **)&trig_spec);
 
-	/* this is freed in cleanup hook */
-	inf->tstats = realloc(
-		inf->tstats,
-		inf->trig_list_len * sizeof(struct ubx_tstat));
-
-	if (!inf->tstats) {
-		ubx_err(b, "failed to alloc blk_stats");
+	if (len < 0)
 		goto out;
-	}
 
-	for (unsigned int i = 0; i < inf->trig_list_len; i++) {
-		tstat_init(&inf->tstats[i],
-			   inf->trig_list[i].b->name);
-	}
+	/* populate trig_info and init */
+	trig_inf->trig_list = trig_spec;
+	trig_inf->trig_list_len = len;
+	trig_info_init(trig_inf);
 
-	len = cfg_getptr_char(b, "tstats_profile_path",
-			      &inf->tstats_profile_path);
+	len = cfg_getptr_char(b, "tstats_profile_path", &trig_inf->profile_path);
+
 	if (len < 0) {
 		ubx_err(b, "unable to retrieve tstats_profile_path parameter");
 		goto out;
 	}
+
 	/* truncate the file if it exists */
 	if (len > 0) {
-		fp = fopen(inf->tstats_profile_path, "w");
+		fp = fopen(trig_inf->profile_path, "w");
 		if (fp)
 			fclose(fp);
 	}
 
-	len = cfg_getptr_int(b, "tstats_enabled", &val);
-	if (len  < 0)
+	/* tstats_mode */
+	len = cfg_getptr_int(b, "tstats_mode", &val);
+
+	if (len < 0)
 		goto out;
 
-	inf->tstats_enabled = (len > 0) ? *val : 0;
+	trig_inf->tstats_mode = (len > 0) ? *val : 0;
 
-	if (inf->tstats_enabled)
-		ubx_debug(b, "tstats enabled");
+	if (trig_inf->tstats_mode)
+		ubx_info(b, "tstats_mode: %d", trig_inf->tstats_mode);
 
-	inf->p_tstats = ubx_port_get(b, "tstats");
+	trig_inf->p_tstats = ubx_port_get(b, "tstats");
 
 	ret = 0;
 
@@ -190,15 +112,15 @@ out:
 
 void trig_stop(ubx_block_t *b)
 {
-	struct trig_inf *inf = (struct trig_inf *)b->private_data;
+	struct trig_info *trig_inf = (struct trig_info*) b->private_data;
 
-	trig_tstats_print(inf);
-
-	free(inf->tstats);
+	trig_info_tstats_log(b, trig_inf);
 }
 
 void trig_cleanup(ubx_block_t *b)
 {
+	struct trig_info *trig_inf = (struct trig_info*) b->private_data;
+	trig_info_cleanup(trig_inf);
 	free(b->private_data);
 }
 
