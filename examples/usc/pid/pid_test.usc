@@ -1,14 +1,34 @@
---- Overlay the basic PID controller example to export the controller
---- output
+--- pid_test
+--
+-- Overlay the basic PID controller composition for a
+-- development/testing scenario. For this purpose a simulated sensor
+-- signal (ramp_msr) is introduced and connected to the PID controller
+-- in the subcomposition.
+--
+-- The configuration of the trigger of the subcomposition is overlayed
+-- to trigger ramp_msr, ramp_des and the pid block. Furthermore, it is
+-- reconfigured to collect per block timing statistics and write these
+-- to a profile file.
+--
+-- In addition, the signals msr and des input, controller output, and
+-- the timing statistics are made available via mqueue iblocks. These
+-- can be accessed using the ubx-mq tool.
+
+-- number of buffer elements
+local MQ_BUF_LEN=5
 
 return bd.system {
-   imports = { "stdtypes", "mqueue" },
+   imports = { "stdtypes", "ramp_double", "mqueue" },
 
    subsystems = {
       controller = bd.load("pid.usc")
    },
 
    blocks = {
+      -- simulated input
+      { name="ramp_msr", type="ramp_double" },
+
+      -- message queues for debugging
       { name="mq_1", type="mqueue" },
       { name="mq_2", type="mqueue" },
       { name="mq_3", type="mqueue" },
@@ -16,28 +36,55 @@ return bd.system {
    },
 
    configurations = {
+      -- configure the sensor signal
+      { name="ramp_msr",
+	config = {
+	   data_len=10,
+	   slope = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+	   start = { 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 }
+	}
+      },
+
+      -- overlay the configuration of the trigger to include ramp_msr
+      -- and to collect per block stats and
+      { name="controller/trig_1",
+	config = {
+	   tstats_mode = 2,
+	   tstats_profile_path = "/tmp/trig_1.tstats",
+	   trig_blocks = {
+	      { b="#ramp_msr", num_steps=1 },
+	      { b="#controller/ramp_des", num_steps=1 },
+	      { b="#controller/pid_1", num_steps=1 }
+	   }
+	}
+      },
+
+      -- configure mqueues
       { name="mq_1", config = {
 	   mq_id="controller_pid-out",
-	   type_name = 'double', data_len = 10, buffer_len = 5 }
+	   type_name = 'double', data_len = "&data_len", buffer_len = MQ_BUF_LEN }
       },
       { name="mq_2", config = {
 	   mq_id="ramp_msr-out",
-	   type_name = 'double', data_len = 10, buffer_len = 5 }
+	   type_name = 'double', data_len = "&data_len", buffer_len = MQ_BUF_LEN }
       },
       { name="mq_3", config = {
 	   mq_id="ramp_des-out",
-	   type_name = 'double', data_len = 10, buffer_len = 5 }
+	   type_name = 'double', data_len = "&data_len", buffer_len = MQ_BUF_LEN }
       },
       { name="mq_4", config = {
-	   mq_id="trig-tstats",
-	   type_name = 'struct ubx_tstat', data_len = 1, buffer_len = 5 }
+	   mq_id="trig_1-tstats",
+	   type_name = 'struct ubx_tstat', data_len = 1, buffer_len = MQ_BUF_LEN }
       },
-      { name="controller/trig_1", config = { tstats_mode=2 } },
    },
 
    connections = {
+      -- connect the measured signal to the controller
+      { src = "ramp_msr.out", tgt = "controller/pid_1.msr" },
+
+      -- export signals	for debugging
       { src = "controller/pid_1.out", tgt = "mq_1" },
-      { src = "controller/ramp_msr.out", tgt = "mq_2" },
+      { src = "ramp_msr.out", tgt = "mq_2" },
       { src = "controller/ramp_des.out", tgt = "mq_3" },
       { src = "controller/trig_1.tstats", tgt = "mq_4" },
    }

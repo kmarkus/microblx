@@ -1,16 +1,20 @@
+--- basic pid controller
+--
+-- this include a dummy ramp trajectory generator (ramp_des) and the
+-- actual pid controller. The parent composition shall attach a sensor
+-- signal to the the pid.msr port.
+--
+-- the basic (passive) trig block in this composition triggers the
+-- ramp_des and the controller. Parent compositions can override this
+-- to add other blocks such as the measured signal provider block.
 
-
-local DATA_LEN = 10
+-- gains
 local Kp = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 local Ki = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 local Kd = { 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 }
 
-local slope_msr = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
---local slope_des = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 local slope_des = { 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1 }
-
 local start_des = { 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 }
-local start_msr = { 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 }
 
 return bd.system
 {
@@ -20,25 +24,29 @@ return bd.system
 
    blocks = {
       { name="pid_1", type="pid" },
-      { name="ramp_msr", type="ramp_double" },
       { name="ramp_des", type="ramp_double" },
       { name="trig_1", type="std_triggers/trig" },
    },
 
+   -- define data_len as a global configuration value that can be
+   -- reused for configuring all blocks that required this (via the
+   -- &data_len syntax).
+   node_configurations = {
+      data_len = { type='long', config = 10, }
+   },
+
    configurations = {
-      { name="pid_1", config = { Kp=Kp, Ki=Ki, Kd=Kd, data_len=DATA_LEN } },
-      { name="ramp_msr", config = { data_len=DATA_LEN, slope=slope_msr, start=start_msr } },
-      { name="ramp_des", config = { data_len=DATA_LEN, slope=slope_des, start=start_des } },
+      { name="pid_1", config = { Kp=Kp, Ki=Ki, Kd=Kd, data_len="&data_len" } },
+      { name="ramp_des", config = { data_len="&data_len", slope=slope_des, start=start_des } },
       { name="trig_1", config = {
 	   tstats_mode = 0,
 	   trig_blocks = {
-	      { b="#ramp_msr", num_steps=1 },
 	      { b="#ramp_des", num_steps=1 },
 	      { b="#pid_1", num_steps=1 } } }
       }
    },
+
    connections = {
-      { src="ramp_msr.out", tgt="pid_1.msr" },
       { src="ramp_des.out", tgt="pid_1.des" },
    },
 }

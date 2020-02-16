@@ -4,13 +4,16 @@ return bd.system {
    imports = { "stdtypes", "ptrig" },
 
    blocks = {
-      { name="ptrig1", type="std_triggers/ptrig" },
+      { name="ptrig_1", type="std_triggers/ptrig" },
    },
 
    configurations = {
-      { name="ptrig1", config = { period = {sec=1, usec=0 },
-				  trig_blocks={
-				     { b="#controller/trig_1", num_steps=1 } } }
+      { name="ptrig_1", config = {
+	   period = {sec=0, usec=100000 },
+	   tstats_mode=1,
+	   tstats_profile_path="/tmp/ptrig_1.tstats",
+	   trig_blocks={
+	      { b="#controller/trig_1", num_steps=1 } } }
       },
    }
 }
