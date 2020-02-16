@@ -75,7 +75,7 @@ void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf);
  * @param trig_inf trigger info struct
  * @return 0 if success, <0 otherwise
  */
-int trig_info_tstats_write(struct trig_info *trig_inf);
+int trig_info_tstats_write(ubx_block_t *b, struct trig_info *trig_inf);
 
 /*
  * helpers to manager timing statistics

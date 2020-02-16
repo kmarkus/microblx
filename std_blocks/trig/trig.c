@@ -67,6 +67,18 @@ int trig_start(ubx_block_t *b)
 
 	trig_inf = (struct trig_info *) b->private_data;
 
+	/* tstats_mode */
+	len = cfg_getptr_int(b, "tstats_mode", &val);
+
+	if (len < 0)
+		goto out;
+
+	trig_inf->tstats_mode = (len > 0) ? *val : 0;
+
+	if (trig_inf->tstats_mode)
+		ubx_info(b, "tstats_mode: %d", trig_inf->tstats_mode);
+
+	/* trig_blocks */
 	len = ubx_config_get_data_ptr(b, "trig_blocks", (void **)&trig_spec);
 
 	if (len < 0)
@@ -91,17 +103,6 @@ int trig_start(ubx_block_t *b)
 			fclose(fp);
 	}
 
-	/* tstats_mode */
-	len = cfg_getptr_int(b, "tstats_mode", &val);
-
-	if (len < 0)
-		goto out;
-
-	trig_inf->tstats_mode = (len > 0) ? *val : 0;
-
-	if (trig_inf->tstats_mode)
-		ubx_info(b, "tstats_mode: %d", trig_inf->tstats_mode);
-
 	trig_inf->p_tstats = ubx_port_get(b, "tstats");
 
 	ret = 0;
@@ -113,8 +114,8 @@ out:
 void trig_stop(ubx_block_t *b)
 {
 	struct trig_info *trig_inf = (struct trig_info*) b->private_data;
-
 	trig_info_tstats_log(b, trig_inf);
+	trig_info_tstats_write(b, trig_inf);
 }
 
 void trig_cleanup(ubx_block_t *b)

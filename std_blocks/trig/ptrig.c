@@ -101,6 +101,7 @@ static void *thread_startup(void *arg)
 
 		while (inf->state != BLOCK_STATE_ACTIVE) {
 			trig_info_tstats_log(b, &inf->trig_inf);
+			trig_info_tstats_write(b, &inf->trig_inf);
 			pthread_cond_wait(&inf->active_cond, &inf->mutex);
 		}
 		pthread_mutex_unlock(&inf->mutex);
@@ -301,6 +302,18 @@ static int ptrig_start(ubx_block_t *b)
 	inf = (struct ptrig_inf *)b->private_data;
 	trig_inf = &inf->trig_inf;
 
+	/* tstats_mode */
+	len = cfg_getptr_int(b, "tstats_mode", &val);
+
+	if (len < 0)
+		goto out;
+
+	trig_inf->tstats_mode = (len > 0) ? *val : 0;
+
+	if (trig_inf->tstats_mode)
+		ubx_info(b, "tstats_mode: %d", trig_inf->tstats_mode);
+
+	/* trig_blocks */
 	len = ubx_config_get_data_ptr(b, "trig_blocks", (void **)&trig_spec);
 
 	if (len < 0)
@@ -324,16 +337,6 @@ static int ptrig_start(ubx_block_t *b)
 		if (fp)
 			fclose(fp);
 	}
-
-	len = cfg_getptr_int(b, "tstats_mode", &val);
-
-	if (len < 0)
-		goto out;
-
-	trig_inf->tstats_mode = (len > 0) ? *val : 0;
-
-	if (trig_inf->tstats_mode)
-		ubx_info(b, "tstats_mode: %d", trig_inf->tstats_mode);
 
 	trig_inf->p_tstats = ubx_port_get(b, "tstats");
 

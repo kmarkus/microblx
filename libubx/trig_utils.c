@@ -79,7 +79,6 @@ int tstat_write(FILE *fp, struct ubx_tstat *stats)
 		fprintf(fp, "%s: cnt: 0 - no stats aquired", stats->block_name);
 	}
 
-	fclose(fp);
 	return 0;
 }
 
@@ -111,44 +110,47 @@ void tstat_log(const ubx_block_t *b, const struct ubx_tstat *stats)
 
 int do_trigger(struct trig_info* trig_inf)
 {
-	int ret = -1;
+	int ret = 0;
 	unsigned int i, steps;
 
 	struct ubx_timespec ts_start, ts_end, blk_ts_start, blk_ts_end;
 
 
-	if (trig_inf->tstats_mode)
+	if (trig_inf->tstats_mode > 0)
 		ubx_gettime(&ts_start);
 
 	for (i = 0; i < trig_inf->trig_list_len; i++) {
 
-		if (trig_inf->tstats_mode)
+		if (trig_inf->tstats_mode == 2)
 			ubx_gettime(&blk_ts_start);
 
+		/* step block */
 		for (steps = 0; steps < trig_inf->trig_list[i].num_steps; steps++) {
-			if (ubx_cblock_step(trig_inf->trig_list[i].b) != 0)
-				goto out;
+			if (ubx_cblock_step(trig_inf->trig_list[i].b) != 0) {
+				ret = -1;
+				break;
+			}
 		}
 
-		if (trig_inf->tstats_mode) {
+		if (trig_inf->tstats_mode == 2) {
 			ubx_gettime(&blk_ts_end);
 			tstat_update(&trig_inf->blk_tstats[i], &blk_ts_start, &blk_ts_end);
 		}
 	}
 
-	if (trig_inf->tstats_mode) {
+	if (trig_inf->tstats_mode > 0) {
 		ubx_gettime(&ts_end);
 		tstat_update(&trig_inf->global_tstats, &ts_start, &ts_end);
 
 		/* output stats */
 		write_tstat(trig_inf->p_tstats, &trig_inf->global_tstats);
 
-		for (i = 0; i < trig_inf->trig_list_len; i++)
-			write_tstat(trig_inf->p_tstats, &trig_inf->blk_tstats[i]);
+		if (trig_inf->tstats_mode == 2) {
+			for (i = 0; i < trig_inf->trig_list_len; i++)
+				write_tstat(trig_inf->p_tstats, &trig_inf->blk_tstats[i]);
+		}
 	}
 
-	ret = 0;
- out:
 	return ret;
 }
 
@@ -156,18 +158,17 @@ int trig_info_init(struct trig_info* trig_inf)
 {
 	tstat_init(&trig_inf->global_tstats, tstat_global_id);
 
-	trig_inf->blk_tstats = realloc(
-		trig_inf->blk_tstats,
-		trig_inf->trig_list_len * sizeof(struct ubx_tstat));
+	if (trig_inf->tstats_mode == 2) {
+		trig_inf->blk_tstats = realloc(
+			trig_inf->blk_tstats,
+			trig_inf->trig_list_len * sizeof(struct ubx_tstat));
 
-	if (!trig_inf->blk_tstats)
-		return EOUTOFMEM;
+		if (!trig_inf->blk_tstats)
+			return EOUTOFMEM;
 
-	for (unsigned int i = 0; i < trig_inf->trig_list_len; i++) {
-		printf("%s: %s\n", __FUNCTION__, trig_inf->trig_list[i].b->name);
-		tstat_init(&trig_inf->blk_tstats[i], trig_inf->trig_list[i].b->name);
+		for (unsigned int i = 0; i < trig_inf->trig_list_len; i++)
+			tstat_init(&trig_inf->blk_tstats[i], trig_inf->trig_list[i].b->name);
 	}
-
 	return 0;
 }
 
@@ -200,15 +201,35 @@ void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf)
 /**
  * write all stats to file
  */
-int trig_info_tstats_write(struct trig_info *trig_inf)
+int trig_info_tstats_write(ubx_block_t *b, struct trig_info *trig_inf)
 {
 	FILE *fp;
 
+	if (trig_inf->profile_path == NULL)
+		return 0;
+
 	fp = fopen(trig_inf->profile_path, "a");
 
-	/* TODO */
 	if (fp == NULL)
 		return -1;
+
+	switch(trig_inf->tstats_mode) {
+	case TSTATS_DISABLED:
+		break;
+	case TSTATS_PERBLOCK:
+		for (unsigned int i=0; i<trig_inf->trig_list_len; i++)
+			tstat_write(fp, &trig_inf->blk_tstats[i]);
+		/* fall through */
+	case TSTATS_GLOBAL:
+		tstat_write(fp, &trig_inf->global_tstats);
+		break;
+	default:
+		fprintf(fp, "error: unknown tstats_mode %d", trig_inf->tstats_mode);
+	}
+
+	fclose(fp);
+
+	ubx_info(b, "wrote tstats_profile to %s", trig_inf->profile_path);
 
 	return 0;
 }
