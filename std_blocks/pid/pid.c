@@ -30,7 +30,7 @@ int pid_init(ubx_block_t *b)
 {
 	int ret = -1;
 	long len;
-	const unsigned int *data_len;
+	const long *data_len;
 
 	struct pid_info *inf;
 
@@ -44,7 +44,7 @@ int pid_init(ubx_block_t *b)
 	update_port_cache(b, &inf->ports);
 
 	/* config data_len */
-	len = cfg_getptr_uint(b, "data_len", &data_len);
+	len = cfg_getptr_long(b, "data_len", &data_len);
 	if (len < 0)
 		goto out;
 

@@ -23,7 +23,7 @@ ubx_config_t pid_config[] = {
 	{ .name="Kp", .type_name = "double", .doc="P-gain (def: 0)" },
 	{ .name="Ki", .type_name = "double", .doc="I-gain (def: 0)" },
 	{ .name="Kd", .type_name = "double", .doc="D-gain (def: 0)" },
-	{ .name="data_len", .type_name = "unsigned int", .doc="length of signal array (def: 1)" },
+	{ .name="data_len", .type_name = "long", .doc="length of signal array (def: 1)" },
 	{ NULL },
 };
 
