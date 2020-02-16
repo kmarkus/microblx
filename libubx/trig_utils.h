@@ -64,13 +64,22 @@ int do_trigger(struct trig_info* trig_inf);
 
 /**
  * log all tstats
+ * @param b ubx_block in whose context to log
+ * @param trig_inf trigger info	to log
  */
 void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf);
 
 
+/**
+ * write all tstats to file "profile_path"
+ * @param trig_inf trigger info struct
+ * @return 0 if success, <0 otherwise
+ */
 int trig_info_tstats_write(struct trig_info *trig_inf);
 
-/* timing statistics related */
+/*
+ * helpers to manager timing statistics
+ */
 void tstat_init(struct ubx_tstat *ts, const char *block_name);
 void tstat_update(struct ubx_tstat *stats,
 		  struct ubx_timespec *start,
