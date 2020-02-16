@@ -33,9 +33,13 @@ This file tracks user visible API changes.
   messages may get truncated in the rtlog.
 
 - `trig`, `ptrig`:
-  - config `profile_path` renamed to `tstats_profile_path`
+  - both converted to use generic trigger handling from `trig_utils`
   - config `tstats_print_on_stop` dropped. New behavior is: if
     `tstats_enabled`, then stats will be logged on stop.
+  - `tstats_enabled` renamed to `tstats_mode`. Values are
+     - 0: off
+	 - 1: global tstats only
+	 - 2: per block tstats
 
 - `tstat_utils`: rename to `trig_utils` in preparation of moving more
   generic trigger handling code to these files.
