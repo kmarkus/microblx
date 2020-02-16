@@ -173,7 +173,6 @@ static void mqueue_cleanup(ubx_block_t *i)
 	if (ret < 0 && errno != ENOENT)
 		ubx_err(i, "mq_unlink %s failed: %s", inf->mq_name, strerror(errno));
 
-	free(inf->mq_name);
 	free(inf);
 }
 
