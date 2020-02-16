@@ -656,7 +656,13 @@ local function apply_config(cfg, b, NC, configured)
 
 	 info("nodecfg "..green(cfg._x.tgt._x.fqn.."."..blue(name))
 		 .." with "..yellow(nodecfg).." "..yellow(utils.tab2str(NC[nodecfg])))
-	 ubx.config_assign(blkcfg, NC[nodecfg])
+	 local ret = ubx.config_assign(blkcfg, NC[nodecfg])
+	 if ret < 0 then
+	    err_exit(1, "failed to assign nodecfg "..
+			utils.tab2str(NC[nodecfg]).." to "..
+			green(cfg._x.tgt._x.fqn.."."..blue(name))..": "..
+			ubx.retval_tostr[ret])
+	 end
       else -- regular config
 	 info("cfg "..green(cfg._x.tgt._x.fqn).."."..blue(name)..": "..yellow(utils.tab2str(val)))
 	 ubx.set_config(b, name, val)
