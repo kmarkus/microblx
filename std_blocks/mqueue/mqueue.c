@@ -19,8 +19,8 @@ char mqueue_meta[] =
 ubx_config_t mqueue_config[] = {
 	{ .name = "mq_id", .type_name = "char", .min = 1, .max = NAME_MAX, .doc = "mqueue base id" },
 	{ .name = "type_name", .type_name = "char", .min = 1, .doc = "name of registered microblx type to transport" },
-	{ .name = "data_len", .type_name = "uint32_t", .max = 1, .doc = "array length (multiplier) of data (default: 1)" },
-	{ .name = "buffer_len", .type_name = "uint32_t", .min = 1, .max = 1, .doc = "max number of data elements the buffer shall hold" },
+	{ .name = "data_len", .type_name = "long", .max = 1, .doc = "array length (multiplier) of data (default: 1)" },
+	{ .name = "buffer_len", .type_name = "long", .min = 1, .max = 1, .doc = "max number of data elements the buffer shall hold" },
 	{ .name = "blocking", .type_name = "uint32_t", .min = 0, .max = 1, .doc = "enable blocking mode (def: 0)" },
 	{ NULL }
 };
@@ -33,8 +33,8 @@ struct mqueue_info {
 	struct mqueue_msg *msg;
 
 	const ubx_type_t *type;		/* type of contained elements */
-	uint32_t data_len;		/* buffer size of each element */
-	uint32_t buffer_len;		/* number of elements */
+	long data_len;			/* buffer size of each element */
+	long buffer_len;		/* number of elements */
 
 	unsigned long cnt_send_err;
 	unsigned long cnt_recv_err;
@@ -46,6 +46,7 @@ static int mqueue_init(ubx_block_t *i)
 	int ret = -1;
 	long len, mq_flags = 0;
 	const uint32_t *val;
+	const long *val_long;
 	const char *chrptr;
 
 	char hexhash[TYPE_HASHSTR_LEN+1];
@@ -71,30 +72,30 @@ static int mqueue_init(ubx_block_t *i)
 	}
 
 	/* config buffer_len */
-	len = cfg_getptr_uint32(i, "buffer_len", &val);
+	len = cfg_getptr_long(i, "buffer_len", &val_long);
 	if (len < 0) {
 		ubx_err(i, "failed to get buffer_len config");
 		goto out_free_info;
 	}
 
-	if (*val == 0) {
+	if (*val_long == 0) {
 		ubx_err(i, "EINVALID_CONFIG: illegal value buffer_len=0");
 		ret = EINVALID_CONFIG;
 		goto out_free_info;
 	}
 
-	inf->buffer_len = *val;
+	inf->buffer_len = *val_long;
 
 	mqa.mq_maxmsg = inf->buffer_len;
 
 	/* config data_len */
-	len = cfg_getptr_uint32(i, "data_len", &val);
+	len = cfg_getptr_long(i, "data_len", &val_long);
 	if (len < 0) {
 		ubx_err(i, "EINVALID_CONFIG: failed to read 'data_len' config");
 		goto out_free_info;
 	}
 
-	inf->data_len = (len > 0) ? *val : 1;
+	inf->data_len = (len > 0) ? *val_long : 1;
 
 	/* config type_name */
 	len = cfg_getptr_char(i, "type_name", &chrptr);
@@ -122,7 +123,7 @@ static int mqueue_init(ubx_block_t *i)
 	/* construct mq_name */
 	ubx_type_hashstr(inf->type, hexhash);
 
-	ret = snprintf(inf->mq_name, NAME_MAX+1, "/ubx_%s_%d_%s",
+	ret = snprintf(inf->mq_name, NAME_MAX+1, "/ubx_%s_%lu_%s",
 		       hexhash, inf->data_len, inf->mq_id);
 
 	if (ret < 0) {
@@ -147,7 +148,7 @@ static int mqueue_init(ubx_block_t *i)
 		goto out_free_info;
 	}
 
-	ubx_info(i, "created %s %s[%u] mq %s with %d elem",
+	ubx_info(i, "created %s %s[%lu] mq %s with %lu elem",
 		 (mq_flags & O_NONBLOCK) ? "non-blocking" : "blocking",
 		 inf->type->name, inf->data_len, inf->mq_id, inf->buffer_len);
 
