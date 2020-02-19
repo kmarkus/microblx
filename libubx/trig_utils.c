@@ -25,6 +25,7 @@ def_write_fun(write_tstat, struct ubx_tstat)
 void tstat_init(struct ubx_tstat *ts, const char *block_name)
 {
 	strncpy(ts->block_name, block_name, BLOCK_NAME_MAXLEN);
+	ts->block_name[BLOCK_NAME_MAXLEN] = '\0';
 
 	ts->min.sec = LONG_MAX;
 	ts->min.nsec = LONG_MAX;
@@ -112,10 +113,11 @@ int do_trigger(struct trig_info* trig_inf)
 {
 	int ret = 0;
 	unsigned int i, steps;
-
+	uint64_t ts_end_ns;
 	struct ubx_timespec ts_start, ts_end, blk_ts_start, blk_ts_end;
 
 
+	/* start of global measurement */
 	if (trig_inf->tstats_mode > 0)
 		ubx_gettime(&ts_start);
 
@@ -128,7 +130,7 @@ int do_trigger(struct trig_info* trig_inf)
 		for (steps = 0; steps < trig_inf->trig_list[i].num_steps; steps++) {
 			if (ubx_cblock_step(trig_inf->trig_list[i].b) != 0) {
 				ret = -1;
-				break;
+				break; /* next block */
 			}
 		}
 
@@ -139,26 +141,44 @@ int do_trigger(struct trig_info* trig_inf)
 	}
 
 	if (trig_inf->tstats_mode > 0) {
+		/* end of global measurement */
 		ubx_gettime(&ts_end);
 		tstat_update(&trig_inf->global_tstats, &ts_start, &ts_end);
 
-		/* output stats */
-		write_tstat(trig_inf->p_tstats, &trig_inf->global_tstats);
+		/* check if to log/output */
+		if (trig_inf->tstats_output_rate == 0)
+			goto out;
 
-		if (trig_inf->tstats_mode == 2) {
-			for (i = 0; i < trig_inf->trig_list_len; i++)
-				write_tstat(trig_inf->p_tstats, &trig_inf->blk_tstats[i]);
+		/* throttle */
+		ts_end_ns = ubx_ts_to_ns(&ts_end);
+
+		if (ts_end_ns > trig_inf->tstats_last_msg + trig_inf->tstats_output_rate) {
+			if (trig_inf->tstats_mode == 1) {
+				write_tstat(trig_inf->p_tstats, &trig_inf->global_tstats);
+			} else { /* mode == 2 */
+				if (trig_inf->tstats_idx < trig_inf->trig_list_len) {
+					write_tstat(trig_inf->p_tstats, &trig_inf->blk_tstats[trig_inf->tstats_idx]);
+				} else {
+					write_tstat(trig_inf->p_tstats, &trig_inf->global_tstats);
+				}
+
+				trig_inf->tstats_idx = (trig_inf->tstats_idx+1) % (trig_inf->trig_list_len+1);
+			}
+			trig_inf->tstats_last_msg = ts_end_ns;
 		}
 	}
-
+out:
 	return ret;
 }
 
 int trig_info_init(struct trig_info* trig_inf)
 {
+	trig_inf->tstats_last_msg = 0;
+	trig_inf->tstats_idx = 0;
+
 	tstat_init(&trig_inf->global_tstats, tstat_global_id);
 
-	if (trig_inf->tstats_mode == 2) {
+	if (trig_inf->tstats_mode >= 2) {
 		trig_inf->blk_tstats = realloc(
 			trig_inf->blk_tstats,
 			trig_inf->trig_list_len * sizeof(struct ubx_tstat));

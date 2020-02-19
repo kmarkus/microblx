@@ -26,7 +26,7 @@ ubx_config_t trig_config[] = {
 	{ .name = "trig_blocks", .type_name = "struct ubx_trig_spec", .doc = "list of blocks to trigger" },
 	{ .name = "tstats_mode", .type_name = "int", .doc = "0: off (def), 1: global only, 2: per block", },
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "file to write timing stats to" },
-	{ .name = "tstats_output_rate", .type_name = "unsigned int", .doc = "throttle output on tstats port" },
+	{ .name = "tstats_output_rate", .type_name = "double", .doc = "throttle output on tstats port" },
 	{ .name = "loglevel", .type_name = "int" },
 	{ NULL },
 };
@@ -59,6 +59,7 @@ int trig_start(ubx_block_t *b)
 {
 	int ret = -1;
 	const int *val;
+	const double *output_rate;;
 	long len;
 	FILE *fp;
 
@@ -77,6 +78,16 @@ int trig_start(ubx_block_t *b)
 
 	if (trig_inf->tstats_mode)
 		ubx_info(b, "tstats_mode: %d", trig_inf->tstats_mode);
+
+	/* tstats_output_rate */
+	len = cfg_getptr_double(b, "tstats_output_rate", &output_rate);
+
+	if (len < 0) {
+		ubx_err(b, "unable to retrieve tstats_output_rate");
+		goto out;
+	}
+
+	trig_inf->tstats_output_rate = (len>0) ? (*output_rate*NSEC_PER_SEC) : 0;
 
 	/* trig_blocks */
 	len = ubx_config_get_data_ptr(b, "trig_blocks", (void **)&trig_spec);

@@ -33,19 +33,27 @@ enum tstats_mode {
  * @profile_path: file to write with profile data
  * @global_tstats
  * @blk_tstats:
+ * @tstats_output_rate:	output rate
+ * @tstats_last_msg: timestamp of last message
+ * @tstats_idx: index of last output sample
  * @port_tstats: tstats port
  */
 struct trig_info {
 	struct ubx_trig_spec *trig_list;
 	unsigned int trig_list_len;
 
+	ubx_port_t *p_tstats;
+
+	/* stats management */
 	int tstats_mode;
 	const char *profile_path;
 
 	struct ubx_tstat global_tstats;
 	struct ubx_tstat *blk_tstats;
 
-	ubx_port_t *p_tstats;
+	uint64_t tstats_output_rate;
+	uint64_t tstats_last_msg;
+	unsigned int tstats_idx;
 };
 
 /**
