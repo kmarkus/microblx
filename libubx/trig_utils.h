@@ -1,4 +1,9 @@
 /*
+ * Generic trigger implementation.
+ *
+ * Copyright (C) 2019 Hamish Guthrie <hamish.guthrie@kistler.com>
+ * Copyright (C) 2020 Markus Klotzbuecher <mk@mkio.de>
+ *
  * SPDX-License-Identifier: MPL-2.0
  */
 
@@ -17,6 +22,11 @@ enum tstats_mode {
 
 /**
  * struct trigger_info - basic trigger information
+ *
+ * This data-structure holds all information require to trigger a
+ * sequence of blocks and to perform timing statistics. It must be
+ * initialized and cleaned up with trig_info_init and _cleanup (s.b).
+ *
  * @trig_config: trigger specification array
  * @trig_list_len: length of above array
  * @tstats_mode: enum tstats_mode
@@ -39,19 +49,25 @@ struct trig_info {
 };
 
 /**
- * initialize the given trig info and allocate tstat buffers
- * requires that the fields trig_spec and trig_spec_len are correctly
- * populated.
+ * trig_info_init - initialze trig_info structure
+ *
+ * initialize the given trig_info and allocate tstat buffers. This
+ * function requires that the fields trig_spec and trig_spec_len are
+ * correctly set. It is OK to re-run this function multiple times
+ * (e.g. in start), as it will resize existing buffers appropriately.
+ *
  * @param inf
  * @return 0 if OK, < 0 otherwise
  */
 int trig_info_init(struct trig_info* trig_inf);
 
 /**
- * initialize the given trig info and allocate tstat buffers
- * requires that the fields trig_spec and trig_spec_len are correctly
- * populated.
- * @param inf strig_info
+ * trig_inf_cleanup - release allocated resources
+ *
+ * this free resouces allocated by trig_info_init such as tstat
+ * buffers.
+ *
+ * @param inf trig_info
  */
 void trig_info_cleanup(struct trig_info* trig_inf);
 

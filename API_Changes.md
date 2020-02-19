@@ -7,24 +7,24 @@ This file tracks user visible API changes.
 
 - core: added functions for `ubx_type_t` lookup via hash or hashstr.
 
-- added PID controller block and extended ramp block with a `data_len`
-  parameter to allow vector ramp output. Added helper functions for
-  reading/writing dynamically sized arrays (`def_write_dynarr_fun` and
-  `def_read_dynarr_fun`) and for resizing ports (`ubx_inport_resize`
-  and `ubx_outport_resize`).
-
+- added **PID controller** block and **extended ramp block** with a
+  `data_len` parameter to allow vector ramp output. Added helper
+  functions for reading/writing arrays (`def_write_dynarr_fun` and
+  `def_read_dynarr_fun`) where the size is determined at
+  run-time. Added helpers for resizing port data lenght
+  (`ubx_inport_resize` and `ubx_outport_resize`).
 
 - `ubx_launch`: `-c` options now supports multiple arguments and will
-  merge all models into the first before launching. Use-case is for
-  adding policy (e.g. `ptrig` blocks etc.) to otherwise reusable
-  compositions.
+  *merge all given models* into the first before launching. Use-case
+  is for late addition of policy (e.g. `ptrig` blocks etc.) to
+  otherwise reusable compositions.
 
-- blockdiagram: drop the `start` directive that was used to pass the
-  last blocks to be started (i.e. ptrig) to the launch logic. This is
-  not necessary anymore, as the launch logic will ensure to startup
+- **blockdiagram**: *drop* the `start` directive that was used to pass
+  the last blocks to be started (i.e. ptrig) to the launch logic. This
+  is not necessary anymore, as the launch logic will ensure to startup
   active blocks (see `BLOCK_ATTR_ACTIVE`) after all others.
 
-- blockdiagram: add composition support to permit hierarchical
+- **blockdiagram**: add *composition support* to permit hierarchical
   composition of usc systems. This change introduces the `subsystems`
   keyword and is backwards compatible with existing compositions.
 
@@ -32,20 +32,25 @@ This file tracks user visible API changes.
   stderr (in additon to the rtlog). Useful for debugging when long
   messages may get truncated in the rtlog.
 
-- `trig`, `ptrig`:
-  - both converted to use generic trigger handling from `trig_utils`
-  - config `tstats_print_on_stop` dropped. New behavior is: if
-    `tstats_enabled`, then stats will be logged on stop.
+- **triggering**: `trig`, `ptrig`, `trig_utils`
+
+  - `tstat_utils`: rename to `trig_utils`. Created generic trigger
+     implementation in `trig_utils` for use by `trig` and `ptrig` as
+     well as custom user `triggers`. For 
+
+  - `ptrig` and `trig` converted to use generic trigger handling from
+    `trig_utils`
+	  
   - `tstats_enabled` renamed to `tstats_mode`. Values are
      - 0: off
-	 - 1: global tstats only
-	 - 2: per block tstats
-
-- `tstat_utils`: rename to `trig_utils` in preparation of moving more
-  generic trigger handling code to these files.
+	 - 1: total tstats only
+	 - 2: total and per block tstats
+	  
+  - config `tstats_print_on_stop` dropped. New behavior is: if
+    `tstats_mode` is non-zero, then stats will be logged on stop.
 
 - `stattypes`: merge into `stdtypes` as this only contains the
-  ubx_tstat type. There is hence no need to import `stattypes`
+  ubx_tstat type. Hence, there is no need to import `stattypes`
   anymore.
 
 ## v0.7.1
