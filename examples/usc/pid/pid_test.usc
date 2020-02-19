@@ -50,6 +50,7 @@ return bd.system {
       { name="controller/trig_1",
 	config = {
 	   tstats_mode = 2,
+	   tstats_output_rate = 1; -- msg/s
 	   tstats_profile_path = "/tmp/trig_1.tstats",
 	   trig_blocks = {
 	      { b="#ramp_msr", num_steps=1 },
