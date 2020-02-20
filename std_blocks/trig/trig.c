@@ -9,6 +9,7 @@
 
 #include "ubx.h"
 #include "trig_utils.h"
+#include "trig_common.h"
 
 /* trig metadata */
 char trig_meta[] =
@@ -57,69 +58,8 @@ int trig_init(ubx_block_t *b)
 
 int trig_start(ubx_block_t *b)
 {
-	int ret = -1;
-	const int *val;
-	const double *output_rate;;
-	long len;
-	FILE *fp;
-
-	struct trig_info *trig_inf;
-	struct ubx_trig_spec *trig_spec;
-
-	trig_inf = (struct trig_info *) b->private_data;
-
-	/* tstats_mode */
-	len = cfg_getptr_int(b, "tstats_mode", &val);
-
-	if (len < 0)
-		goto out;
-
-	trig_inf->tstats_mode = (len > 0) ? *val : 0;
-
-	if (trig_inf->tstats_mode)
-		ubx_info(b, "tstats_mode: %d", trig_inf->tstats_mode);
-
-	/* tstats_output_rate */
-	len = cfg_getptr_double(b, "tstats_output_rate", &output_rate);
-
-	if (len < 0) {
-		ubx_err(b, "unable to retrieve tstats_output_rate");
-		goto out;
-	}
-
-	trig_inf->tstats_output_rate = (len>0) ? (*output_rate*NSEC_PER_SEC) : 0;
-
-	/* trig_blocks */
-	len = ubx_config_get_data_ptr(b, "trig_blocks", (void **)&trig_spec);
-
-	if (len < 0)
-		goto out;
-
-	/* populate trig_info and init */
-	trig_inf->trig_list = trig_spec;
-	trig_inf->trig_list_len = len;
-	trig_info_init(trig_inf);
-
-	len = cfg_getptr_char(b, "tstats_profile_path", &trig_inf->profile_path);
-
-	if (len < 0) {
-		ubx_err(b, "unable to retrieve tstats_profile_path parameter");
-		goto out;
-	}
-
-	/* truncate the file if it exists */
-	if (len > 0) {
-		fp = fopen(trig_inf->profile_path, "w");
-		if (fp)
-			fclose(fp);
-	}
-
-	trig_inf->p_tstats = ubx_port_get(b, "tstats");
-
-	ret = 0;
-
-out:
-	return ret;
+	struct trig_info *trig_inf = (struct trig_info *)b->private_data;
+	return trig_info_config(b, trig_inf);
 }
 
 void trig_stop(ubx_block_t *b)

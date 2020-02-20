@@ -146,10 +146,10 @@ int do_trigger(struct trig_info* trig_inf)
 		tstat_update(&trig_inf->global_tstats, &ts_start, &ts_end);
 
 		/* check if to log/output */
-		if (trig_inf->tstats_output_rate == 0)
+		if (trig_inf->tstats_output_rate == 0 || trig_inf->p_tstats == NULL)
 			goto out;
 
-		/* throttle */
+		/* throttle log */
 		ts_end_ns = ubx_ts_to_ns(&ts_end);
 
 		if (ts_end_ns > trig_inf->tstats_last_msg + trig_inf->tstats_output_rate) {
@@ -171,8 +171,20 @@ out:
 	return ret;
 }
 
-int trig_info_init(struct trig_info* trig_inf)
+int trig_info_init(struct trig_info* trig_inf,
+		   int tstats_mode,
+		   struct ubx_trig_spec* trig_spec, long len,
+		   double tstats_output_rate,
+		   ubx_port_t *p_tstats, const char *profile_path)
 {
+	trig_inf->tstats_mode = tstats_mode;
+	trig_inf->trig_list = trig_spec;
+	trig_inf->trig_list_len = len;
+	trig_inf->p_tstats = p_tstats;
+	trig_inf->profile_path = profile_path;
+
+	trig_inf->tstats_output_rate = tstats_output_rate * NSEC_PER_SEC;
+
 	trig_inf->tstats_last_msg = 0;
 	trig_inf->tstats_idx = 0;
 
@@ -228,7 +240,7 @@ int trig_info_tstats_write(ubx_block_t *b, struct trig_info *trig_inf)
 	if (trig_inf->profile_path == NULL)
 		return 0;
 
-	fp = fopen(trig_inf->profile_path, "a");
+	fp = fopen(trig_inf->profile_path, "w");
 
 	if (fp == NULL)
 		return -1;

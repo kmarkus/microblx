@@ -126,7 +126,7 @@ static void function_name(ubx_port_t *port, typename *outval)				\
 	ubx_data_t val;									\
 											\
 	if (port == NULL) {								\
-		ubx_err(port->block, "%s: port is NULL", __func__);			\
+		ERR("%s: port is NULL", __func__);					\
 		return;									\
 	}										\
 	checktype(port->block->ni, port->out_type, QUOTE(typename), port->name, 0);	\

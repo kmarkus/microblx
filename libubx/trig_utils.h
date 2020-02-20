@@ -57,17 +57,28 @@ struct trig_info {
 };
 
 /**
- * trig_info_init - initialze trig_info structure
+ * trig_info_init - initialize a trig_info structure
  *
- * initialize the given trig_info and allocate tstat buffers. This
- * function requires that the fields trig_spec and trig_spec_len are
- * correctly set. It is OK to re-run this function multiple times
+ * initialize the given trig_info and allocate tstat buffers according
+ * to the mode. It is OK to re-run this function multiple times
  * (e.g. in start), as it will resize existing buffers appropriately.
  *
- * @param inf
+ * @param trig_inf: trig_inf to initialized
+ * @param tstats_mode: timing stats mode to be used
+ * @param trig_spec: pointer to trig_blocks list
+ * @param len: array length of trig_spec
+ * @param p_tstats: tstats output port (NULL if no port output)
+ * @param tstats_output_rate: tstats output rate [sec]
+ * @param profile_path: ptr to filename to write timing profile to
+ *        (NULL if no profile). Must stay valid while trig_info is in
+ *        use.
  * @return 0 if OK, < 0 otherwise
  */
-int trig_info_init(struct trig_info* trig_inf);
+int trig_info_init(struct trig_info* trig_inf,
+		   int tstats_mode,
+		   struct ubx_trig_spec* trig_spec, long len,
+		   double tstats_output_rate,
+		   ubx_port_t *p_tstats, const char *profile_path);
 
 /**
  * trig_inf_cleanup - release allocated resources
