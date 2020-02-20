@@ -163,7 +163,7 @@ int ptrig_handle_config(ubx_block_t *b)
 
 		if (pthread_attr_setstacksize(&inf->attr, *stacksize)) {
 			ubx_err(b, "pthread_attr_setstacksize failed: %s",
-				strerror(errno));
+				strerror(ret));
 			goto out;
 		}
 	}
@@ -197,7 +197,7 @@ int ptrig_handle_config(ubx_block_t *b)
 
 	if (ret != 0)
 		ubx_err(b, "failed to set PTHREAD_EXPLICIT_SCHED: %s",
-			strerror(errno));
+			strerror(ret));
 
 	/* priority */
 	len = cfg_getptr_int(b, "sched_priority", &prio);
@@ -261,7 +261,7 @@ static int ptrig_init(ubx_block_t *b)
 
 	ret = pthread_create(&inf->tid, &inf->attr, thread_startup, b);
 	if (ret != 0) {
-		ubx_err(b, "pthread_create failed: %s", strerror(errno));
+		ubx_err(b, "pthread_create failed: %s", strerror(ret));
 		goto out_err;
 	}
 
@@ -328,12 +328,12 @@ static void ptrig_cleanup(ubx_block_t *b)
 
 	ret = pthread_cancel(inf->tid);
 	if (ret != 0)
-		ubx_err(b, "pthread_cancel failed: %s", strerror(errno));
+		ubx_err(b, "pthread_cancel failed: %s", strerror(ret));
 
 	/* join */
 	ret = pthread_join(inf->tid, NULL);
 	if (ret != 0)
-		ubx_err(b, "pthread_join failed: %s", strerror(errno));
+		ubx_err(b, "pthread_join failed: %s", strerror(ret));
 
 	pthread_attr_destroy(&inf->attr);
 
