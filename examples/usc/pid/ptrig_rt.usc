@@ -1,0 +1,21 @@
+-- -*- mode: lua; -*-
+
+return bd.system {
+   imports = { "stdtypes", "ptrig" },
+
+   blocks = {
+      { name="ptrig_1", type="std_triggers/ptrig" },
+   },
+
+   configurations = {
+      { name="ptrig_1", config = {
+	   sched_priority=99,
+	   sched_policy='SCHED_FIFO',
+	   period = {sec=0, usec=1000 },
+	   tstats_mode=1,
+	   tstats_profile_path="/tmp/ptrig_1.tstats",
+	   trig_blocks={
+	      { b="#controller/trig_1", num_steps=1 } } }
+      },
+   }
+}
