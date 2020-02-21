@@ -8,6 +8,10 @@ local strict = require("strict")
 
 local res,lfs = _G.pcall(_G.require,'lfs')
 
+if not res then
+   print("error: ubx-mq requires lua-filesystem"); os.exit(1)
+end
+
 local MQPATH="/dev/mqueue"
 
 local ts = tostring
@@ -23,7 +27,7 @@ local function usage()
 usage: ubx-mq <command> [<args>]
 commands:
    list	    	      list all ubx mqueues
-   cat QUEUE          read and output data of mq id QUEUE
+   read QUEUE         read and output data of mq id QUEUE
 
 global parameters:
 
@@ -52,7 +56,7 @@ end
 --- read from the given mqueue and print the result
 -- @param mqtab message queue id
 -- @return never returns
-local function cat(mqtab)
+local function read(mqtab)
 
    local ni = ubx.node_create("ubx-mq")
    ubx.load_module(ni, "stdtypes")
@@ -101,16 +105,19 @@ if opttab[0][1] == "list" then
       print(fmt("%s  %s  %s", q.hashstr, utils.rpad(ts(q.data_len), 3), q.mq_id))
    end
    os.exit(0)
-elseif opttab[0][1] == "cat" then
+elseif opttab[0][1] == "read" then
    local mq_id = opttab[0][2]
    if not mq_id then
-      print("cat expects an argument QUEUE")
+      print("read expects an argument QUEUE")
       os.exit(1)
    end
 
    for _,m in ipairs(mqs) do
-      if m.mq_id == mq_id then cat(m) end
+      if m.mq_id == mq_id then read(m) end
    end
    print(fmt("invalid ubx queue id %s", mq_id))
+   os.exit(1)
+else
+   print(fmt("unknown command %s", opttab[0][1]))
    os.exit(1)
 end
