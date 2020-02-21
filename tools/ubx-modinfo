@@ -4,9 +4,12 @@
 local ubx = require("ubx")
 local utils = require("utils")
 local strict = require("strict")
-local ts = tostring
 
 local res,lfs = _G.pcall(_G.require,'lfs')
+local res,cjson = _G.pcall(_G.require,'cjson')
+
+local ts = tostring
+local fmt = string.format
 
 if not res then
    print("error: ubx-modinfo requires LuaFileSystem")
@@ -19,17 +22,22 @@ usage: ubx-modinfo <command> [<args>]
 commands:
    list	    	      list available modules
 
-   show <module>      print the contents of a module
-     -t [type1,type2]     show only the given types
-     -b [block1,block2]   show only the given blocks
+   show MODULE        the contents of a module
+     -t TYPE1,TYPE2     show only the given types
+     -b BLOCK1,BLOCK2   show only the given blocks
+
+   dump MODULE        dump the module informaton to a file (default: json)
+     -f	FORMAT	        desired output format. Supported:
+                           json: JSON
+                           rest: reStructuredText
 
 global parameters:
 
-   -l N	        set global loglevel to N
-   -c [0|1]     color: disable or enable (default)
-   -p m1,m2     list of depending modules to preload
-                (stdtypes loaded by default)
-   -h           show help
+   -l N	            set global loglevel to N
+   -c [0|1]         color: disable or enable (default)
+   -p MOD1,MOD2     list of depending modules to preload
+                    (stdtypes loaded by default)
+   -h               show help
 ]])
 end
 
@@ -45,6 +53,106 @@ local function table_sub(t1, t2)
    return res
 end
 
+--- extract a modules content
+-- @param module name
+-- @param premods modules to preload
+-- @param loglevel loglevel to use for loading
+-- @return table of blocks
+-- @return table of types
+local function module_totab(mod, premods, loglevel)
+   local ni = ubx.node_create("node", loglevel)
+
+   if mod ~= "stdtypes" then
+      premods[#premods+1] = "stdtypes"
+   end
+
+   for _,m in ipairs(premods) do ubx.load_module(ni, m) end
+
+   local n1 = ubx.node_totab(ni)
+   ubx.load_module(ni, mod)
+   local n2 = ubx.node_totab(ni)
+
+   local types = table_sub(n2.types, n1.types)
+   local blocks = table_sub(n2.blocks, n1.blocks)
+   return blocks, types
+end
+
+local function modtab_to_rest(mod, blocks, types)
+   local res, str = utils.preproc(
+[[
+@ local modhdr = string.format("Module %s", mod)
+$(modhdr)
+$(string.rep("=", #modhdr))
+
+@ for bn,b in pairs(blocks or {}) do
+@ if not output_block_hdr then
+@ output_block_hdr = true
+Blocks
+------
+
+@ end
+$(bn)
+$(string.rep("^", #bn))
+
+**Type**:       $(b.block_type)
+
+**Attributes**: $(table.concat(b.attrs, ', '))
+
+**Meta-data**:  $(b.meta_data)
+
+@ for _,c in pairs(b.configs) do
+@   if not output_cfg_hdr then
+@     output_cfg_hdr = true
+
+Configs
+"""""""
+
+.. csv-table::
+   :header: "name", "type", "doc"
+
+@   end
+   $(c.name), ``$(c.type_name)``, "$(c.doc)"
+@ end
+
+
+@ for _,p in pairs(b.ports) do
+@   if not output_port_hdr then
+@     output_port_hdr = true
+
+Ports
+"""""
+
+.. csv-table::
+   :header: "name", "out type", "out len", "in type", "in len", "doc"
+
+@   end
+@   if p.out_type_name then p.out_type_len = p.out_type_len or 1 end
+@   if p.in_type_name then p.in_type_len = p.in_type_len or 1 end
+   $(p.name), ``$(p.out_type_name)``, $(p.out_type_len), ``$(p.in_type_name)``, $(p.in_type_len), "$(p.doc)"
+@ end
+@ end
+
+@ for tn,t in pairs(types) do
+@ if not output_type_hdr then
+@ output_type_hdr = true
+Types
+-----
+
+.. csv-table:: Types
+   :header: "type name", "type class", "size [B]"
+
+@ end
+   ``$(t.name)``, $(t.class), $(t.size)
+@ end
+
+]], { mod=mod, blocks=blocks, types=types,
+      table=table, string=string, pairs=pairs } )
+
+   if not res then error(str) end
+   return str
+end
+
+--- list all modules found in the current path
 local function modules_list()
    local prefix = ubx.get_prefix()
    local ver = string.sub(ubx.safe_tostr(ubx.version()), 1, 3)
@@ -58,14 +166,15 @@ local function modules_list()
    end
 end
 
---- get_arg
+--- get_arg helper
 -- @param opttab opttab converter table
 -- @param optname name of option (e.g. "-v")
 -- @param defarg default value for non mandatory optargs
 -- @param req this option is required
--- @param reqarg requres an option argument
+-- @param reqarg requires an option argument
 -- @param typecheck function to convert/check the argument
 local function get_arg(opttab, optname, defarg, req, reqarg, typecheck)
+   typecheck = typecheck or function(x) return x end
 
    if defarg and req and reqarg then
       error("required optarg with default value makes no sense")
@@ -103,6 +212,7 @@ if opttab['-h'] then
    usage(); os.exit(0)
 end
 
+-- handle global args
 local loglevel = get_arg(opttab, "-l", 6, false, false, tonumber)
 
 ubx.color = get_arg(opttab, "-c", true, false, true,
@@ -111,8 +221,12 @@ ubx.color = get_arg(opttab, "-c", true, false, true,
 if opttab[0][1] == "list" then
    modules_list()
    os.exit(0)
-elseif opttab[0][1] == "show" then
+end
 
+local premods = get_arg(opttab, "-p", {}, false, true,
+			function(modlist) return utils.split(modlist, ',') end)
+
+if opttab[0][1] == "show" then
    if not opttab[0][2] then
       print("show requires a module parameter")
       os.exit(1)
@@ -120,29 +234,13 @@ elseif opttab[0][1] == "show" then
 
    local mod = opttab[0][2]
 
-   local premods = get_arg(opttab, "-p", {}, false, true,
-			   function(modlist) return utils.split(modlist, ',') end)
-
    local show_blocks = get_arg(opttab, "-b", {}, false, true,
 			       function(modlist) return utils.split(modlist, ',') end)
 
    local show_types = get_arg(opttab, "-t", {}, false, true,
 			      function(typelist) return utils.split(typelist, ',') end)
 
-   local ni = ubx.node_create("node", loglevel)
-
-   if mod ~= "stdtypes" then
-      premods[#premods+1] = "stdtypes"
-   end
-
-   for _,m in ipairs(premods) do ubx.load_module(ni, m) end
-
-   local n1 = ubx.node_totab(ni)
-   ubx.load_module(ni, mod)
-   local n2 = ubx.node_totab(ni)
-
-   local types = table_sub(n2.types, n1.types)
-   local blocks = table_sub(n2.blocks, n1.blocks)
+   local blocks, types = module_totab(mod, premods, loglevel)
 
    print("module " .. mod)
 
@@ -165,4 +263,27 @@ elseif opttab[0][1] == "show" then
       print("\n blocks:")
       for _,b in pairs(blocks) do print("  " ..ubx.block_pp(b)) end
    end
+elseif opttab[0][1] == "dump" then
+   if not opttab[0][2] then
+      print("dump requires a module parameter")
+      os.exit(1)
+   end
+
+   local mod = opttab[0][2]
+   local format = get_arg(opttab, "-f", 'json', false, true)
+   local blocks, types = module_totab(mod, premods)
+
+   if format == 'json' then
+      print(cjson.encode{ types=types, blocks=blocks })
+   elseif format == 'lua' then
+      print(utils.tab2str{ types=types, blocks=blocks })
+   elseif format == 'rest' then
+      print(modtab_to_rest(mod, blocks, types))
+   else
+      print(fmt("invalid format %s", format))
+      os.exit(1)
+   end
+else
+   print(fmt("unknown command %s", opttab[0][1]))
+   os.exit(1)
 end
