@@ -154,14 +154,19 @@ end
 
 --- list all modules found in the current path
 local function modules_list()
-   local prefix = ubx.get_prefix()
+   local _,prefixes = ubx.get_prefix()
    local ver = string.sub(ubx.safe_tostr(ubx.version()), 1, 3)
-   local modpath = prefix.."/lib/ubx/"..ver.."/"
 
-   for f in lfs.dir(modpath) do
-      local ext = string.match(f, "^.+%.(.+)$")
-      if f ~= "." and f ~= ".." and ext == "so" then
-	 print(modpath..f)
+   for _,prefix in ipairs(prefixes) do
+      local modpath = prefix.."/lib/ubx/"..ver.."/"
+
+      if utils.file_exists(modpath) then
+	 for f in lfs.dir(modpath) do
+	    local ext = string.match(f, "^.+%.(.+)$")
+	    if f ~= "." and f ~= ".." and ext == "so" then
+	       print(modpath..f)
+	    end
+	 end
       end
    end
 end

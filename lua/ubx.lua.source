@@ -12,10 +12,12 @@ local ffi=require "ffi"
 local bit=require "bit"
 local cdata = require "cdata"
 local utils= require "utils"
-local ts=tostring
 local ac=require "ansicolors"
 local time=require"time"
 require "strict"
+
+local ts = tostring
+local concat = table.concat
 
 local M={}
 
@@ -31,8 +33,6 @@ local function yellow(str, bright) if M.color then str = ac.yellow(str); if brig
 local function magenta(str, bright) if M.color then str = ac.magenta(str); if bright then str=ac.bright(str) end end return str end
 
 M.red=red; M.blue=blue; M.cyan=cyan; M.white=white; M.green=green; M.yellow=yellow; M.magenta=magenta;
-
-local setup_enums
 
 ------------------------------------------------------------------------------
 --                           helpers
@@ -125,59 +125,68 @@ local function setup_enums()
    }
 end
 
--- load ubx_types and library
 
-local load_files = {
+local ubx_ffi_headers = {
    "include/ubx/ubx_uthash_ffi.h",
    "include/ubx/ubx_types.h",
    "include/ubx/ubx_proto.h",
-   "lib/libubx.so.UBX_IF"
 }
 
--- possible file prefixes for above headers and libraries
-local prefixes = { "/usr", "/usr/local" }
-for _,p in ipairs(utils.split(os.getenv("UBX_PATH") or "", ':')) do
-   prefixes[#prefixes+1] = p
-end
-
-
-local function find_prefix()
-   for _,pf in ipairs(prefixes) do
-      local match=true
-      utils.foreach(
-	 function(f)
-	    match = match and utils.file_exists(pf.."/"..f)
-	 end, load_files )
-      if match == true then
-	 return pf
-      end
-   end
-   error("failed to load ubx files\n"..table.concat(load_files, '\n')
-	    .. " under the prefixes\n"..table.concat(prefixes, '\n'))
-end
+local ubx_ffi_lib = "lib/libubx.so.UBX_IF"
 
 local ubx = nil
-local function load_ubx_ffi(prefix)
-   ffi.cdef(preproc(read_file(prefix.."/include/ubx/ubx_uthash_ffi.h")))
-   ffi.cdef(preproc(read_file(prefix.."/include/ubx/ubx_types.h")))
-   ffi.cdef(preproc(read_file(prefix.."/include/ubx/ubx_proto.h")))
-   ubx=ffi.load(prefix.."/lib/libubx.so.UBX_IF")
+local prefixes = { "/usr", "/usr/local" }
+local core_prefix = nil
+
+
+--- Load ubx into the luajit ffi
+local function load_ubx_ffi()
+
+   local function find_core_prefix(pfxs)
+      for _,pf in ipairs(pfxs) do
+	 local match=true
+	 utils.foreach(
+	    function(f) match = match and utils.file_exists(pf.."/"..f) end, ubx_ffi_headers)
+	 match = match and utils.file_exists(pf.."/"..ubx_ffi_lib)
+	 if match == true then return pf end
+      end
+      utils.stderr("failed to load ubx core under the prefixes\n"..
+		      table.concat(prefixes, '\n'))
+      os.exit(1)
+   end
+
+   -- override prefixes?
+   local ubx_path = os.getenv("UBX_PATH")
+   if ubx_path then prefixes = utils.split(ubx_path, ':') end
+
+   core_prefix = find_core_prefix(prefixes)
+
+   -- declare std functions
+   ffi.cdef [[
+   void *malloc(size_t size);
+   void free(void *ptr);
+   void *calloc(size_t nmemb, size_t size);
+   void *realloc(void *ptr, size_t size);
+   ]]
+
+   -- load headers and ubx lib
+   for _,h in ipairs(ubx_ffi_headers) do
+      ffi.cdef(preproc(read_file(core_prefix.."/"..h)))
+   end
+
+   ubx = ffi.load(core_prefix.."/"..ubx_ffi_lib)
+
    setmetatable(M, { __index=function(t,k) return ubx["ubx_"..k] end })
-   M.ubx=ubx
+   M.ubx = ubx
+   setup_enums()
 end
 
-ffi.cdef [[
-void *malloc(size_t size);
-void free(void *ptr);
-void *calloc(size_t nmemb, size_t size);
-void *realloc(void *ptr, size_t size);
-]]
+load_ubx_ffi()
 
-local prefix=find_prefix()
-load_ubx_ffi(prefix)
-setup_enums()
-
-function M.get_prefix() return prefix end
+--- Return ubx load prefix information
+-- @return prefix from which the ubx_core was loaded
+-- @return prefixes table of prefixes used to load blocks
+function M.get_prefix() return core_prefix, prefixes end
 
 --- Safely convert a char* to a lua string.
 -- @param charptr C style string char* or char[]
@@ -301,14 +310,23 @@ end
 -- @param libfile module file to load
 function M.load_module(ni, libfile)
    local ver = string.sub(M.safe_tostr(ubx.ubx_version()), 1, 3)
-   local modpath = prefix.."/lib/ubx/"..ver.."/"..libfile
-   if string.sub(modpath, -3) ~= '.so' then modpath = modpath .. ".so" end
+   local modfile = "/lib/ubx/"..ver.."/"..libfile
 
-   local res = ubx.ubx_module_load(ni, modpath)
-      if res ~= 0 then
-      error(red("loading module ", true)..magenta(modpath)..red(" failed", true))
+   for _,pf in ipairs(prefixes) do
+      local modpath = pf..modfile
+      if string.sub(modpath, -3) ~= '.so' then modpath = modpath .. ".so" end
+
+      if utils.file_exists(modpath) then
+	 local res = ubx.ubx_module_load(ni, modpath)
+	 if res ~= 0 then
+	    error(red("loading module ", true)..magenta(modpath)..red(" failed", true))
+	 end
+	 M.ffi_load_types(ni)
+	 return
+      end
    end
-   M.ffi_load_types(ni)
+   error(red("no module ", true) .. magenta(modfile)..
+	    red(" found under prefixes", true) .. magenta(concat(prefixes, ', ')))
 end
 
 --- Node to tab

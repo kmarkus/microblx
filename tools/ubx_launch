@@ -134,7 +134,9 @@ if opttab['-check'] then
    checks = utils.split(opttab['-check'][1], ",")
 end
 
-print("using prefix "..ubx.get_prefix())
+local core_prefix, prefixes = ubx.get_prefix()
+print("core_prefix: " .. core_prefix)
+print("prefixes:    " .. table.concat(prefixes, ", "))
 
 ni = model:launch{nodename=nodename,
 		  verbose=true,
