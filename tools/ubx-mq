@@ -79,7 +79,10 @@ local function read(mqtab)
 
    local mq = ni:b("mq")
 
-   ubx.block_tostate(mq, 'active')
+   if ubx.block_tostate(mq, 'active') ~= 0 then
+      print("failed to activate mq")
+      os.exit(1)
+   end
 
    while true do
       local ret = mq.read(mq, sample)
