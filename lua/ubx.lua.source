@@ -322,7 +322,7 @@ function M.load_module(ni, libfile)
 	    error(red("loading module ", true)..magenta(modpath)..red(" failed", true))
 	 end
 	 M.ffi_load_types(ni)
-	 return
+	 return modpath
       end
    end
    error(red("no module ", true) .. magenta(modfile)..

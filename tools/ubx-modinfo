@@ -53,6 +53,11 @@ local function table_sub(t1, t2)
    return res
 end
 
+local function module_license_get(ni, modname)
+   local m = ubx.module_get(ni, modname)
+   if m == nil then error("unknown module "..modname) end
+   return ubx.safe_tostr(m.spdx_license_id)
+end
 --- extract a modules content
 -- @param module name
 -- @param premods modules to preload
@@ -69,15 +74,16 @@ local function module_totab(mod, premods, loglevel)
    for _,m in ipairs(premods) do ubx.load_module(ni, m) end
 
    local n1 = ubx.node_totab(ni)
-   ubx.load_module(ni, mod)
+   local modid = ubx.load_module(ni, mod)
    local n2 = ubx.node_totab(ni)
 
    local types = table_sub(n2.types, n1.types)
    local blocks = table_sub(n2.blocks, n1.blocks)
-   return blocks, types
+   local spdx_license = module_license_get(ni, modid)
+   return blocks, types, spdx_license
 end
 
-local function modtab_to_rest(mod, blocks, types)
+local function modtab_to_rest(mod, blocks, types, license)
    local res, str = utils.preproc(
 [[
 @ local modhdr = string.format("Module %s", mod)
@@ -245,9 +251,10 @@ if opttab[0][1] == "show" then
    local show_types = get_arg(opttab, "-t", {}, false, true,
 			      function(typelist) return utils.split(typelist, ',') end)
 
-   local blocks, types = module_totab(mod, premods, loglevel)
+   local blocks, types, license = module_totab(mod, premods, loglevel)
 
    print("module " .. mod)
+   print(" license: " ..ts(license)..'\n')
 
    if #show_types > 0 or #show_blocks > 0 then
       if #show_types > 0 then
@@ -276,10 +283,10 @@ elseif opttab[0][1] == "dump" then
 
    local mod = opttab[0][2]
    local format = get_arg(opttab, "-f", 'json', false, true)
-   local blocks, types = module_totab(mod, premods)
+   local blocks, types, license = module_totab(mod, premods)
 
    if format == 'json' then
-      print(cjson.encode{ types=types, blocks=blocks })
+      print(cjson.encode{ types=types, blocks=blocks, license=license })
    elseif format == 'lua' then
       print(utils.tab2str{ types=types, blocks=blocks })
    elseif format == 'rest' then

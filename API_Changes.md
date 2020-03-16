@@ -5,6 +5,11 @@ This file tracks user visible API changes.
 
 ## unreleased
 
+- core: added `ubx_module_get` function and extended Lua `load_module`
+  to return the module id (i.e. path from which it was loaded). The
+  latter can be passed to the former function (e.g. for looking up an
+  spdx license id).
+
 - core: added functions for `ubx_type_t` lookup via hash or hashstr.
 
 - added **PID controller** block and **extended ramp block** with a

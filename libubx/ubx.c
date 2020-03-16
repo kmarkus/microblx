@@ -170,6 +170,13 @@ int ubx_module_load(ubx_node_info_t *ni, const char *lib)
 	return ret;
 }
 
+ubx_module_t* ubx_module_get(ubx_node_info_t *ni, const char *lib)
+{
+	ubx_module_t *mod = NULL;
+	HASH_FIND_STR(ni->modules, lib, mod);
+	return mod;
+}
+
 /**
  * ubx_module_unload - unload a module from a node.
  *
