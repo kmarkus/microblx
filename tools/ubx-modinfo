@@ -34,6 +34,7 @@ commands:
    dump MODULE        dump the module informaton to a file (default: json)
      -f	FORMAT	        desired output format. Supported:
                            json: JSON
+                           lua: Lua
                            rest: reStructuredText
 
 global parameters:
@@ -88,28 +89,30 @@ local function module_totab(mod, premods, loglevel)
    return blocks, types, spdx_license
 end
 
+-- markup with reStr monospace if not empty
+local function mono_if_not_empty(s)
+   if type(s)=='string' and s ~= '' then return "``"..s.."``" end
+   return ''
+end
+
 local function modtab_to_rest(mod, blocks, types, license)
    local res, str = utils.preproc(
 [[
 @ local modhdr = string.format("Module %s", mod)
 $(modhdr)
-$(string.rep("=", #modhdr))
+$(string.rep("-", #modhdr))
 
 @ for bn,b in pairs(blocks or {}) do
 @ if not output_block_hdr then
 @ output_block_hdr = true
-Blocks
-------
-
 @ end
-$(bn)
-$(string.rep("^", #bn))
+Block $(bn)
+$(string.rep("^", #("Block "..bn)))
 
-**Type**:       $(b.block_type)
-
-**Attributes**: $(table.concat(b.attrs, ', '))
-
-**Meta-data**:  $(b.meta_data)
+| **Type**:       $(b.block_type)
+| **Attributes**: $(table.concat(b.attrs, ', '))
+| **Meta-data**:  $(b.meta_data)
+| **License**:    $(license)
 
 @ for _,c in pairs(b.configs) do
 @   if not output_cfg_hdr then
@@ -139,7 +142,7 @@ Ports
 @   end
 @   if p.out_type_name then p.out_type_len = p.out_type_len or 1 end
 @   if p.in_type_name then p.in_type_len = p.in_type_len or 1 end
-   $(p.name), ``$(p.out_type_name)``, $(p.out_type_len), ``$(p.in_type_name)``, $(p.in_type_len), "$(p.doc)"
+   $(p.name), $(mine(p.out_type_name)), $(p.out_type_len), $(mine(p.in_type_name)), $(p.in_type_len), "$(p.doc)"
 @ end
 @ end
 
@@ -147,7 +150,7 @@ Ports
 @ if not output_type_hdr then
 @ output_type_hdr = true
 Types
------
+^^^^^
 
 .. csv-table:: Types
    :header: "type name", "type class", "size [B]"
@@ -156,8 +159,9 @@ Types
    ``$(t.name)``, $(t.class), $(t.size)
 @ end
 
-]], { mod=mod, blocks=blocks, types=types,
-      table=table, string=string, pairs=pairs } )
+]], { mod=mod, blocks=blocks, types=types, license=license,
+      table=table, string=string, pairs=pairs,
+      mine=mono_if_not_empty } )
 
    if not res then error(str) end
    return str
@@ -293,9 +297,9 @@ elseif opttab[0][1] == "dump" then
    if format == 'json' then
       print(cjson.encode{ types=types, blocks=blocks, license=license })
    elseif format == 'lua' then
-      print(utils.tab2str{ types=types, blocks=blocks })
+      print(utils.tab2str{ types=types, blocks=blocks, license=license })
    elseif format == 'rest' then
-      print(modtab_to_rest(mod, blocks, types))
+      print(modtab_to_rest(mod, blocks, types, license))
    else
       print(fmt("invalid format %s", format))
       os.exit(1)
