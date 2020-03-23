@@ -52,6 +52,62 @@ local function err_exit(code, msg)
    os.exit(code)
 end
 
+--- Check whether val is a nodeconfig reference
+-- @param val value to check
+-- @return nil or nodeconfig string name
+local function check_noderef(val)
+   if type(val) ~= 'string' then return end
+   return string.match(val, "^%s*&([%w_-]+)")
+end
+
+--- apply func to systems including all subsystems
+-- @param func function(system, name, parent-system)
+-- @param root root system
+-- @return list of return values of func
+local function mapsys(func, root)
+   local res = {}
+
+   local function __mapsys(sys,name,psys)
+      res[#res+1] = func(sys, name, psys)
+      if not sys.subsystems then return end
+      for k,s in pairs(sys.subsystems) do __mapsys(s, k, sys) end
+   end
+   __mapsys(root)
+   return res
+end
+
+--- Apply func to all objs of system[systab] in breadth first
+-- @param func function(obj, index/key, parent_system)
+-- @param root_sys root system
+-- @param systab which system table to map (blocks, configurations, ...)
+-- @return list of return values of func
+local function mapobj_bf(func, root_sys, systab)
+   local res = {}
+   local queue = { root_sys }
+
+   -- breadth first
+   while #queue > 0 do
+      local next_sys = table.remove(queue, 1) -- pop
+
+      -- process all nc's of s
+      foreach(
+	 function (o, k)
+	    res[#res+1] = func(o, k, next_sys)
+	 end, next_sys[systab])
+
+      -- add s's subsystems to queue
+      foreach(function (subsys) queue[#queue+1] = subsys end, next_sys.subsystems)
+   end
+
+   return res
+end
+
+local function mapblocks(func, root_sys) return mapobj_bf(func, root_sys, 'blocks') end
+local function mapconns(func, root_sys) return mapobj_bf(func, root_sys, 'connections') end
+local function mapconfigs(func, root_sys) return mapobj_bf(func, root_sys, 'configurations') end
+local function mapndconfigs(func, root_sys) return mapobj_bf(func, root_sys, 'node_configurations') end
+local function mapimports(func, root_sys) return mapobj_bf(func, root_sys, 'imports') end
+
 ---
 --- Model
 ---
@@ -122,6 +178,7 @@ local connections_spec = TableSpec
    sealed='both',
 }
 
+
 -- node_config
 local node_config_spec = TableSpec {
    name='node configs',
@@ -173,12 +230,35 @@ local subsystems_spec = TableSpec {
    sealed='both',
 }
 
+--- Check all nodecfg references
+local function sys_check_nodecfg_refs(class, sys, vres)
+   local res = true
+
+   -- first build a nodecfg table
+   local nc_list = {}
+   mapndconfigs(
+      function (o,k) nc_list[k] = o end, sys)
+
+   mapconfigs(
+      function (c,k,p)
+	 for name,val in pairs(c.config) do
+	    local nodecfg = check_noderef(val)
+	    if nodecfg and not nc_list[nodecfg] then
+	       res = false
+	       umf.add_msg(vres, "err",	"unable to resolve node config &"..nodecfg)
+	    end
+	 end
+      end, sys)
+   return res
+end
+
 --- system spec
 local system_spec = ObjectSpec
 {
    name='system',
    type=system,
    sealed='both',
+   postcheck = sys_check_nodecfg_refs,
    dict={
       subsystems = subsystems_spec,
       imports=imports_spec,
@@ -194,54 +274,6 @@ local system_spec = ObjectSpec
 
 -- add self references to subsystems dictionary
 system_spec.dict.subsystems.dict.__other = { system_spec }
-
---- apply func to systems including all subsystems
--- @param func function(system, name, parent-system)
--- @param root root system
--- @return list of return values of func
-local function mapsys(func, root)
-   local res = {}
-
-   local function __mapsys(sys,name,psys)
-      res[#res+1] = func(sys, name, psys)
-      if not sys.subsystems then return end
-      for k,s in pairs(sys.subsystems) do __mapsys(s, k, sys) end
-   end
-   __mapsys(root)
-   return res
-end
-
---- Apply func to all objs of system[systab] in breadth first
--- @param func function(obj, index/key, parent_system)
--- @param root_sys root system
--- @param systab which system table to map (blocks, configurations, ...)
--- @return list of return values of func
-local function mapobj_bf(func, root_sys, systab)
-   local res = {}
-   local queue = { root_sys }
-
-   -- breadth first
-   while #queue > 0 do
-      local next_sys = table.remove(queue, 1) -- pop
-
-      -- process all nc's of s
-      foreach(
-	 function (o, k)
-	    res[#res+1] = func(o, k, next_sys)
-	 end, next_sys[systab])
-
-      -- add s's subsystems to queue
-      foreach(function (subsys) queue[#queue+1] = subsys end, next_sys.subsystems)
-   end
-
-   return res
-end
-
-local function mapblocks(func, root_sys) return mapobj_bf(func, root_sys, 'blocks') end
-local function mapconns(func, root_sys) return mapobj_bf(func, root_sys, 'connections') end
-local function mapconfigs(func, root_sys) return mapobj_bf(func, root_sys, 'configurations') end
-local function mapndconfigs(func, root_sys) return mapobj_bf(func, root_sys, 'node_configurations') end
-local function mapimports(func, root_sys) return mapobj_bf(func, root_sys, 'imports') end
 
 --- return the fqn of system s
 -- @param sys system whos fqn to determine
@@ -627,10 +659,6 @@ end
 -- @param NC global config table
 -- @param configured table of already configured configs
 local function apply_config(cfg, b, NC, configured)
-   local function check_noderef(val)
-      if type(val) ~= 'string' then return end
-      return string.match(val, "^%s*&([%w_-]+)")
-   end
 
    for name,val in pairs(cfg.config) do
 
