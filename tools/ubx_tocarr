@@ -1,8 +1,13 @@
 #!/usr/bin/env luajit
 -- -*- lua -*-
-
+--
 -- This tool converts the contents of a file to a C array of hex data,
 -- that can be included as a C header. The data is \0 terminated.
+--
+-- Copyright (C) 2014-2020 Markus Klotzbuecher <mk@mkio.de>
+--
+-- SPDX-License-Identifier: BSD-3-Clause
+--
 
 local fmt = string.format
 

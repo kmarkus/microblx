@@ -1,5 +1,10 @@
 #!/usr/bin/env luajit
 -- -*- lua -*-
+--
+-- Copyright (C) 2014-2020 Markus Klotzbuecher <mk@mkio.de>
+--
+-- SPDX-License-Identifier: BSD-3-Clause
+--
 
 local ubx = require("ubx")
 local utils = require("utils")
