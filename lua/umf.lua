@@ -429,7 +429,11 @@ function TableSpec.check(self, obj, vres)
 
    local name = self.name or "unnamed"
    -- local depth = vres_push_context(vres, name)
-   if self.precheck then ret=self.precheck(self, obj, vres) end -- precheck hook
+   if self.precheck then
+      ret = self.precheck(self, obj, vres)
+      assert(type(ret)=='boolean', "precheck did not return boolean")
+   end
+
 
    if ret then
       local arr,dct = table_split(obj)
@@ -438,7 +442,11 @@ function TableSpec.check(self, obj, vres)
       check_dict_optionals(dct)
    end
 
-   if self.postcheck and ret then ret=self.postcheck(self, obj, vres) end
+   if self.postcheck and ret then
+      ret = self.postcheck(self, obj, vres)
+      assert(type(ret)=='boolean', "postcheck did not return boolean")
+   end
+
 
    log("checked table spec "..name..", result: "..tostring(ret))
    -- vres_pop_context(vres, depth)
