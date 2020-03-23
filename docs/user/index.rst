@@ -15,6 +15,7 @@ Welcome to microblx's documentation!
    composing_systems.rst
    tutorial.rst
    faq.rst
+   block_index.rst
 
 Indices and tables
 ==================
