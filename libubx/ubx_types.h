@@ -282,6 +282,12 @@ typedef struct ubx_module {
 } ubx_module_t;
 
 
+/* node flags */
+enum {
+	ND_MLOCK_ALL = 1 << 0,
+	ND_DUMPABLE =  1 << 1,
+};
+
 /* node information
  * holds references to all known blocks and types
  */
@@ -292,6 +298,7 @@ typedef struct ubx_node_info {
 	ubx_module_t *modules;
 	unsigned long cur_seqid;
 
+	uint32_t attrs;
 	int loglevel;
 	void (*log)(const struct ubx_node_info *inf, const struct ubx_log_msg *msg);
 	void *log_data;

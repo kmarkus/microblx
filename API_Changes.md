@@ -5,6 +5,11 @@ This file tracks user visible API changes.
 
 ## unreleased
 
+- convert `CONFIG_DUMPABLE` and `CONFIG_MLOCK_ALL` to node
+  attributes. These can now be set as `ubx_launch` parameters (or at
+  C-API level by setting the respective bits in the `attrs`
+  parameter).
+
 - doc: generate block reStructuredText docs using `ubx-modinfo`
 
 - core: added `ubx_module_get` function and extended Lua `load_module`

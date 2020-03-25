@@ -11,11 +11,6 @@
 #ifndef _UBX_H
 #define _UBX_H
 
-/* enable for dumps even when running with priviledges */
-#define CONFIG_DUMPABLE		1
-/* #define CONFIG_MLOCK_ALL	1 */
-/* enable extra checks */
-#define CONFIG_PARANOIA		1
 /* enable extra typechecking on read/write */
 #define CONFIG_TYPECHECK_EXTRA	1
 
@@ -42,10 +37,7 @@ extern "C"
 #include <time.h>
 #include <assert.h>
 #include <limits.h>
-
-#ifdef CONFIG_DUMPABLE
 #include <sys/prctl.h>
-#endif
 
 #include <uthash.h>
 

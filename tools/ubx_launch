@@ -23,13 +23,17 @@ usage: ubx_launch [OPTION] -c <model file>
   -ctype TYPE[,TYPE2]	types of the model file. Either ucs or json. If not specified,
 			auto-detected from extension
   -nodename NAME	set nodename to NAME
+  -mlockall		call mlockall to lock memory
+  -dumpable             enable core dumps even for priviledged processes
   -nostart		instantiate and configure, but don't start
   -t SECONDS		run for SECONDS and then shutdown
-  -validate		don't run, just validate configuration file
   -loglevel N		set global loglevel [0..7]
   -s			log to stderr (in addition to ubx_log)
   -webif [PORT]		create and start webinterface block.
 			the optional port defaults to 8888.
+
+  -validate		don't run, just validate configuration file
+
   -check CHK1[,CHK2]    carry out additional validation
     available checks:
 @   for k,v in pairs(checks) do
@@ -56,7 +60,6 @@ local conf_types = {}
 local monitorblock
 local checks
 local loglevel
-local use_stderr
 
 if opttab['-version'] then
    print("microblx "..ubx.safe_tostr(ubx.version()))
@@ -129,8 +132,6 @@ if opttab['-loglevel'] then
    end
 end
 
-if opttab['-s'] then use_stderr=true end
-
 if opttab['-check'] then
    if not opttab['-check'][1] then
       print("error: -check option requires name argument)")
@@ -146,7 +147,9 @@ print("prefixes:    " .. table.concat(prefixes, ", "))
 ni = model:launch{nodename=nodename,
 		  verbose=true,
 		  loglevel=loglevel,
-		  use_stderr=use_stderr,
+		  use_stderr=opttab['-s'],
+		  mlockall=opttab['-mlockall'],
+		  dumpable=opttab['-dumpable'],
 		  nostart=opttab['-nostart'],
 		  checks=checks or nil,
 		  werror=opttab['-werror'],

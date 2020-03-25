@@ -11,7 +11,7 @@ local NI
 TestTypeLookup = {}
 
 function TestTypeLookup:setup()
-   NI =	ubx.node_create("TestTypeLookup", 7)
+   NI =	ubx.node_create("TestTypeLookup", { loglevel=7 } )
    ubx.load_module(NI, "stdtypes")
 end
 

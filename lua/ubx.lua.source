@@ -297,11 +297,17 @@ ffi.metatype("struct ubx_timespec", ubx_timespec_mt)
 
 --- Create and initalize a new node_info struct
 -- @param name name of node
+-- @param loglevel desired default loglevel
+-- @param attrs node attributes
 -- @return ubx_node_info_t
-function M.node_create(name, loglevel)
+function M.node_create(name, params)
    local ni=ffi.new("ubx_node_info_t")
-   if loglevel then ni.loglevel = loglevel end
-   assert(ubx.ubx_node_init(ni, name)==0, "node_create failed")
+   params = params or {}
+   local attrs=0
+   if params.mlockall then attrs = bit.bor(attrs, ffi.C.ND_MLOCK_ALL) end
+   if params.dumpable then attrs = bit.bor(attrs, ffi.C.ND_DUMPABLE) end
+   if params.loglevel then ni.loglevel = params.loglevel end
+   assert(ubx.ubx_node_init(ni, name, attrs)==0, "node_create failed")
    return ni
 end
 

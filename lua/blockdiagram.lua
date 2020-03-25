@@ -882,7 +882,10 @@ function system.launch(self, t)
    t.nodename = t.nodename or "n"
    USE_STDERR = t.use_stderr or false
 
-   local ni = ubx.node_create(t.nodename, t.loglevel)
+   local ni = ubx.node_create(t.nodename,
+			      { loglevel=t.loglevel,
+				mlockall=t.mlockall,
+				dumpable=t.dumpable })
 
    def_loggers(ni, "launch")
    import_modules(ni, self)

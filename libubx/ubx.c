@@ -212,7 +212,7 @@ void ubx_module_unload(ubx_node_info_t *ni, const char *lib)
  *
  * @return 0 if ok, -1 otherwise.
  */
-int ubx_node_init(ubx_node_info_t *ni, const char *name)
+int ubx_node_init(ubx_node_info_t *ni, const char *name, uint32_t attrs)
 {
 	int ret = -1;
 
@@ -237,22 +237,23 @@ int ubx_node_init(ubx_node_info_t *ni, const char *name)
 		goto out;
 	}
 
-#ifdef CONFIG_DUMPABLE
-	if (prctl(PR_SET_DUMPABLE, 1, 0, 0, 0) != 0) {
-		logf_err(ni, "setting PR_SET_DUMPABLE failed: %m");
-		goto out;
+	if (attrs & ND_DUMPABLE) {
+		if (prctl(PR_SET_DUMPABLE, 1, 0, 0, 0) != 0) {
+			logf_err(ni, "enabling core dumps PR_SET_DUMPABLE): %m");
+			goto out;
+		}
+		logf_info(ni, "core dumps enabled (PR_SET_DUMPABLE)");
 	}
-	logf_info(ni, "core dumps enabled (PR_SET_DUMPABLE)");
-#endif
 
-#ifdef CONFIG_MLOCK_ALL
-	if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
-		logf_err(ni, "mlockall failed: %m");
-		goto out;
-	};
-	logf_info(ni, "locking memory succeeded");
-#endif
+	if (attrs & ND_MLOCK_ALL) {
+		if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
+			logf_err(ni, "mlockall failed CUR|FUT: %m");
+			goto out;
+		};
+		logf_info(ni, "mlockall CUR|FUT succeeded");
+	}
 
+	ni->attrs = attrs;
 	ni->blocks = NULL;
 	ni->types = NULL;
 	ni->modules = NULL;
