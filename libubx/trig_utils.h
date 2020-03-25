@@ -27,33 +27,38 @@ enum tstats_mode {
  * sequence of blocks and to perform timing statistics. It must be
  * initialized and cleaned up with trig_info_init and _cleanup (s.b).
  *
+ * @b: parent trigger block
  * @trig_config: trigger specification array
  * @trig_list_len: length of above array
  * @tstats_mode: enum tstats_mode
  * @profile_path: file to write with profile data
- * @global_tstats
- * @blk_tstats:
+ * @global_tstats global tstats structure
+ * @blk_tstats: pointer to array of size trig_list_len for per block stats
+ * @tstats_log_rate: stats log rate
  * @tstats_output_rate:	output rate
  * @tstats_last_msg: timestamp of last message
  * @tstats_idx: index of last output sample
  * @port_tstats: tstats port
  */
 struct trig_info {
+	const ubx_block_t *b;
 	struct ubx_trig_spec *trig_list;
 	unsigned int trig_list_len;
-
-	ubx_port_t *p_tstats;
-
 	/* stats management */
 	int tstats_mode;
-	const char *profile_path;
 
 	struct ubx_tstat global_tstats;
 	struct ubx_tstat *blk_tstats;
 
+	uint64_t tstats_log_rate;
+	uint64_t tstats_log_last_msg;
+	unsigned int tstats_log_idx;
+
 	uint64_t tstats_output_rate;
-	uint64_t tstats_last_msg;
-	unsigned int tstats_idx;
+	uint64_t tstats_output_last_msg;
+	unsigned int tstats_output_idx;
+
+	ubx_port_t *p_tstats;
 };
 
 /**
@@ -63,27 +68,27 @@ struct trig_info {
  * to the mode. It is OK to re-run this function multiple times
  * (e.g. in start), as it will resize existing buffers appropriately.
  *
+ * @param b: parent trigger block
  * @param trig_inf: trig_inf to initialized
  * @param list_id: id for this trigger list (used in tstats and log
  *        output). Can be NULL, then default is used.
  * @param tstats_mode: timing stats mode to be used
  * @param trig_list: pointer to trig_blocks list
  * @param trig_list_len: array length of trig_spec
+ * @param tstats_log_rate: tstats log rate [sec] (0 to disable periodic logging)
+ * @param tstats_output_rate: tstats output rate [sec] (0 to disable port tstats output)
  * @param p_tstats: tstats output port (NULL if no port output)
- * @param tstats_output_rate: tstats output rate [sec]
- * @param profile_path: ptr to filename to write timing profile to
- *        (NULL if no profile). Must stay valid while trig_info is in
- *        use.
  * @return 0 if OK, < 0 otherwise
  */
-int trig_info_init(struct trig_info* trig_inf,
+int trig_info_init(const ubx_block_t *block,
+		   struct trig_info* trig_inf,
 		   const char *list_id,
 		   int tstats_mode,
 		   struct ubx_trig_spec* trig_list,
 		   unsigned long trig_list_len,
+		   double tstats_log_rate,
 		   double tstats_output_rate,
-		   ubx_port_t *p_tstats,
-		   const char *profile_path);
+		   ubx_port_t *p_tstats);
 
 /**
  * trig_inf_cleanup - release allocated resources
@@ -111,11 +116,15 @@ void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf);
 
 
 /**
- * write all tstats to file "profile_path"
+ * write all tstats to file
+ * @param b parent block for logging
  * @param trig_inf trigger info struct
+ * @param profile_path file to write stats to
  * @return 0 if success, <0 otherwise
  */
-int trig_info_tstats_write(ubx_block_t *b, struct trig_info *trig_inf);
+int trig_info_tstats_write(ubx_block_t *b,
+			   struct trig_info *trig_inf,
+			   const char *profile_path);
 
 /*
  * helpers to manager timing statistics

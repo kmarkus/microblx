@@ -10,8 +10,10 @@
 #include <limits.h>
 #include "trig_utils.h"
 
-#define LOG_FMT "cnt: %lu, min: %11.9f, max: %11.9f, avg: %11.9f"
-static const char *tstat_global_id = "##total##";
+#define FILE_HDR "block, cnt, min, max, avg\n"
+#define FILE_FMT "%s, %lu, %11.9f, %11.9f, %11.9f\n"
+#define LOG_FMT "TSTAT: %s: cnt %lu, min %11.9f, max %11.9f, avg %11.9f"
+static const char *tstat_global_id = "#total#";
 
 def_write_fun(write_tstat, struct ubx_tstat)
 
@@ -70,8 +72,7 @@ int tstat_write(FILE *fp, struct ubx_tstat *stats)
 	if (stats->cnt > 0) {
 		ubx_ts_div(&stats->total, stats->cnt, &avg);
 
-		fprintf(fp,
-			"%s: " LOG_FMT "\n",
+		fprintf(fp, FILE_FMT,
 			stats->block_name, stats->cnt,
 			ubx_ts_to_double(&stats->min),
 			ubx_ts_to_double(&stats->max),
@@ -98,17 +99,58 @@ void tstat_log(const ubx_block_t *b, const struct ubx_tstat *stats)
 
 	ubx_ts_div(&stats->total, stats->cnt, &avg);
 
-	ubx_info(b, "%s: " LOG_FMT,
+	ubx_info(b, LOG_FMT,
 		 stats->block_name, stats->cnt,
 		 ubx_ts_to_double(&stats->min),
 		 ubx_ts_to_double(&stats->max),
 		 ubx_ts_to_double(&avg));
 }
 
+/* helpers for throttled port output or logging */
+void tstats_output_throttled(struct trig_info* trig_inf, uint64_t now)
+{
+	if (now <= trig_inf->tstats_output_last_msg + trig_inf->tstats_output_rate)
+		return;
+
+	if (trig_inf->tstats_mode == TSTATS_GLOBAL) {
+		write_tstat(trig_inf->p_tstats, &trig_inf->global_tstats);
+	} else { /* mode == TSTATS_PERBLOCK */
+		if (trig_inf->tstats_output_idx < trig_inf->trig_list_len) {
+			write_tstat(trig_inf->p_tstats,
+				    &trig_inf->blk_tstats[trig_inf->tstats_output_idx]);
+		} else {
+			write_tstat(trig_inf->p_tstats, &trig_inf->global_tstats);
+		}
+
+		trig_inf->tstats_output_idx =
+			(trig_inf->tstats_output_idx+1) % (trig_inf->trig_list_len+1);
+	}
+	trig_inf->tstats_output_last_msg = now;
+}
+
+void tstats_log_throttled(struct trig_info *trig_inf, uint64_t now)
+{
+	if (now <= trig_inf->tstats_log_last_msg + trig_inf->tstats_log_rate)
+		return;
+
+	if (trig_inf->tstats_mode == TSTATS_GLOBAL) {
+		tstat_log(trig_inf->b, &trig_inf->global_tstats);
+	} else { /* TSTATS_PERBLOCK */
+		if (trig_inf->tstats_log_idx < trig_inf->trig_list_len) {
+			tstat_log(trig_inf->b, &trig_inf->blk_tstats[trig_inf->tstats_log_idx]);
+		} else {
+			tstat_log(trig_inf->b, &trig_inf->global_tstats);
+		}
+
+		trig_inf->tstats_log_idx =
+			(trig_inf->tstats_log_idx+1) % (trig_inf->trig_list_len+1);
+	}
+	trig_inf->tstats_log_last_msg = now;
+}
+
 /*
  * basic triggering and tstats management
  */
-
 int do_trigger(struct trig_info* trig_inf)
 {
 	int ret = 0;
@@ -121,6 +163,7 @@ int do_trigger(struct trig_info* trig_inf)
 	if (trig_inf->tstats_mode > 0)
 		ubx_gettime(&ts_start);
 
+	/* trigger all blocks */
 	for (i = 0; i < trig_inf->trig_list_len; i++) {
 
 		if (trig_inf->tstats_mode == 2)
@@ -140,56 +183,48 @@ int do_trigger(struct trig_info* trig_inf)
 		}
 	}
 
-	if (trig_inf->tstats_mode > 0) {
-		/* end of global measurement */
-		ubx_gettime(&ts_end);
-		tstat_update(&trig_inf->global_tstats, &ts_start, &ts_end);
 
-		/* check if to log/output */
-		if (trig_inf->tstats_output_rate == 0 || trig_inf->p_tstats == NULL)
-			goto out;
+	if (trig_inf->tstats_mode == TSTATS_DISABLED)
+		goto out;
 
-		/* throttle log */
-		ts_end_ns = ubx_ts_to_ns(&ts_end);
+	/* finalize global measurement,	output stats */
+	ubx_gettime(&ts_end);
+	tstat_update(&trig_inf->global_tstats, &ts_start, &ts_end);
+	ts_end_ns = ubx_ts_to_ns(&ts_end);
 
-		if (ts_end_ns > trig_inf->tstats_last_msg + trig_inf->tstats_output_rate) {
-			if (trig_inf->tstats_mode == 1) {
-				write_tstat(trig_inf->p_tstats, &trig_inf->global_tstats);
-			} else { /* mode == 2 */
-				if (trig_inf->tstats_idx < trig_inf->trig_list_len) {
-					write_tstat(trig_inf->p_tstats, &trig_inf->blk_tstats[trig_inf->tstats_idx]);
-				} else {
-					write_tstat(trig_inf->p_tstats, &trig_inf->global_tstats);
-				}
+	if (trig_inf->tstats_output_rate > 0 && trig_inf->p_tstats != NULL)
+		tstats_output_throttled(trig_inf, ts_end_ns);
 
-				trig_inf->tstats_idx = (trig_inf->tstats_idx+1) % (trig_inf->trig_list_len+1);
-			}
-			trig_inf->tstats_last_msg = ts_end_ns;
-		}
-	}
+	if (trig_inf->tstats_log_rate > 0)
+		tstats_log_throttled(trig_inf, ts_end_ns);
+
 out:
 	return ret;
 }
 
-int trig_info_init(struct trig_info* trig_inf,
+int trig_info_init(const ubx_block_t *block,
+		   struct trig_info* trig_inf,
 		   const char *list_id,
 		   int tstats_mode,
 		   struct ubx_trig_spec* trig_list,
 		   unsigned long trig_list_len,
+		   double tstats_log_rate,
 		   double tstats_output_rate,
-		   ubx_port_t *p_tstats,
-		   const char *profile_path)
+		   ubx_port_t *p_tstats)
 {
+	trig_inf->b = block;
 	trig_inf->tstats_mode = tstats_mode;
 	trig_inf->trig_list = trig_list;
 	trig_inf->trig_list_len = trig_list_len;
 	trig_inf->p_tstats = p_tstats;
-	trig_inf->profile_path = profile_path;
+
+	trig_inf->tstats_log_rate = tstats_log_rate * NSEC_PER_SEC;
+	trig_inf->tstats_log_last_msg = 0;
+	trig_inf->tstats_log_idx = 0;
 
 	trig_inf->tstats_output_rate = tstats_output_rate * NSEC_PER_SEC;
-
-	trig_inf->tstats_last_msg = 0;
-	trig_inf->tstats_idx = 0;
+	trig_inf->tstats_output_last_msg = 0;
+	trig_inf->tstats_output_idx = 0;
 
 	list_id = (list_id != NULL) ? list_id : tstat_global_id;
 	tstat_init(&trig_inf->global_tstats, list_id);
@@ -237,21 +272,26 @@ void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf)
 /**
  * write all stats to file
  */
-int trig_info_tstats_write(ubx_block_t *b, struct trig_info *trig_inf)
+int trig_info_tstats_write(ubx_block_t *b,
+			   struct trig_info *trig_inf,
+			   const char *profile_path)
 {
 	FILE *fp;
 
-	if (trig_inf->profile_path == NULL)
+	if (profile_path == NULL)
 		return 0;
 
-	fp = fopen(trig_inf->profile_path, "w");
+	fp = fopen(profile_path, "w");
 
 	if (fp == NULL)
 		return -1;
 
+	if (trig_inf->tstats_mode == TSTATS_DISABLED)
+		return 0;
+
+	fprintf(fp, FILE_HDR);
+
 	switch(trig_inf->tstats_mode) {
-	case TSTATS_DISABLED:
-		break;
 	case TSTATS_PERBLOCK:
 		for (unsigned int i=0; i<trig_inf->trig_list_len; i++)
 			tstat_write(fp, &trig_inf->blk_tstats[i]);
@@ -265,7 +305,7 @@ int trig_info_tstats_write(ubx_block_t *b, struct trig_info *trig_inf)
 
 	fclose(fp);
 
-	ubx_info(b, "wrote tstats_profile to %s", trig_inf->profile_path);
+	ubx_info(b, "wrote tstats_profile to %s", profile_path);
 
 	return 0;
 }

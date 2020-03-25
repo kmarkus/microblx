@@ -1,6 +1,20 @@
 
 #include "trig_common.h"
 
+int write_tstats_to_profile_path(ubx_block_t *b, struct trig_info *trig_inf)
+{
+	int len;
+	const char *profile_path;
+
+	len = cfg_getptr_char(b, "tstats_profile_path", &profile_path);
+
+	if (len < 0)
+		ubx_err(b, "unable to retrieve config tstats_profile_path");
+
+	return trig_info_tstats_write(b, trig_inf, profile_path);
+}
+
+
 int trig_info_config(ubx_block_t *b, struct trig_info *trig_inf)
 {
 	int ret = -1;
@@ -8,9 +22,10 @@ int trig_info_config(ubx_block_t *b, struct trig_info *trig_inf)
 	const int *val;
 	const double *val_double;
 	int tstats_mode;
-	const char *profile_path;
 
 	double output_rate;
+	double log_rate;
+
 	ubx_port_t *p_tstats;
 	struct ubx_trig_spec *trig_spec;
 
@@ -34,6 +49,16 @@ int trig_info_config(ubx_block_t *b, struct trig_info *trig_inf)
 
 	output_rate = (len > 0) ? *val_double : 0;
 
+	/* tstats_log_rate */
+	len = cfg_getptr_double(b, "tstats_log_rate", &val_double);
+
+	if (len < 0) {
+		ubx_err(b, "unable to retrieve config tstats_log_rate");
+		goto out;
+	}
+
+	log_rate = (len > 0) ? *val_double : 0;
+
 	/* trig_blocks */
 	trig_list_len = ubx_config_get_data_ptr(b, "trig_blocks", (void **)&trig_spec);
 
@@ -42,21 +67,14 @@ int trig_info_config(ubx_block_t *b, struct trig_info *trig_inf)
 		goto out;
 	}
 
-	/* profile path */
-	len = cfg_getptr_char(b, "tstats_profile_path", &profile_path);
-
-	if (len < 0) {
-		ubx_err(b, "unable to retrieve config tstats_profile_path");
-		goto out;
-	}
-
 	/* tstats port */
 	p_tstats = ubx_port_get(b, "tstats");
 
 	/* initialize trig_info */
-	ret = trig_info_init(trig_inf, NULL, tstats_mode,
+	ret = trig_info_init(b, trig_inf, NULL, tstats_mode,
 			     trig_spec, trig_list_len,
-			     output_rate, p_tstats, profile_path);
+			     log_rate, output_rate,
+			     p_tstats);
 
 out:
 	return ret;

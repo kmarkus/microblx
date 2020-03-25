@@ -56,6 +56,7 @@ ubx_config_t ptrig_config[] = {
 	{ .name = "tstats_mode", .type_name = "int", .doc = "enable timing statistics over all blocks", },
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "file to which to write the timing statistics" },
 	{ .name = "tstats_output_rate", .type_name = "double", .doc = "output tstats only on every tstats_output_rate'th trigger (0 to disable)" },
+	{ .name = "tstats_log_rate", .type_name = "double", .doc = "log tstats only on every tstats_log_rate'th trigger (0 to disable)" },
 	{ NULL },
 };
 
@@ -99,7 +100,7 @@ static void *thread_startup(void *arg)
 
 		while (inf->state != BLOCK_STATE_ACTIVE) {
 			trig_info_tstats_log(b, &inf->trig_inf);
-			trig_info_tstats_write(b, &inf->trig_inf);
+			write_tstats_to_profile_path(b, &inf->trig_inf);
 			pthread_cond_wait(&inf->active_cond, &inf->mutex);
 		}
 		pthread_mutex_unlock(&inf->mutex);

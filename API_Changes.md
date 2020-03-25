@@ -54,9 +54,13 @@ This file tracks user visible API changes.
     `trig_utils`
 
   - `tstats_enabled` renamed to `tstats_mode`. Values are
-     - 0: off
-	 - 1: total tstats only
-	 - 2: total and per block tstats
+    - 0: off
+    - 1: total tstats only
+    - 2: total and per block tstats
+
+  - `ptrig` and `trig`: new config `tstats_output_rate` and
+    `tstats_log_rate` for configuring how often statistics are logged
+    or written to the tstats port.
 
   - config `tstats_print_on_stop` dropped. New behavior is: if
     `tstats_mode` is non-zero, then stats will be logged on stop.
