@@ -54,3 +54,5 @@ script:
   - make
   - sudo make install
   - ubx_launch -t 1 -webif -c myblock.usc
+  - cd /usr/share/ubx/examples/usc/pid/
+  - ubx_launch -t 3 -s -check unconn_inports,unconn_outports -c pid_test.usc,ptrig_nrt.usc
