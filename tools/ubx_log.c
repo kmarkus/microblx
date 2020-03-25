@@ -20,6 +20,9 @@ const char *loglevel_str[] = {
 	"WARN", "NOTICE", "INFO", "DEBUG"
 };
 
+#define REOPEN_RETRY_NUM	10
+#define REOPEN_RETRY_TIMEOUT_US	200000
+
 #define RED   "\x1B[31m"
 #define GRN   "\x1B[32m"
 #define YEL   "\x1B[33m"
@@ -299,8 +302,10 @@ out:
 int check_new_shm(struct ubx_log_info *inf, int show_old, int color)
 {
 	int ret = 0;
+	int retries = REOPEN_RETRY_NUM;
 
 	ret = check_inotify(inf->uininf);
+
 	switch(ret) {
 	case 0:
 	case -EAGAIN:
@@ -309,13 +314,20 @@ int check_new_shm(struct ubx_log_info *inf, int show_old, int color)
 
 	case 1:
 		ERRC(color, "ubx log shm recreation/truncation detected - reopening\n");
-		logc_close(inf->lcinf);
-		ret = logc_init(inf->lcinf, LOG_SHM_FILENAME,
-				sizeof(struct ubx_log_msg));
 
-		if(ret) {
-			fprintf(stderr, "logc_init failed to initialize\n");
-			break;
+		while(retries-- >= 0) {
+				logc_close(inf->lcinf);
+				ret = logc_init(inf->lcinf, LOG_SHM_FILENAME,
+						sizeof(struct ubx_log_msg));
+
+				if(ret == 0)
+					break;
+
+				usleep(REOPEN_RETRY_TIMEOUT_US);
+		}
+
+		if (ret != 0) {
+			fprintf(stderr, "logc_init failed reinitialize\n");
 		}
 
 		if(show_old)
