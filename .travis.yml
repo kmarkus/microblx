@@ -35,7 +35,7 @@ install:
   - git -c user.name='travis' -c user.email='xxx' am ../kmarkus/microblx/liblfds/*.patch
   - ./bootstrap
   - ./configure --prefix=/usr/
-  - make
+  - make -j3
   - sudo make install
   - cd ..
     
@@ -43,7 +43,7 @@ script:
   - cd kmarkus/microblx
   - ./bootstrap
   - ./configure --prefix=/usr/
-  - make
+  - make -j3
   - sudo make install
   - ./run_tests.sh
   # test generating an out-of-tree block
