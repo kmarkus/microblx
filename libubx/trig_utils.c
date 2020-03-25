@@ -172,14 +172,17 @@ out:
 }
 
 int trig_info_init(struct trig_info* trig_inf,
+		   const char *list_id,
 		   int tstats_mode,
-		   struct ubx_trig_spec* trig_spec, long len,
+		   struct ubx_trig_spec* trig_list,
+		   unsigned long trig_list_len,
 		   double tstats_output_rate,
-		   ubx_port_t *p_tstats, const char *profile_path)
+		   ubx_port_t *p_tstats,
+		   const char *profile_path)
 {
 	trig_inf->tstats_mode = tstats_mode;
-	trig_inf->trig_list = trig_spec;
-	trig_inf->trig_list_len = len;
+	trig_inf->trig_list = trig_list;
+	trig_inf->trig_list_len = trig_list_len;
 	trig_inf->p_tstats = p_tstats;
 	trig_inf->profile_path = profile_path;
 
@@ -188,7 +191,8 @@ int trig_info_init(struct trig_info* trig_inf,
 	trig_inf->tstats_last_msg = 0;
 	trig_inf->tstats_idx = 0;
 
-	tstat_init(&trig_inf->global_tstats, tstat_global_id);
+	list_id = (list_id != NULL) ? list_id : tstat_global_id;
+	tstat_init(&trig_inf->global_tstats, list_id);
 
 	if (trig_inf->tstats_mode >= 2) {
 		trig_inf->blk_tstats = realloc(

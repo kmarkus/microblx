@@ -64,9 +64,11 @@ struct trig_info {
  * (e.g. in start), as it will resize existing buffers appropriately.
  *
  * @param trig_inf: trig_inf to initialized
+ * @param list_id: id for this trigger list (used in tstats and log
+ *        output). Can be NULL, then default is used.
  * @param tstats_mode: timing stats mode to be used
- * @param trig_spec: pointer to trig_blocks list
- * @param len: array length of trig_spec
+ * @param trig_list: pointer to trig_blocks list
+ * @param trig_list_len: array length of trig_spec
  * @param p_tstats: tstats output port (NULL if no port output)
  * @param tstats_output_rate: tstats output rate [sec]
  * @param profile_path: ptr to filename to write timing profile to
@@ -75,10 +77,13 @@ struct trig_info {
  * @return 0 if OK, < 0 otherwise
  */
 int trig_info_init(struct trig_info* trig_inf,
+		   const char *list_id,
 		   int tstats_mode,
-		   struct ubx_trig_spec* trig_spec, long len,
+		   struct ubx_trig_spec* trig_list,
+		   unsigned long trig_list_len,
 		   double tstats_output_rate,
-		   ubx_port_t *p_tstats, const char *profile_path);
+		   ubx_port_t *p_tstats,
+		   const char *profile_path);
 
 /**
  * trig_inf_cleanup - release allocated resources
