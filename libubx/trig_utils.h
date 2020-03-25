@@ -12,7 +12,7 @@
 
 #include "ubx.h"
 #include "trig_spec.h"
-#include "../std_types/stdtypes/types/tstat.h"
+#include "tstat.h"
 
 enum tstats_mode {
 	TSTATS_DISABLED=0,
