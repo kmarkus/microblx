@@ -48,16 +48,16 @@ This file tracks user visible API changes.
 
   - `tstat_utils`: rename to `trig_utils`. Created generic trigger
      implementation in `trig_utils` for use by `trig` and `ptrig` as
-     well as custom user `triggers`. For 
+     well as custom user `triggers`.
 
   - `ptrig` and `trig` converted to use generic trigger handling from
     `trig_utils`
-	  
+
   - `tstats_enabled` renamed to `tstats_mode`. Values are
      - 0: off
 	 - 1: total tstats only
 	 - 2: total and per block tstats
-	  
+
   - config `tstats_print_on_stop` dropped. New behavior is: if
     `tstats_mode` is non-zero, then stats will be logged on stop.
 
