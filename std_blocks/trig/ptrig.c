@@ -27,6 +27,10 @@
 #include "types/ptrig_period.h"
 #include "types/ptrig_period.h.hexarr"
 
+/* wait 3 seconds for thread to stop */
+#define	THREAD_STOP_TIMEOUT_US	10000
+#define	THREAD_STOP_RETRIES	30
+
 /* ptrig metadata */
 char ptrig_meta[] =
 	"{ doc='pthread based trigger',"
@@ -60,11 +64,21 @@ ubx_config_t ptrig_config[] = {
 	{ NULL },
 };
 
-/* instance state */
+/* used by the thread to reports it's actual state */
+enum thread_state {
+	THREAD_INACTIVE,
+	THREAD_ACTIVE
+};
+
+/**
+ * block info
+ */
 struct ptrig_inf {
 	pthread_t tid;
 	pthread_attr_t attr;
-	uint32_t state;
+
+	uint32_t state;		/* desired state requested by main */
+	uint32_t thread_state;	/* actual state reported by thread */
 
 	pthread_mutex_t mutex;
 	pthread_cond_t active_cond;
@@ -101,8 +115,10 @@ static void *thread_startup(void *arg)
 		while (inf->state != BLOCK_STATE_ACTIVE) {
 			trig_info_tstats_log(b, &inf->trig_inf);
 			write_tstats_to_profile_path(b, &inf->trig_inf);
+			inf->thread_state = THREAD_INACTIVE;
 			pthread_cond_wait(&inf->active_cond, &inf->mutex);
 		}
+		inf->thread_state = THREAD_ACTIVE;
 		pthread_mutex_unlock(&inf->mutex);
 
 		ret = clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -248,6 +264,7 @@ static int ptrig_init(ubx_block_t *b)
 
 	inf = (struct ptrig_inf *)b->private_data;
 
+	inf->thread_state = THREAD_INACTIVE;
 	inf->state = BLOCK_STATE_INACTIVE;
 
 	pthread_cond_init(&inf->active_cond, NULL);
@@ -323,10 +340,20 @@ static void ptrig_stop(ubx_block_t *b)
 static void ptrig_cleanup(ubx_block_t *b)
 {
 	int ret;
+
 	struct ptrig_inf *inf = (struct ptrig_inf *)b->private_data;
 
 	inf->state = BLOCK_STATE_PREINIT;
 
+	/* wait some time for thread to shutdown cleanly */
+	for (int i=THREAD_STOP_RETRIES; i>=0; i--) {
+		if (inf->thread_state == THREAD_INACTIVE)
+			goto cancel;
+		usleep(THREAD_STOP_TIMEOUT_US);
+	}
+	ubx_warn(b, "timeout waiting for pthread to stop");
+
+cancel:
 	ret = pthread_cancel(inf->tid);
 	if (ret != 0)
 		ubx_err(b, "pthread_cancel failed: %s", strerror(ret));
