@@ -71,7 +71,7 @@ end
 -- @return table of blocks
 -- @return table of types
 local function module_totab(mod, premods, loglevel)
-   local ni = ubx.node_create("node", loglevel)
+   local ni = ubx.node_create("node", { loglevel=loglevel })
 
    if mod ~= "stdtypes" then
       premods[#premods+1] = "stdtypes"
