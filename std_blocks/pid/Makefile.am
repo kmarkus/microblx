@@ -10,4 +10,4 @@ pid_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
 pid_la_LIBADD = $(top_builddir)/libubx/libubx.la
 
 %.h.hexarr: %.h
-	$(top_srcdir)/tools/ubx_tocarr -s $< -d $<.hexarr
+	$(top_srcdir)/tools/ubx-tocarr -s $< -d $<.hexarr

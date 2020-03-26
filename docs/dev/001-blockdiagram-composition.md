@@ -88,7 +88,7 @@ composition at a late stage, most likely during launching of a
 composition:
 
 ```sh
-$ ubx_launch -c mycomp.usc -a '{ name="p1" type="ptrig", tgt="trig1", config={ sched_priority=99, period = { ... } }'
+$ ubx-launch -c mycomp.usc -a '{ name="p1" type="ptrig", tgt="trig1", config={ sched_priority=99, period = { ... } }'
 ```
 
 Apart from instantatiating the composition described in `mycomp.usc`,

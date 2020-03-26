@@ -5,8 +5,12 @@ This file tracks user visible API changes.
 
 ## unreleased
 
+- tools: `ubx_launch`, `ubx_ilaunch`, `ubx_genblock`, `ubx_log` and
+  `ubx_tocarr` are renamed to `ubx-launch`, `ubx-ilaunch`,
+  `ubx-genblock`, `ubx-log` and `ubx_tocarr` respectively.
+
 - convert `CONFIG_DUMPABLE` and `CONFIG_MLOCK_ALL` to node
-  attributes. These can now be set as `ubx_launch` parameters (or at
+  attributes. These can now be set as `ubx-launch` parameters (or at
   C-API level by setting the respective bits in the `attrs`
   parameter).
 
@@ -40,7 +44,7 @@ This file tracks user visible API changes.
   composition of usc systems. This change introduces the `subsystems`
   keyword and is backwards compatible with existing compositions.
 
-- `ubx_launch`: `-s` option added for printing usc launch messages to
+- `ubx-launch`: `-s` option added for printing usc launch messages to
   stderr (in additon to the rtlog). Useful for debugging when long
   messages may get truncated in the rtlog.
 

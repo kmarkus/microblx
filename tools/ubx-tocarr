@@ -58,9 +58,9 @@ end
 
 function usage()
    print([[
-ubx_tocarr: convert file contents to a C hex array
+ubx-tocarr: convert file contents to a C hex array
 
-Usage: ubx_tocarr [OPTIONS]
+Usage: ubx-tocarr [OPTIONS]
    -s           source file
    -d           destination file
    -a           array name

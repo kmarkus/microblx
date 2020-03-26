@@ -136,13 +136,13 @@ client to see potential errors:
 
 ::
 
-   $ ubx_log
+   $ ubx-log
 
 and then in another terminal:
 
 .. code:: sh
 
-   $ ubx_ilaunch -webif -c /usr/local/share/ubx/examples/systemmodels/trig_rnd_hexdump.usc
+   $ ubx-ilaunch -webif -c /usr/local/share/ubx/examples/systemmodels/trig_rnd_hexdump.usc
 
 Browse to http://localhost:8888
 

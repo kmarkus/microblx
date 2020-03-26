@@ -430,7 +430,7 @@ local function load(fn, file_type)
    elseif file_type == 'usc' or file_type == 'lua' then
       suc, mod = pcall(dofile, fn)
    else
-      print("ubx_launch error: unknown file type "..ts(file_type))
+      print("ubx-launch error: unknown file type "..ts(file_type))
       os.exit(1)
    end
 
@@ -478,7 +478,7 @@ local function lc_unconn_outports(ni, res)
 end
 
 -- table of late checks
--- this is used by by ubx_launch for help and cmdline handling
+-- this is used by by ubx-launch for help and cmdline handling
 M._checks = {
    unconn_inports = {
       fun=lc_unconn_inports, desc="warn about unconnected input ports"

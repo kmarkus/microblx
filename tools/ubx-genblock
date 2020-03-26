@@ -108,7 +108,7 @@ end
 
 function usage()
    print( [[
-ubx_genblock: generate the code for an empty microblx block.
+ubx-genblock: generate the code for an empty microblx block.
 
 Usage: genblock [OPTIONS]
    -c           block specification file
@@ -289,7 +289,7 @@ $(bm.name)_la_CPPFLAGS = -I${top_srcdir}/libubx @UBX_CFLAGS@
 $(bm.name)_la_CFLAGS = -I${top_srcdir}/libubx @UBX_CFLAGS@
 @ end
 %.h.hexarr: %.h
-	ubx_tocarr -s $< -d $<.hexarr
+	ubx-tocarr -s $< -d $<.hexarr
 
 ]], { bm=bm, gen_built_sources=gen_built_sources, table=table })
 
@@ -715,7 +715,7 @@ local suc, block_model = pcall(dofile, block_model_file)
 
 if not suc then
    print(block_model)
-   print("ubx_genblock failed to load block config file "..ts(block_model_file))
+   print("ubx-genblock failed to load block config file "..ts(block_model_file))
    os.exit(1)
 end
 

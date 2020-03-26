@@ -17,7 +17,7 @@ This is a walk-trough that shows how to:
    -  The controller, that given as a property the set-point and the
       gain, computes the desired velocity to be set to the robot.
 
-2. instantiate the blocks via the *ubx_launch* tool, and
+2. instantiate the blocks via the ``ubx-launch`` tool, and
 3. instantiate the blocks with a c-written program.
 
 All the files can be found in the examples/platform folder.
@@ -88,8 +88,8 @@ commands
 .. code:: bash
 
    cd microblx_tutorial
-   ubx_genblock -c platform_2dof.lua -d platform_2dof
-   ubx_genblock -c platform_2dof_control.lua -d platform_2dof_control
+   ubx-genblock -c platform_2dof.lua -d platform_2dof
+   ubx-genblock -c platform_2dof_control.lua -d platform_2dof_control
 
 Each command generates a folder with the name specified after the -d
 with five files. For the plant, we will have:
@@ -338,7 +338,7 @@ bash commands in each of the two directories:
    sudo make install
 
 see also the quickstart about these. ## Deployment via the usc (
-microblx system composition) file. The ``ubx_genblock`` commands
+microblx system composition) file. The ``ubx-genblock`` commands
 generates two sample files to run independently each block. We want to
 run and compose them together, and save the results in a logger file.
 The composition file **platform_2dof_and_control.usc** is quite self
@@ -412,13 +412,13 @@ The file is launched with the command
 
 .. code:: bash
 
-   ubx_ilaunch -c platform_2dof_and_control.usc
+   ubx-ilaunch -c platform_2dof_and_control.usc
 
 or
 
 .. code:: bash
 
-   ubx_ilaunch -webif -c platform_2dof_and_control.usc
+   ubx-ilaunch -webif -c platform_2dof_and_control.usc
 
 to enable the *web interface* at `localhost:8888 <localhost:8888>`__ .
 In order to visualize the data saved by the logger in the

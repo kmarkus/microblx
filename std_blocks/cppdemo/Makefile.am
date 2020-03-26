@@ -13,4 +13,4 @@ cppdemo_la_LIBADD = $(top_builddir)/libubx/libubx.la
 cppdemo_la_CPPFLAGS = -I$(top_srcdir)/libubx
 
 %.h.hexarr: %.h
-	$(top_srcdir)/tools/ubx_tocarr -s $< -d $<.hexarr
+	$(top_srcdir)/tools/ubx-tocarr -s $< -d $<.hexarr

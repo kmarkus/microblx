@@ -2,4 +2,4 @@
 
 # trampoline script to start Lua in interactive mode.
 
-luajit -i `which ubx_launch` -i $@
+luajit -i `which ubx-launch` -i $@

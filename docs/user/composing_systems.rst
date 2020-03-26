@@ -11,7 +11,7 @@ Microblx System Composition DSL (usc files)
 -------------------------------------------
 
 ``usc`` are declarative descriptions of microblx systems that can be
-validated and instantiated using the ``ubx_launch`` tool. A usc model
+validated and instantiated using the ``ubx-launch`` tool. A usc model
 describes one microblx **system**, as illustrated by the following
 minimal example:
 
@@ -63,20 +63,20 @@ minimal example:
 Launching
 ~~~~~~~~~
 
-usc files like the above example can be launched using ``ubx_launch``
+usc files like the above example can be launched using ``ubx-launch``
 tool. Run with ``-h`` for further information on the options. The
 following simple example:
 
 .. code:: bash
 
-	  $ ubx_launch -webif -c examples/trig_rnd_hexdump.usc
+	  $ ubx-launch -webif -c examples/trig_rnd_hexdump.usc
 
 this will launch the given system composition and in addition create
 and configure a web server block to allow the system to be
 introspected via a browser.
 
 Unless the ``-nostart`` option is provided, all blocks will be
-initialized, configured and started. ``ubx_launch`` takes care to do
+initialized, configured and started. ``ubx-launch`` takes care to do
 this is safe way by starting up active blocks after all other blocks
 (In earlier versions, there was ``start`` directive to list the blocks
 to be started, however now this information is obtained by means of
@@ -183,13 +183,13 @@ platform specifics such as ``ptrig`` blocks and their
 configurations. Instead, passive ``trig`` blocks can be used to
 encapsulate the trigger schedule. `ptrig` or similar active blocks can
 then be added at launch time by merging an activity model with the
-primary model by specifying both on the ``ubx_launch`` command line.
+primary model by specifying both on the ``ubx-launch`` command line.
 
 See the example in ``examples/systemmodels/composition``
 
 .. code:: sh
 	  
-	  ubx_launch -webif -c deep_composition.usc,ptrig.usc
+	  ubx-launch -webif -c deep_composition.usc,ptrig.usc
 
 
 Alternatives

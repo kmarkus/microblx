@@ -15,7 +15,7 @@ local function usage()
    local res, str = utils.preproc(
 	    [=[
 microblx function block model system launcher
-usage: ubx_launch [OPTION] -c <model file>
+usage: ubx-launch [OPTION] -c <model file>
   -b BLOCK		monitor BLOCK and shutdown when it becomes inactive
   -c FILE[,FILE2]	.usc or .json model file to launch
 			if multiple models are given, these will be merged prior

@@ -26,7 +26,7 @@ The following describes these steps in detail and is based on the
 (``std_blocks/random/``).
 
 Note: Instead of manually implementing the above, a tool
-``ubx_genblock`` is available which can generate blocks including
+``ubx-genblock`` is available which can generate blocks including
 interfaces from a simple description. See `Block code-generation`_.
 
 Declaring configuration
@@ -294,7 +294,7 @@ with a node (see “Block and type registration” below).
 
 The file ``types/random_config.h.hexarr`` contains the contents of the
 file ``types/random_config.h`` converted to an array
-``const char random_config_h []`` using the tool ``tools/ubx_tocarr``.
+``const char random_config_h []`` using the tool ``tools/ubx-tocarr``.
 This char array is stored in the ``ubx_type_t private_data`` field (the
 third argument to the ``def_struct_type`` macro). At runtime, this type
 model is loaded into the luajit ffi, thereby enabling type reflection
@@ -343,7 +343,7 @@ Using real-time logging
 
 Microblx provides logging infrastructure with loglevels similar to the
 Linux Kernel. Loglevel can be set on the (global) node level (e.g. by
-passing it ``-loglevel N`` to ``ubx_launch`` or be overridden on a per
+passing it ``-loglevel N`` to ``ubx-launch`` or be overridden on a per
 block basis. To do the latter, a block must define and configure a
 ``loglevel`` config of type ``int``. If it is left unconfigured, again
 the node loglevel will be used.
@@ -375,7 +375,7 @@ The following macros are available for logging from within blocks:
 Note that ``ubx_debug`` will only be logged if ``UBX_DEBUG`` is defined
 in the respective block and otherwise compiled out without any overhead.
 
-To view the log messages, you need to run the ``ubx_log`` tool in a
+To view the log messages, you need to run the ``ubx-log`` tool in a
 separate window.
 
 **Important**: The maximum total log message length (including is by
@@ -426,7 +426,7 @@ be found on `<http://spdx.org/licenses>`_
 Block code-generation
 ~~~~~~~~~~~~~~~~~~~~~
 
-The ``ubx_genblock`` tool generates a microblx block including a
+The ``ubx-genblock`` tool generates a microblx block including a
 Makefile. After this, only the hook functions need to be implemented
 in the ``.c`` file:
 
@@ -435,7 +435,7 @@ Example: generate stubs for a ``myblock`` block (see
 
 .. code:: sh
 
-   $ ubx_genblock -d myblock -c /usr/local/share/ubx/examples/blockmodels/block_model_example.lua
+   $ ubx-genblock -d myblock -c /usr/local/share/ubx/examples/blockmodels/block_model_example.lua
        generating myblock/bootstrap
        generating myblock/configure.ac
        generating myblock/Makefile.am
@@ -445,7 +445,7 @@ Example: generate stubs for a ``myblock`` block (see
        generating myblock/types/vector.h
        generating myblock/types/robot_data.h
 
-Run ``ubx_genblock -h`` for full options.
+Run ``ubx-genblock -h`` for full options.
 
 The following files are generated:
 
@@ -474,14 +474,14 @@ Compile the block
    $ make
    $ make install
 
-Launch block using ubx_launch
+Launch block using ubx-launch
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: sh
 
-   $ ubx_ilaunch -webif -c myblock.usc
+   $ ubx-ilaunch -webif -c myblock.usc
 
-Run ``ubx_launch -h`` for full options.
+Run ``ubx-launch -h`` for full options.
 
 Browse to http://localhost:8888
 
@@ -508,7 +508,7 @@ Speeding up port writing
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 To speed up port writing, the pointers to ports can be cached in the
-block info structure. The ``ubx_genblock`` script automatically takes
+block info structure. The ``ubx-genblock`` script automatically takes
 care of this.
 
 What the difference between block types and instances?
