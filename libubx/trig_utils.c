@@ -182,17 +182,8 @@ out:
 
 int trig_info_init(struct trig_info* trig_inf,
 		   const char *list_id,
-		   int tstats_mode,
-		   const struct ubx_trig_spec* trig_list,
-		   unsigned long trig_list_len,
-		   double tstats_output_rate,
-		   ubx_port_t *p_tstats)
+		   double tstats_output_rate)
 {
-	trig_inf->tstats_mode = tstats_mode;
-	trig_inf->trig_list = trig_list;
-	trig_inf->trig_list_len = trig_list_len;
-	trig_inf->p_tstats = p_tstats;
-
 	trig_inf->tstats_output_rate = tstats_output_rate * NSEC_PER_SEC;
 	trig_inf->tstats_output_last_msg = 0;
 	trig_inf->tstats_output_idx = 0;

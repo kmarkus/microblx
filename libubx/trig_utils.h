@@ -32,24 +32,23 @@ long cfg_getptr_trig_spec(ubx_block_t *b,
  * sequence of blocks and to perform timing statistics. It must be
  * initialized and cleaned up with trig_info_init and _cleanup (s.b).
  *
- * @b: parent trigger block
- * @trig_config: trigger specification array
+ * @trig_list: pointer to trig_spec array
  * @trig_list_len: length of above array
- * @tstats_mode: enum tstats_mode
- * @profile_path: file to write with profile data
+ * @tstats_mode: desired enum tstats_mode
+ * @p_tstats: tstats output port (optional)
  * @global_tstats global tstats structure
  * @blk_tstats: pointer to array of size trig_list_len for per block stats
  * @tstats_output_rate:	output rate
- * @tstats_last_msg: timestamp of last message
- * @tstats_idx: index of last output sample
- * @port_tstats: tstats port
+ * @tstats_output_last_msg: timestamp of last message
+ * @tstats_output_idx: index of last output sample
  */
 struct trig_info {
 	const struct ubx_trig_spec *trig_list;
 	unsigned int trig_list_len;
-
 	int tstats_mode;
+	ubx_port_t *p_tstats;
 
+	/* internal, initialized via trig_info_init */
 	struct ubx_tstat global_tstats;
 	struct ubx_tstat *blk_tstats;
 
@@ -57,7 +56,7 @@ struct trig_info {
 	uint64_t tstats_output_last_msg;
 	unsigned int tstats_output_idx;
 
-	ubx_port_t *p_tstats;
+
 };
 
 /**
@@ -67,23 +66,19 @@ struct trig_info {
  * to the mode. It is OK to re-run this function multiple times
  * (e.g. in start), as it will resize existing buffers appropriately.
  *
+ * Before initializing, make sure to set the @trig_list,
+ * @trig_list_len @tstats_mode and optionally the tstats output port
+ * @p_tstats.
+ *
  * @param trig_inf: trig_inf to initialized
- * @param list_id: id for this trigger list (used in tstats and log
- *        output). Can be NULL, then default is used.
- * @param tstats_mode: timing stats mode to be used
- * @param trig_list: pointer to trig_blocks list
- * @param trig_list_len: array length of trig_spec
+ * @param list_id: id for this trigger list (used in as name filed in
+ * 	  global tstats. Can be NULL, then default is used.
  * @param tstats_output_rate: tstats output rate [sec] (0 to disable port tstats output)
- * @param p_tstats: tstats output port (NULL if no port output)
  * @return 0 if OK, < 0 otherwise
  */
 int trig_info_init(struct trig_info* trig_inf,
 		   const char *list_id,
-		   int tstats_mode,
-		   const struct ubx_trig_spec* trig_list,
-		   unsigned long trig_list_len,
-		   double tstats_output_rate,
-		   ubx_port_t *p_tstats);
+		   double tstats_output_rate);
 
 /**
  * trig_inf_cleanup - release allocated resources

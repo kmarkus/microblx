@@ -22,10 +22,7 @@ int trig_info_config(ubx_block_t *b, struct trig_info *trig_inf)
 	const int *val;
 	const double *val_double;
 	int tstats_mode;
-
 	double output_rate;
-
-	ubx_port_t *p_tstats;
 	const struct ubx_trig_spec *trig_spec;
 
 	/* tstats_mode */
@@ -56,13 +53,13 @@ int trig_info_config(ubx_block_t *b, struct trig_info *trig_inf)
 		goto out;
 	}
 
-	/* tstats port */
-	p_tstats = ubx_port_get(b, "tstats");
+	trig_inf->trig_list = trig_spec;
+	trig_inf->trig_list_len = trig_list_len;
+	trig_inf->tstats_mode =	tstats_mode;
+	trig_inf->p_tstats = ubx_port_get(b, "tstats");
 
 	/* initialize trig_info */
-	ret = trig_info_init(trig_inf, NULL, tstats_mode,
-			     trig_spec, trig_list_len,
-			     output_rate, p_tstats);
+	ret = trig_info_init(trig_inf, NULL, output_rate);
 
 out:
 	return ret;
