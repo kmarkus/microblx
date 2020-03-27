@@ -16,6 +16,7 @@
 static const char *tstat_global_id = "#total#";
 
 def_write_fun(write_tstat, struct ubx_tstat)
+def_cfg_getptr_fun(cfg_getptr_trig_spec, struct ubx_trig_spec)
 
 /*
  * timinig statistics helpers
@@ -206,7 +207,7 @@ int trig_info_init(const ubx_block_t *block,
 		   struct trig_info* trig_inf,
 		   const char *list_id,
 		   int tstats_mode,
-		   struct ubx_trig_spec* trig_list,
+		   const struct ubx_trig_spec* trig_list,
 		   unsigned long trig_list_len,
 		   double tstats_log_rate,
 		   double tstats_output_rate,

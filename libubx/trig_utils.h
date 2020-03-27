@@ -20,6 +20,11 @@ enum tstats_mode {
 	TSTATS_PERBLOCK
 };
 
+/* helper to retrieve config */
+long cfg_getptr_trig_spec(ubx_block_t *b,
+			  const char *cfg_name,
+			  const struct ubx_trig_spec **valptr);
+
 /**
  * struct trigger_info - basic trigger information
  *
@@ -42,7 +47,7 @@ enum tstats_mode {
  */
 struct trig_info {
 	const ubx_block_t *b;
-	struct ubx_trig_spec *trig_list;
+	const struct ubx_trig_spec *trig_list;
 	unsigned int trig_list_len;
 	/* stats management */
 	int tstats_mode;
@@ -84,7 +89,7 @@ int trig_info_init(const ubx_block_t *block,
 		   struct trig_info* trig_inf,
 		   const char *list_id,
 		   int tstats_mode,
-		   struct ubx_trig_spec* trig_list,
+		   const struct ubx_trig_spec* trig_list,
 		   unsigned long trig_list_len,
 		   double tstats_log_rate,
 		   double tstats_output_rate,

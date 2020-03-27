@@ -27,7 +27,7 @@ int trig_info_config(ubx_block_t *b, struct trig_info *trig_inf)
 	double log_rate;
 
 	ubx_port_t *p_tstats;
-	struct ubx_trig_spec *trig_spec;
+	const struct ubx_trig_spec *trig_spec;
 
 	/* tstats_mode */
 	len = cfg_getptr_int(b, "tstats_mode", &val);
@@ -60,7 +60,7 @@ int trig_info_config(ubx_block_t *b, struct trig_info *trig_inf)
 	log_rate = (len > 0) ? *val_double : 0;
 
 	/* trig_blocks */
-	trig_list_len = ubx_config_get_data_ptr(b, "trig_blocks", (void **)&trig_spec);
+	trig_list_len = cfg_getptr_trig_spec(b, "trig_blocks", &trig_spec);
 
 	if (trig_list_len < 0) {
 		ubx_err(b, "unable to retrieve config trig_blocks");
