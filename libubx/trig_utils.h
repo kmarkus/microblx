@@ -44,7 +44,7 @@ long cfg_getptr_trig_spec(ubx_block_t *b,
  */
 struct trig_info {
 	const struct ubx_trig_spec *trig_list;
-	unsigned int trig_list_len;
+	long trig_list_len;
 	int tstats_mode;
 	ubx_port_t *p_tstats;
 
