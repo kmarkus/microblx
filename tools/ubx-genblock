@@ -276,11 +276,10 @@ $(gen_built_sources())
 
 CLEANFILES = $(BUILT_SOURCES)
 
-$(bm.name)_la_includes = ${top_srcdir}/libubx/ubx.h
 @ if bm.cpp then
-$(bm.name)_la_SOURCES = ${$(bm.name)_la_includes} $(bm.name).cpp
+$(bm.name)_la_SOURCES = $(bm.name).cpp
 @ else
-$(bm.name)_la_SOURCES = ${$(bm.name)_la_includes} $(bm.name).c
+$(bm.name)_la_SOURCES = $(bm.name).c
 @ end
 $(bm.name)_la_LDFLAGS = -module -avoid-version -shared -export-dynamic @UBX_LIBS@
 @ if bm.cpp then
