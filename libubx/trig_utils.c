@@ -108,7 +108,7 @@ void tstat_log(const ubx_block_t *b, const struct ubx_tstat *stats)
 }
 
 /* helpers for throttled port output or logging */
-void tstats_output_throttled(struct trig_info* trig_inf, uint64_t now)
+static void tstats_output_throttled(struct trig_info* trig_inf, uint64_t now)
 {
 	if (now <= trig_inf->tstats_output_last_msg + trig_inf->tstats_output_rate)
 		return;
@@ -127,26 +127,6 @@ void tstats_output_throttled(struct trig_info* trig_inf, uint64_t now)
 			(trig_inf->tstats_output_idx+1) % (trig_inf->trig_list_len+1);
 	}
 	trig_inf->tstats_output_last_msg = now;
-}
-
-void tstats_log_throttled(struct trig_info *trig_inf, uint64_t now)
-{
-	if (now <= trig_inf->tstats_log_last_msg + trig_inf->tstats_log_rate)
-		return;
-
-	if (trig_inf->tstats_mode == TSTATS_GLOBAL) {
-		tstat_log(trig_inf->b, &trig_inf->global_tstats);
-	} else { /* TSTATS_PERBLOCK */
-		if (trig_inf->tstats_log_idx < trig_inf->trig_list_len) {
-			tstat_log(trig_inf->b, &trig_inf->blk_tstats[trig_inf->tstats_log_idx]);
-		} else {
-			tstat_log(trig_inf->b, &trig_inf->global_tstats);
-		}
-
-		trig_inf->tstats_log_idx =
-			(trig_inf->tstats_log_idx+1) % (trig_inf->trig_list_len+1);
-	}
-	trig_inf->tstats_log_last_msg = now;
 }
 
 /*
@@ -196,32 +176,22 @@ int do_trigger(struct trig_info* trig_inf)
 	if (trig_inf->tstats_output_rate > 0 && trig_inf->p_tstats != NULL)
 		tstats_output_throttled(trig_inf, ts_end_ns);
 
-	if (trig_inf->tstats_log_rate > 0)
-		tstats_log_throttled(trig_inf, ts_end_ns);
-
 out:
 	return ret;
 }
 
-int trig_info_init(const ubx_block_t *block,
-		   struct trig_info* trig_inf,
+int trig_info_init(struct trig_info* trig_inf,
 		   const char *list_id,
 		   int tstats_mode,
 		   const struct ubx_trig_spec* trig_list,
 		   unsigned long trig_list_len,
-		   double tstats_log_rate,
 		   double tstats_output_rate,
 		   ubx_port_t *p_tstats)
 {
-	trig_inf->b = block;
 	trig_inf->tstats_mode = tstats_mode;
 	trig_inf->trig_list = trig_list;
 	trig_inf->trig_list_len = trig_list_len;
 	trig_inf->p_tstats = p_tstats;
-
-	trig_inf->tstats_log_rate = tstats_log_rate * NSEC_PER_SEC;
-	trig_inf->tstats_log_last_msg = 0;
-	trig_inf->tstats_log_idx = 0;
 
 	trig_inf->tstats_output_rate = tstats_output_rate * NSEC_PER_SEC;
 	trig_inf->tstats_output_last_msg = 0;

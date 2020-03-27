@@ -51,7 +51,6 @@ return bd.system {
 	config = {
 	   tstats_mode = 2,
 	   tstats_output_rate = 0.2, -- msg/s
-	   tstats_log_rate = 5, -- msg/s
 	   tstats_profile_path = "/tmp/trig_1.tstats",
 	   trig_blocks = {
 	      { b="#ramp_msr", num_steps=1 },

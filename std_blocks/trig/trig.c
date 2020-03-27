@@ -28,7 +28,6 @@ ubx_config_t trig_config[] = {
 	{ .name = "tstats_mode", .type_name = "int", .doc = "0: off (def), 1: global only, 2: per block", },
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "file to write timing stats to" },
 	{ .name = "tstats_output_rate", .type_name = "double", .doc = "throttle output on tstats port" },
-	{ .name = "tstats_log_rate", .type_name = "double", .doc = "throttle periodic tstats logging" },
 	{ .name = "loglevel", .type_name = "int" },
 	{ NULL },
 };

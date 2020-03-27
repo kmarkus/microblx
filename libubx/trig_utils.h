@@ -39,25 +39,19 @@ long cfg_getptr_trig_spec(ubx_block_t *b,
  * @profile_path: file to write with profile data
  * @global_tstats global tstats structure
  * @blk_tstats: pointer to array of size trig_list_len for per block stats
- * @tstats_log_rate: stats log rate
  * @tstats_output_rate:	output rate
  * @tstats_last_msg: timestamp of last message
  * @tstats_idx: index of last output sample
  * @port_tstats: tstats port
  */
 struct trig_info {
-	const ubx_block_t *b;
 	const struct ubx_trig_spec *trig_list;
 	unsigned int trig_list_len;
-	/* stats management */
+
 	int tstats_mode;
 
 	struct ubx_tstat global_tstats;
 	struct ubx_tstat *blk_tstats;
-
-	uint64_t tstats_log_rate;
-	uint64_t tstats_log_last_msg;
-	unsigned int tstats_log_idx;
 
 	uint64_t tstats_output_rate;
 	uint64_t tstats_output_last_msg;
@@ -73,25 +67,21 @@ struct trig_info {
  * to the mode. It is OK to re-run this function multiple times
  * (e.g. in start), as it will resize existing buffers appropriately.
  *
- * @param b: parent trigger block
  * @param trig_inf: trig_inf to initialized
  * @param list_id: id for this trigger list (used in tstats and log
  *        output). Can be NULL, then default is used.
  * @param tstats_mode: timing stats mode to be used
  * @param trig_list: pointer to trig_blocks list
  * @param trig_list_len: array length of trig_spec
- * @param tstats_log_rate: tstats log rate [sec] (0 to disable periodic logging)
  * @param tstats_output_rate: tstats output rate [sec] (0 to disable port tstats output)
  * @param p_tstats: tstats output port (NULL if no port output)
  * @return 0 if OK, < 0 otherwise
  */
-int trig_info_init(const ubx_block_t *block,
-		   struct trig_info* trig_inf,
+int trig_info_init(struct trig_info* trig_inf,
 		   const char *list_id,
 		   int tstats_mode,
 		   const struct ubx_trig_spec* trig_list,
 		   unsigned long trig_list_len,
-		   double tstats_log_rate,
 		   double tstats_output_rate,
 		   ubx_port_t *p_tstats);
 

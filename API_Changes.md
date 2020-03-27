@@ -62,9 +62,8 @@ This file tracks user visible API changes.
     - 1: total tstats only
     - 2: total and per block tstats
 
-  - `ptrig` and `trig`: new config `tstats_output_rate` and
-    `tstats_log_rate` for configuring how often statistics are logged
-    or written to the tstats port.
+  - `ptrig` and `trig`: new config `tstats_output_rate` for
+    configuring how often statistics are written to the tstats port.
 
   - config `tstats_print_on_stop` dropped. New behavior is: if
     `tstats_mode` is non-zero, then stats will be logged on stop.
