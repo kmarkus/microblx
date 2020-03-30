@@ -300,7 +300,7 @@ macros can be used:
    def_read_dynarr_fun(function_name, typename)
    def_write_dynarr_fun(function_name, typename)
 
-For an example of this, please see ``std_blocks/ramp/ramp.c``.
+For an example of this see ``std_blocks/ramp/ramp.c``.
 
 
 Declaring the block
@@ -545,6 +545,13 @@ Launch block using ubx-launch
 Run ``ubx-launch -h`` for full options.
 
 Browse to http://localhost:8888
+
+Block Interface Guidelines
+--------------------------
+
+- use ``long`` (signed) for ubx type related lengths and sizes. This
+  is sufficently large and errors can be returned as negative values
+  (example: ``cfg_getptr_uint32``).
 
 
 Tips and Tricks
