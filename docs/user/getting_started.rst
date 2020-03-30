@@ -53,8 +53,8 @@ Dependencies
 
 - uthash (apt: ``uthash-dev``)
 - luajit (>=v2.0.0) (apt: ``luajit`` and ``libluajit-5.1-dev``) (not strictly required, but recommended)
-- ``uutils`` Lua utilities `git <https://github.com/kmarkus/uutils>`_
-- ``liblfds`` lock free data structures (v6.1.1) `git <https://github.com/liblfds/liblfds6.1.1>`_
+- ``uutils`` Lua utilities `uutils git <https://github.com/kmarkus/uutils>`_
+- ``liblfds`` lock free data structures (v6.1.1) `liblfds6.1.1 git <https://github.com/liblfds/liblfds6.1.1>`_
 - autotools etc. (apt: ``automake``, ``libtool``, ``pkg-config``, ``make``)
   
 Only for microblx development:

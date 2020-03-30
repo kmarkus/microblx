@@ -1,4 +1,4 @@
-![microblx logo](/docs/user/figures/microblx-logo.png)
+![microblx logo](/docs/user/_static/microblx-logo.png)
 
 microblx: hard realtime function blocks
 =======================================
