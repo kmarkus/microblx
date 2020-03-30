@@ -54,9 +54,7 @@ struct trig_info {
 
 	uint64_t tstats_output_rate;
 	uint64_t tstats_output_last_msg;
-	unsigned int tstats_output_idx;
-
-
+	long tstats_output_idx;
 };
 
 /**

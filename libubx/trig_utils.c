@@ -243,19 +243,19 @@ int trig_info_tstats_write(ubx_block_t *b,
 	if (profile_path == NULL)
 		return 0;
 
+	if (trig_inf->tstats_mode == TSTATS_DISABLED)
+		return 0;
+
 	fp = fopen(profile_path, "w");
 
 	if (fp == NULL)
 		return -1;
 
-	if (trig_inf->tstats_mode == TSTATS_DISABLED)
-		return 0;
-
 	fprintf(fp, FILE_HDR);
 
 	switch(trig_inf->tstats_mode) {
 	case TSTATS_PERBLOCK:
-		for (unsigned int i=0; i<trig_inf->trig_list_len; i++)
+		for (int i=0; i<trig_inf->trig_list_len; i++)
 			tstat_write(fp, &trig_inf->blk_tstats[i]);
 		/* fall through */
 	case TSTATS_GLOBAL:
