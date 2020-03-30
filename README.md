@@ -41,7 +41,9 @@ $ cd docs/
 $ make html
 ```
 
-There is also a [ChangeLog](/API_Changes.md).
+There is also a [ChangeLog](/ChangeLog.md) which summarizes API
+changes or important features and a high-level
+[roadmap](/docs/dev/roadmap.md).
 
 Getting help
 ------------

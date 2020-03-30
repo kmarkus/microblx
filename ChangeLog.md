@@ -1,7 +1,7 @@
-API Changes
-===========
+ChangeLog
+=========
 
-This file tracks user visible API changes.
+This file tracks user visible API changes
 
 ## unreleased
 
