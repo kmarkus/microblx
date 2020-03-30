@@ -30,6 +30,18 @@
 ubx_type_t random_config_type = def_struct_type(struct random_config,
 						&random_config_h);
 
+/* declare a type safe cfg read helper. This has the following prototype:
+ *
+ * long cfg_getptr_random_config(ubx_block_t *b,
+ * 				 const char *cfg_name,
+ * 				 const struct random_config **valptr);
+ * the return value is
+ *  <0: error code (i.e. theconfiguration doesn't exist)
+ *   0: the config is unconfigured
+ *  >0: the has been configured and the return value is the array length of the config
+ */
+def_cfg_getptr_fun(cfg_getptr_random_config, struct random_config)
+
 /*
  * function block meta-data
  * used by higher level functions.
@@ -124,33 +136,37 @@ static int rnd_start(ubx_block_t *b)
 {
 	uint32_t seed, ret;
 	long len;
-	struct random_config *rndconf;
+	const struct random_config *rndconf;
 	struct random_info *inf;
 
 	inf = (struct random_info *)b->private_data;
 
 	/* get and store min_max_config */
-	len = ubx_config_get_data_ptr(b, "min_max_config", (void **)&rndconf);
-	if (len > 0) {
-		inf->min = rndconf->min;
-		inf->max = rndconf->max;
-	} else {
+	len = cfg_getptr_random_config(b, "min_max_config", &rndconf);
+
+	if (len < 0) {
+		ubx_err(b, "failed to retrieve min_max_config");
+		return -1;
+	} else if (len == 0) {
 		inf->min = 0;
 		inf->max = INT_MAX;
+	} else {
+		inf->min = rndconf->min;
+		inf->max = rndconf->max;
 	}
 
-	/* seed is allowed to change at runtime, check if new one available */
+	/* seed is allowed to change at runtime, check if one is already available */
 	ubx_port_t *seed_port = ubx_port_get(b, "seed");
 
 	ret = read_uint(seed_port, &seed);
 
 	if (ret > 0) {
-		ubx_info(b, "__func__: seed: %d, min: %d, max: %d",
-			 seed, inf->min, inf->max);
+		ubx_info(b, "%s: seed: %d, min: %d, max: %d",
+			 __FUNCTION__, seed, inf->min, inf->max);
 		srandom(seed);
 	} else {
-		ubx_info(b, "__func__: min: %d, max: %d",
-			 inf->min, inf->max);
+		ubx_info(b, "%s: min: %d, max: %d",
+			 __FUNCTION__, inf->min, inf->max);
 	}
 
 	return 0;
