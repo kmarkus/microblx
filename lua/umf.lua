@@ -1,7 +1,7 @@
 --
 -- This file is part of uMF.
 --
--- (C) 2012-2018 Markus Klotzbuecher, mk@mkio.de
+-- (C) 2012-2020 Markus Klotzbuecher, mk@mkio.de
 --
 -- SPDX-License-Identifier: BSD-3-Clause
 --

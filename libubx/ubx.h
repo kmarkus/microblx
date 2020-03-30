@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2013,2014 Markus Klotzbuecher
  *                         <markus.klotzbuecher@mech.kuleuven.be>
- * Copyright (C) 2014-2018 Markus Klotzbuecher <mk@mkio.de>
+ * Copyright (C) 2014-2020 Markus Klotzbuecher <mk@mkio.de>
  *
  * SPDX-License-Identifier: MPL-2.0
  */

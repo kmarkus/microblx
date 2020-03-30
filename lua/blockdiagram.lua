@@ -3,7 +3,7 @@
 -- compositions
 --
 -- Copyright (C) 2013 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
--- Copyright (C) 2014-2019 Markus Klotzbuecher <mk@mkio.de>
+-- Copyright (C) 2014-2020 Markus Klotzbuecher <mk@mkio.de>
 --
 -- SPDX-License-Identifier: BSD-3-Clause
 --

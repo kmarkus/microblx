@@ -2,7 +2,7 @@
  * Generic trigger implementation.
  *
  * Copyright (C) 2019 Hamish Guthrie <hamish.guthrie@kistler.com>
- * Copyright (C) 2020 Markus Klotzbuecher <mk@mkio.de>
+ * Copyright (C) 2019-2020 Markus Klotzbuecher <mk@mkio.de>
  *
  * SPDX-License-Identifier: MPL-2.0
  */

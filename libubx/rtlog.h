@@ -1,5 +1,9 @@
 /*
  * Support for real-time logging
+ *
+ * Copyright (C) 2014-2020 Markus Klotzbuecher <mk@mkio.de>
+ *
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 #ifndef _UBX_RTLOG_H

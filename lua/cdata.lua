@@ -1,7 +1,7 @@
 -- cdata to lua conversion
 --
--- Copyright (C) 2013, Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
--- Copyright (C) 2014-18 Markus Klotzbuecher <mk@mkio.de>
+-- Copyright (C) 2013,2014 Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
+-- Copyright (C) 2014-2020 Markus Klotzbuecher <mk@mkio.de>
 --
 -- SPDX-License-Identifier: BSD-3-Clause
 --
