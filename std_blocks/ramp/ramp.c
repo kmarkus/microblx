@@ -25,7 +25,7 @@ int ramp_init(ubx_block_t *b)
 	struct ramp_info *inf;
 
 	/* allocate memory for the block local state */
-	inf = (struct ramp_info *)calloc(1, sizeof(struct ramp_info));
+	inf = calloc(1, sizeof(struct ramp_info));
 	if (inf == NULL) {
 		ubx_err(b, "ramp: failed to alloc memory");
 		ret = EOUTOFMEM;

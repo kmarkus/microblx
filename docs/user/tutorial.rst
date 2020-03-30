@@ -129,7 +129,7 @@ approach the programming.
        struct platform_2dof_info *inf;
 
        /* allocate memory for the block local state */
-       if ((inf = (struct platform_2dof_info*)calloc(1, sizeof(struct platform_2dof_info)))==NULL) {
+       if ((inf = calloc(1, sizeof(struct platform_2dof_info)))==NULL) {
            ERR("platform_2dof: failed to alloc memory");
            ret=EOUTOFMEM;
            goto out;
@@ -223,7 +223,7 @@ state given the configuration values (these values are given in the
      double *pos_vec;
 
      /* allocate memory for the block local state */
-     if ((inf = (struct platform_2dof_info*)calloc(1, sizeof(struct platform_2dof_info)))==NULL) {
+     if ((inf = calloc(1, sizeof(struct platform_2dof_info)))==NULL) {
          ubx_err(b,"platform_2dof: failed to alloc memory");
          ret=EOUTOFMEM;
          goto out;

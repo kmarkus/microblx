@@ -574,7 +574,7 @@ int $(bm.name)_init(ubx_block_t *b)
 	struct $(bm.name)_info *inf;
 
 	/* allocate memory for the block local state */
-	if ((inf = (struct $(bm.name)_info*)calloc(1, sizeof(struct $(bm.name)_info)))==NULL) {
+	if ((inf = calloc(1, sizeof(struct $(bm.name)_info)))==NULL) {
 		ubx_err(b, "$(bm.name): failed to alloc memory");
 		ret=EOUTOFMEM;
 		goto out;

@@ -35,7 +35,7 @@ int pid_init(ubx_block_t *b)
 	struct pid_info *inf;
 
 	/* allocate memory for the block local state */
-	if ((inf = (struct pid_info*)calloc(1, sizeof(struct pid_info)))==NULL) {
+	if ((inf = calloc(1, sizeof(struct pid_info)))==NULL) {
 		ubx_err(b, "pid: failed to alloc pid_info");
 		ret=EOUTOFMEM;
 		goto out;
