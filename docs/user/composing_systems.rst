@@ -2,9 +2,9 @@ Composing microblx systems
 ==========================
 
 Building a microblx application typically involves instantiating
-blocks, configuring and interconnecting these and finally starting
-these up. The recommended way to do this is by specifying the system
-using the microblx composition DSL.
+blocks, configuring and interconnecting their ports and finally
+starting all blocks. The recommended way to do this is by specifying
+the system using the microblx composition DSL.
 
 
 Microblx System Composition DSL (usc files)
@@ -36,8 +36,8 @@ minimal example:
 
 	   -- connect blocks
 	   connections = {
-	      { src="x1.out", tgt="y1.in",  },
-	      { src="y1.out", tgt="x1.in",  },
+	      { src="x1.out", tgt="y1.in" },
+	      { src="y1.out", tgt="x1.in", buffer_len=16 },
 	   },
 
 	   -- configure blocks
@@ -64,24 +64,25 @@ Launching
 ~~~~~~~~~
 
 usc files like the above example can be launched using ``ubx-launch``
-tool. Run with ``-h`` for further information on the options. The
-following simple example:
+tool. Run with ``-h`` for further information. The following
+example
 
-.. code:: bash
+.. code:: sh
+	  
+   $ cd /usr/local/share/ubx/examples/usc/pid/
+   $ ubx-launch -webif -c pid_test.usc,ptrig_nrt.usc
+   ...
 
-	  $ ubx-launch -webif -c examples/trig_rnd_hexdump.usc
-
-this will launch the given system composition and in addition create
-and configure a web server block to allow the system to be
-introspected via a browser.
+will launch the given system composition and in addition create and
+configure a web server block to allow the system to be introspected
+via browser.
 
 Unless the ``-nostart`` option is provided, all blocks will be
-initialized, configured and started. ``ubx-launch`` takes care to do
-this is safe way by starting up active blocks after all other blocks
-(In earlier versions, there was ``start`` directive to list the blocks
-to be started, however now this information is obtained by means of
-the block attributes ``BLOCK_ATTR_ACTIVE`` and
-``BLOCK_ATTR_TRIGGER``.)
+initialized, configured and started. ``ubx-launch`` handles this in
+safe way by starting up active blocks after all other blocks (In
+earlier versions, there was ``start`` directive to list the blocks to
+be started, however now this information is obtained by means of the
+block attributes ``BLOCK_ATTR_ACTIVE`` and ``BLOCK_ATTR_TRIGGER``.)
 
 
 Node configs
@@ -119,11 +120,12 @@ full example.
 Hierarchical compositions
 -------------------------
 
-Hierarchical composition [#f1]_ allow to compose a system from other
-compositions. The motivation is to permit reuse of the individual
-compositions.
+Using hierarchical composition [#f1]_ an application can be composed
+from other compositions. The motivation is to permit reuse of the
+individual compositions.
 
-The ``subsystems`` accepts a list of namespace-subsystem entries:
+The ``subsystems`` keyword accepts a list of namespace-subsystem
+entries:
 
 .. code:: lua
 
@@ -135,11 +137,10 @@ The ``subsystems`` accepts a list of namespace-subsystem entries:
 	      }
 	  }
 
-Subsystem elements can be accessed by higher levels by prefixing the
-subsystem namespace (the opposite is not possible for obvious
-reasons). For example, the following lines override a configuration
-value of the ``blk`` blocks in subsystems ``sub11`` and
-``sub11/sub21``:
+Subsystem elements like `configs` can be accessed by higher levels by
+adding the subsystem namespace. For example, the following lines
+override a configuration value of the ``blk`` block in subsystems
+``sub11`` and ``sub11/sub21``:
 
 .. code:: lua
 
@@ -171,8 +172,9 @@ to a non-hierarchical one, however:
   pointers works just the same.
 * if multiple configs for the same block exist, only the highest one
   in the hierarchy will be applied.
-* in case of multiple identically named node configs, the one at the
-  highest level will be used.
+* node configs are always global, hence no prefix is required. In case
+  of multiple identically named node configs, the one at the highest
+  level will be selected.
 
 
 Model mixins
@@ -182,10 +184,12 @@ To obtain a reusable composition, it is important to avoid introducing
 platform specifics such as ``ptrig`` blocks and their
 configurations. Instead, passive ``trig`` blocks can be used to
 encapsulate the trigger schedule. `ptrig` or similar active blocks can
-then be added at launch time by merging an activity model with the
-primary model by specifying both on the ``ubx-launch`` command line.
+then be added at *launch time* by merging them (encapsulated in an usc
+file) into the primary model by specifying both on the ``ubx-launch``
+command line.
 
-See the example in ``examples/systemmodels/composition``
+For example, consider the example in
+``examples/systemmodels/composition``:
 
 .. code:: sh
 	  
@@ -198,14 +202,16 @@ Alternatives
 Although using ``usc`` model is the preferred approach, there are
 others way to launch a microblx application:
 
-1. by writing a Lua called “deployment script” (e.g. see
+1. by writing a Lua "deployment script" (e.g. see
    ``examples/trig_rnd_to_hexdump.lua``). This is not recommended
    under normal circumstances, but can be useful in specific cases
    such as for building dedicated test tools.
 
-2. by assembling everything in C/C++. Possible, but somewhat painful
-   to do by hand. This would be better solved by introducing a
-   usc-compiler tool. Please ask on the mailing list.
+2. by assembling everything in C/C++. This can be useful for deploying
+   a self-contained application. Writing this by hand is somewhat
+   cumbersome (see for instance ``examples/C-examples/``) and should
+   be solved by a *usc-to-c* compiler. There have been efforts to
+   build this. Please inquire on the mailing list.
 
 .. rubric:: Footnotes
 
