@@ -1,7 +1,7 @@
 ![microblx logo](/docs/user/figures/microblx-logo.png)
 
-MICROBLX: hard realtime, embedded, reflective function blocks
-=============================================================
+microblx: hard realtime function blocks
+=======================================
 
 [![Build status](https://travis-ci.org/kmarkus/microblx.svg?branch=master)](https://travis-ci.org/kmarkus/microblx)
 [![Documentation status](https://readthedocs.org/projects/microblx/badge/?version=latest)](http://microblx.readthedocs.io/?badge=latest)
@@ -9,27 +9,32 @@ MICROBLX: hard realtime, embedded, reflective function blocks
 What is it?
 -----------
 
-Microblx is an lightweight, dynamic, reflective, hard realtime safe
-function block framework. Primary use-cases are hard realtime
-(embedded) control or signal processing applications.
+Microblx is a lightweight and hard real-time safe function block
+framework. Its main use-cases are hard realtime (embedded) control or
+signal processing applications.
 
 Main features:
 
- - minimal core in C, few external dependencies
- - No code generation for types
- - Lua scripting for system configuration and deployment
- - C/C++ or Lua support for implementing function blocks
- - Standard function block and type library
- - Webinterface function block to introspect and control blocks
- - Automatic block stub code generation
- - Generic Lua scriptable function block
- - Similar to IEC-61508 and IEC-61499 functions blocks
+- **minimal**: small core in C with few dependencies
+- **real-time safe**: no run-time allocations
+- **extensible**: easy to add new communications channels (called
+  interaction blocks)
+- simple yet expressive **textual description language** to specify
+  block compositions and launch these using `ubx_launch`
+- **standard components**:
+  - communication: lock free buffers, POSIX message queues,
+  - computation: PID, controllers, ...
+  - real-time safe logging
+- useful **cmdline tools**
+  - logging (`ubx-log`)
+  - block stub code generation (`ubx-genblock`)
+  - inspection and doc generation (`ubx-modinfo`)
 
 Documentation
 -------------
 
-Documentation is available on [here](https://microblx.readthedocs.io),
-or can be built locally (requires sphinx to be installed):
+The documentation is [here](https://microblx.readthedocs.io) or can be
+built locally (requires sphinx to be installed):
 
 ```bash
 $ cd docs/
@@ -44,9 +49,9 @@ Getting help
 Please feel free to ask questions or report problems on the microblx
 mailing list:
 
-- https://groups.google.com/forum/#!forum/microblx
+<https://groups.google.com/forum/#!forum/microblx>
 
-You can subscribe by email by sending a mail to
+It is possible to subscribe by email by sending a mail to
 `microblx+subscribe@googlegroups.com`
 
 Contributing
@@ -55,8 +60,7 @@ Contributing
 Contributions are very welcome. Please check that the following
 requirements are met:
 
-- contributions must conform to the Linux kernel [coding
-style](https://www.kernel.org/doc/html/latest/process/coding-style.html).
+- contributions must conform to the Linux kernel [coding style](https://www.kernel.org/doc/html/latest/process/coding-style.html).
 
 - the preferred ways of submitting patches is via the mailing list. If
   you must, a github merge request is OK too.
@@ -102,10 +106,10 @@ mostly licensed under the permissive BSD 3-Clause "New" or "Revised"
 License or also under the MPLv2.
 
 It boils down to the following. Use microblx as you wish in free and
-proprietary applications. You can distribute binary function blocks
+proprietary applications. You can distribute binary function blocks as
 modules. Only if you make changes to the core files (mostly the files
-in libubx/) library), and distribute these based on these, then you
-are required to release these under the conditions of the MPL-2.0.
+in libubx/) library), and distribute these, then you are required to
+release these under the conditions of the MPL-2.0.
 
 
 Acknowledgement
