@@ -19,7 +19,7 @@ UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
 /* includes types and type metadata */
 
 ubx_type_t types[] = {
-	{ NULL },
+	{ 0 },
 };
 
 /* block meta information */
@@ -33,13 +33,13 @@ ubx_config_t ramp_config[] = {
 	{ .name = "start", .type_name = QUOTE(RAMP_T), .doc = "ramp starting value (def 0)" },
 	{ .name = "slope", .type_name = QUOTE(RAMP_T), .doc = "rate of change (def: 1)" },
 	{ .name = "data_len", .type_name = "long", .doc = "length of output data (def: 1)" },
-	{ NULL },
+	{ 0 },
 };
 
 /* declaration port block ports */
 ubx_port_t ramp_ports[] = {
 	{ .name = "out", .out_type_name = QUOTE(RAMP_T), .out_data_len = 1, .doc = "ramp generator output"  },
-	{ NULL },
+	{ 0 },
 };
 
 /* declare a struct port_cache */

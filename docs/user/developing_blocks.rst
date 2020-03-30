@@ -40,7 +40,7 @@ Configuration is described with a ``NULL`` terminated array of
 
    ubx_config_t rnd_config[] = {
        { .name="min_max_config", .type_name = "struct random_config" },
-       { NULL },
+       { 0 },
    };
 
 The above defines a single configuration called ``min_max_config`` of
@@ -59,7 +59,7 @@ values. For example:
 
    ubx_config_t rnd_config[] = {
        { .name="min_max_config", .type_name = "struct random_config", .min=1, .max=1 },
-       { NULL },
+       { 0 },
    };
 
 These specifiers require that this block must be configured with
@@ -100,7 +100,7 @@ array of ubx_config_t types:
    ubx_port_t rnd_ports[] = {
        { .name="seed", .in_type_name="unsigned int" },
        { .name="rnd", .out_type_name="unsigned int" },
-       { NULL },
+       { 0 },
    };
 
 Depending on whether an ``in_type_name``, an ``out_type_name`` or both

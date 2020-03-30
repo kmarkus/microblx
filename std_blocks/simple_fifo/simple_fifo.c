@@ -24,7 +24,7 @@ char fifometa[] =
 ubx_config_t fifo_config[] = {
 	{ .name = "fifo_size", .type_name = "uint32_t" },
 	{ .name = "overrun_policy", .type_name = "uint32_t" },
-	{ NULL },
+	{ 0 },
 };
 
 /* interaction private data */

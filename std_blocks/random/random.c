@@ -61,7 +61,7 @@ char rnd_meta[] =
 ubx_config_t rnd_config[] = {
 	{ .name = "loglevel", .type_name = "int" },
 	{ .name = "min_max_config", .type_name = "struct random_config", .min = 1, .max = 1 },
-	{ NULL },
+	{ 0 },
 };
 
 /* Ports
@@ -69,7 +69,7 @@ ubx_config_t rnd_config[] = {
 ubx_port_t rnd_ports[] = {
 	{ .name = "seed", .in_type_name = "unsigned int" },
 	{ .name = "rnd", .out_type_name = "unsigned int" },
-	{ NULL },
+	{ 0 },
 };
 
 /* block local info

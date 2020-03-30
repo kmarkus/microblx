@@ -17,7 +17,7 @@
 
 ubx_port_t lua_ports[] = {
 	{ .name = "exec_str", .in_type_name = "char", .out_type_name = "int", .in_data_len = 16777216 },
-	{ NULL }
+	{ 0 }
 };
 
 def_write_fun(write_int, int)
@@ -25,7 +25,7 @@ def_write_fun(write_int, int)
 ubx_config_t lua_conf[] = {
 	{ .name = "lua_file", .type_name = "char" },
 	{ .name = "lua_str", .type_name = "char" },
-	{ NULL }
+	{ 0 }
 };
 
 char luablock_meta[] =

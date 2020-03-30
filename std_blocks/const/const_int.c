@@ -19,7 +19,7 @@ char const_int_meta[] =
 
 ubx_config_t const_int_config[] = {
 	{ .name = "value", .type_name = "int", .min = 1, .max = 1 },
-	{ NULL },
+	{ 0 },
 };
 
 struct blk_inf {

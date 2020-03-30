@@ -40,13 +40,13 @@ char ptrig_meta[] =
 ubx_port_t ptrig_ports[] = {
 	{ .name = "tstats", .out_type_name = "struct ubx_tstat", .doc = "out port for totals and per block timing statistics" },
 	{ .name = "shutdown", .in_type_name = "int", .doc = "input port for stopping ptrig" },
-	{ NULL },
+	{ 0 },
 };
 
 /* types defined by ptrig block */
 ubx_type_t ptrig_types[] = {
 	def_struct_type(struct ptrig_period, &ptrig_period_h),
-	{ NULL },
+	{ 0 },
 };
 
 /* configuration */
@@ -60,7 +60,7 @@ ubx_config_t ptrig_config[] = {
 	{ .name = "tstats_mode", .type_name = "int", .doc = "enable timing statistics over all blocks", },
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "file to which to write the timing statistics" },
 	{ .name = "tstats_output_rate", .type_name = "double", .doc = "output tstats only on every tstats_output_rate'th trigger (0 to disable)" },
-	{ NULL },
+	{ 0 },
 };
 
 /* used by the thread to reports it's actual state */

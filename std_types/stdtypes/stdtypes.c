@@ -34,7 +34,7 @@ ubx_type_t basic_types[] = {
 	def_struct_type(struct ubx_tstat, &tstat_h),
 	def_struct_type(struct ubx_trig_spec, &trig_spec_h),
 
-	{ NULL },
+	{ 0 },
 };
 
 static int stdtypes_init(ubx_node_info_t* ni)

@@ -23,7 +23,7 @@ char cppdemo_meta[] =
 /* configuration */
 ubx_config_t cppdemo_config[] = {
 	ubx_config_cpp("test_conf", "double", "a test config value"),
-	{ NULL },
+	{ 0 },
 };
 
 
@@ -31,7 +31,7 @@ ubx_port_t cppdemo_ports[] = {
 	// name, in_type, in_data_len, out_type, out_data_len
 	ubx_port_cpp("foo", "unsigned int", 1, NULL, 0, "Out port writing foo unsigned ints"),
 	ubx_port_cpp("bar", NULL, 0, "unsigned int", 1, "In port reading bar unsigned ints"),
-	{ NULL },
+	{ 0 },
 };
 
 /* define a type, registration in module hooks below */

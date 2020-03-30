@@ -28,13 +28,13 @@ ubx_config_t cyclic_config[] = {
 	{ .name = "type_name", .type_name = "char", .min = 1, .doc = "name of registered microblx type to transport" },
 	{ .name = "data_len", .type_name = "uint32_t", .max = 1, .doc = "array length (multiplier) of data (default: 1)" },
 	{ .name = "buffer_len", .type_name = "uint32_t", .min = 1, .max = 1, .doc = "max number of data elements the buffer shall hold" },
-	{ NULL },
+	{ 0 },
 };
 
 ubx_port_t cyclic_ports[] = {
 	/* generic arm+base */
 	{ .name = "overruns", .out_type_name = "unsigned long", .doc = "Number of buffer overruns. Value is output only upon change." },
-	{ NULL },
+	{ 0 },
 };
 
 /* interaction private data */

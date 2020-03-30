@@ -366,7 +366,7 @@ ubx_type_t types[] = {
 	def_struct_type(struct $(t.name), &$(t.name)_h),
 @    end
 @ end
-	{ NULL },
+	{ 0 },
 };
 
 /* block meta information */
@@ -385,7 +385,7 @@ ubx_config_t $(bm.name)_config[] = {
 	{ .name="$(c.name)", .type_name = "$(c.type_name)", .doc="$(c.doc)" },
 @    end
 @ end
-	{ NULL },
+	{ 0 },
 };
 
 /* declaration port block ports */
@@ -397,7 +397,7 @@ ubx_port_t $(bm.name)_ports[] = {
 	$(gen_port_decl(p))
 @     end
 @ end
-	{ NULL },
+	{ 0 },
 };
 
 @ if bm.port_cache then

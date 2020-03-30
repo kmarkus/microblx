@@ -22,7 +22,7 @@ ubx_config_t mqueue_config[] = {
 	{ .name = "data_len", .type_name = "long", .max = 1, .doc = "array length (multiplier) of data (default: 1)" },
 	{ .name = "buffer_len", .type_name = "long", .min = 1, .max = 1, .doc = "max number of data elements the buffer shall hold" },
 	{ .name = "blocking", .type_name = "uint32_t", .min = 0, .max = 1, .doc = "enable blocking mode (def: 0)" },
-	{ NULL }
+	{ 0 }
 };
 
 struct mqueue_info {

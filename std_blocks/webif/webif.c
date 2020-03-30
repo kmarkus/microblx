@@ -31,7 +31,7 @@ UBX_MODULE_LICENSE_SPDX(GPL-2.0)
 ubx_config_t webif_conf[] = {
 	{ .name = "port", .type_name = "char",
 	  .doc = "Port to listen on (default: " WEBIF_DEFAULT_PORT ")" },
-	{ NULL }
+	{ 0 }
 };
 
 char wi_meta[] =

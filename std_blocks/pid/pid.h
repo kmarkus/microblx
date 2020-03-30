@@ -9,7 +9,7 @@ UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
 /* includes types and type metadata */
 
 ubx_type_t types[] = {
-	{ NULL },
+	{ 0 },
 };
 
 /* block meta information */
@@ -24,7 +24,7 @@ ubx_config_t pid_config[] = {
 	{ .name="Ki", .type_name = "double", .doc="I-gain (def: 0)" },
 	{ .name="Kd", .type_name = "double", .doc="D-gain (def: 0)" },
 	{ .name="data_len", .type_name = "long", .doc="length of signal array (def: 1)" },
-	{ NULL },
+	{ 0 },
 };
 
 /* declaration port block ports */
@@ -32,7 +32,7 @@ ubx_port_t pid_ports[] = {
 	{ .name="msr", .in_type_name="double", .in_data_len=1, .doc="measured input signal"  },
 	{ .name="des", .in_type_name="double", .in_data_len=1, .doc="desired input signal"  },
 	{ .name="out", .out_type_name="double", .out_data_len=1, .doc="controller output"  },
-	{ NULL },
+	{ 0 },
 };
 
 /* declare a struct port_cache */

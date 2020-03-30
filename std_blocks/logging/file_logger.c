@@ -30,7 +30,7 @@ ubx_config_t file_logger_conf[] = {
 	{ .name = "filename", .type_name = "char" },
 	{ .name = "separator", .type_name = "char"},
 	{ .name = "timestamp", .type_name = "int"},
-	{ NULL }
+	{ 0 }
 };
 
 struct file_logger_info {

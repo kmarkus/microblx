@@ -26,7 +26,7 @@ ubx_type_t types[] = {
 	def_struct_type(struct kdl_vector, &kdl_vector_h),
 	def_struct_type(struct kdl_rotation, &kdl_rotation_h),
 	def_struct_type(struct kdl_frame, &kdl_frame_h),
-	{ NULL },
+	{ 0 },
 };
 
 static int testtypes_init(ubx_node_info_t* ni)

@@ -19,7 +19,7 @@ char trig_meta[] =
 
 ubx_port_t trig_ports[] = {
 	{ .name = "tstats", .out_type_name = "struct ubx_tstat", .doc = "timing statistics (if enabled)"},
-	{ NULL },
+	{ 0 },
 };
 
 /* configuration */
@@ -29,7 +29,7 @@ ubx_config_t trig_config[] = {
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "file to write timing stats to" },
 	{ .name = "tstats_output_rate", .type_name = "double", .doc = "throttle output on tstats port" },
 	{ .name = "loglevel", .type_name = "int" },
-	{ NULL },
+	{ 0 },
 };
 
 
