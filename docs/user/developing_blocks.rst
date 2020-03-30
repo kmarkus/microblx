@@ -8,18 +8,18 @@ Generally, building a block entails the following:
 
 1. declaring configuration: what is the static configuration of a block
 2. declaring ports: what is the input/output of a block
-3. declaring types: which data types are communicated
-4. declaring block meta-data: provide further information about a block
+3. declaring types: which data types are communicated / used as configuration
+4. declaring block meta-data: providing further information about a block
 5. declaring and implementing hook functions: how is the block
    initialized, started, run, stopped and cleaned up?
 
-   1. reading configuration values: how to access configuration from
-      inside the block
-   2. reading and writing from ports: how to read and write from ports
+   1. reading configuration values: retrieving and using configuration
+      from inside the block
+   2. reading and writing data from resp. to ports
 
 6. declaring the block: how to put everything together
-7. registration of blocks and types: make block prototypes and types
-   known to the system
+7. registration of blocks and types in module functions: make block
+   prototypes and types known to the system
 
 The following describes these steps in detail and is based on the
 (heavily) documented random number generator block
@@ -27,7 +27,8 @@ The following describes these steps in detail and is based on the
 
 Note: Instead of manually implementing the above, a tool
 ``ubx-genblock`` is available which can generate blocks including
-interfaces from a simple description. See `Block code-generation`_.
+interfaces from a simple description. See `Generating blocks with
+ubx_genblock`_.
 
 Declaring configuration
 -----------------------
@@ -42,11 +43,13 @@ Configuration is described with a ``NULL`` terminated array of
        { NULL },
    };
 
-The above defines a single configuration called “min_max_config” of the
-type “struct random_config”.
+The above defines a single configuration called ``min_max_config`` of
+the type ``struct random_config``.
 
-**Note:**: custom types like ``struct random_config`` must be registered
-with the system. (see section “declaring types”)
+**Note:**: custom types like ``struct random_config`` must be
+registered with the system. (see section `Declaring types`_.)
+Primitives (`int`, `float`, `uint32_t`, ...) are available from the
+``stdtypes`` module.
 
 To reduce boilerplate validation code in blocks, ``min`` and ``max``
 attributes can be used to define permitted length of configuration
@@ -59,9 +62,9 @@ values. For example:
        { NULL },
    };
 
-Would require that this block must be configured with exactly one
-``struct random_config`` value. Checking will take place before the
-transition to `inactive` (i.e. before ``init``).
+These specifiers require that this block must be configured with
+exactly one ``struct random_config`` value. Checking will take place
+before the transition to `inactive` (i.e. before ``init``).
 
 In fewer cases, configuration takes place in state ``inactive`` and
 must be checked before the transition to ``active``. That can be
@@ -116,17 +119,17 @@ Declaring block meta-data
 Additional meta-data can be defined as shown above. The following keys
 are supported so far:
 
--  ``doc:`` short descriptive documentation of the block
+- ``doc:`` short descriptive documentation of the block
 
--  ``realtime``: is the block real-time safe, i.e. there are is no
-   memory allocation / deallocation and other non deterministic function
+- ``realtime``: is the block real-time safe, i.e. there are no memory
+   allocation / deallocation and other non deterministic function
    calls in the ``step`` function.
 
 Declaring/implementing block hook functions
 -------------------------------------------
 
-The following block operations can be implemented to realize the blocks
-behavior. All are optional.
+The following block operations can be implemented to realize the
+blocks behavior. All are optional.
 
 .. code:: c
 
@@ -136,40 +139,42 @@ behavior. All are optional.
    void rnd_cleanup(ubx_block_t *b);
    void rnd_step(ubx_block_t *b);
 
-These functions can be called according to the microblx block life-cycle
-finite state machine:
+These functions will be called according to the microblx block
+life-cycle finite state machine:
 
-.. figure:: figures/life_cycle.png
+.. figure:: _static/life_cycle.png
    :alt: Block lifecycle FSM
 
    Block lifecycle FSM
 
 They are typically used for the following:
 
--  ``init``: initialize the block, allocate memory, drivers: check if
-   the device is there and return non-zero if not.
--  ``start``: become operational, open device, last checks. Cache
-   pointers to ports, read configuration.
--  ``step``: read from ports, compute, write to ports
--  ``stop``: stop/close device. (often not used).
--  ``cleanup``: free all memory, release all resources.
+- ``init``: initialize the block, allocate memory, drivers: check if
+   the device exists. Return zero if OK, non-zero otherwise.
+- ``start``: become operational, open/enable device, carry out last
+  checks. Cache pointers to ports, apply configurations.
+- ``step``: read from ports, compute, write to ports
+- ``stop``: stop/close device. stop is often not used.
+- ``cleanup``: free all memory, release all resources.
 
 Storing block local state
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As multiple instances of a block may exists, **NO** global variables may
-be used to store the state of a block. Instead, the ``ubx_block_t``
-defines a ``void* private_data`` pointer which can be used to store
-local information. Allocate this in the ``init`` hook:
+As multiple instances of a block may exists, **NO** global variables
+may be used to store the state of a block. Instead, the
+``ubx_block_t`` defines a ``void* private_data`` pointer which can be
+used to store local information. Allocate this in the ``init`` hook:
 
 .. code:: c
 
-   if ((b->private_data = calloc(1, sizeof(struct random_info)))==NULL) {
-       ubx_err(b, "Failed to alloc memory");
-       goto out_err;
+   b->private_data = calloc(1, sizeof(struct random_info))
+   
+   if (b->private_data == NULL) {
+           ubx_err(b, "Failed to alloc random_info");
+           goto out_err;
    }
 
-and retrieve it in the other hooks:
+Retrieve and use it in the other hooks:
 
 .. code:: c
 
@@ -180,29 +185,10 @@ and retrieve it in the other hooks:
 Reading configuration values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The following example from the ``random`` block shows how to retrieve a
-struct configuration called ``min_max_config``:
-
-.. code:: c
-
-   long len;
-   struct random_config* rndconf;
-
-   /*...*/
-
-   if((len = ubx_config_get_data_ptr(b, "min_max_config", &rndconf)) < 0)
-       goto err;
-
-   if(len==0)
-       /* set a default or fail */
-
-``ubx_config_get_data_ptr`` returns the pointer to the actual data.
-``len`` will be set to the array lenghth: 0 if unconfigured, >0 if
-configured and <0 in case of error.
-
-For basic types there are several predefined and somewhat type safe
-convenience functions ``cfg_getptr_*``. For example, to retrieve a
-scalar ``uint32_t`` and to use a default 47 if unconfigured:
+To access primitive type configurations there are several predefined
+type safe convenience functions ``cfg_getptr_*`` available. For
+example, the following snippet retrieves a scalar ``uint32_t`` config
+and uses a default ``47`` if unconfigured:
 
 .. code:: c
 
@@ -214,12 +200,50 @@ scalar ``uint32_t`` and to use a default 47 if unconfigured:
 
    value = (len > 0) ? *value : 47;
 
+
+For custom types, the ``def_cfg_getptr_fun`` macro can be used to
+declare own type safe configuration accessors. The following example
+from the random (``std_blocks/random/random.c``) block shows how this
+is done for ``struct min_max_config``:
+
+.. code:: c
+
+   def_cfg_getptr_fun(cfg_getptr_random_config, struct random_config)
+
+   int rnd_start(ubx_block_t *b)
+   {
+   	long len;
+	struct random_config* rndconf;
+
+	/*...*/
+
+	/* get and store min_max_config */
+	len = cfg_getptr_random_config(b, "min_max_config", &rndconf);
+
+	if (len < 0) {
+		ubx_err(b, "failed to retrieve min_max_config");
+		return -1;
+	} else if (len == 0) {
+		/* set a default */
+		inf->min = 0;
+		inf->max = INT_MAX;
+	} else {
+		inf->min = rndconf->min;
+		inf->max = rndconf->max;
+	}
+   }
+
+Like with the first example, the the generated accessor
+``cfg_getptr_random_config`` returns <0 in case of error, 0 if
+unconfigured, or the array length (>0) if configured. If >0
+``rndconf`` will be set to point to the actual configuration data.
+
 When to read configuration: init vs start?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It depends: if needed for initalization (e.g. a char array describing
-which device file to open), then read in ``init``. If it’s not needed in
-``init`` (e.g. like the random min-max values in the random block
+It depends: if needed for initalization (e.g. a char array describing
+which device file to open), then read in ``init``. If it’s not needed
+in ``init`` (e.g. like the random min-max values in the random block
 example), then read it in start.
 
 This choice affects reconfiguration: in the first case the block has to
@@ -228,17 +252,36 @@ sequence, while in the latter case only a ``stop``, ``start`` sequence
 is necessary.
 
 Reading from and writing to ports
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The following helper macros are available to support
+Similar to the ``def_cfg_getptr_fun``, the following helper macros are
+available to generate type safe port read/write functions:
 
 .. code:: c
 
    def_read_fun(read_uint, unsigned int)
    def_write_fun(write_uint, unsigned int)
 
+or for reading/writing fixed size arrays:
+
+.. code:: c
+
+   def_read_arr_fun(read_uint10, unsigned int, 10)
+   def_write_arr_fun(write_uint10, unsigned int, 10)
+
+If the array size is not to be fixed at compile time, the following
+macros can be used:
+
+.. code:: c
+
+   def_read_dynarr_fun(function_name, typename)
+   def_write_dynarr_fun(function_name, typename)
+
+For an example of this, please see ``std_blocks/ramp/ramp.c``.
+
+
 Declaring the block
-~~~~~~~~~~~~~~~~~~~
+-------------------
 
 The block aggregates all of the previous declarations into a single
 data-structure that can then be registered in a microblx module:
@@ -260,9 +303,9 @@ data-structure that can then be registered in a microblx module:
    };
 
 Declaring types
-~~~~~~~~~~~~~~~
+---------------
 
-All types used in configurations and ports must be declared and
+All types used for configurations or ports must be declared and
 registered. This is necessary because microblx needs to know the size
 of the transported data. Moreover, it enables type reflection which is
 used by logging or the webinterface.
@@ -302,16 +345,16 @@ features such as logging or changing configuration values via the
 webinterface. The conversion from ``.h`` to ``.hexarray`` is done via a
 simple Makefile rule.
 
-This feature is optional. If no type reflection is needed, don’t include
-the ``.hexarr`` file and pass ``NULL`` as a third argument to
-``def_struct_type``.
+This feature is very useful but optional. If no type reflection is
+needed, don’t include the ``.hexarr`` file and pass ``NULL`` as a
+third argument to ``def_struct_type``.
 
 Block and type registration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 So far we have *declared* blocks and types. To make them known to the
 system, these need to be *registered* when the respective *module* is
-loaded in a microblx node. This is done in the module init function,
+loaded in a microblx node. This is done in the module `init` function,
 which is called when a module is loaded:
 
 .. code:: c
@@ -339,7 +382,7 @@ blocks registered in init:
    UBX_MODULE_CLEANUP(rnd_module_cleanup)
 
 Using real-time logging
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 
 Microblx provides logging infrastructure with loglevels similar to the
 Linux Kernel. Loglevel can be set on the (global) node level (e.g. by
@@ -379,8 +422,8 @@ To view the log messages, you need to run the ``ubx-log`` tool in a
 separate window.
 
 **Important**: The maximum total log message length (including is by
-default set to 80 by default), so make sure to keep log message short
-and sweet (or increase the lenghth for your build).
+default set to 120 by default), so make sure to keep log message short
+and sweet (or increase the length for your build).
 
 Note that the old (non-rt) macros ``ERR``, ``ERR2``, ``MSG`` and ``DBG``
 are deprecated and shall not be used anymore.
@@ -390,22 +433,17 @@ Outside of the block context, (e.g. in ``module_init`` or
 
 .. code:: c
 
-   ubx_log(int level,
-           ubx_node_info_t *ni,
-           const char* src,
-           const char* fmt, ...)
+   ubx_log(int level, ubx_node_info_t *ni, const char* src, const char* fmt, ...)
 
    /* for example */
    ubx_log(UBX_LOGLEVEL_ERROR, ni, __FUNCTION__, "error %u", x);
 
-e.g.
 
-The ubx core uses the same logger, but mechanism, but uses the
-``log_info`` resp ``logf_info`` variants. See ``libubx/ubx.c`` for
-examples.
+The ubx core uses the same logger mechanism, but uses the ``log_info``
+resp. ``logf_info`` variants. See ``libubx/ubx.c`` for examples.
 
-SPDX License Identifier
-~~~~~~~~~~~~~~~~~~~~~~~
+SPDX License Identifiers
+------------------------
 
 Microblx uses a macro to define module licenses in a form that is both
 machine readable and available at runtime:
@@ -423,8 +461,8 @@ To dual-license a block, write:
 Is is strongly recommended to use this macro. The list of licenses can
 be found on `<http://spdx.org/licenses>`_
 
-Block code-generation
-~~~~~~~~~~~~~~~~~~~~~
+Generating blocks with ubx_genblock
+-----------------------------------
 
 The ``ubx-genblock`` tool generates a microblx block including a
 Makefile. After this, only the hook functions need to be implemented
@@ -514,18 +552,18 @@ care of this.
 What the difference between block types and instances?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-First: to create a block instance, it is cloned from an existing block
-and the ``block->prototype`` char pointer set to a newly allocated string
+To create a block instance, it is cloned from an existing block and
+the ``block->prototype`` char pointer set to a newly allocated string
 holding the protoblocks name.
 
 There’s very little difference between prototypes and instances:
 
--  a block type’s ``prototype`` (char) ptr is ``NULL``, while an
-   instance’s points to a (copy) of the prototype’s name.
+- a block type’s ``prototype`` (char) ptr is ``NULL``, while an
+  instance’s points to a (copy) of the prototype’s name.
 
--  Only block instances can be deregistered and freed
-   (``ubx_block_rm``), prototypes must be deregistered (and freed if
-   necessary) by the module’s cleanup function.
+- Only block instances can be deregistered and freed
+  (``ubx_block_rm``), prototypes must be deregistered (and freed if
+  necessary) by the module’s cleanup function.
 
 Module visibility
 ~~~~~~~~~~~~~~~~~
@@ -534,3 +572,9 @@ The default Makefile defines ``-fvisibility=hidden``, so there’s no need
 to prepend functions and global variables with ``static``
 
 
+"undefined symbol" errors when loading modules
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Try rerunning ldconfig (``sudo ldconfig``). It seems there is an
+`issue https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=684981`_ in
+libtool that makes this necessary under certain circumstances (?).
