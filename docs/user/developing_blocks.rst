@@ -238,6 +238,29 @@ Like with the first example, the the generated accessor
 unconfigured, or the array length (>0) if configured. If >0
 ``rndconf`` will be set to point to the actual configuration data.
 
+Copy configs or use pointer directly?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In the above example, the configuration values are copied to the
+internal info struct. This is done to be able to assign defaults
+should no configuration have been given by the user. If this is not
+required (e.g. for mandatory configurations), it is perfectly OK to
+use the pointers retrieved via `cfg_getptr...` functions directly.
+The following table summarizes the permitted changes in each block
+state:
+
+.. csv-table::
+   :header: "block state", "allowed config changes"
+
+   ``preinit``, "resizing and changing values"
+   ``inactive``, "changing values"
+   ``active``, "no changes allowed"
+
+
+Due to possible resizing in `preinit`, config ptr and length should be
+re-retreived in `init`.
+
+
 When to read configuration: init vs start?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -576,5 +599,5 @@ to prepend functions and global variables with ``static``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Try rerunning ldconfig (``sudo ldconfig``). It seems there is an
-`issue https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=684981`_ in
-libtool that makes this necessary under certain circumstances (?).
+libtool issue https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=684981
+that makes this necessary under certain circumstances (?).
