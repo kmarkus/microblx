@@ -135,7 +135,7 @@ static void tstats_output_throttled(struct trig_info* trig_inf, uint64_t now)
 int do_trigger(struct trig_info* trig_inf)
 {
 	int ret = 0;
-	unsigned int i, steps;
+	unsigned int steps;
 	uint64_t ts_end_ns;
 	struct ubx_timespec ts_start, ts_end, blk_ts_start, blk_ts_end;
 
@@ -145,7 +145,7 @@ int do_trigger(struct trig_info* trig_inf)
 		ubx_gettime(&ts_start);
 
 	/* trigger all blocks */
-	for (i = 0; i < trig_inf->trig_list_len; i++) {
+	for (int i = 0; i < trig_inf->trig_list_len; i++) {
 
 		if (trig_inf->tstats_mode == 2)
 			ubx_gettime(&blk_ts_start);
@@ -199,7 +199,7 @@ int trig_info_init(struct trig_info* trig_inf,
 		if (!trig_inf->blk_tstats)
 			return EOUTOFMEM;
 
-		for (unsigned int i = 0; i < trig_inf->trig_list_len; i++)
+		for (int i = 0; i < trig_inf->trig_list_len; i++)
 			tstat_init(&trig_inf->blk_tstats[i], trig_inf->trig_list[i].b->name);
 	}
 	return 0;
@@ -219,7 +219,7 @@ void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf)
 	case TSTATS_DISABLED:
 		break;
 	case TSTATS_PERBLOCK:
-		for (unsigned int i=0; i<trig_inf->trig_list_len; i++)
+		for (int i=0; i<trig_inf->trig_list_len; i++)
 			tstat_log(b, &trig_inf->blk_tstats[i]);
 		/* fall through */
 	case TSTATS_GLOBAL:
