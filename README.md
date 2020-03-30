@@ -6,27 +6,24 @@ microblx: hard realtime function blocks
 [![Build status](https://travis-ci.org/kmarkus/microblx.svg?branch=master)](https://travis-ci.org/kmarkus/microblx)
 [![Documentation status](https://readthedocs.org/projects/microblx/badge/?version=latest)](http://microblx.readthedocs.io/?badge=latest)
 
-What is it?
------------
-
 Microblx is a lightweight and hard real-time safe function block
-framework. Its main use-cases are hard realtime (embedded) control or
+framework. Main use-cases are building embedded control systems or
 signal processing applications.
 
 Main features:
 
 - **minimal**: small core in C with few dependencies
-- **real-time safe**: no run-time allocations
-- **extensible**: easy to add new communications channels (called
-  interaction blocks)
-- simple yet expressive **textual description language** to specify
+- **hard real-time safe**: no run-time allocations
+- **extensible**: easy to add new communications channels (called interaction blocks)
+- simple yet expressive **textual language** to specify
   block compositions and launch these using `ubx_launch`
 - **standard components**:
   - communication: lock free buffers, POSIX message queues,
-  - computation: PID, controllers, ...
+  - computation: PID controller, ramps, ...
+  - generic triggers including built in latency profiling
   - real-time safe logging
-- useful **cmdline tools**
-  - logging (`ubx-log`)
+- various **cmdline tools**
+  - log client (`ubx-log`)
   - block stub code generation (`ubx-genblock`)
   - inspection and doc generation (`ubx-modinfo`)
 
@@ -39,6 +36,8 @@ built locally (requires sphinx to be installed):
 ```bash
 $ cd docs/
 $ make html
+Running Sphinx v1.8.5
+...
 ```
 
 There is also a [ChangeLog](/ChangeLog.md) which summarizes API
@@ -98,7 +97,6 @@ By making a contribution to this project, I certify that:
     maintained indefinitely and may be redistributed consistent with
     this project or the open source license(s) involved.
 
-
 License
 -------
 
@@ -112,7 +110,6 @@ proprietary applications. You can distribute binary function blocks as
 modules. Only if you make changes to the core files (mostly the files
 in libubx/) library), and distribute these, then you are required to
 release these under the conditions of the MPL-2.0.
-
 
 Acknowledgement
 ---------------
