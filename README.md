@@ -61,7 +61,12 @@ Contributing
 Contributions are very welcome. Please check that the following
 requirements are met:
 
-- contributions must conform to the Linux kernel [coding style](https://www.kernel.org/doc/html/latest/process/coding-style.html).
+- contributions must conform to the Linux kernel [coding
+  style](https://www.kernel.org/doc/html/latest/process/coding-style.html).
+
+- before submitting, please run the the tests (`./run_tests.sh` after
+  installing) and static checking (`make cppcheck`, shouldn't output
+  anything).
 
 - the preferred ways of submitting patches is via the mailing list. If
   you must, a github merge request is OK too.
