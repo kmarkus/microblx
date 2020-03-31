@@ -438,7 +438,7 @@ out:
  */
 ubx_block_t *ubx_block_unregister(ubx_node_info_t *ni, const char *name)
 {
-	ubx_block_t *tmpc = NULL;
+	ubx_block_t *tmpc;
 
 	HASH_FIND_STR(ni->blocks, name, tmpc);
 
@@ -514,7 +514,7 @@ int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type)
 ubx_type_t *ubx_type_unregister(ubx_node_info_t *ni, const char *name)
 {
 	ubx_type_t *ret = NULL;
-	ubx_type_ref_t *typeref = NULL;
+	ubx_type_ref_t *typeref;
 
 	HASH_FIND_STR(ni->types, name, typeref);
 

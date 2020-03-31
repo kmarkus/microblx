@@ -140,15 +140,17 @@ int logc_init(logc_info_t *inf,
 	     const char *filename,
 	     uint32_t frame_size)
 {
-	int ret = EINVAL;
+	int ret;
 
 	inf->frame_size = frame_size;
 
 	ret = get_shm_file_size(filename, &inf->shm_size);
+
 	if (ret != 0)
 		goto out;
 
 	inf->shm_fd = shm_open(filename, O_RDONLY, 0640);
+
 	if (inf->shm_fd == -1) {
 		ret = errno;
 		DBG("shm_open failed: %s", strerror(errno));

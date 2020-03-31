@@ -305,7 +305,7 @@ static int ptrig_init(ubx_block_t *b)
 
 static int ptrig_start(ubx_block_t *b)
 {
-	int ret = -1;
+	int ret;
 	struct ptrig_inf *inf;
 	struct trig_info *trig_inf;
 
