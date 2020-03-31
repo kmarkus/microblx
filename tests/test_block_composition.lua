@@ -121,6 +121,21 @@ function TestComp:test_leaf()
    lu.assert_equals( NI:b("rnd2"):c("min_max_config"):tolua(), { min=3, max=4 } )
    lu.assert_equals( NI:b("rnd1"):c("loglevel"):tolua(), 6)
    lu.assert_equals( NI:b("rnd2"):c("loglevel"):tolua(), 4)
+
+   -- check connections
+   local conntab_act = ubx.build_conntab(NI)
+   local conntab_exp = {
+      rnd1={
+	 {seed={incoming={}, outgoing={}}},
+	 {rnd={incoming={}, outgoing={"i_0000000d"}}}
+      },
+      rnd2={
+	 {seed={incoming={"i_0000000d"}, outgoing={}}},
+	 {rnd={incoming={}, outgoing={}}}
+      },
+      trig={{tstats={incoming={}, outgoing={}}}}
+   }
+   lu.assert_equals(conntab_act, conntab_exp)
 end
 
 function TestComp:test_comp1()
@@ -138,6 +153,31 @@ function TestComp:test_comp1()
    -- test overwriting of individual configs
    lu.assert_equals( NI:b("leaf/rnd1"):c("loglevel"):tolua(), 6 )
    lu.assert_equals( NI:b("leaf/rnd2"):c("loglevel"):tolua(), 5 )
+
+   -- check connections
+   local conntab_act = ubx.build_conntab(NI)
+   local conntab_exp = {
+      ["leaf/rnd1"] = {
+	 {seed={incoming={"i_00000002"}, outgoing={}}},
+	 {rnd={incoming={}, outgoing={"i_00000004"}}}
+      },
+      ["leaf/rnd2"] = {
+	 {seed={incoming={"i_00000004"}, outgoing={}}},
+	 {rnd={incoming={}, outgoing={"i_00000003"}}}
+      },
+      ["leaf/trig"] = {{tstats={incoming={}, outgoing={}}}},
+      rnd1={
+	 {seed={incoming={"i_00000003"}, outgoing={}}},
+	 {rnd={incoming={}, outgoing={"i_00000001"}}}
+      },
+      rnd2={
+	 {seed={incoming={"i_00000001"}, outgoing={}}},
+	 {rnd={incoming={}, outgoing={"i_00000002"}}}
+      },
+      trig={{tstats={incoming={}, outgoing={}}}}
+   }
+
+   lu.assert_equals(conntab_act, conntab_exp)
 end
 
 function TestComp:test_comp2()
@@ -264,8 +304,5 @@ function TestComp:test_nodecfg3()
    lu.assert_equals( NI:b("sub2/sub1/rnd2"):c("min_max_config"):tolua(), { min=4444, max=8888 } )
    lu.assert_equals( NI:b("sub2/sub1/rnd3"):c("min_max_config"):tolua(), { min=555, max=777 } )
 end
-
--- TODO
---  - connection testing (add is_connected?)
 
 os.exit( lu.LuaUnit.run() )
