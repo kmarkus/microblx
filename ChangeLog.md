@@ -3,7 +3,11 @@ ChangeLog
 
 This file tracks user visible API changes
 
-## unreleased
+## v0.8.0
+
+- lua: `conn_uni`: iblock name generation scheme changed from using a
+  timestamp to an incrementing counter. This is to facilitate testing,
+  that can rely on reproducable names.
 
 - tools: `ubx_launch`, `ubx_ilaunch`, `ubx_genblock`, `ubx_log` and
   `ubx_tocarr` are renamed to `ubx-launch`, `ubx-ilaunch`,
