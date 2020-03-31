@@ -1,11 +1,13 @@
 local luaunit=require("luaunit")
-local ffi=require("ffi")
+local utils=require("utils")
 local ubx=require("ubx")
 local bd = require("blockdiagram")
 
 ubx.color=false
 
 local assert_not_nil = luaunit.assert_not_nil
+local assert_equals = luaunit.assert_equals
+local assert_error_msg_equals = luaunit.assert_error_msg_equals
 
 local NUM_BLOCKS = 10
 
@@ -60,6 +62,7 @@ local function sys1_gen_configurations()
    return res
 end
 
+--- Test launching a simple composition
 local sys1 = bd.system {
    imports = { "stdtypes", "ramp_uint32", "lfds_cyclic", "luablock" },
    blocks = sys1_gen_blocks(),
@@ -71,6 +74,34 @@ function test_launch()
    local ni=sys1:launch{nodename="sys1", nostart=true }
    assert_not_nil(ni)
    ubx.node_cleanup(ni)
+end
+
+
+--- Test resolving a node config
+local sys_ndcfg_res = bd.system {
+   imports = { "stdtypes", "ramp_int32" },
+   blocks = { { name = "r1", type = "ramp_int32" } },
+   node_configurations = { foo = { type="int32_t", config = 33 } },
+   configurations = { { name = "r1", config = { start = 0, slope="&foo" } } }
+}
+
+function test_resolve_ndcfg()
+   assert_not_nil(sys_ndcfg_res:launch{ nodename="test_resolve_ndcfg", nostart=true })
+end
+
+--- Test that an invalid node config is caught
+local sys_invalid_ndcfg = bd.system {
+   imports = { "stdtypes", "ramp_int32" },
+   blocks = { { name = "r1", type = "ramp_int32" } },
+   node_configurations = { foo = { type="int32_t", config = 33 } },
+   configurations = { { name = "r1", config = { start = 0, slope="&fooX" } } }
+}
+
+function test_resolve_ndcfg_invalid()
+   local numerr, res = bd.system.validate(sys_invalid_ndcfg, false)
+   assert_equals(numerr, 1)
+   assert_equals(utils.strip_ansi(res.msgs[1]),
+		 "err @ : unable to resolve node config &fooX")
 end
 
 os.exit( luaunit.LuaUnit.run() )
