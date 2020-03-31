@@ -52,6 +52,28 @@ local function err_exit(code, msg)
    os.exit(code)
 end
 
+--- Return the block table identified by bfqn at the level of sys
+-- @param sys system
+-- @param bfqn block fqn string
+local function blocktab_get(sys, bfqn)
+   local s = sys
+
+   -- first index to the right subsystem
+   local elem = utils.split(bfqn, "%/")
+   local bname = elem[#elem]
+
+   for i=1,#elem-1 do
+      s = s.subsystems[elem[i]]
+      if not M.is_system(s) then return false end
+   end
+
+   -- then locate the right block
+   for _,v in pairs(s.blocks) do
+      if v.name==bname then return v end
+   end
+   return false
+end
+
 --- Check whether val is a nodeconfig reference
 -- @param val value to check
 -- @return nil or nodeconfig string name
@@ -230,6 +252,30 @@ local subsystems_spec = TableSpec {
    sealed='both',
 }
 
+-- Check that hash references are valid
+local function sys_check_block_ref(class, sys, vres)
+   local res = true
+
+   local function check_config(c,_,s)
+      local function check_hash(val, tab, key)
+	 local name = string.match(val, ".*#([%w_%-%/]+)")
+	 if not name then return end
+	 local bt = blocktab_get(s, name)
+	 if not bt then
+	    umf.add_msg(vres, "err", "unable to resolve block ref "..val)
+	    res = false
+	 end
+      end
+
+      utils.maptree(check_hash,
+		    c.config,
+		    function(v,_) return type(v)=='string' end)
+   end
+
+   mapconfigs(check_config, sys)
+   return res
+end
+
 --- Check all nodecfg references
 local function sys_check_nodecfg_refs(class, sys, vres)
    local res = true
@@ -252,13 +298,19 @@ local function sys_check_nodecfg_refs(class, sys, vres)
    return res
 end
 
+local function sys_check_refs(class, sys, vres)
+   local res1 = sys_check_nodecfg_refs(class, sys, vres)
+   local res2 =	sys_check_block_ref(class, sys, vres)
+   return res1 and res2
+end
+
 --- system spec
 local system_spec = ObjectSpec
 {
    name='system',
    type=system,
    sealed='both',
-   postcheck = sys_check_nodecfg_refs,
+   postcheck = sys_check_refs,
    dict={
       subsystems = subsystems_spec,
       imports=imports_spec,
@@ -292,29 +344,6 @@ local function sys_fqn_get(sys)
    return table.concat(fqn)
 end
 
-
-
---- Return the block table identified by bfqn at the level of sys
--- @param sys system
--- @param bfqn block fqn string
-local function blocktab_get(sys, bfqn)
-   local s = sys
-
-   -- first index to the right subsystem
-   local elem = utils.split(bfqn, "%/")
-   local bname = elem[#elem]
-
-   for i=1,#elem-1 do
-      s = s.subsystems[elem[i]]
-      if not M.is_system(s) then return false end
-   end
-
-   -- then locate the right block
-   for _,v in pairs(s.blocks) do
-      if v.name==bname then return v end
-   end
-   return false
-end
 
 --- Resolve config and connection references to blocks
 -- checking will be done in the check function
@@ -633,6 +662,7 @@ end
 --- Substitute #blockname with corresponding ubx_block_t ptrs
 -- @param ni node_info
 -- @param c configuration
+-- @param s parent system
 local function preproc_configs(ni, c, s)
 
    local function replace_hash(val, tab, key)

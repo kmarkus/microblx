@@ -104,4 +104,47 @@ function test_resolve_ndcfg_invalid()
 		 "err @ : unable to resolve node config &fooX")
 end
 
+--- Test resolving of #block
+function test_resolve_block_hash()
+
+   local sys = bd.system {
+      imports = { "stdtypes", "ramp_int32", "trig" },
+      blocks = {
+	 { name = "r1", type = "ramp_int32" },
+	 { name = "t1", type = "std_triggers/trig" }
+      },
+
+      configurations = {
+	 { name = "r1", config = { start=0, slope=1 } },
+	 { name="t1",
+	    config = {
+	       trig_blocks = {
+		  { b="#r1", num_steps=1, measure=0 } } } } } }
+
+   assert_not_nil(sys:launch{ nodename="test_resolve_block_hash", nostart=true })
+end
+
+--- Test resolving of #block
+function test_resolve_block_hash_invalid()
+
+   local sys = bd.system {
+      imports = { "stdtypes", "ramp_int32", "trig" },
+      blocks = {
+	 { name = "r1", type = "ramp_int32" },
+	 { name = "t1", type = "std_triggers/trig" }
+      },
+
+      configurations = {
+	 { name = "r1", config = { start=0, slope=1 } },
+	 { name="t1",
+	    config = {
+	       trig_blocks = {
+		  { b="#g1", num_steps=1, measure=0 } } } } } }
+
+   local numerr, res = bd.system.validate(sys, false)
+   assert_equals(numerr, 1)
+   assert_equals(utils.strip_ansi(res.msgs[1]),
+		 "err @ : unable to resolve block ref #g1")
+end
+
 os.exit( luaunit.LuaUnit.run() )
