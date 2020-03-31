@@ -2,7 +2,7 @@
  * An interaction block that hexdumps the data to stdout.
  */
 
-/* #define DEBUG 1 */
+#undef DEBUG
 
 #include <stdio.h>
 #include <stdlib.h>

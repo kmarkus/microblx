@@ -38,16 +38,16 @@ int main(int argc, char **argv)
 
 	/* init and start the block */
 	if(ubx_block_init(webif) != 0) {
-		ubx_log(UBX_LOGLEVEL_ERR, ni, "failed to init webif");
+		ubx_log(UBX_LOGLEVEL_ERR, ni, "c-only", "failed to init webif");
 		goto out;
 	}
 
 	if(ubx_block_start(webif) != 0) {
-		ubx_log(UBX_LOGLEVEL_ERR, ni, "failed to start webif");
+		ubx_log(UBX_LOGLEVEL_ERR, ni, "c-only", "failed to start webif");
 		goto out;
 	}
 
-	ubx_log(UBX_LOGLEVEL_INFO, ni,
+	ubx_log(UBX_LOGLEVEL_INFO, ni, "c-only",
 		"webif block lauched on port %s, hit enter to quit\n",
 		WEBIF_PORT);
 

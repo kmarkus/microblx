@@ -123,7 +123,7 @@ static int mqueue_init(ubx_block_t *i)
 	/* construct mq_name */
 	ubx_type_hashstr(inf->type, hexhash);
 
-	ret = snprintf(inf->mq_name, NAME_MAX+1, "/ubx_%s_%lu_%s",
+	ret = snprintf(inf->mq_name, NAME_MAX+1, "/ubx_%s_%li_%s",
 		       hexhash, inf->data_len, inf->mq_id);
 
 	if (ret < 0) {

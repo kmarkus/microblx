@@ -744,7 +744,7 @@ ubx_data_t *ubx_data_alloc(ubx_node_info_t *ni,
 	ubx_data_t *d = NULL;
 
 	if (ni == NULL) {
-		logf_err(ni, "node_info NULL");
+		ERR("node_info NULL");
 		goto out;
 	}
 
@@ -1021,11 +1021,10 @@ int ubx_config_assign(ubx_config_t *c, ubx_data_t *d)
  */
 void ubx_block_free(ubx_block_t *b)
 {
-	ubx_port_t *port_ptr;
-	ubx_config_t *config_ptr;
-
 	/* configs */
 	if (b->configs != NULL) {
+		ubx_config_t *config_ptr;
+
 		for (config_ptr = b->configs; config_ptr->name != NULL; config_ptr++)
 			ubx_config_free_data(config_ptr);
 		free(b->configs);
@@ -1033,6 +1032,8 @@ void ubx_block_free(ubx_block_t *b)
 
 	/* ports */
 	if (b->ports != NULL) {
+		ubx_port_t *port_ptr;
+
 		for (port_ptr = b->ports; port_ptr->name != NULL; port_ptr++)
 			ubx_port_free_data(port_ptr);
 		free(b->ports);
@@ -1393,7 +1394,7 @@ int ubx_ports_connect_uni(ubx_port_t *out_port, ubx_port_t *in_port, ubx_block_t
 	int ret;
 
 	if (iblock == NULL) {
-		logf_err(iblock->ni, "block NULL");
+		ERR("block NULL");
 		return EINVALID_BLOCK_TYPE;
 	}
 
@@ -1496,7 +1497,7 @@ int ubx_ports_disconnect_uni(ubx_port_t *out_port, ubx_port_t *in_port, ubx_bloc
 	int ret = -1;
 
 	if (iblock == NULL) {
-		logf_err(iblock->ni, "iblock NULL");
+		ERR("iblock NULL");
 		return EINVALID_BLOCK;
 	}
 
@@ -1786,11 +1787,10 @@ int ubx_config_rm(ubx_block_t *b, const char *name)
 static int validate_configs(const ubx_block_t *b, const int checklate)
 {
 	int ret = 0;
-	ubx_config_t *c;
 
 	for (unsigned int i = 0; i < get_num_configs(b); i++) {
 
-		c = &b->configs[i];
+		ubx_config_t *c = &b->configs[i];
 
 		/* no constraints defined */
 		if (c->min == 0 && c->max == 0)
@@ -2437,9 +2437,10 @@ int checktype(ubx_node_info_t *ni,
 	      const char *portname, int isrd)
 {
 #ifdef CONFIG_TYPECHECK_EXTRA
+	assert(ni != NULL);
+
 	ubx_type_t *tcheck = ubx_type_get(ni, tcheck_str);
 
-	assert(ni != NULL);
 	assert(required != NULL);
 	assert(tcheck_str != NULL);
 	assert(portname != NULL);

@@ -2,12 +2,11 @@
  * An constant value interaction.
  */
 
-/* #define DEBUG 1 */
+#undef DEBUG
 
 #include <stdio.h>
 #include <stdlib.h>
 
-/* #define DEBUG 1 */
 #include "ubx.h"
 
 UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
