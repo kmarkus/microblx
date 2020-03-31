@@ -1597,6 +1597,12 @@ function M.port_read_timed(p, data, sec)
 end
 
 
+local block_uid_cnt = 0
+local function gen_block_uid()
+   block_uid_cnt = block_uid_cnt+1
+   return string.format("i_%08x", block_uid_cnt)
+end
+
 --- Connect two blocks' ports via a unidirectional connection.
 -- @param b1 block1
 -- @param pname1 name of a block1's out port to connect from.
@@ -1625,11 +1631,7 @@ function M.conn_uni(b1, pname1, b2, pname2, iblock_type, iblock_config, dont_sta
    if not M.is_outport(p1) then error("conn_uni: block "..bname1.."'s port "..pname1.." is not an outport") end
    if not M.is_inport(p2) then error("conn_uni: block "..bname2.."'s port "..pname2.." is not an inport") end
 
-   -- get time stamp
-   M.clock_mono_gettime(ts)
-
-   -- local iblock_name = string.format("i_%s.%s->%s.%s_%x:%x", bname1, pname1, bname2, pname2, tonumber(ts.sec), tonumber(ts.nsec))
-   local iblock_name = string.format("i_%x:%x", tonumber(ts.sec), tonumber(ts.nsec))
+   local iblock_name = gen_block_uid()
 
    -- create iblock, configure
    local ib=M.block_create(ni, iblock_type, iblock_name, iblock_config)
@@ -1708,6 +1710,23 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
 		     { buffer_len=element_num,
 		       type_name=M.safe_tostr(p1.out_type_name),
 		       data_len=utils.min(len1, len2) }, dont_start)
+end
+
+--- Build a table of connections
+-- @param ni node info
+-- @return connection table
+function M.build_conntab(ni)
+   local res = {}
+
+   local function block_conns_totab(b)
+      local function port_conns_totab(p)
+	 return	{ [M.safe_tostr(p.name)] = M.port_conns_totab(p) }
+      end
+      res[M.safe_tostr(b.name)] = M.ports_map(b, port_conns_totab)
+   end
+
+   M.blocks_map(ni, block_conns_totab, M.is_cblock_instance)
+   return res
 end
 
 return M
