@@ -79,15 +79,44 @@ This can have several reasons:
 -  You ran the wrong Lua executable (e.g. a standard Lua instead of
    ``luajit``).
 
-Typically the best way to debug crashes is using gdb and the core dump
+If none of this works, see the following topic.
+
+
+Debugging segfaults
+-------------------
+
+One of the best ways to debug crashes is using gdb and the core dump
 file:
 
 .. code:: sh
 	  
-	  # enable core dumps
-	  $ ulimit -c unlimited
-	  $ gdb luajit
-	  ...
-	  (gdb) core-file core
-	  ...
-	  (gdb) bt
+   # enable core dumps
+   $ ulimit -c unlimited
+   $ gdb luajit
+   ...
+   (gdb) core-file core
+   ...
+   (gdb) bt
+
+
+Sometimes, running gdb directly on the processes produces better
+results than post-mortem coredumps. For example, to run the pid
+example with gdb attached:
+
+.. code:: sh
+
+   $ cd /usr/local/share/ubx/examples/usc/pid
+   $ gdb luajit --args luajit `which ubx-launch` -c pid_test.usc,ptrig_nrt.usc
+   GNU gdb (Debian 9.1-2) 9.1
+   ...
+   Reading symbols from luajit...
+   (No debugging symbols found in luajit)
+   (gdb) run
+   Starting program: /usr/bin/luajit /usr/local/bin/ubx-launch -c pid_test.usc,ptrig_nrt.usc
+   [Thread debugging using libthread_db enabled]
+   Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+   merging ptrig_nrt.usc into pid_test.usc
+   core_prefix: /usr/local
+   prefixes:    /usr, /usr/local
+   [New Thread 0x7ffff7871700 (LWP 2831757)]
+   ...
