@@ -1,6 +1,27 @@
 Frequently asked questions
 ==========================
 
+meta-microblx yocto layer: luajit build fails
+---------------------------------------------
+
+``luajit`` fails with the following message:
+
+.. code:: sh
+	  
+   arm-poky-linux-gnueabi-gcc  -mfpu=neon -mfloat-abi=hard -mcpu=cortex-a8 -fstack-protector-strong  -D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security --sysroot=/build/bbblack-zeus/build/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/luajit/2.0.5+gitAUTOINC+02b521981a-r0/recipe-sysroot -fPIC   -Wall   -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -U_FORTIFY_SOURCE  -DLUA_ROOT=\"/usr\" -DLUA_MULTILIB=\"lib\" -fno-stack-protector  -O2 -pipe -g -feliminate-unused-debug-types -fmacro-prefix-map=/build/bbblack-zeus/build/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/luajit/2.0.5+gitAUTOINC+02b521981a-r0=/usr/src/debug/luajit/2.0.5+gitAUTOINC+02b521981a-r0                      -fdebug-prefix-map=/build/bbblack-zeus/build/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/luajit/2.0.5+gitAUTOINC+02b521981a-r0=/usr/src/debug/luajit/2.0.5+gitAUTOINC+02b521981a-r0                      -fdebug-prefix-map=/build/bbblack-zeus/build/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/luajit/2.0.5+gitAUTOINC+02b521981a-r0/recipe-sysroot=                      -fdebug-prefix-map=/build/bbblack-zeus/build/tmp/work/cortexa8hf-neon-poky-linux-gnueabi/luajit/2.0.5+gitAUTOINC+02b521981a-r0/recipe-sysroot-native=  -c -o lj_obj_dyn.o lj_obj.c
+   In file included from /usr/include/bits/errno.h:26,
+                    from /usr/include/errno.h:28,
+                    from host/buildvm.h:13,
+                    from host/buildvm_fold.c:6:
+   /usr/include/linux/errno.h:1:10: fatal error: asm/errno.h: No such file or directory
+       1 | #include <asm/errno.h>
+         |          ^~~~~~~~~~~~~
+   compilation terminated.
+	
+
+This solution is to install ``gcc-multilib`` on the build host.
+
+
 fix “error object is not a string”
 ----------------------------------
 
