@@ -2,7 +2,7 @@ Developing microblx blocks
 ==========================
 
 Overview
-----------
+--------
 
 Generally, building a block entails the following:
 
@@ -601,10 +601,3 @@ Module visibility
 The default Makefile defines ``-fvisibility=hidden``, so there’s no need
 to prepend functions and global variables with ``static``
 
-
-"undefined symbol" errors when loading modules
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Try rerunning ldconfig (``sudo ldconfig``). It seems there is an
-libtool issue https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=684981
-that makes this necessary under certain circumstances (?).

@@ -17,9 +17,16 @@ meta-microblx yocto layer: luajit build fails
        1 | #include <asm/errno.h>
          |          ^~~~~~~~~~~~~
    compilation terminated.
-	
 
 This solution is to install ``gcc-multilib`` on the build host.
+
+
+"undefined symbol" errors when loading modules
+----------------------------------------------
+
+Try rerunning ldconfig (``sudo ldconfig``). It seems there is an
+libtool issue https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=684981
+that makes this necessary under certain circumstances (?).
 
 
 fix “error object is not a string”
