@@ -20,7 +20,7 @@
 # -- Project information -----------------------------------------------------
 
 project = u'microblx'
-copyright = u'2019, Markus Klotzbuecher et al'
+copyright = u'2012-2020, Markus Klotzbuecher et al'
 author = u'Markus Klotzbuecher et al'
 
 # The short X.Y version
@@ -71,7 +71,7 @@ language = None
 exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'default'
+pygments_style = 'autumn'
 
 
 # -- Options for HTML output -------------------------------------------------
