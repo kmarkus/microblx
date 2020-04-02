@@ -26,13 +26,18 @@ else is already doing so.
 - usc: `connections`: the default of using lock-free cyclic iblocks
   can be overriden.
 
-- automatic schedule calculation: instead of manually specifying
-  `trig` schedules, determine
+- **automatic schedule calculation**: instead of manually specifying
+  trigger schedules, derive these from the block data-flow. This
+  should be an optional feature (perhaps via a plugin). Some ideas
+  concerning this have been sketeched
+  [here](001-blockdiagram-composition.md).
 
-- usc-compiler: a function block composition can be compiled into a
-  standalone application. This would be useful for deploying
+- **usc-compiler**: a function block composition can be compiled into
+  a standalone application. This would be useful for deploying
   application binaries. A first proof of concept was developed here
   [1].
+
+[001-blockdiagram-composition.md]: 001-blockdiagram-composition.md
 
 ## References
 
