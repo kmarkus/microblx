@@ -123,6 +123,10 @@ Microblx is considerably inspired by the OROCOS Real-Time
 Toolkit. Other influences are the IEC standards covering function
 block IEC-61131 and IEC-61499.
 
+Microblx was supported by the European H2020 project RobMoSys via the
+COCORF (Component Composition for Real-time Function blocks)
+Integrated Technical Project.
+
 This work was supported by the European FP7 projects RoboHow
 (FP7-ICT-288533), BRICS (FP7- ICT-231940), Rosetta (FP7-ICT-230902),
 Pick-n-Pack (FP7-NMP-311987) and euRobotics (FP7-ICT-248552).
