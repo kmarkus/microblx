@@ -332,7 +332,7 @@ function M.load_module(ni, libfile)
       end
    end
    error(red("no module ", true) .. magenta(modfile)..
-	    red(" found under prefixes", true) .. magenta(concat(prefixes, ', ')))
+	    red(" found under prefixes ", true) .. magenta(concat(prefixes, ', ')))
 end
 
 --- Node to tab
