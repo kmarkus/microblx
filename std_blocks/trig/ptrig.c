@@ -27,9 +27,9 @@
 #include "types/ptrig_period.h"
 #include "types/ptrig_period.h.hexarr"
 
-/* wait 3 seconds for thread to stop */
-#define	THREAD_STOP_TIMEOUT_US	10000
-#define	THREAD_STOP_RETRIES	30
+/* wait 1 second for thread to stop */
+#define	THREAD_STOP_TIMEOUT_US	50000
+#define	THREAD_STOP_RETRIES	20
 
 /* ptrig metadata */
 char ptrig_meta[] =
