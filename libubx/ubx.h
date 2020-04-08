@@ -113,7 +113,7 @@ int checktype(ubx_node_info_t *ni, ubx_type_t *required, const char *tcheck_str,
  * convenience.
  */
 #define def_write_fun(function_name, typename)						\
-static void function_name(ubx_port_t *port, typename *outval)				\
+static void function_name(ubx_port_t *port, const typename *outval)			\
 {											\
 	ubx_data_t val;									\
 											\
@@ -122,7 +122,7 @@ static void function_name(ubx_port_t *port, typename *outval)				\
 		return;									\
 	}										\
 	checktype(port->block->ni, port->out_type, QUOTE(typename), port->name, 0);	\
-	val.data = outval;								\
+	val.data = (void*) outval;							\
 	val.type = port->out_type;							\
 	val.len = 1;									\
 	__port_write(port, &val);							\
@@ -150,7 +150,7 @@ static int32_t function_name(ubx_port_t *port, typename *inval)				\
 
 /* these ones are for arrays */
 #define def_write_arr_fun(function_name, typename, arrlen)				\
-static void function_name(ubx_port_t *port, typename(*outval)[arrlen])			\
+static void function_name(ubx_port_t *port, const typename(*outval)[arrlen])		\
 {											\
 	ubx_data_t val;									\
 											\
@@ -159,7 +159,7 @@ static void function_name(ubx_port_t *port, typename(*outval)[arrlen])			\
 		return;									\
 	}										\
 	checktype(port->block->ni, port->out_type, QUOTE(typename), port->name, 0);	\
-	val.data = outval;								\
+	val.data = (void*) outval;							\
 	val.type = port->out_type;							\
 	val.len = arrlen;								\
 	__port_write(port, &val);							\
@@ -213,7 +213,7 @@ static int32_t function_name(ubx_port_t *port, typename *inval, long len) 		\
  * @param len array length of outval buffer
  */
 #define def_write_dynarr_fun(function_name, typename)					\
-static int32_t function_name(ubx_port_t *port, typename *outval, long len) 		\
+static int32_t function_name(ubx_port_t *port, const typename *outval, long len) 	\
 {											\
 	ubx_data_t val;									\
 											\
@@ -222,7 +222,7 @@ static int32_t function_name(ubx_port_t *port, typename *outval, long len) 		\
 		return EINVALID_PORT;							\
 	}										\
 	checktype(port->block->ni, port->out_type, QUOTE(typename), port->name, 0);	\
-	val.data = outval;								\
+	val.data = (void* ) outval;							\
 	val.type = port->out_type;							\
 	val.len = len;									\
 	__port_write(port, &val);							\
