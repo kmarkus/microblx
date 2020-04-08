@@ -9,7 +9,10 @@
 ubx = require("ubx")
 bd = require("blockdiagram")
 local utils = require("utils")
+local ffi = require "ffi"
 local ts = tostring
+
+ffi.cdef("unsigned int sleep(unsigned int seconds);")
 
 local function usage()
    local res, str = utils.preproc(
@@ -165,7 +168,9 @@ if opttab['-webif'] then
 end
 
 if not opttab['-i'] then
-   local duration = 0
+   local duration = math.huge
+   local monblock = nil
+
    if opttab['-t'] then
       if not opttab['-t'][1] then
          print("no time given (-t option)")
@@ -174,17 +179,20 @@ if not opttab['-i'] then
          duration = tonumber(opttab['-t'][1])
       end
    end
-   if (duration > 0) then
-      ubx.clock_mono_sleep(duration)
-   elseif not isempty(monitorblock) then
-      ubx.clock_mono_sleep(1)
-      local monblock = ni:block_get(monitorblock)
-      while (monblock:get_block_state() == 'active') do
-         ubx.clock_mono_sleep(1)
+
+   if not isempty(monitorblock) then
+      monblock = ni:block_get(monitorblock)
+   end
+
+   while duration > 0 do
+      duration = duration - 1
+
+      if ffi.C.sleep(1) ~= 0 then
+	 print("received signal, shutting down")
+	 break
       end
-   else
-      while true do
-         ubx.clock_mono_sleep(60)
+      if monblock and monblock:get_block_state() ~= 'active' then
+	 break
       end
    end
    model:pulldown(ni)
