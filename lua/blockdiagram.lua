@@ -558,7 +558,7 @@ function system.startup(self, ni)
 
    local function block_start(b)
       local bname = ubx.safe_tostr(b.name)
-      info("starting ".. green(bname))
+      info("starting block ".. green(bname))
       local ret = ubx.block_tostate(b, 'active')
       if ret ~= 0 then
 	 err_exit(ret, "failed to start block "..bname..": "..(ubx.retval_tostr[ret] or ts(ret)))
@@ -775,7 +775,7 @@ local function configure_blocks(ni, root_sys, NC)
    mapblocks(
       function(btab,i,p)
 	 local b = get_ubx_block(ni, btab)
-	 info("running block "..ubx.safe_tostr(b.name).." init")
+	 info("initializing block "..ubx.safe_tostr(b.name))
 	 local ret = ubx.block_init(b)
 	 if ret ~= 0 then
 	    err_exit(ret, "failed to initialize block "..btab.name..": "..tonumber(ret))
