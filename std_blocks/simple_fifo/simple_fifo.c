@@ -110,7 +110,7 @@ static void fifo_cleanup(ubx_block_t *i)
 	 : (bbi->wrptr - bbi->rdptr))
 
 /* write */
-static void fifo_write(ubx_block_t *i, ubx_data_t *msg)
+static void fifo_write(ubx_block_t *i, const ubx_data_t *msg)
 {
 	int ret;
 	long len, empty, len2 = 0;

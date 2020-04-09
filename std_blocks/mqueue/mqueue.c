@@ -206,7 +206,7 @@ static long mqueue_read(ubx_block_t *i, ubx_data_t *data)
 	return ret;
 }
 
-static void mqueue_write(ubx_block_t *i, ubx_data_t *data)
+static void mqueue_write(ubx_block_t *i, const ubx_data_t *data)
 {
 	int ret, size;
 	struct mqueue_info *inf;

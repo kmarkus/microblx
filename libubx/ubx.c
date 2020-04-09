@@ -74,7 +74,7 @@ const char *block_state_tostr(unsigned int state)
  *
  * @return type name
  */
-const char *get_typename(ubx_data_t *data)
+const char *get_typename(const ubx_data_t *data)
 {
 	if (data && data->type)
 		return data->type->name;
@@ -804,7 +804,7 @@ void ubx_data_free(ubx_data_t *d)
  *
  * @return length in bytes if OK, <=0 otherwise
  */
-long data_size(ubx_data_t *d)
+long data_size(const ubx_data_t *d)
 {
 	if (d == NULL)
 		return EINVALID_TYPE;
@@ -2379,7 +2379,7 @@ long __port_read(ubx_port_t *port, ubx_data_t *data)
  *
  * This function will check if the type matches.
  */
-void __port_write(ubx_port_t *port, ubx_data_t *data)
+void __port_write(ubx_port_t *port, const ubx_data_t *data)
 {
 	/* int i; */
 	const char *tp;

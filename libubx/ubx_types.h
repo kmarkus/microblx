@@ -256,7 +256,7 @@ typedef struct ubx_block {
 			long (*read)(struct ubx_block *iblock,
 				     ubx_data_t *value);
 			void (*write)(struct ubx_block *iblock,
-				     ubx_data_t *value);
+				      const ubx_data_t *value);
 			unsigned long stat_num_reads;
 			unsigned long stat_num_writes;
 		};

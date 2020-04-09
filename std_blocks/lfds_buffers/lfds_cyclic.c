@@ -153,7 +153,7 @@ static void cyclic_cleanup(ubx_block_t *i)
 }
 
 /* write */
-static void cyclic_write(ubx_block_t *i, ubx_data_t *msg)
+static void cyclic_write(ubx_block_t *i, const ubx_data_t *msg)
 {
 	int ret;
 	long len;

@@ -40,7 +40,7 @@ static void hexdump(unsigned char *buf, unsigned long index, unsigned long width
 	printf("\n");
 }
 
-static void hexdump_write(ubx_block_t *i, ubx_data_t *data)
+static void hexdump_write(ubx_block_t *i, const ubx_data_t *data)
 {
 	const char *typename = get_typename(data);
 
