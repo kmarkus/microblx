@@ -9,10 +9,7 @@
 ubx = require("ubx")
 bd = require("blockdiagram")
 local utils = require("utils")
-local ffi = require "ffi"
 local ts = tostring
-
-ffi.cdef("unsigned int sleep(unsigned int seconds);")
 
 local function usage()
    local res, str = utils.preproc(
@@ -187,7 +184,7 @@ if not opttab['-i'] then
    while duration > 0 do
       duration = duration - 1
 
-      if ffi.C.sleep(1) ~= 0 then
+      if ubx.wait_sigint(1) == 0 then
 	 print("received signal, shutting down")
 	 break
       end

@@ -7,8 +7,8 @@ lib_LTLIBRARIES = libubx.la \
 		  librtlog_client.la
 
 libubx_includes = ubx.h ubx_uthash_ffi.h \
-		  ubx_types.h ubx_proto.h md5.h \
-		  trig_utils.h rtlog.h
+		  ubx_types.h ubx_proto.h ubx_utils.h \
+		  md5.h trig_utils.h rtlog.h
 
 internalincludedir = $(includedir)/ubx/internal
 internalinclude_HEADERS = internal/rtlog_common.h \
@@ -24,7 +24,7 @@ pkginclude_HEADERS = ubx.h \
 		  rtlog_client.h
 
 libubx_la_SOURCES = $(libubx_includes) \
-		    md5.c ubx.c ubx_time.c trig_utils.c rtlog.c
+		    md5.c ubx.c ubx_time.c ubx_utils.c trig_utils.c rtlog.c
 
 libubx_la_LDFLAGS = -version-info $(UBX_LT_VER) -lrt -lpthread -ldl
 
@@ -36,7 +36,8 @@ BUILT_SOURCES = ubx_proto.h
 CLEANFILES = $(BUILT_SOURCES)
 
 ubx_proto.h: md5.c ubx.c ubx_time.c rtlog.c
-	cproto $(srcdir)/md5.c $(srcdir)/ubx.c $(srcdir)/rtlog.c $(srcdir)/ubx_time.c \
+	cproto $(srcdir)/md5.c $(srcdir)/ubx.c $(srcdir)/ubx_utils.c \
+		$(srcdir)/rtlog.c $(srcdir)/ubx_time.c \
 		-I$(top_builddir)/ -I${top_srcdir}/ -I${top_srcdir}/libubx/ \
 		-I$(top_srcdir)/oe-workdir/recipe-sysroot/usr/include \
 		-I$(top_srcdir)/../recipe-sysroot/usr/include > $(srcdir)/$@
