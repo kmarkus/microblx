@@ -514,7 +514,7 @@ int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type)
  */
 ubx_type_t *ubx_type_unregister(ubx_node_info_t *ni, const char *name)
 {
-	ubx_type_t *ret = NULL;
+	ubx_type_t *ret;
 
 	HASH_FIND_STR(ni->types, name, ret);
 
