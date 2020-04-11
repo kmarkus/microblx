@@ -464,7 +464,8 @@ ubx_block_t *ubx_block_unregister(ubx_node_info_t *ni, const char *name)
 int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type)
 {
 	int ret;
-	ubx_type_ref_t *typeref;
+	unsigned long seqid = 0;
+	ubx_type_t *tmp;
 
 	if (type == NULL) {
 		logf_err(ni, "type is NULL");
@@ -472,30 +473,29 @@ int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type)
 		goto out;
 	}
 
-	/* TODO consistency checkm type->name must exists,... */
-	HASH_FIND_STR(ni->types, type->name, typeref);
+	if (type->name == NULL) {
+		logf_err(ni, "type name is NULL");
+		ret = EINVALID_TYPE;
+		goto out;
+	}
 
-	if (typeref != NULL) {
+	/* check that its not already registered */
+	HASH_FIND_STR(ni->types, type->name, tmp);
+
+	if (tmp != NULL) {
 		/* check if types are the same, if yes no error */
-		logf_err(ni, "%s already registered.", type->name);
+		logf_warn(ni, "%s already registered.", tmp->name);
 		ret = EALREADY_REGISTERED;
 		goto out;
 	}
 
-	typeref = malloc(sizeof(ubx_type_ref_t));
-	if (typeref == NULL) {
-		logf_err(ni, "failed to alloc struct type_ref");
-		ret = EOUTOFMEM;
-		goto out;
-	}
-
-	typeref->type_ptr = type;
-	typeref->seqid = ni->cur_seqid++;
+	type->seqid = seqid++;
 
 	/* compute md5 fingerprint for type */
 	md5((const unsigned char *)type->name, strlen(type->name), type->hash);
 
-	HASH_ADD_KEYPTR(hh, ni->types, type->name, strlen(type->name), typeref);
+	HASH_ADD_KEYPTR(hh, ni->types, type->name, strlen(type->name), type);
+	type->ni = ni;
 	ret = 0;
  out:
 	return ret;
@@ -504,28 +504,26 @@ int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type)
 /**
  * ubx_type_unregister - unregister type with node
  *
- * TODO: use count handling, only succeed unloading when not used!
+ * Should we add use count handling and only succeed unloading when
+ * not used?
  *
  * @param ni
  * @param name
  *
- * @return
+ * @return type
  */
 ubx_type_t *ubx_type_unregister(ubx_node_info_t *ni, const char *name)
 {
 	ubx_type_t *ret = NULL;
-	ubx_type_ref_t *typeref;
 
-	HASH_FIND_STR(ni->types, name, typeref);
+	HASH_FIND_STR(ni->types, name, ret);
 
-	if (typeref == NULL) {
+	if (ret == NULL) {
 		logf_err(ni, "type %s not registered", name);
 		goto out;
 	}
 
-	HASH_DEL(ni->types, typeref);
-	ret = typeref->type_ptr;
-	free(typeref);
+	HASH_DEL(ni->types, ret);
 
  out:
 	return ret;
@@ -541,14 +539,9 @@ ubx_type_t *ubx_type_unregister(ubx_node_info_t *ni, const char *name)
  */
 ubx_type_t *ubx_type_get(ubx_node_info_t *ni, const char *name)
 {
-	ubx_type_ref_t *typeref = NULL;
-
-	HASH_FIND_STR(ni->types, name, typeref);
-
-	if (typeref)
-		return typeref->type_ptr;
-
-	return NULL;
+	ubx_type_t *type = NULL;
+	HASH_FIND_STR(ni->types, name, type);
+	return type;
 }
 
 /**
@@ -560,11 +553,11 @@ ubx_type_t *ubx_type_get(ubx_node_info_t *ni, const char *name)
  */
 ubx_type_t* ubx_type_get_by_hash(ubx_node_info_t *ni, const uint8_t *hash)
 {
-	ubx_type_ref_t *typeref, *tmptype;
-	HASH_ITER(hh, ni->types, typeref, tmptype) {
-		if (strncmp((char*) typeref->type_ptr->hash,
+	ubx_type_t *type, *tmptype;
+	HASH_ITER(hh, ni->types, type, tmptype) {
+		if (strncmp((char*) type->hash,
 			    (char*) hash, TYPE_HASH_LEN) == 0)
-			return typeref->type_ptr;
+			return type;
 	}
 	return NULL;
 }

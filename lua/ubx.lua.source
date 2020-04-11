@@ -746,8 +746,7 @@ function M.ffi_load_types(ni)
       return pcall(ffi.typeof, ffi.string(t.name))
    end
 
-   local function ffi_load_no_ns(typref)
-      local t = typref.type_ptr
+   local function ffi_load_no_ns(t)
       if t.type_class==ubx.TYPE_CLASS_STRUCT and t.private_data~=nil then
 	 local struct_str = preproc(ffi.string(t.private_data))
 	 local ret, err = pcall(ffi.cdef, struct_str)
@@ -757,16 +756,16 @@ function M.ffi_load_types(ni)
       end
    end
 
-   local typref_list = {}
+   local typ_list = {}
    M.types_foreach(ni,
-		   function (typ, typref) typref_list[#typref_list+1] = typref end,
+		   function (typ) typ_list[#typ_list+1] = typ end,
 		   function(t) return
-		      t.type_class==ffi.C.TYPE_CLASS_STRUCT and
+			 t.type_class==ffi.C.TYPE_CLASS_STRUCT and
 			 (not ffi_struct_type_is_loaded(t))
 		   end)
 
-   table.sort(typref_list, function (tr1,tr2) return tr1.seqid<tr2.seqid end)
-   utils.foreach(ffi_load_no_ns, typref_list)
+   table.sort(typ_list, function (tr1,tr2) return tr1.seqid<tr2.seqid end)
+   utils.foreach(ffi_load_no_ns, typ_list)
 end
 
 
@@ -1321,11 +1320,11 @@ function M.types_foreach(ni, fun, pred)
    if not fun then error("types_foreach: missing/invalid fun argument") end
    if ni.types==nil then return end
    pred = pred or function() return true end
-   local ubx_type_ref_t_ptr = ffi.typeof("ubx_type_ref_t*")
+   local ubx_type_t_ptr = ffi.typeof("ubx_type_t*")
    local typ=ni.types
    while typ ~= nil do
-      if pred(typ.type_ptr, typ) then fun(typ.type_ptr, typ) end
-      typ=ffi.cast(ubx_type_ref_t_ptr, typ.hh.next)
+      if pred(typ) then fun(typ) end
+      typ=ffi.cast(ubx_type_t_ptr, typ.hh.next)
    end
 end
 

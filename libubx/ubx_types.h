@@ -15,6 +15,7 @@
 /* constants */
 enum {
 	BLOCK_NAME_MAXLEN	= 30,
+	TYPE_NAME_MAXLEN	= 30,
 	TYPE_HASH_LEN		= 16,   		/* binary md5 */
 	TYPE_HASHSTR_LEN	= TYPE_HASH_LEN*2,   	/* hexstring md5 */
 	LOG_MSG_MAXLEN		= 120,
@@ -44,28 +45,18 @@ enum {
 typedef struct ubx_type {
 	const char *name;		/* name: dir/header.h/struct foo*/
 	const char *doc;		/* short documentation string */
+	struct ubx_node_info *ni;	/* node */
+	unsigned long seqid;
 	uint32_t type_class;		/*
 					 * CLASS_STRUCT=1, CLASS_CUSTOM,
 					 * CLASS_FOO ...
 					 */
+
 	long size;			/* size in bytes */
 	const void *private_data;	/* private data. */
 	uint8_t hash[TYPE_HASH_LEN+1];
-} ubx_type_t;
-
-/*
- * This struct is used to store a reference to the type and contains
- * mutable, node specific fields. Since unlike blocks, types are
- * mostly immutable, there is no need to take a copy.
- */
-typedef struct ubx_type_ref {
-	ubx_type_t *type_ptr;
-	unsigned long seqid;	/*
-				 * remember registration order for
-				 * ffi parsing
-				 */
 	UT_hash_handle hh;
-} ubx_type_ref_t;
+} ubx_type_t;
 
 typedef struct ubx_data {
 	int refcnt;		/* reference counting, num refs = refcnt + 1 */
@@ -294,7 +285,7 @@ enum {
 typedef struct ubx_node_info {
 	const char *name;
 	ubx_block_t *blocks; /* instances, only one list */
-	ubx_type_ref_t *types; /* known types */
+	ubx_type_t *types; /* known types */
 	ubx_module_t *modules;
 	unsigned long cur_seqid;
 
