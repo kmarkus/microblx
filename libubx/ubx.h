@@ -113,7 +113,7 @@ int checktype(ubx_node_info_t *ni, ubx_type_t *required, const char *tcheck_str,
  * convenience.
  */
 #define def_write_fun(function_name, typename)						\
-static void function_name(ubx_port_t *port, const typename *outval)			\
+static void function_name(const ubx_port_t *port, const typename *outval)		\
 {											\
 	ubx_data_t val;									\
 											\
@@ -133,7 +133,7 @@ static void function_name(ubx_port_t *port, const typename *outval)			\
  * port and a pointer to the result value.
  */
 #define def_read_fun(function_name, typename)						\
-static int32_t function_name(ubx_port_t *port, typename *inval)				\
+static int32_t function_name(const ubx_port_t *port, typename *inval)				\
 {											\
 	ubx_data_t val;									\
 											\
@@ -150,7 +150,7 @@ static int32_t function_name(ubx_port_t *port, typename *inval)				\
 
 /* these ones are for arrays */
 #define def_write_arr_fun(function_name, typename, arrlen)				\
-static void function_name(ubx_port_t *port, const typename(*outval)[arrlen])		\
+static void function_name(const ubx_port_t *port, const typename(*outval)[arrlen])		\
 {											\
 	ubx_data_t val;									\
 											\
@@ -166,7 +166,7 @@ static void function_name(ubx_port_t *port, const typename(*outval)[arrlen])		\
 }
 
 #define def_read_arr_fun(function_name, typename, arrlen)				\
-static int32_t function_name(ubx_port_t *port, typename(*inval)[arrlen])		\
+static int32_t function_name(const ubx_port_t *port, typename(*inval)[arrlen])		\
 {											\
 	ubx_data_t val;									\
 											\
@@ -190,7 +190,7 @@ static int32_t function_name(ubx_port_t *port, typename(*inval)[arrlen])		\
  * @return actual length read
  */
 #define def_read_dynarr_fun(function_name, typename)					\
-static int32_t function_name(ubx_port_t *port, typename *inval, long len) 		\
+static int32_t function_name(const ubx_port_t *port, typename *inval, long len) 	\
 {											\
 	ubx_data_t val;									\
 											\
@@ -213,7 +213,7 @@ static int32_t function_name(ubx_port_t *port, typename *inval, long len) 		\
  * @param len array length of outval buffer
  */
 #define def_write_dynarr_fun(function_name, typename)					\
-static int32_t function_name(ubx_port_t *port, const typename *outval, long len) 	\
+static int32_t function_name(const ubx_port_t *port, const typename *outval, long len) 	\
 {											\
 	ubx_data_t val;									\
 											\

@@ -2312,7 +2312,7 @@ out:
  *
  * @return status value
  */
-long __port_read(ubx_port_t *port, ubx_data_t *data)
+long __port_read(const ubx_port_t *port, ubx_data_t *data)
 {
 	int ret = 0;
 	ubx_block_t **iaptr;
@@ -2354,7 +2354,7 @@ long __port_read(ubx_port_t *port, ubx_data_t *data)
 		if ((*iaptr)->block_state == BLOCK_STATE_ACTIVE) {
 			ret = (*iaptr)->read(*iaptr, data);
 			if (ret > 0) {
-				port->stat_reads++;
+				((ubx_port_t*)port)->stat_reads++;
 				(*iaptr)->stat_num_reads++;
 				goto out;
 			}
@@ -2372,7 +2372,7 @@ long __port_read(ubx_port_t *port, ubx_data_t *data)
  *
  * This function will check if the type matches.
  */
-void __port_write(ubx_port_t *port, const ubx_data_t *data)
+void __port_write(const ubx_port_t *port, const ubx_data_t *data)
 {
 	/* int i; */
 	const char *tp;
@@ -2408,7 +2408,7 @@ void __port_write(ubx_port_t *port, const ubx_data_t *data)
 		}
 	}
 
-	port->stat_writes++;
+	((ubx_port_t*)port)->stat_writes++;
 
  out:
 	return;
