@@ -45,13 +45,13 @@ long FUNCNAME ## _array(const ubx_port_t* p, TYPENAME* val, const int len) \
 			ubx_err(p->block, "%s: unregistered type " QUOTE(TYPENAME), __func__); \
 			return EINVALID_TYPE;				\
 		}							\
-	}								\
 									\
-	/* check type */						\
-	if (p->in_type != type) {					\
-		ubx_err(p->block, "%s: ETYPE_MISMATCH: expected %s but port %s is %s", \
-			__func__, QUOTE(TYPENAME), p->name, p->in_type_name); \
-		return ETYPE_MISMATCH;					\
+		/* check type */					\
+		if (p->in_type != type) {				\
+			ubx_err(p->block, "%s: ETYPE_MISMATCH: expected %s but port %s is %s", \
+				__func__, QUOTE(TYPENAME), p->name, p->in_type_name); \
+			return ETYPE_MISMATCH;				\
+		}							\
 	}								\
 									\
 	data.data = (void*) val;					\
@@ -91,13 +91,13 @@ int FUNCNAME ## _array(const ubx_port_t *p, const TYPENAME *val, const int len) 
 			ubx_err(p->block, "%s: unregistered type " QUOTE(TYPENAME), __func__); \
 			return EINVALID_TYPE;				\
 		}							\
-	}								\
 									\
-	/* check type */					        \
-	if (p->out_type != type) {					\
-		ubx_err(p->block, "%s: ETYPE_MISMATCH: expected %s but port %s is %s", \
-			__func__, QUOTE(TYPENAME), p->name, p->out_type_name); \
-		return ETYPE_MISMATCH;					\
+		/* check type */					\
+		if (p->out_type != type) {				\
+			ubx_err(p->block, "%s: ETYPE_MISMATCH: expected %s but port %s is %s", \
+				__func__, QUOTE(TYPENAME), p->name, p->out_type_name); \
+			return ETYPE_MISMATCH;				\
+		}							\
 	}								\
 									\
 	data.data = (void*) val;					\
@@ -137,13 +137,13 @@ long FUNCNAME(const ubx_block_t *b,				\
 			ubx_err(b, "%s: unregistered type " QUOTE(TYPENAME), __func__); \
 			return EINVALID_TYPE;				\
 		}							\
-	}								\
 									\
-	if (c->type != type) {						\
-		ubx_err(b, "%s: ETYPE_MISMATCH: expected %s but config %s is %s", \
-			__func__, QUOTE(TYPENAME), cfg_name, c->type->name); \
-		ubx_err(b, "%p vs %p", c->type, type); 			\
-		return ETYPE_MISMATCH;					\
+		if (c->type != type) {					\
+			ubx_err(b, "%s: ETYPE_MISMATCH: expected %s but config %s is %s", \
+				__func__, QUOTE(TYPENAME), cfg_name, c->type->name); \
+			ubx_err(b, "%p vs %p", c->type, type);		\
+			return ETYPE_MISMATCH;				\
+		}							\
 	}								\
 									\
 	return ubx_config_get_data_ptr(b, cfg_name, (void **) valptr);	\
@@ -159,5 +159,8 @@ def_port_readers(read_ ## SUFFIX, TYPENAME)
 #define def_type_accessors(SUFFIX, TYPENAME) \
 def_port_accessors(SUFFIX, TYPENAME) \
 def_cfg_getptr_fun(cfg_getptr_ ## SUFFIX, TYPENAME)
-	
 
+/* C++ helpers */
+#ifdef __cplusplus
+
+#endif
