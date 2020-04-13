@@ -495,7 +495,7 @@ int $(bm.name)_mod_init(ubx_node_info_t* ni)
 	int ret = -1;
 	ubx_type_t *tptr;
 
-	ubx_log(UBX_LOGLEVEL_DEBUG, ni, __FUNCTION__, "");
+	ubx_log(UBX_LOGLEVEL_DEBUG, ni, __func__, "");
 
 	for(tptr=types; tptr->name!=NULL; tptr++) {
 		if(ubx_type_register(ni, tptr) != 0) {
@@ -515,7 +515,7 @@ void $(bm.name)_mod_cleanup(ubx_node_info_t *ni)
 {
 	const ubx_type_t *tptr;
 
-	ubx_log(UBX_LOGLEVEL_DEBUG, ni, __FUNCTION__, "");
+	ubx_log(UBX_LOGLEVEL_DEBUG, ni, __func__, "");
 
 	for(tptr=types; tptr->name!=NULL; tptr++)
 		ubx_type_unregister(ni, tptr->name);
@@ -593,7 +593,7 @@ out:
 int $(bm.name)_start(ubx_block_t *b)
 {
 	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
-        ubx_info(b, "%s", __FUNCTION__);
+        ubx_info(b, "%s", __func__);
 	int ret = 0;
 	return ret;
 }
@@ -604,7 +604,7 @@ int $(bm.name)_start(ubx_block_t *b)
 void $(bm.name)_stop(ubx_block_t *b)
 {
 	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
-        ubx_info(b, "%s", __FUNCTION__);
+        ubx_info(b, "%s", __func__);
 }
 @ end
 
@@ -612,7 +612,7 @@ void $(bm.name)_stop(ubx_block_t *b)
 void $(bm.name)_cleanup(ubx_block_t *b)
 {
 	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
-        ubx_info(b, "%s", __FUNCTION__);
+        ubx_info(b, "%s", __func__);
 	free(b->private_data);
 }
 
@@ -621,7 +621,7 @@ void $(bm.name)_cleanup(ubx_block_t *b)
 void $(bm.name)_step(ubx_block_t *b)
 {
 	/* struct $(bm.name)_info *inf = (struct $(bm.name)_info*) b->private_data; */
-        ubx_info(b, "%s", __FUNCTION__);
+        ubx_info(b, "%s", __func__);
 }
 @ end
 

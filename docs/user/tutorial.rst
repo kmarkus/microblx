@@ -533,7 +533,7 @@ used. In the main we have to use the functions, ``ubx_log``, *e.g.*
 
 ::
 
-   ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to init control1");
+   ubx_log(UBX_LOGLEVEL_ERR, &ni, __func__,  "failed to init control1");
 
 More info on logging can be found in the `Using real-time logging
 section <manual.md#using-real-time-logging>`__. ### Libraries It start
@@ -700,11 +700,11 @@ Lastly, we need to init and start all the blocks. For example, for the
 .. code:: c
 
    if(ubx_block_init(control1) != 0) {
-           ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to init control1");
+           ubx_log(UBX_LOGLEVEL_ERR, &ni, __func__,  "failed to init control1");
            goto out;
    }
    if(ubx_block_start(control1) != 0) {
-       ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start control1");
+       ubx_log(UBX_LOGLEVEL_ERR, &ni, __func__,  "failed to start control1");
        goto out;
    }
 

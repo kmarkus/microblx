@@ -29,39 +29,39 @@ int main()
   /* load modules */
   for (unsigned int i=0; i<(LEN_VEC(modules));i++)
     if(ubx_module_load(&ni, modules[i]) != 0){
-        ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to load  module %s %i",modules[i], i);
+        ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "fail to load  module %s %i",modules[i], i);
         goto out;
       }
 
 
   /* create cblocks */
   if((plat1 = ubx_block_create(&ni, "platform_2dof", "plat1"))==NULL){
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to create plat1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "fail to create plat1");
       goto out;
     }
   if((control1 = ubx_block_create(&ni, "platform_2dof_control", "control1"))==NULL){
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to create control1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "fail to create control1");
       goto out;
     }
   if((logger1 = ubx_block_create(&ni, "logging/file_logger", "logger1"))==NULL){
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to create logger1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "fail to create logger1");
       goto out;
     }
   if((ptrig1 = ubx_block_create(&ni, "std_triggers/ptrig", "ptrig1"))==NULL){
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to create ptrig1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "fail to create ptrig1");
       goto out;
     }
   if((webif = ubx_block_create(&ni, "webif/webif", "webif1"))==NULL){
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to create webif1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "fail to create webif1");
       goto out;
     }
   /* create iblocks */
   if((fifo_pos = ubx_block_create(&ni, "lfds_buffers/cyclic", "fifo_pos"))==NULL){
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to create fifo_pos");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "fail to create fifo_pos");
       goto out;
     }
   if((fifo_vel = ubx_block_create(&ni, "lfds_buffers/cyclic", "fifo_vel"))==NULL){
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "fail to create fifo_vel");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "fail to create fifo_vel");
       goto out;
     }
 
@@ -173,61 +173,61 @@ int main()
 
   /* init and start blocks */
   if(ubx_block_init(webif) != 0) {
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to init webif");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "failed to init webif");
       goto out;
     }
   if(ubx_block_init(plat1) != 0) {
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to init plat1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "failed to init plat1");
       goto out;
     }
   if(ubx_block_init(control1) != 0) {
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to init control1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "failed to init control1");
       goto out;
     }
 
   if(ubx_block_init(fifo_pos) != 0) {
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to init fifo_pos");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "failed to init fifo_pos");
       goto out;
     }
 
   if(ubx_block_init(fifo_vel) != 0) {
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to init fifo_vel");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "failed to init fifo_vel");
       goto out;
     }
   if(ubx_block_start(fifo_pos) != 0) {
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start fifo_pos");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "failed to start fifo_pos");
       goto out;
     }
   if(ubx_block_start(fifo_vel) != 0) {
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start fifo_vel");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "failed to start fifo_vel");
       goto out;
     }
   if(ubx_block_start(webif) != 0) {
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start webif");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "failed to start webif");
       goto out;
     }
   if(ubx_block_start(plat1) != 0) {
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start plat1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "failed to start plat1");
       goto out;
     }
   if(ubx_block_start(control1) != 0) {
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start control1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "failed to start control1");
       goto out;
     }
   if(ubx_block_init(ptrig1) != 0) {
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "HERE failed to init ptrig1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "HERE failed to init ptrig1");
       goto out;
     }
   if(ubx_block_start(ptrig1) != 0) {
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start ptrig1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "failed to start ptrig1");
       goto out;
     }
   if(ubx_block_init(logger1) != 0) {
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "HERE failed to init logger1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "HERE failed to init logger1");
       goto out;
     }
   if(ubx_block_start(logger1) != 0) {
-      ubx_log(UBX_LOGLEVEL_ERR, &ni,__FUNCTION__,  "failed to start logger1");
+      ubx_log(UBX_LOGLEVEL_ERR, &ni,__func__,  "failed to start logger1");
       goto out;
     }
 

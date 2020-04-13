@@ -162,11 +162,11 @@ static int rnd_start(ubx_block_t *b)
 
 	if (ret > 0) {
 		ubx_info(b, "%s: seed: %d, min: %d, max: %d",
-			 __FUNCTION__, seed, inf->min, inf->max);
+			 __func__, seed, inf->min, inf->max);
 		srandom(seed);
 	} else {
 		ubx_info(b, "%s: min: %d, max: %d",
-			 __FUNCTION__, inf->min, inf->max);
+			 __func__, inf->min, inf->max);
 	}
 
 	return 0;
