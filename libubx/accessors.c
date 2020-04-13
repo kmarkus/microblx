@@ -1,6 +1,7 @@
 #include "ubx.h"
 
 /* define type safe accessors for basic C types */
+
 def_type_accessors(char, char);
 def_type_accessors(int, int);
 def_type_accessors(uint, unsigned int);
