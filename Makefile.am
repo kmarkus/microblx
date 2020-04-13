@@ -9,7 +9,6 @@ docs:
 
 cppcheck:
 	@cppcheck -q \
-		  --error-exitcode=255 \
 		  --enable=all \
 		  -Ilibubx/ -DRAMP_T=int \
 		  --suppress=missingInclude \
