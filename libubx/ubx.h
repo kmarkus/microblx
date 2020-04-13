@@ -48,7 +48,7 @@ extern "C"
 #include "ubx_types.h"
 #endif
 
-#include <typemacros.h>
+#include "typemacros.h"
 #include "ubx_proto.h"
 #include "rtlog.h"
 
