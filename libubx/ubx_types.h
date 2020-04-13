@@ -164,6 +164,8 @@ typedef struct ubx_config {
 	const char *doc;
 	const char *type_name;
 	ubx_type_t *type;
+	const struct ubx_block *block;	/* parent block */
+
 	ubx_data_t *value;		/* reference to actual value */
 	long data_len;			/* array size of value */
 

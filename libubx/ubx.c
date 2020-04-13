@@ -1096,6 +1096,7 @@ static ubx_block_t *ubx_block_clone(ubx_block_t *prot, const char *name)
 				goto out_free;
 			tgtconf->min = srcconf->min;
 			tgtconf->max = srcconf->max;
+			tgtconf->block = newb;
 		}
 	}
 
@@ -1540,8 +1541,7 @@ unsigned int get_num_configs(const ubx_block_t *b)
 	if (b->configs == NULL)
 		n = 0;
 	else
-		for (n = 0; b->configs[n].name != NULL; n++)
-			;
+		for (n = 0; b->configs[n].name != NULL; n++);
 
 	return n;
 }
@@ -1679,11 +1679,7 @@ int ubx_config_add(ubx_block_t *b,
 		goto out;
 	}
 
-	if (b->configs == NULL)
-		i = 0;
-	else
-		for (i = 0; b->configs[i].name != NULL; i++)
-			;
+	i = get_num_configs(b);
 
 	carr = realloc(b->configs, (i + 2) * sizeof(ubx_config_t));
 
@@ -1696,10 +1692,13 @@ int ubx_config_add(ubx_block_t *b,
 	b->configs = carr;
 
 	ret = ubx_clone_config_data(&b->configs[i], name, meta, typ, len);
+
 	if (ret != 0) {
 		ubx_err(b, "cloning config data failed");
 		goto out;
 	}
+
+	b->configs[i].block = b;
 
 	memset(&b->configs[i + 1], 0x0, sizeof(ubx_config_t));
 
