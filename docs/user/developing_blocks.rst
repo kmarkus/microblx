@@ -185,10 +185,10 @@ Retrieve and use it in the other hooks:
 Reading configuration values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To access primitive type configurations there are several predefined
-type safe convenience functions ``cfg_getptr_*`` available. For
-example, the following snippet retrieves a scalar ``uint32_t`` config
-and uses a default ``47`` if unconfigured:
+Configurations can be accessed in a type safe manner using the
+``cfg_getptr_<TYPE>`` familiy of functions, which are available for
+all basic types. For example, the following snippet retrieves a scalar
+``uint32_t`` config and uses a default ``47`` if unconfigured:
 
 .. code:: c
 
@@ -200,11 +200,12 @@ and uses a default ``47`` if unconfigured:
 
    value = (len > 0) ? *value : 47;
 
+Defining type safe configuration accessors for custom types can be
+achieved using the macros described in section
+:ref:`type-safe-accessors`.
 
-For custom types, the ``def_cfg_getptr_fun`` macro can be used to
-declare own type safe configuration accessors. The following example
-from the random (``std_blocks/random/random.c``) block shows how this
-is done for ``struct min_max_config``:
+The following example from the random (``std_blocks/random/random.c``)
+block shows how this is done for ``struct min_max_config``:
 
 .. code:: c
 
@@ -213,7 +214,7 @@ is done for ``struct min_max_config``:
    int rnd_start(ubx_block_t *b)
    {
    	long len;
-	struct random_config* rndconf;
+	const struct random_config* rndconf;
 
 	/*...*/
 
@@ -277,31 +278,39 @@ is necessary.
 Reading from and writing to ports
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Similar to the ``def_cfg_getptr_fun``, the following helper macros are
-available to generate type safe port read/write functions:
+Writing to ports can be done using the ``write_<TYPE>`` or
+``write_<TYPE>_array`` functions. For example:
 
 .. code:: c
+	  
+   /* writing to a port */
+   unsigned int val = 1;
+   write_uint(my_outport, &val);
 
-   def_read_fun(read_uint, unsigned int)
-   def_write_fun(write_uint, unsigned int)
+   /* reading from a port */
+   long len;
+   int val;
 
-or for reading/writing fixed size arrays:
+   len = read_int(my_inport, &val);
 
-.. code:: c
+   if (len < 0)
+	  ubx_err(b, "port read failed");
+	  return -1;
+   else if (len == 0) {
+	  /* no data on port */
+	  return 0;
+   } else {
+	  ubx_info(b, "new data: %i", val);
+   }
+	  
+   ...
 
-   def_read_arr_fun(read_uint10, unsigned int, 10)
-   def_write_arr_fun(write_uint10, unsigned int, 10)
+For more see ``std_blocks/ramp/ramp.c``.
 
-If the array size is not to be fixed at compile time, the following
-macros can be used:
-
-.. code:: c
-
-   def_read_dynarr_fun(function_name, typename)
-   def_write_dynarr_fun(function_name, typename)
-
-For an example of this see ``std_blocks/ramp/ramp.c``.
-
+Type safe read/write functions are defined for all basic types and
+availale via the ``<ubx.h>`` header. Defining similar functions for
+custom types can be done using the macros described in
+:ref:`type-safe-accessors`.
 
 Declaring the block
 -------------------
@@ -356,17 +365,52 @@ This fills in a ``ubx_type_t`` data structure called
 type declaration the ``struct random_config`` can then be registered
 with a node (see “Block and type registration” below).
 
-**What is this .hexarr file?**
+.. _type-safe-accessors:
+
+Declaring type safe accessors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following macros are available to define type safe accessors for
+accessing configuration and reading/writing from ports:
+
+.. code:: c
+	  
+   def_type_accessors(SUFFIX, TYPENAME)
+
+   /* will define the following functions */
+   long read_SUFFIX(const ubx_port_t* p, TYPENAME* val);
+   int write_SUFFIX(const ubx_port_t *p, const TYPENAME *val);
+   long read_SUFFIX_array(const ubx_port_t* p, TYPENAME* val, const int len);
+   long write_SUFFIX_array(const ubx_port_t* p, const TYPENAME* val, const int len);
+   long cfg_getptr_SUFFIX(const ubx_block_t *b, const char *cfg_name, const TYPENAME **valptr);
+
+Using these is strongly recommended for most blocks.
+
+**Variants**:
+
+- ``def_port_accessors(SUFFIX, TYPENAME)`` will define the port but
+  not the config accessors.
+
+- ``def_cfg_getptr_fun(FUNCNAME, TYPENAME)`` will only define the config
+  accessor
+
+- ``def_port_writers(FUNCNAME, TYPENAME)`` and
+  ``def_port_readers(FUNCNAME, TYPENAME)`` will only define the port
+  write or read accessors respectively.
+
+
+What is this .hexarr file
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The file ``types/random_config.h.hexarr`` contains the contents of the
-file ``types/random_config.h`` converted to an array
-``const char random_config_h []`` using the tool ``tools/ubx-tocarr``.
-This char array is stored in the ``ubx_type_t private_data`` field (the
-third argument to the ``def_struct_type`` macro). At runtime, this type
+file ``types/random_config.h`` converted to an array ``const char
+random_config_h []`` using the tool ``tools/ubx-tocarr``.  This char
+array is stored in the ``ubx_type_t private_data`` field (the third
+argument to the ``def_struct_type`` macro). At runtime, this type
 model is loaded into the luajit ffi, thereby enabling type reflection
 features such as logging or changing configuration values via the
-webinterface. The conversion from ``.h`` to ``.hexarray`` is done via a
-simple Makefile rule.
+webinterface. The conversion from ``.h`` to ``.hexarray`` is done via
+a simple Makefile rule.
 
 This feature is very useful but optional. If no type reflection is
 needed, don’t include the ``.hexarr`` file and pass ``NULL`` as a
@@ -403,6 +447,7 @@ blocks registered in init:
        ubx_block_unregister(ni, "random/random");
    }
    UBX_MODULE_CLEANUP(rnd_module_cleanup)
+
 
 Using real-time logging
 -----------------------

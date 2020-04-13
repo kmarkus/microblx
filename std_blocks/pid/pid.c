@@ -8,10 +8,6 @@
 
 #include "pid.h"
 
-/* def_read_dynarr_fun(read_doubles, double); */
-def_port_writers(write_double, double)
-def_port_readers(read_double, double)
-
 /* block local state */
 struct pid_info
 {
