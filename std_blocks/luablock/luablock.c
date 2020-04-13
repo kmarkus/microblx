@@ -25,6 +25,7 @@ def_write_fun(write_int, int)
 ubx_config_t lua_conf[] = {
 	{ .name = "lua_file", .type_name = "char" },
 	{ .name = "lua_str", .type_name = "char" },
+	{ .name = "loglevel", .type_name = "int" },
 	{ 0 }
 };
 

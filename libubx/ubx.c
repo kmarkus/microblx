@@ -2102,7 +2102,8 @@ int ubx_block_init(ubx_block_t *b)
 	ubx_debug(b, __func__);
 
 	/* check and use loglevel config */
-	if (cfg_getptr_int(b, "loglevel", &b->loglevel) <= 0)
+	if (ubx_config_get(b, "loglevel") == NULL ||
+	    cfg_getptr_int(b, "loglevel", &b->loglevel) <= 0)
 		b->loglevel = NULL;
 	else
 		ubx_debug(b, "found loglevel config");
