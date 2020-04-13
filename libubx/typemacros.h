@@ -4,11 +4,11 @@
  */
 
 /* type definition helpers */
-#define def_basic_ctype(typename)					\
-{									\
-	.name = #typename,						\
-	.type_class = TYPE_CLASS_BASIC,					\
-	.size = sizeof(typename)					\
+#define def_basic_ctype(typename)		\
+{						\
+	.name = #typename,			\
+	.type_class = TYPE_CLASS_BASIC,		\
+	.size = sizeof(typename)		\
 }
 
 #define def_struct_type(typename, hexdata)	\
@@ -113,11 +113,11 @@ int FUNCNAME(const ubx_port_t *p, const TYPENAME *val)			\
 }									\
 
 
-#define def_cfg_getptr_fun(FUNCNAME, TYPENAME)			\
-long FUNCNAME(const ubx_block_t *b,				\
-	      const char *cfg_name,				\
-	      const TYPENAME **valptr)				\
-{								\
+#define def_cfg_getptr_fun(FUNCNAME, TYPENAME)				\
+long FUNCNAME(const ubx_block_t *b,					\
+	      const char *cfg_name,					\
+	      const TYPENAME **valptr)					\
+{									\
 	const ubx_config_t *c;						\
 	static ubx_type_t *type = NULL;					\
 									\
