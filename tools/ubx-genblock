@@ -165,22 +165,9 @@ function generate_rd_wr_helpers(bm)
 
    local res = {}
    for _,p in ipairs(bm.ports or {}) do
-      if p.in_type_name then
-	 if not p.in_data_len or p.in_data_len == 1 then
-	    res[#res+1] = utils.expand("def_read_fun(read_$name, $type_name)",
-				       { name=find_name(p.name), type_name=p.in_type_name })
-	 else -- in_data_len > 1
-	    res[#res+1] = utils.expand("def_read_arr_fun(read_$name_$len, $type_name, $len)",
-				       { name=find_name(p.name), type_name=p.in_type_name, len=p.in_data_len })
-	 end
-      elseif p.out_type_name then
-	 if not p.out_data_len or p.out_data_len == 1 then
-	    res[#res+1] = utils.expand("def_write_fun(write_$name, $type_name)",
-				       { name=find_name(p.name), type_name=p.out_type_name })
-	 else -- ou_data_len > 1
-	    res[#res+1] = utils.expand("def_write_arr_fun(write_$name_$len, $type_name, $len)",
-				       { name=find_name(p.name), type_name=p.out_type_name, len=p.out_data_len })
-	 end
+      if p.in_type_name or p.out_type_name then
+	 res[#res+1] = utils.expand("def_port_accessors($name, $type_name)",
+				    { name=find_name(p.name), type_name=p.in_type_name })
       end
    end
 

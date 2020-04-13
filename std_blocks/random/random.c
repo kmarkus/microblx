@@ -82,12 +82,6 @@ struct random_info {
 	unsigned int max;
 };
 
-/* convenience functions to read/write from the ports these fill a
- * ubx_data_t, and call port->[read|write](&data). These introduce
- * some type safety.
- */
-def_read_fun(read_uint, unsigned int)
-def_write_fun(write_uint, unsigned int)
 
 /**
  * rnd_init - block init function.

@@ -54,7 +54,7 @@ struct cyclic_elem_header {
 	uint8_t data[0];
 };
 
-def_write_fun(write_ulong, unsigned long)
+def_port_writers(write_ulong, unsigned long)
 
 int cyclic_data_elem_init(void **user_data, void *user_state)
 {

@@ -256,7 +256,6 @@ int ubx_node_init(ubx_node_info_t *ni, const char *name, uint32_t attrs)
 	ni->blocks = NULL;
 	ni->types = NULL;
 	ni->modules = NULL;
-	ni->cur_seqid = 0;
 	ret = 0;
  out:
 	return ret;
@@ -464,8 +463,8 @@ ubx_block_t *ubx_block_unregister(ubx_node_info_t *ni, const char *name)
 int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type)
 {
 	int ret;
-	unsigned long seqid = 0;
 	ubx_type_t *tmp;
+	static unsigned long seqid = 0;
 
 	if (type == NULL) {
 		logf_err(ni, "type is NULL");
@@ -490,12 +489,15 @@ int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type)
 	}
 
 	type->seqid = seqid++;
+	type->ni = ni;
 
 	/* compute md5 fingerprint for type */
 	md5((const unsigned char *)type->name, strlen(type->name), type->hash);
 
 	HASH_ADD_KEYPTR(hh, ni->types, type->name, strlen(type->name), type);
-	type->ni = ni;
+
+	logf_debug(ni, "registered type %s: seqid %lu, ptr %p",
+		   type->name, type->seqid, type);
 	ret = 0;
  out:
 	return ret;
@@ -2424,46 +2426,3 @@ const char *ubx_version(void)
 	return VERSION;
 }
 
-int checktype(ubx_node_info_t *ni,
-	      ubx_type_t *required,
-	      const char *tcheck_str,
-	      const char *portname, int isrd)
-{
-#ifdef CONFIG_TYPECHECK_EXTRA
-	assert(ni != NULL);
-
-	ubx_type_t *tcheck = ubx_type_get(ni, tcheck_str);
-
-	assert(required != NULL);
-	assert(tcheck_str != NULL);
-	assert(portname != NULL);
-
-	if (required != tcheck) {
-		logf_err(ni, "port %s %s: type mismatch: is %s but should be %s",
-			 portname, (isrd == 1) ? "read" : "write",
-			 tcheck_str, required->name);
-		return -1;
-	}
-#endif
-	return 0;
-}
-
-/* typed, somewhat safer config convenience accessor functions */
-def_cfg_getptr_fun(cfg_getptr_char, char)
-def_cfg_getptr_fun(cfg_getptr_int, int)
-def_cfg_getptr_fun(cfg_getptr_uint, unsigned int)
-def_cfg_getptr_fun(cfg_getptr_long, long)
-def_cfg_getptr_fun(cfg_getptr_ulong, unsigned long)
-
-def_cfg_getptr_fun(cfg_getptr_uint8, uint8_t)
-def_cfg_getptr_fun(cfg_getptr_uint16, uint16_t)
-def_cfg_getptr_fun(cfg_getptr_uint32, uint32_t)
-def_cfg_getptr_fun(cfg_getptr_uint64, uint64_t)
-
-def_cfg_getptr_fun(cfg_getptr_int8, int8_t)
-def_cfg_getptr_fun(cfg_getptr_int16, int16_t)
-def_cfg_getptr_fun(cfg_getptr_int32, int32_t)
-def_cfg_getptr_fun(cfg_getptr_int64, int64_t)
-
-def_cfg_getptr_fun(cfg_getptr_float, float)
-def_cfg_getptr_fun(cfg_getptr_double, double)

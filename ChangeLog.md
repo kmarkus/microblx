@@ -5,6 +5,36 @@ This file tracks user visible API changes
 
 ## v0.8.0
 
+- Accessors for all stdtypes are defined using `def_type_accessors`,
+  hence blocks can use these instead of defining their own.
+
+- core: cleanup of port read/write and config accessors. The macros
+
+  - `def_write_fun` and `def_read_fun`
+  - `def_write_arr_fun` `def_read_arr_fun`
+  - `def_write_dynarr_fun` and `def_read_dynarr_fun`
+
+  have been deprecated in favor of the following new ones (the macro
+  parameters are the same, so simple renaming will work in most cases):
+
+  - `def_port_readers(FUNCNAME, TYPENAME)`
+    `def_port_writers(FUNCNAME, TYPENAME)`
+
+  will each define both single element function as well as the array
+  version, e.g. for the writer side:
+
+	`long FUNCNAME(const ubx_port_t* p, TYPENAME* val)`
+	`long FUNCNAME_array(const ubx_port_t* p, TYPENAME* val, const int len)`
+
+  For convenience, the the macros `def_port_accessors(SUFFIX,
+  TYPENAME)` and `def_type_accessors(SUFFIX, TYPENAME)` can be used to
+  define both port readers and writers _or_ port readers, writers and
+  config accessors respectively (Note: these take a function name
+  suffix instead of the whole name).
+
+  Internally, the implementation is both safer and significantly
+  faster due to avoiding a hash table lookup.
+
 - lua: `conn_uni`: iblock name generation scheme changed from using a
   timestamp to an incrementing counter. This is to facilitate testing,
   that can rely on reproducable names.

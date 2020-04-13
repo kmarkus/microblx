@@ -21,7 +21,7 @@ enum tstats_mode {
 };
 
 /* helper to retrieve config */
-long cfg_getptr_trig_spec(ubx_block_t *b,
+long cfg_getptr_trig_spec(const ubx_block_t *b,
 			  const char *cfg_name,
 			  const struct ubx_trig_spec **valptr);
 

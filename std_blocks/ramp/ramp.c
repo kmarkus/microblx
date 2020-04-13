@@ -14,7 +14,7 @@ struct ramp_info {
 	struct ramp_port_cache ports;
 };
 
-def_write_dynarr_fun(write_out, RAMP_T)
+def_port_writers(write_ramp, RAMP_T)
 
 /* init */
 int ramp_init(ubx_block_t *b)
@@ -117,7 +117,7 @@ void ramp_step(ubx_block_t *b)
 {
 	struct ramp_info *inf = (struct ramp_info *)b->private_data;
 
-	write_out(inf->ports.out, inf->cur, inf->data_len);
+	write_ramp_array(inf->ports.out, inf->cur, inf->data_len);
 
 	for (int i=0; i<inf->data_len; i++)
 		inf->cur[i] += inf->slope[i];

@@ -289,7 +289,6 @@ typedef struct ubx_node_info {
 	ubx_block_t *blocks; /* instances, only one list */
 	ubx_type_t *types; /* known types */
 	ubx_module_t *modules;
-	unsigned long cur_seqid;
 
 	uint32_t attrs;
 	int loglevel;

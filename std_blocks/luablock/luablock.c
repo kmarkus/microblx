@@ -20,8 +20,6 @@ ubx_port_t lua_ports[] = {
 	{ 0 }
 };
 
-def_write_fun(write_int, int)
-
 ubx_config_t lua_conf[] = {
 	{ .name = "lua_file", .type_name = "char" },
 	{ .name = "lua_str", .type_name = "char" },
