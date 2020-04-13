@@ -272,8 +272,8 @@ int ubx_node_init(ubx_node_info_t *ni, const char *name, uint32_t attrs)
 void ubx_node_cleanup(ubx_node_info_t *ni)
 {
 	int cnt;
-	ubx_module_t *m, *mtmp;
-	ubx_block_t *b, *btmp;
+	ubx_module_t *m = NULL, *mtmp = NULL;
+	ubx_block_t *b = NULL, *btmp = NULL;
 
 	logf_debug(ni, "cleaning up node %s", ni->name);
 
@@ -555,7 +555,8 @@ ubx_type_t *ubx_type_get(ubx_node_info_t *ni, const char *name)
  */
 ubx_type_t* ubx_type_get_by_hash(ubx_node_info_t *ni, const uint8_t *hash)
 {
-	ubx_type_t *type, *tmptype;
+	ubx_type_t *type = NULL, *tmptype = NULL;
+
 	HASH_ITER(hh, ni->types, type, tmptype) {
 		if (strncmp((char*) type->hash,
 			    (char*) hash, TYPE_HASH_LEN) == 0)

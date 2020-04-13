@@ -266,9 +266,7 @@ out:
  */
 enum READ_STATUS logc_read_frame(logc_info_t *inf, volatile log_frame_t **frame)
 {
-	int ret = NO_DATA;
-
-	ret = logc_has_data(inf);
+	int ret = logc_has_data(inf);
 
 	/*
 	 * if we have anything but NEW_DATA (NO_DATA, OVERRUN),
