@@ -150,7 +150,7 @@ typedef struct ubx_port {
 	unsigned long stat_writes;
 	unsigned long stat_reads;
 
-	struct ubx_block *block;	/* block owning this port */
+	const struct ubx_block *block;	/* block owning this port */
 
 	/* todo time stats */
 } ubx_port_t;
