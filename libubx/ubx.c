@@ -1554,7 +1554,7 @@ unsigned int get_num_configs(const ubx_block_t *b)
  *
  * @return ubx_config_t pointer or NULL if not found.
  */
-ubx_config_t *ubx_config_get(ubx_block_t *b, const char *name)
+ubx_config_t *ubx_config_get(const ubx_block_t *b, const char *name)
 {
 	ubx_config_t *conf = NULL;
 
@@ -1581,7 +1581,7 @@ ubx_config_t *ubx_config_get(ubx_block_t *b, const char *name)
  *
  * @return ubx_data_t pointer or NULL
  */
-ubx_data_t *ubx_config_get_data(ubx_block_t *b, const char *name)
+ubx_data_t *ubx_config_get_data(const ubx_block_t *b, const char *name)
 {
 	ubx_config_t *conf;
 	ubx_data_t *data = NULL;
@@ -1605,7 +1605,7 @@ ubx_data_t *ubx_config_get_data(ubx_block_t *b, const char *name)
  *
  * @return length of configuration (>0), 0 if unconfigured, < 0 in case of error
  */
-long ubx_config_get_data_ptr(ubx_block_t *b, const char *name, void **ptr)
+long ubx_config_get_data_ptr(const ubx_block_t *b, const char *name, void **ptr)
 {
 	ubx_data_t *d;
 	long ret = -1;
@@ -1629,7 +1629,7 @@ long ubx_config_get_data_ptr(ubx_block_t *b, const char *name, void **ptr)
  *
  * @return array length of the given configuration value
  */
-long ubx_config_data_len(ubx_block_t *b, const char *cfg_name)
+long ubx_config_data_len(const ubx_block_t *b, const char *cfg_name)
 {
 	ubx_data_t *d = ubx_config_get_data(b, cfg_name);
 
