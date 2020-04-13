@@ -171,7 +171,7 @@ def_cfg_getptr_fun(cfg_getptr_ ## SUFFIX, TYPENAME)
  */
 
 #define gen_class_accessors(SUFFIX, CLASS, UBXTYPE) \
-static_assert(std::is_standard_layout<CLASS>::value, QUOTE(_CLASS) "has no standard layout"); \
+static_assert(std::is_standard_layout<CLASS>::value, QUOTE(CLASS) "has no standard layout"); \
                                                                         \
 def_type_accessors(SUFFIX, UBXTYPE);                                    \
                                                                         \

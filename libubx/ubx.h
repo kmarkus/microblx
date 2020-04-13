@@ -21,6 +21,8 @@
 /* config array length checking */
 #define CONFIG_LEN_MAX		UINT16_MAX
 
+#include "typemacros.h"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -48,7 +50,6 @@ extern "C"
 #include "ubx_types.h"
 #endif
 
-#include "typemacros.h"
 #include "ubx_proto.h"
 #include "rtlog.h"
 
