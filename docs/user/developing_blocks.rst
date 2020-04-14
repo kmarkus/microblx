@@ -381,7 +381,7 @@ accessing configuration and reading/writing from ports:
    long read_SUFFIX(const ubx_port_t* p, TYPENAME* val);
    int write_SUFFIX(const ubx_port_t *p, const TYPENAME *val);
    long read_SUFFIX_array(const ubx_port_t* p, TYPENAME* val, const int len);
-   long write_SUFFIX_array(const ubx_port_t* p, const TYPENAME* val, const int len);
+   int write_SUFFIX_array(const ubx_port_t* p, const TYPENAME* val, const int len);
    long cfg_getptr_SUFFIX(const ubx_block_t *b, const char *cfg_name, const TYPENAME **valptr);
 
 Using these is strongly recommended for most blocks.
