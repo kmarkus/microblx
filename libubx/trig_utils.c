@@ -15,7 +15,7 @@
 #define LOG_FMT "TSTAT: %s: cnt %lu, min %11.9f, max %11.9f, avg %11.9f"
 static const char *tstat_global_id = "#total#";
 
-def_port_writers(write_tstat, struct ubx_tstat)
+def_port_accessors(tstat, struct ubx_tstat)
 def_cfg_getptr_fun(cfg_getptr_trig_spec, struct ubx_trig_spec)
 
 /*

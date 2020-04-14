@@ -25,6 +25,12 @@ long cfg_getptr_trig_spec(const ubx_block_t *b,
 			  const char *cfg_name,
 			  const struct ubx_trig_spec **valptr);
 
+/* tstats port read/write helpers */
+long read_tstat(const ubx_port_t* p, struct ubx_tstat* val);
+int write_tstat(const ubx_port_t *p, const struct ubx_tstat *val);
+long read_tstat_array(const ubx_port_t* p, struct ubx_tstat* val, const int len);
+int write_tstat_array(const ubx_port_t* p, const struct ubx_tstat* val, const int len);
+
 /**
  * struct trigger_info - basic trigger information
  *
