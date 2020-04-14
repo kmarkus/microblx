@@ -200,7 +200,6 @@ static void cyclic_write(ubx_block_t *i, const ubx_data_t *msg)
 /* where to check whether the msg->data len is long enough? */
 static long cyclic_read(ubx_block_t *i, ubx_data_t *msg)
 {
-	int ret = 0;
 	unsigned long readlen, readsz;
 	struct cyclic_block_info *bbi;
 	struct lfds611_freelist_element *elem;
@@ -210,12 +209,11 @@ static long cyclic_read(ubx_block_t *i, ubx_data_t *msg)
 
 	if (bbi->type != msg->type) {
 		ubx_err(i, "invalid message type %s", msg->type->name);
-		goto out;
+		return EINVALID_TYPE;
 	}
 
 	if (lfds611_ringbuffer_get_read_element(bbi->rbs, &elem) == NULL) {
-		ret = 0;
-		goto out;
+		return 0;
 	}
 
 	hd = lfds611_freelist_get_user_data_from_element(elem, NULL);
@@ -231,11 +229,10 @@ static long cyclic_read(ubx_block_t *i, ubx_data_t *msg)
 	ubx_debug("%s: copying %ld bytes", i->name, readsz);
 
 	memcpy(msg->data, hd->data, readsz);
-	lfds611_ringbuffer_put_read_element(bbi->rbs, elem);
-	ret = readlen; /* compute number of elements read */
 
- out:
-	return ret;
+	lfds611_ringbuffer_put_read_element(bbi->rbs, elem);
+
+	return readlen;
 }
 
 /* put everything together */
