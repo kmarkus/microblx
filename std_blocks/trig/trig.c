@@ -27,7 +27,7 @@ ubx_config_t trig_config[] = {
 	{ .name = "trig_blocks", .type_name = "struct ubx_trig_spec", .doc = "list of blocks to trigger" },
 	{ .name = "tstats_mode", .type_name = "int", .doc = "0: off (def), 1: global only, 2: per block", },
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "file to write timing stats to" },
-	{ .name = "tstats_output_rate", .type_name = "double", .doc = "throttle output on tstats port" },
+	{ .name = "tstats_output_rate", .type_name = "double", .doc = "throttle output on tstats port [Hz]" },
 	{ .name = "loglevel", .type_name = "int" },
 	{ 0 },
 };
