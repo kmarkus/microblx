@@ -23,7 +23,7 @@ int ubx_wait_sigint(unsigned int timeout_s)
 	timeout.tv_nsec = 0;
 
 	if (sigprocmask(SIG_BLOCK, &set, &oldset) < 0) {
-		perror ("sigprocmask");
+		perror("sigprocmask");
 		return -1;
 	}
 

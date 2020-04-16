@@ -169,9 +169,10 @@ int ubx_module_load(ubx_node_info_t *ni, const char *lib)
 	return ret;
 }
 
-ubx_module_t* ubx_module_get(ubx_node_info_t *ni, const char *lib)
+ubx_module_t *ubx_module_get(ubx_node_info_t *ni, const char *lib)
 {
 	ubx_module_t *mod = NULL;
+
 	HASH_FIND_STR(ni->modules, lib, mod);
 	return mod;
 }
@@ -464,7 +465,7 @@ int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type)
 {
 	int ret;
 	ubx_type_t *tmp;
-	static unsigned long seqid = 0;
+	unsigned long seqid = 0;
 
 	if (type == NULL) {
 		logf_err(ni, "type is NULL");
@@ -542,6 +543,7 @@ ubx_type_t *ubx_type_unregister(ubx_node_info_t *ni, const char *name)
 ubx_type_t *ubx_type_get(ubx_node_info_t *ni, const char *name)
 {
 	ubx_type_t *type = NULL;
+
 	HASH_FIND_STR(ni->types, name, type);
 	return type;
 }
@@ -553,13 +555,13 @@ ubx_type_t *ubx_type_get(ubx_node_info_t *ni, const char *name)
  * @param hash binary hash array of TYPE_HASH_LEN+1 size
  * @return ubx_type_t* or NULL if not found
  */
-ubx_type_t* ubx_type_get_by_hash(ubx_node_info_t *ni, const uint8_t *hash)
+ubx_type_t *ubx_type_get_by_hash(ubx_node_info_t *ni, const uint8_t *hash)
 {
 	ubx_type_t *type = NULL, *tmptype = NULL;
 
 	HASH_ITER(hh, ni->types, type, tmptype) {
-		if (strncmp((char*) type->hash,
-			    (char*) hash, TYPE_HASH_LEN) == 0)
+		if (strncmp((char *)type->hash,
+			    (char *)hash, TYPE_HASH_LEN) == 0)
 			return type;
 	}
 	return NULL;
@@ -573,7 +575,7 @@ ubx_type_t* ubx_type_get_by_hash(ubx_node_info_t *ni, const uint8_t *hash)
  * @param hashstr zero terminated hex string of TYPE_HASHSTR_LEN+1 size
  * @return ubx_type_t* or NULL if not found
  */
-ubx_type_t* ubx_type_get_by_hashstr(ubx_node_info_t *ni, const char *hashstr)
+ubx_type_t *ubx_type_get_by_hashstr(ubx_node_info_t *ni, const char *hashstr)
 {
 	int len;
 	char tmp[3];
@@ -587,8 +589,10 @@ ubx_type_t* ubx_type_get_by_hashstr(ubx_node_info_t *ni, const char *hashstr)
 	}
 
 	/* convert from string to binary array */
-	for (int i=0; i<TYPE_HASH_LEN; i++) {
-		tmp[0] = hashstr[i*2]; tmp[1] = hashstr[i*2+1]; tmp[2] = '\0';
+	for (int i = 0; i < TYPE_HASH_LEN; i++) {
+		tmp[0] = hashstr[i * 2];
+		tmp[1] = hashstr[i * 2 + 1];
+		tmp[2] = '\0';
 		hash[i] = (uint8_t) strtoul(tmp, NULL, 16);
 	}
 	hash[TYPE_HASH_LEN] = '\0';
@@ -607,9 +611,9 @@ ubx_type_t* ubx_type_get_by_hashstr(ubx_node_info_t *ni, const char *hashstr)
  */
 void ubx_type_hashstr(const ubx_type_t *t, char *buf)
 {
-	for (int i=0; i<TYPE_HASH_LEN; i++)
-		sprintf(buf+i*2, "%02x", t->hash[i]);
-	buf[TYPE_HASH_LEN*2] = '\0';
+	for (int i = 0; i < TYPE_HASH_LEN; i++)
+		sprintf(buf + i * 2, "%02x", t->hash[i]);
+	buf[TYPE_HASH_LEN * 2] = '\0';
 }
 
 
@@ -1544,7 +1548,8 @@ unsigned int get_num_configs(const ubx_block_t *b)
 	if (b->configs == NULL)
 		n = 0;
 	else
-		for (n = 0; b->configs[n].name != NULL; n++);
+		for (n = 0; b->configs[n].name != NULL; n++)
+			;
 
 	return n;
 }
@@ -1949,7 +1954,7 @@ int ubx_outport_add(ubx_block_t *b, const char *name, const char *doc,
  * @param len new length
  * @return 0 if	OK, <0 otherwise
  */
-int ubx_inport_resize(struct ubx_port* p, long len)
+int ubx_inport_resize(struct ubx_port *p, long len)
 {
 	if (p->block->block_state != BLOCK_STATE_PREINIT) {
 		ubx_err(p->block, "inport_resize %s: can't resize block in state %s",
@@ -1968,7 +1973,7 @@ int ubx_inport_resize(struct ubx_port* p, long len)
  * @param len new length
  * @return 0 if	OK, <0 otherwise
  */
-int ubx_outport_resize(struct ubx_port* p, long len)
+int ubx_outport_resize(struct ubx_port *p, long len)
 {
 	if (p->block->block_state != BLOCK_STATE_PREINIT) {
 		ubx_err(p->block, "outport_resize %s: can't resize block in state %s",
@@ -2357,7 +2362,7 @@ long __port_read(const ubx_port_t *port, ubx_data_t *data)
 		if ((*iaptr)->block_state == BLOCK_STATE_ACTIVE) {
 			ret = (*iaptr)->read(*iaptr, data);
 			if (ret > 0) {
-				((ubx_port_t*)port)->stat_reads++;
+				((ubx_port_t *)port)->stat_reads++;
 				(*iaptr)->stat_num_reads++;
 				goto out;
 			}
@@ -2381,7 +2386,7 @@ void __port_write(const ubx_port_t *port, const ubx_data_t *data)
 	const char *tp;
 	ubx_block_t **iaptr;
 
-	if (port==NULL) {
+	if (port == NULL) {
 		ERR("port null");
 		goto out;
 	}
@@ -2411,7 +2416,7 @@ void __port_write(const ubx_port_t *port, const ubx_data_t *data)
 		}
 	}
 
-	((ubx_port_t*)port)->stat_writes++;
+	((ubx_port_t *)port)->stat_writes++;
 
  out:
 	return;

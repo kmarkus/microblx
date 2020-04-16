@@ -108,7 +108,7 @@ void tstat_log(const ubx_block_t *b, const struct ubx_tstat *stats)
 }
 
 /* helpers for throttled port output or logging */
-static void tstats_output_throttled(struct trig_info* trig_inf, uint64_t now)
+static void tstats_output_throttled(struct trig_info *trig_inf, uint64_t now)
 {
 	if (now <= trig_inf->tstats_output_last_msg + trig_inf->tstats_output_rate)
 		return;
@@ -132,7 +132,7 @@ static void tstats_output_throttled(struct trig_info* trig_inf, uint64_t now)
 /*
  * basic triggering and tstats management
  */
-int do_trigger(struct trig_info* trig_inf)
+int do_trigger(struct trig_info *trig_inf)
 {
 	int ret = 0;
 	unsigned int steps;
@@ -180,7 +180,7 @@ out:
 	return ret;
 }
 
-int trig_info_init(struct trig_info* trig_inf,
+int trig_info_init(struct trig_info *trig_inf,
 		   const char *list_id,
 		   double tstats_output_rate)
 {
@@ -205,7 +205,7 @@ int trig_info_init(struct trig_info* trig_inf,
 	return 0;
 }
 
-void trig_info_cleanup(struct trig_info* trig_inf)
+void trig_info_cleanup(struct trig_info *trig_inf)
 {
 	free(trig_inf->blk_tstats);
 }
@@ -215,11 +215,11 @@ void trig_info_cleanup(struct trig_info* trig_inf)
  */
 void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf)
 {
-	switch(trig_inf->tstats_mode) {
+	switch (trig_inf->tstats_mode) {
 	case TSTATS_DISABLED:
 		break;
 	case TSTATS_PERBLOCK:
-		for (int i=0; i<trig_inf->trig_list_len; i++)
+		for (int i = 0; i < trig_inf->trig_list_len; i++)
 			tstat_log(b, &trig_inf->blk_tstats[i]);
 		/* fall through */
 	case TSTATS_GLOBAL:
@@ -228,7 +228,6 @@ void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf)
 	default:
 		ubx_err(b, "unknown tstats_mode %d", trig_inf->tstats_mode);
 	}
-	return;
 }
 
 /**
@@ -288,9 +287,9 @@ int trig_info_tstats_write(ubx_block_t *b,
 
 	fprintf(fp, FILE_HDR);
 
-	switch(trig_inf->tstats_mode) {
+	switch (trig_inf->tstats_mode) {
 	case TSTATS_PERBLOCK:
-		for (int i=0; i<trig_inf->trig_list_len; i++)
+		for (int i = 0; i < trig_inf->trig_list_len; i++)
 			tstat_write(fp, &trig_inf->blk_tstats[i]);
 		/* fall through */
 	case TSTATS_GLOBAL:
