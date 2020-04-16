@@ -11,9 +11,6 @@
 #ifndef _UBX_H
 #define _UBX_H
 
-/* enable extra typechecking on read/write */
-#define CONFIG_TYPECHECK_EXTRA	1
-
 /* constants */
 #define NSEC_PER_SEC		1000000000
 #define NSEC_PER_USEC           1000
