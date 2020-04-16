@@ -58,8 +58,8 @@ ubx_config_t ptrig_config[] = {
 	{ .name = "thread_name", .type_name = "char", .doc = "thread name (for dbg), default is block name" },
 	{ .name = "trig_blocks", .type_name = "struct ubx_trig_spec", .doc = "specification of blocks to trigger" },
 	{ .name = "tstats_mode", .type_name = "int", .doc = "enable timing statistics over all blocks", },
-	{ .name = "tstats_profile_path", .type_name = "char", .doc = "file to which to write the timing statistics" },
-	{ .name = "tstats_output_rate", .type_name = "double", .doc = "throttle output on tstats port [Hz]" },
+	{ .name = "tstats_profile_path", .type_name = "char", .doc = "directory to write the timing stats file to" },
+	{ .name = "tstats_output_rate", .type_name = "double", .doc = "throttle output on tstats port" },
 	{ .name = "loglevel", .type_name = "int" },
 	{ 0 },
 };
@@ -114,7 +114,12 @@ static void *thread_startup(void *arg)
 
 		while (inf->state != BLOCK_STATE_ACTIVE) {
 			trig_info_tstats_log(b, &inf->trig_inf);
-			write_tstats_to_profile_path(b, &inf->trig_inf);
+
+			ret = write_tstats_to_profile_path(b, &inf->trig_inf);
+
+			if (ret)
+				ubx_err(b, "failed to write tstats to profile_path: %d", ret);
+
 			inf->thread_state = THREAD_INACTIVE;
 			pthread_cond_wait(&inf->active_cond, &inf->mutex);
 		}

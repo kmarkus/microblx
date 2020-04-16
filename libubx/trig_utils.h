@@ -110,10 +110,10 @@ void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf);
 
 
 /**
- * write all tstats to file
+ * write all tstats to file named "block.tstats"
  * @param b parent block for logging
  * @param trig_inf trigger info struct
- * @param profile_path file to write stats to
+ * @param profile_path directory into which to write stats files
  * @return 0 if success, <0 otherwise
  */
 int trig_info_tstats_write(ubx_block_t *b,

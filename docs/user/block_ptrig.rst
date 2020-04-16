@@ -23,8 +23,9 @@ Configs
    thread_name, ``char``, "thread name (for dbg), default is block name"
    trig_blocks, ``struct ubx_trig_spec``, "specification of blocks to trigger"
    tstats_mode, ``int``, "enable timing statistics over all blocks"
-   tstats_profile_path, ``char``, "file to which to write the timing statistics"
-   tstats_output_rate, ``double``, "output tstats only on every tstats_output_rate'th trigger (0 to disable)"
+   tstats_profile_path, ``char``, "directory to write the timing stats file to"
+   tstats_output_rate, ``double``, "throttle output on tstats port"
+   loglevel, ``int``, ""
 
 
 

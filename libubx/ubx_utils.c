@@ -1,5 +1,6 @@
 /* miscellaneous */
 
+#include <string.h>
 #include <signal.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -30,4 +31,16 @@ int ubx_wait_sigint(unsigned int timeout_s)
 		return errno;
 
 	return 0;
+}
+
+/**
+ * replace char  in string
+ */
+void char_replace(char *s, const char find, const char rep)
+{
+	size_t len = strlen(s);
+	for(size_t i=0; i<len; i++) {
+		if (s[i] == find)
+			s[i] = rep;
+	}
 }

@@ -18,7 +18,7 @@ Configs
 
    trig_blocks, ``struct ubx_trig_spec``, "list of blocks to trigger"
    tstats_mode, ``int``, "0: off (def), 1: global only, 2: per block"
-   tstats_profile_path, ``char``, "file to write timing stats to"
+   tstats_profile_path, ``char``, "directory to write the timing stats file to"
    tstats_output_rate, ``double``, "throttle output on tstats port"
    loglevel, ``int``, ""
 

@@ -26,8 +26,8 @@ ubx_port_t trig_ports[] = {
 ubx_config_t trig_config[] = {
 	{ .name = "trig_blocks", .type_name = "struct ubx_trig_spec", .doc = "list of blocks to trigger" },
 	{ .name = "tstats_mode", .type_name = "int", .doc = "0: off (def), 1: global only, 2: per block", },
-	{ .name = "tstats_profile_path", .type_name = "char", .doc = "file to write timing stats to" },
-	{ .name = "tstats_output_rate", .type_name = "double", .doc = "throttle output on tstats port [Hz]" },
+	{ .name = "tstats_profile_path", .type_name = "char", .doc = "directory to write the timing stats file to" },
+	{ .name = "tstats_output_rate", .type_name = "double", .doc = "throttle output on tstats port" },
 	{ .name = "loglevel", .type_name = "int" },
 	{ 0 },
 };
@@ -64,10 +64,15 @@ int trig_start(ubx_block_t *b)
 
 void trig_stop(ubx_block_t *b)
 {
+	int ret;
 	struct trig_info *trig_inf = (struct trig_info*) b->private_data;
 
 	trig_info_tstats_log(b, trig_inf);
-	write_tstats_to_profile_path(b,	trig_inf);
+
+	ret = write_tstats_to_profile_path(b, trig_inf);
+
+	if(ret)
+		ubx_err(b, "failed to write tstats to profile_path: %d", ret);
 }
 
 void trig_cleanup(ubx_block_t *b)

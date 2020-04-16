@@ -59,7 +59,7 @@ int trig_info_config(ubx_block_t *b, struct trig_info *trig_inf)
 	trig_inf->p_tstats = ubx_port_get(b, "tstats");
 
 	/* initialize trig_info */
-	ret = trig_info_init(trig_inf, NULL, output_rate);
+	ret = trig_info_init(trig_inf, b->name, output_rate);
 
 out:
 	return ret;

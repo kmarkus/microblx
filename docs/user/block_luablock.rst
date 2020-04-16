@@ -18,6 +18,7 @@ Configs
 
    lua_file, ``char``, ""
    lua_str, ``char``, ""
+   loglevel, ``int``, ""
 
 
 
