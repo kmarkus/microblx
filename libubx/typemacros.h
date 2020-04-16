@@ -141,7 +141,6 @@ long FUNCNAME(const ubx_block_t *b,					\
 		if (c->type != type) {					\
 			ubx_err(b, "%s: ETYPE_MISMATCH: expected %s but config %s is %s", \
 				__func__, QUOTE(TYPENAME), cfg_name, c->type->name); \
-			ubx_err(b, "%p vs %p", c->type, type);		\
 			return ETYPE_MISMATCH;				\
 		}							\
 	}								\
