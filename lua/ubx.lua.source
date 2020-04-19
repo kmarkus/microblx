@@ -18,6 +18,7 @@ require "strict"
 
 local ts = tostring
 local concat = table.concat
+local format = string.format
 
 local M={}
 
@@ -751,7 +752,7 @@ function M.ffi_load_types(ni)
 	 local struct_str = preproc(ffi.string(t.private_data))
 	 local ret, err = pcall(ffi.cdef, struct_str)
 	 if ret==false then
-	    error("ffi_load_types: failed to load the following struct:\n"..struct_str.."\n"..err)
+	    error(format("loading type %s: %s", M.safe_tostr(t.name), err))
 	 end
       end
    end

@@ -257,6 +257,8 @@ int ubx_node_init(ubx_node_info_t *ni, const char *name, uint32_t attrs)
 	ni->blocks = NULL;
 	ni->types = NULL;
 	ni->modules = NULL;
+	ni->cur_seqid = 0;
+
 	ret = 0;
  out:
 	return ret;
@@ -320,6 +322,8 @@ void ubx_node_cleanup(ubx_node_info_t *ni)
 	cnt = ubx_num_blocks(ni);
 	if (cnt > 0)
 		logf_warn(ni, "%d blocks after cleanup", cnt);
+
+	ni->cur_seqid = 0;
 }
 
 /**
@@ -465,7 +469,6 @@ int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type)
 {
 	int ret;
 	ubx_type_t *tmp;
-	unsigned long seqid = 0;
 
 	if (type == NULL) {
 		logf_err(ni, "type is NULL");
@@ -489,7 +492,7 @@ int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type)
 		goto out;
 	}
 
-	type->seqid = seqid++;
+	type->seqid = ni->cur_seqid++;
 	type->ni = ni;
 
 	/* compute md5 fingerprint for type */
