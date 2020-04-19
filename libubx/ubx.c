@@ -2076,8 +2076,10 @@ ubx_port_t *ubx_port_get(ubx_block_t *b, const char *name)
 {
 	ubx_port_t *port_ptr = NULL;
 
-	if (b == NULL)
+	if (b == NULL) {
+		ERR("block is NULL");
 		goto out;
+	}
 
 	if (name == NULL) {
 		ubx_err(b, "port_get: name is NULL");
@@ -2085,16 +2087,15 @@ ubx_port_t *ubx_port_get(ubx_block_t *b, const char *name)
 	}
 
 	if (b->ports == NULL)
-		goto out_notfound;
+		goto out;
 
 	for (port_ptr = b->ports; port_ptr->name != NULL; port_ptr++)
 		if (strcmp(port_ptr->name, name) == 0)
 			goto out;
 
- out_notfound:
+	/* no port found */
 	port_ptr = NULL;
-
- out:
+out:
 	return port_ptr;
 }
 
