@@ -544,7 +544,13 @@ ubx_type_t *ubx_type_get(ubx_node_info_t *ni, const char *name)
 {
 	ubx_type_t *type = NULL;
 
+	if (name == NULL) {
+		logf_debug(ni, "name argument is NULL");
+		goto out;
+	}
+
 	HASH_FIND_STR(ni->types, name, type);
+out:
 	return type;
 }
 
