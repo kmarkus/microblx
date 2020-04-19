@@ -2335,7 +2335,8 @@ long __port_read(const ubx_port_t *port, ubx_data_t *data)
 	int ret = 0;
 	ubx_block_t **iaptr;
 
-	if (!port) {
+	if (port == NULL) {
+		ERR("port is NULL");
 		ret = EINVALID_PORT;
 		goto out;
 	}
@@ -2397,7 +2398,7 @@ void __port_write(const ubx_port_t *port, const ubx_data_t *data)
 	ubx_block_t **iaptr;
 
 	if (port == NULL) {
-		ERR("port null");
+		ERR("port is NULL");
 		goto out;
 	}
 
