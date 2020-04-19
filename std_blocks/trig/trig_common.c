@@ -11,6 +11,9 @@ int write_tstats_to_profile_path(ubx_block_t *b, struct trig_info *trig_inf)
 	if (len < 0)
 		ubx_err(b, "unable to retrieve config tstats_profile_path");
 
+	if (len == 0)
+		return 0;
+
 	return trig_info_tstats_write(b, trig_inf, profile_path);
 }
 
