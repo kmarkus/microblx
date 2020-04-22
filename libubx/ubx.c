@@ -2072,7 +2072,7 @@ int ubx_port_rm(ubx_block_t *b, const char *name)
  *
  * @return port pointer or NULL
  */
-ubx_port_t *ubx_port_get(ubx_block_t *b, const char *name)
+ubx_port_t *ubx_port_get(const ubx_block_t *b, const char *name)
 {
 	ubx_port_t *port_ptr = NULL;
 
