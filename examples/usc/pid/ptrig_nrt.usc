@@ -13,7 +13,7 @@ return bd.system {
 	   tstats_mode=1,
 	   tstats_profile_path="/tmp",
 	   trig_blocks={
-	      { b="#controller/trig_1", num_steps=1 } } }
+	      { b="#controller/trig_1" } } }
       },
    }
 }

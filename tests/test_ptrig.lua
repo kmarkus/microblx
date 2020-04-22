@@ -59,8 +59,8 @@ local sys1 = bd.system {
       { name="tester", config = { lua_str=count_num_trigs } },
       { name="trig", config = { period = {sec=0, usec=100000 },
 				trig_blocks={
-				   { b="#ramp", num_steps=1, measure=0 },
-				   { b="#tester", num_steps=1, measure=0 } } } },
+				   { b="#ramp" },
+				   { b="#tester" } } } },
    },
 }
 
@@ -115,9 +115,9 @@ local sys2 = bd.system {
       { name="trig", config = { period = {sec=0, usec=100000 },
 				tstats_mode=2,
 				trig_blocks={
-				   { b="#tb1", num_steps=1, measure=1 },
-				   { b="#tb2", num_steps=1, measure=1 },
-				   { b="#tb3", num_steps=1, measure=1 } } } },
+				   { b="#tb1" },
+				   { b="#tb2" },
+				   { b="#tb3" } } } },
    },
 }
 

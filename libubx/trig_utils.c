@@ -135,7 +135,6 @@ static void tstats_output_throttled(struct trig_info *trig_inf, uint64_t now)
 int do_trigger(struct trig_info *trig_inf)
 {
 	int ret = 0;
-	unsigned int steps;
 	uint64_t ts_end_ns;
 	struct ubx_timespec ts_start, ts_end, blk_ts_start, blk_ts_end;
 
@@ -147,12 +146,18 @@ int do_trigger(struct trig_info *trig_inf)
 	/* trigger all blocks */
 	for (int i = 0; i < trig_inf->trig_list_len; i++) {
 
+		const struct ubx_trig_spec *trig = &trig_inf->trig_list[i];
+
 		if (trig_inf->tstats_mode == 2)
 			ubx_gettime(&blk_ts_start);
 
+		/* default to 1 */
+		((struct ubx_trig_spec *)trig)->num_steps =
+			(trig->num_steps == 0) ? 1 : trig->num_steps;
+
 		/* step block */
-		for (steps = 0; steps < trig_inf->trig_list[i].num_steps; steps++) {
-			if (ubx_cblock_step(trig_inf->trig_list[i].b) != 0) {
+		for (int steps = 0; steps < trig->num_steps; steps++) {
+			if (ubx_cblock_step(trig->b) != 0) {
 				ret = -1;
 				break; /* next block */
 			}
