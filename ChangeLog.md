@@ -5,6 +5,9 @@ This file tracks user visible API changes
 
 ## v0.8.0
 
+- triggers: if `num_steps` is 0, this will be interpreted as the
+  default (1 step). To disable triggering of a block, set to -1.
+
 - Accessors for all stdtypes are defined using `def_type_accessors`,
   hence blocks can use these instead of defining their own.
 
