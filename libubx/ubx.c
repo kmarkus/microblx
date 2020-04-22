@@ -2297,13 +2297,13 @@ int ubx_cblock_step(ubx_block_t *b)
 	}
 
 	if (b->type != BLOCK_TYPE_COMPUTATION) {
-		ubx_err(b, "invalid block type %u", b->type);
+		ubx_err(b, "cblock_step: invalid block type %u", b->type);
 		ret = EINVALID_BLOCK_TYPE;
 		goto out;
 	}
 
 	if (b->block_state != BLOCK_STATE_ACTIVE) {
-		ubx_err(b, "block not active");
+		ubx_err(b, "cblock_step: block not active");
 		ret = EWRONG_STATE;
 		goto out;
 	}
