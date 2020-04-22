@@ -79,7 +79,7 @@ int tstat_write(FILE *fp, struct ubx_tstat *stats)
 			ubx_ts_to_double(&stats->max),
 			ubx_ts_to_double(&avg));
 	} else {
-		fprintf(fp, "%s: cnt: 0 - no stats aquired", stats->block_name);
+		fprintf(fp, "%s: cnt: 0 - no stats aquired\n", stats->block_name);
 	}
 
 	return 0;
