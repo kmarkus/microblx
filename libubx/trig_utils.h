@@ -110,6 +110,15 @@ void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf);
 
 
 /**
+ * construct the tstats log file name
+ * @param blockname of trigger block
+ * @param profile path
+ * @return filename (must be freed by called!)
+ */
+char* tstats_build_filename(const char *blockname,
+			    const char *profile_path);
+
+/**
  * write all tstats to file named "block.tstats"
  * @param b parent block for logging
  * @param trig_inf trigger info struct
@@ -119,6 +128,18 @@ void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf);
 int trig_info_tstats_write(ubx_block_t *b,
 			   struct trig_info *trig_inf,
 			   const char *profile_path);
+
+
+/**
+ * write a single tstat to a file
+ * @param b block for logging
+ * @param tstats
+ * @param profile_path
+ * @return - if sucess, <0 otherwise
+ */
+int tstat_write_file(ubx_block_t *b,
+		     struct ubx_tstat *tstats,
+		     const char *profile_path);
 
 /*
  * helpers to manager timing statistics

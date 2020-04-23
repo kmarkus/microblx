@@ -237,6 +237,87 @@ void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf)
 	}
 }
 
+char* tstats_build_filename(const char *blockname, const char *profile_path)
+{
+	int len, ret;
+	char *bn = NULL;
+	char *filename = NULL;
+
+	bn = strdup(blockname);
+
+	if (!bn)
+		goto out;
+
+	/* sanitize filename */
+	char_replace(bn, '/', '-');
+
+	/* the + 1 is for the '/' */
+	len = strlen(profile_path) + 1 + strlen(bn) + strlen(".tstats");
+
+	filename = malloc(len+1);
+
+	if (filename == NULL) {
+		goto out_free;
+	}
+
+	ret = snprintf(filename, len, "%s/%s.tstats", profile_path, bn);
+
+	if (ret < 0)
+		goto out_err;
+
+	/* all good */
+	goto out_free;
+
+out_err:
+	free(filename);
+	filename = NULL;
+out_free:
+	free(bn);
+out:
+	return filename;
+}
+
+int tstat_write_file(ubx_block_t *b,
+		     struct ubx_tstat *tstats,
+		     const char *profile_path)
+{
+	int ret=-1;
+	char *filename=NULL;
+	FILE *fp;
+
+	if (profile_path == NULL) {
+		ubx_err(b, "%s: profile_path is NULL", __func__);
+		goto out;
+	}
+
+	filename = tstats_build_filename(tstats->block_name, profile_path);
+
+	if (filename == NULL) {
+		ubx_err(b, "%s: failed to build filename for %s",
+			__func__, tstats->block_name);
+		goto out;
+	}
+
+	fp = fopen(filename, "w");
+
+	if (fp == NULL) {
+		ubx_err(b, "%s: opening %s failed", __func__, filename);
+		goto out_free;
+	}
+
+	fprintf(fp, FILE_HDR);
+
+	tstat_write(fp, tstats);
+
+	ubx_info(b, "wrote tstats_profile to %s", filename);
+	ret = 0;
+
+out_free:
+	free(filename);
+out:
+	return ret;
+}
+
 /**
  * write all stats to file
  */
@@ -244,51 +325,32 @@ int trig_info_tstats_write(ubx_block_t *b,
 			   struct trig_info *trig_inf,
 			   const char *profile_path)
 {
-	int ret=0, len;
-	char *blockname=NULL, *filename=NULL;
+	int ret=-1;
+	char *filename=NULL;
 	FILE *fp;
 
-	if (profile_path == NULL)
-		goto out;
-
-	if (trig_inf->tstats_mode == TSTATS_DISABLED)
-		goto out;
-
-	blockname = strdup(trig_inf->global_tstats.block_name);
-
-	if (!blockname) {
-		ubx_err(b, "%s: EOUTOFMEM", __func__);
-		ret = EOUTOFMEM;
+	if (profile_path == NULL) {
+		ubx_err(b, "%s: profile_path is NULL", __func__);
 		goto out;
 	}
 
-	/* sanitize filename */
-	char_replace(blockname,	'/', '-');
-
-	/* the + 1 is for the '/' */
-	len = strlen(profile_path) + 1 + strlen(blockname) + strlen(".tstats");
-
-	filename = malloc(len+1);
-
-	if (!filename) {
-		ubx_err(b, "%s: EOUTOFMEM 2", __func__);
-		ret = EOUTOFMEM;
-		goto out_free;
+	if (trig_inf->tstats_mode == TSTATS_DISABLED) {
+		ret = 0;
+		goto out;
 	}
 
-	ret = snprintf(filename, len, "%s/%s.tstats",
-		       profile_path, blockname);
+	filename = tstats_build_filename(trig_inf->global_tstats.block_name, profile_path);
 
-	if (ret < 0) {
-		ubx_err(b, "%s: failed to build filepath", __func__);
-		goto out_free;
+	if (filename == NULL) {
+		ubx_err(b, "%s: failed to build filename for %s",
+			__func__, trig_inf->global_tstats.block_name);
+		goto out;
 	}
 
 	fp = fopen(filename, "w");
 
 	if (fp == NULL) {
 		ubx_err(b, "%s: opening %s failed", __func__, filename);
-		ret = -1;
 		goto out_free;
 	}
 
@@ -312,9 +374,7 @@ int trig_info_tstats_write(ubx_block_t *b,
 	ubx_info(b, "wrote tstats_profile to %s", filename);
 	ret = 0;
 
-
 out_free:
-	free(blockname);
 	free(filename);
 out:
 	return ret;
