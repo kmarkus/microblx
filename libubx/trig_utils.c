@@ -38,6 +38,8 @@ void tstat_init(struct ubx_tstat *ts, const char *block_name)
 
 	ts->total.sec = 0;
 	ts->total.nsec = 0;
+
+	ts->cnt = 0;
 }
 
 /**
