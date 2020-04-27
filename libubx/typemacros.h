@@ -163,40 +163,45 @@ def_cfg_getptr_fun(cfg_getptr_ ## SUFFIX, TYPENAME)
 #ifdef __cplusplus
 #include <type_traits>
 
+/* generate overloaded port RW and config accessors */
+#define gen_class_accessors(SUFFIX, CLASS, UBXTYPE)			\
+                                                                        \
+long portRead(const ubx_port_t *p, CLASS* x, const int len)		\
+{                                                                       \
+	return read_ ## SUFFIX ## _array(p, (UBXTYPE*) x, len);		\
+}                                                                       \
+									\
+long portRead(const ubx_port_t *p, CLASS* x)				\
+{                                                                       \
+	return read_ ## SUFFIX(p, (UBXTYPE*) x);			\
+}                                                                       \
+									\
+long portWrite(const ubx_port_t *p, const CLASS* x, const int len)	\
+{                                                                       \
+	return write_ ## SUFFIX ## _array(p, (const UBXTYPE*) x, len);	\
+}                                                                       \
+									\
+long portWrite(const ubx_port_t *p, const CLASS* x)			\
+{                                                                       \
+	return write_ ## SUFFIX(p, (const UBXTYPE*) x);			\
+}                                                                       \
+									\
+long configGet(const ubx_block_t *b, const char *cfg_name, const CLASS **valptr) \
+{									\
+	return cfg_getptr_ ## SUFFIX(b, cfg_name, (const UBXTYPE**) valptr); \
+}									\
+
 /*
  * The following macro define helper functions for working with C++
  * objects with struct reflection. This checks for (and errors) if the
  * class is not a standard_layout class.
  */
 
-#define gen_class_accessors(SUFFIX, CLASS, UBXTYPE) \
+#define def_class_accessors(SUFFIX, CLASS, UBXTYPE) \
 static_assert(std::is_standard_layout<CLASS>::value, QUOTE(CLASS) "has no standard layout"); \
                                                                         \
 def_type_accessors(SUFFIX, UBXTYPE);                                    \
                                                                         \
-long portRead ## SUFFIX(const ubx_port_t *p, CLASS* x, const int len)   \
-{                                                                       \
-	return read_ ## SUFFIX ## _array(p, (UBXTYPE*) x, len);		\
-}                                                                       \
-									\
-long portRead ## SUFFIX(const ubx_port_t *p, CLASS* x)			\
-{                                                                       \
-	return read_ ## SUFFIX(p, (UBXTYPE*) x);			\
-}                                                                       \
-									\
-long portWrite ## SUFFIX(const ubx_port_t *p, CLASS* x, const int len)	\
-{                                                                       \
-	return write_ ## SUFFIX ## _array(p, (const UBXTYPE*) x, len);	\
-}                                                                       \
-									\
-long portWrite ## SUFFIX(const ubx_port_t *p, CLASS* x)			\
-{                                                                       \
-	return write_ ## SUFFIX(p, (const UBXTYPE*) x);			\
-}                                                                       \
-									\
-long configGet ## SUFFIX(const ubx_block_t *b, const char *cfg_name, const CLASS **valptr) \
-{									\
-	return cfg_getptr_ ## SUFFIX(b, cfg_name, (const UBXTYPE**) valptr);	\
-}									\
+gen_class_accessors(SUFFIX, CLASS, UBXTYPE);				\
 
 #endif
