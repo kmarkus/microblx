@@ -35,7 +35,8 @@ primitives:
   - **config**: defines any the static configuration blocks can have,
     such as control parameters, device file names etc.
 
-  - **ports**: defines the type of data that flows in and out of blocks.
+  - **ports**: defines the type of the data involved in interactions
+    between blocks (e.g. for data-flow).
 
 - **type**: microblx essentially uses the C type system (primitive
   types and structs and arrays of the former) for `configs` and values
