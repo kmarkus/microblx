@@ -56,11 +56,11 @@ Dependencies
 - ``uutils`` Lua utilities `uutils git <https://github.com/kmarkus/uutils>`_
 - ``liblfds`` lock free data structures (v6.1.1) `liblfds6.1.1 git <https://github.com/liblfds/liblfds6.1.1>`_
 - autotools etc. (apt: ``automake``, ``libtool``, ``pkg-config``, ``make``)
+- ``cproto`` (apt: ``cproto``) use by Make to generate prototype header file
   
-Only for microblx development:
+To run the tests:
 
 - ``lua-unit`` (apt: ``lua-unit``, `git <https://github.com/bluebird75/luaunit>`_) (to run the tests)
-- ``cproto`` (apt: ``cproto``) to generate C prototype header file
 
 Building and setting up
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -90,18 +90,18 @@ Clone the code:
    $ git clone https://github.com/kmarkus/uutils.git
 
 
-First build lfds-6.1.1:
+First build *lfds-6.1.1*:
 
 .. code:: bash
 
 	  $ cd liblfds6.1.1
 	  $ git am ../microblx/liblfds/*.patch
 	  $ ./bootstrap
-	  $ ./configure --prefix=/usr
+	  $ ./configure
 	  $ make
 	  $ sudo make install
 
-Then install ``uutils``:
+Then install *uutils*:
 
 .. code:: bash
 	  
@@ -109,7 +109,7 @@ Then install ``uutils``:
 	  $ sudo make install
 
 
-Now build microblx:
+Now build *microblx*:
 
 .. code:: bash
 	  
@@ -155,9 +155,9 @@ and then in another terminal:
    starting up webinterface block (http://localhost:8888)
    loaded request_handler()
 
-The `ubx-log` window will show various messages from the instantiation
-of the application. The last lines will be about the blocks that were
-started.
+The `ubx-log` window will show a number messages from the
+instantiation of the application. The last lines will be about the
+blocks that were started.
 
 Use the webif block
 ~~~~~~~~~~~~~~~~~~~
