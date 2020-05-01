@@ -19,6 +19,8 @@
 /* config array length checking */
 #define CONFIG_LEN_MAX		UINT16_MAX
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
 #include "typemacros.h"
 
 #ifdef __cplusplus
