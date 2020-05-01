@@ -3,6 +3,15 @@ ChangeLog
 
 This file tracks user visible API changes
 
+## next
+
+- `ptrig`: add CPU `affinity` config (optional). This takes a list of
+  the cores to run on. Default is no affinity.
+
+- `lfds_cyclic`: add `loglevel_overruns` config. This allows
+  configuring the loglevel of overrun conditions, or silencing them
+  completly by setting the value `-1`.
+
 ## v0.8.0
 
 - triggers: if `num_steps` is 0, this will be interpreted as the
