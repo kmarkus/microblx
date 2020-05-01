@@ -11,6 +11,7 @@ return bd.system {
       { name="ptrig_1", config = {
 	   sched_priority=99,
 	   sched_policy='SCHED_FIFO',
+	   affinity={0},
 	   period = {sec=0, usec=1000 },
 	   tstats_mode=1,
 	   tstats_profile_path="/tmp",
