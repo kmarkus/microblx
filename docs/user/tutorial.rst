@@ -105,7 +105,7 @@ The only files we will modify are **platform_2dof/platform_2dof.c** and
 The file that is auto-generated gives already some hints on how to
 approach the programming.
 
-::
+.. code:: c
 
    #include "platform_2dof.h"
 
@@ -495,7 +495,7 @@ following files:
 
 *Makefile.am*
 
-.. code:: cmake
+.. code:: make
 
    ubxmoddir = ${UBX_MODDIR}
 
@@ -510,7 +510,7 @@ might be possible that, if some custom types are used in the
 configuration, but are not installed, they must be added to the
 *CFLAGS*:
 
-.. code:: cmake
+.. code:: make
 
    platform_main_CFLAGS = -I${top_srcdir}/libubx -I path/to/other/headers  @UBX_CFLAGS@
 
@@ -531,7 +531,7 @@ Microblx uses realtime safe functions for logging. For logging from the
 scope of a block the functions ``ubx_info``, ``ubx_info``, *etc* are
 used. In the main we have to use the functions, ``ubx_log``, *e.g.*
 
-::
+.. code:: c
 
    ubx_log(UBX_LOGLEVEL_ERR, &ni, __func__,  "failed to init control1");
 
@@ -608,7 +608,7 @@ directly, or with a variable, *e.g.*
 Double property:
 ^^^^^^^^^^^^^^^^
 
-::
+.. code:: c
 
    d = ubx_config_get_data(control1, "gain");
    ubx_data_resize(d, 1);
@@ -736,5 +736,4 @@ has to be modified accordingly:
 
 .. code:: make
 
-   ...
    platform_main_LDFLAGS = -module -avoid-version -shared -export-dynamic  @UBX_LIBS@ -ldl -lpthread

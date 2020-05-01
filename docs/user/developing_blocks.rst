@@ -117,13 +117,10 @@ Declaring block meta-data
        "}";
 
 Additional meta-data can be defined as shown above. The following keys
-are supported so far:
+are commonly used so far:
 
-- ``doc:`` short descriptive documentation of the block
-
-- ``realtime``: is the block real-time safe, i.e. there are no memory
-   allocation / deallocation and other non deterministic function
-   calls in the ``step`` function.
+- ``doc``: short descriptive documentation of the block
+- ``realtime``: is the block real-time safe, i.e. there are no memory allocation / deallocation and other non deterministic function calls in the ``step`` function.
 
 Declaring/implementing block hook functions
 -------------------------------------------
@@ -149,10 +146,8 @@ life-cycle finite state machine:
 
 They are typically used for the following:
 
-- ``init``: initialize the block, allocate memory, drivers: check if
-   the device exists. Return zero if OK, non-zero otherwise.
-- ``start``: become operational, open/enable device, carry out last
-  checks. Cache pointers to ports, apply configurations.
+- ``init``: initialize the block, allocate memory, drivers: check if the device exists. Return zero if OK, non-zero otherwise.
+- ``start``: become operational, open/enable device, carry out last checks. Cache pointers to ports, apply configurations.
 - ``step``: read from ports, compute, write to ports
 - ``stop``: stop/close device. stop is often not used.
 - ``cleanup``: free all memory, release all resources.
