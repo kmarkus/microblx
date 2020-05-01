@@ -2,7 +2,7 @@
  * A demo C++ block
  */
 
-#define DEBUG 1
+#undef UBX_DEBUG
 
 #include <iostream>
 #include <ubx.h>

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#define DEBUG
+#undef UBX_DEBUG
 
 #include "pid.h"
 

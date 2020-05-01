@@ -5,7 +5,7 @@
  * example.
  */
 
-/* #define DEBUG 1 */
+#undef UBX_DEBUG
 
 #include <stdio.h>
 #include <stdlib.h>

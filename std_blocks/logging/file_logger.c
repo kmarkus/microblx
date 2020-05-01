@@ -2,7 +2,7 @@
  * A generic luajit based block.
  */
 
-/* #define DEBUG	1 */
+#undef UBX_DEBUG
 #define COMPILE_IN_LOG_LUA_FILE
 
 #include <lauxlib.h>

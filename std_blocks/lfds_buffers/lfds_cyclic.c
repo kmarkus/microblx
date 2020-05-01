@@ -2,7 +2,7 @@
  * A lock-free interaction
  */
 
-/* #define DEBUG 1 */
+#undef UBX_DEBUG
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -245,7 +245,7 @@ static long cyclic_read(ubx_block_t *i, ubx_data_t *msg)
 	readlen = MIN(msg->len, hd->data_len);
 	readsz = bbi->type->size * readlen;
 
-	ubx_debug("%s: copying %ld bytes", i->name, readsz);
+	ubx_debug(i, "%s: copying %ld bytes", i->name, readsz);
 
 	memcpy(msg->data, hd->data, readsz);
 

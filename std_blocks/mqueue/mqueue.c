@@ -2,7 +2,7 @@
  * An interaction block that sends data via a mqueue
  */
 
-#define DEBUG 1
+#undef UBX_DEBUG
 
 #include <stdio.h>
 #include <stdlib.h>
