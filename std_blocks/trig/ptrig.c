@@ -51,6 +51,8 @@ ubx_type_t ptrig_types[] = {
 	{ 0 },
 };
 
+def_cfg_getptr_fun(cfg_getptr_ptrig_period, struct ptrig_period);
+
 /* configuration */
 ubx_config_t ptrig_config[] = {
 	{ .name = "period", .type_name = "struct ptrig_period", .doc = "trigger period in { sec, ns }", },
@@ -69,11 +71,26 @@ ubx_config_t ptrig_config[] = {
 	{ 0 },
 };
 
+
 /* used by the thread to reports it's actual state */
 enum thread_state {
 	THREAD_INACTIVE,
 	THREAD_ACTIVE
 };
+
+const char* schedpol_tostr(unsigned int schedpol)
+{
+	switch(schedpol) {
+	case SCHED_OTHER: return "SCHED_OTHER";
+	case SCHED_FIFO: return "SCHED_FIFO";
+	case SCHED_RR: return "SCHED_RR";
+	case SCHED_IDLE: return "SCHED_IDLE";
+	case SCHED_BATCH: return "SCHED_BATCH";
+	case SCHED_DEADLINE: return "SCHED_BATCH";
+	default:
+		return "unkown";
+	}
+}
 
 /**
  * block info
@@ -88,7 +105,7 @@ struct ptrig_inf {
 	pthread_mutex_t mutex;
 	pthread_cond_t active_cond;
 
-	struct ptrig_period *period;
+	const struct ptrig_period *period;
 
 	struct trig_info trig_inf;
 };
@@ -160,31 +177,32 @@ static void *thread_startup(void *arg)
 
 int ptrig_handle_config(ubx_block_t *b)
 {
-	int ret = -1;
-	unsigned int schedpol;
 	long len;
+	int ret = -EINVALID_CONFIG;
+	unsigned int schedpol;
 	const char *schedpol_str;
-	size_t *stacksize;
+	const size_t *stacksize = NULL;
 	const int *prio;
 	struct sched_param sched_param; /* prio */
 	struct ptrig_inf *inf = (struct ptrig_inf *)b->private_data;
 
 	/* period */
-	len = ubx_config_get_data_ptr(b, "period", (void **) &inf->period);
-	if (len <= 0) {
-		ubx_err(b, "%s: config 'period' unconfigured", b->name);
+	len = cfg_getptr_ptrig_period(b, "period", &inf->period);
+	assert(len >= 0);
+
+	if (len == 0) {
+		ubx_err(b, "mandatory config 'period' unconfigured");
 		goto out;
 	}
 
 	/* stacksize */
-	len = ubx_config_get_data_ptr(b, "stacksize", (void **) &stacksize);
-	if (len < 0)
-		goto out;
+	len = cfg_getptr_size_t(b, "stacksize", &stacksize);
+	assert(len >= 0);
 
 	if (len > 0) {
 		if (*stacksize < PTHREAD_STACK_MIN) {
-			ubx_err(b, "%s: stacksize (%zd) less than PTHREAD_STACK_MIN (%d)",
-				b->name, *stacksize, PTHREAD_STACK_MIN);
+			ubx_err(b, "stacksize (%zd) less than PTHREAD_STACK_MIN (%d)",
+				*stacksize, PTHREAD_STACK_MIN);
 			goto out;
 		}
 
@@ -197,8 +215,7 @@ int ptrig_handle_config(ubx_block_t *b)
 
 	/* schedpolicy */
 	len = cfg_getptr_char(b, "sched_policy", &schedpol_str);
-	if (len < 0)
-		goto out;
+	assert(len >= 0);
 
 	if (len > 0) {
 		if (strncmp(schedpol_str, "SCHED_OTHER", len) == 0) {
@@ -208,8 +225,8 @@ int ptrig_handle_config(ubx_block_t *b)
 		} else if (strncmp(schedpol_str, "SCHED_RR", len) == 0) {
 			schedpol = SCHED_RR;
 		} else {
-			ubx_err(b, "%s: sched_policy config: illegal value %s",
-			    b->name, schedpol_str);
+			ubx_err(b, "sched_policy config: illegal value %s",
+				schedpol_str);
 			goto out;
 		}
 	} else {
@@ -228,19 +245,19 @@ int ptrig_handle_config(ubx_block_t *b)
 
 	/* priority */
 	len = cfg_getptr_int(b, "sched_priority", &prio);
-	if (len < 0)
-		goto out;
+	assert(len >= 0);
 
 	sched_param.sched_priority = (len > 0) ? *prio : 0;
 
-	if (((schedpol == SCHED_FIFO ||
-	      schedpol == SCHED_RR) && sched_param.sched_priority == 0) ||
-	     (schedpol == SCHED_OTHER && sched_param.sched_priority > 0)) {
-		ubx_err(b, "%s sched_priority is %d with %s policy",
-			b->name, sched_param.sched_priority, schedpol_str);
+	if (((schedpol == SCHED_FIFO || schedpol == SCHED_RR) &&
+	     sched_param.sched_priority == 0) ||
+	    (schedpol == SCHED_OTHER && sched_param.sched_priority > 0)) {
+		ubx_err(b, "invalid sched_priority %d with policy %s",
+			sched_param.sched_priority, schedpol_tostr(schedpol));
 	}
 
 	ret = pthread_attr_setschedparam(&inf->attr, &sched_param);
+
 	if (ret != 0) {
 		ubx_err(b, "failed to set sched_policy.sched_priority to %d: %s",
 			sched_param.sched_priority, strerror(ret));
@@ -248,10 +265,18 @@ int ptrig_handle_config(ubx_block_t *b)
 		goto out;
 	}
 
-	ubx_debug(b, "config: period=%lus:%luus, policy=%s, prio=%d, stacksize=%lu (0=default size)",
-		  inf->period->sec, inf->period->usec,
-		  schedpol_str, sched_param.sched_priority,
-		  (unsigned long) stacksize);
+	/* log */
+	if (stacksize != NULL)
+		ubx_info(b, "period: %lus:%luus, policy %s, prio %d, stacksize 0x%zu",
+			 inf->period->sec, inf->period->usec,
+			 schedpol_tostr(schedpol),
+			 sched_param.sched_priority,
+			 *stacksize);
+	else
+		ubx_info(b, "period %lus:%luus, policy %s, prio %d, stacksize default",
+			 inf->period->sec, inf->period->usec,
+			 schedpol_tostr(schedpol),
+			 sched_param.sched_priority);
 
 	ret = 0;
 out:
@@ -315,7 +340,7 @@ static int ptrig_init(ubx_block_t *b)
 		CPU_ZERO(&cpuset);
 
 		for (int i=0; i<len; i++) {
-			ubx_debug(b, "setting affinity to CPU core %i",	aff[i]);
+			ubx_info(b, "setting affinity to CPU core %i",	aff[i]);
 			CPU_SET(aff[i], &cpuset);
 		}
 
