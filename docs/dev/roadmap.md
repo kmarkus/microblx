@@ -37,6 +37,10 @@ else is already doing so.
   application binaries. A first proof of concept was developed here
   [1].
 
+- To relieve block developers from tedious manual validation, it would
+  be nice to have **more expressive, declarative constraint checking**
+  on configuration values than the current min/max.
+
 [001-blockdiagram-composition.md]: 001-blockdiagram-composition.md
 
 ## References
