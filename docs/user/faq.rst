@@ -72,7 +72,11 @@ capabilities, e.g:
 
 .. code:: sh
 
-   $ sudo setcap cap_sys_nice+ep /usr/local/bin/luajit-2.0.2
+   $ sudo setcap cap_sys_nice+ep `which luajit`
+
+Note that this will grant these capabilities to luajit binary in
+`PATH`. If you don't want to do this system-wide, then specify a
+different version!
 
 My script immedately crashes/finishes
 -------------------------------------
