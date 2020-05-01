@@ -1625,17 +1625,17 @@ ubx_data_t *ubx_config_get_data(const ubx_block_t *b, const char *name)
 long ubx_config_get_data_ptr(const ubx_block_t *b, const char *name, void **ptr)
 {
 	ubx_data_t *d;
-	long ret = -1;
 
 	d = ubx_config_get_data(b, name);
+
 	if (d == NULL)
-		goto out;
+		return EINVALID_CONFIG;
 
-	*ptr = d->data;
-	ret = d->len;
+	/* only modify ptr if configured */
+	if (d->len > 0)
+		*ptr = d->data;
 
- out:
-	return ret;
+	return d->len;
 }
 
 /**
