@@ -41,6 +41,7 @@ int write_tstat_array(const ubx_port_t* p, const struct ubx_tstat* val, const in
  * @trig_list: pointer to trig_spec array
  * @trig_list_len: length of above array
  * @tstats_mode: desired enum tstats_mode
+ * @tstats_skip_first skip this many steps before starting to acquire stats
  * @p_tstats: tstats output port (optional)
  * @global_tstats global tstats structure
  * @blk_tstats: pointer to array of size trig_list_len for per block stats
@@ -52,6 +53,8 @@ struct trig_info {
 	const struct ubx_trig_spec *trig_list;
 	long trig_list_len;
 	int tstats_mode;
+	unsigned int tstats_skip_first;
+
 	ubx_port_t *p_tstats;
 
 	/* internal, initialized via trig_info_init */

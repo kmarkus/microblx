@@ -134,24 +134,20 @@ static void tstats_output_throttled(struct trig_info *trig_inf, uint64_t now)
 /*
  * basic triggering and tstats management
  */
-int do_trigger(struct trig_info *trig_inf)
+static int trig_stats_perblock(struct trig_info *trig_inf)
 {
 	int ret = 0;
 	uint64_t ts_end_ns;
 	struct ubx_timespec ts_start, ts_end, blk_ts_start, blk_ts_end;
 
-
-	/* start of global measurement */
-	if (trig_inf->tstats_mode > 0)
-		ubx_gettime(&ts_start);
+	ubx_gettime(&ts_start);
 
 	/* trigger all blocks */
 	for (int i = 0; i < trig_inf->trig_list_len; i++) {
 
 		const struct ubx_trig_spec *trig = &trig_inf->trig_list[i];
 
-		if (trig_inf->tstats_mode == 2)
-			ubx_gettime(&blk_ts_start);
+		ubx_gettime(&blk_ts_start);
 
 		/* step block */
 		for (int steps = 0; steps < trig->num_steps; steps++) {
@@ -161,15 +157,9 @@ int do_trigger(struct trig_info *trig_inf)
 			}
 		}
 
-		if (trig_inf->tstats_mode == 2) {
-			ubx_gettime(&blk_ts_end);
-			tstat_update(&trig_inf->blk_tstats[i], &blk_ts_start, &blk_ts_end);
-		}
+		ubx_gettime(&blk_ts_end);
+		tstat_update(&trig_inf->blk_tstats[i], &blk_ts_start, &blk_ts_end);
 	}
-
-
-	if (trig_inf->tstats_mode == TSTATS_DISABLED)
-		goto out;
 
 	/* finalize global measurement,	output stats */
 	ubx_gettime(&ts_end);
@@ -179,8 +169,83 @@ int do_trigger(struct trig_info *trig_inf)
 	if (trig_inf->tstats_output_rate > 0 && trig_inf->p_tstats != NULL)
 		tstats_output_throttled(trig_inf, ts_end_ns);
 
-out:
 	return ret;
+}
+
+static int trig_stats_global(struct trig_info *trig_inf)
+{
+	int ret = 0;
+	uint64_t ts_end_ns;
+	struct ubx_timespec ts_start, ts_end;
+
+	ubx_gettime(&ts_start);
+
+	/* trigger all blocks */
+	for (int i = 0; i < trig_inf->trig_list_len; i++) {
+
+		const struct ubx_trig_spec *trig = &trig_inf->trig_list[i];
+
+		/* step block */
+		for (int steps = 0; steps < trig->num_steps; steps++) {
+			if (ubx_cblock_step(trig->b) != 0) {
+				ret = -1;
+				break; /* next block */
+			}
+		}
+	}
+
+	/* finalize global measurement,	output stats */
+	ubx_gettime(&ts_end);
+	tstat_update(&trig_inf->global_tstats, &ts_start, &ts_end);
+	ts_end_ns = ubx_ts_to_ns(&ts_end);
+
+	if (trig_inf->tstats_output_rate > 0 && trig_inf->p_tstats != NULL)
+		tstats_output_throttled(trig_inf, ts_end_ns);
+
+	return ret;
+}
+
+/*
+ * basic triggering and tstats management
+ */
+static int trig_stats_disabled(struct trig_info *trig_inf)
+{
+	int ret = 0;
+	/* trigger all blocks */
+	for (int i = 0; i < trig_inf->trig_list_len; i++) {
+
+		const struct ubx_trig_spec *trig = &trig_inf->trig_list[i];
+
+		/* step block */
+		for (int steps = 0; steps < trig->num_steps; steps++) {
+			if (ubx_cblock_step(trig->b) != 0) {
+				ret = -1;
+				break; /* next block */
+			}
+		}
+	}
+
+	return ret;
+}
+
+int do_trigger(struct trig_info *trig_inf)
+{
+	if (trig_inf->tstats_skip_first > 0) {
+		trig_inf->tstats_skip_first--;
+		return trig_stats_disabled(trig_inf);
+	}
+
+	switch(trig_inf->tstats_mode) {
+	case TSTATS_DISABLED:
+		return trig_stats_disabled(trig_inf);
+	case TSTATS_GLOBAL:
+		return trig_stats_global(trig_inf);
+	case TSTATS_PERBLOCK:
+		return trig_stats_perblock(trig_inf);
+	default:
+		ERR("invalid TSTATS_MODE %i", trig_inf->tstats_mode);
+		return -1;
+	}
 }
 
 int trig_info_init(struct trig_info *trig_inf,
