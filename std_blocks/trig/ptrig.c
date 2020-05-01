@@ -67,6 +67,7 @@ ubx_config_t ptrig_config[] = {
 	{ .name = "tstats_mode", .type_name = "int", .doc = "enable timing statistics over all blocks", },
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "directory to write the timing stats file to" },
 	{ .name = "tstats_output_rate", .type_name = "double", .doc = "throttle output on tstats port" },
+	{ .name = "tstats_skip_first", .type_name = "int", .doc = "skip N steps before acquiring stats" },
 	{ .name = "loglevel", .type_name = "int" },
 	{ 0 },
 };
