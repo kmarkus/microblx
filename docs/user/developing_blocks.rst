@@ -33,7 +33,7 @@ ubx_genblock`_.
 Declaring configuration
 -----------------------
 
-Configuration is described with a ``NULL`` terminated array of
+Configuration is described with a ``{ 0 }`` terminated array of
 ``ubx_config_t`` types:
 
 .. code:: c
@@ -92,7 +92,7 @@ Legal values of ``min`` and ``max`` are summarized below:
 Declaring ports
 ---------------
 
-Like configurations, ports are described with a ``NULL`` terminated
+Like configurations, ports are described with a ``{ 0 }`` terminated
 array of ubx_config_t types:
 
 .. code:: c
