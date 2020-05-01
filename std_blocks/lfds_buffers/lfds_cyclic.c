@@ -10,8 +10,6 @@
 
 #include "ubx.h"
 
-UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
-
 /* meta-data */
 char cyclic_meta[] =
 	"{ doc='High performance scalable, lock-free cyclic, buffered in process communication"
@@ -28,6 +26,7 @@ ubx_config_t cyclic_config[] = {
 	{ .name = "type_name", .type_name = "char", .min = 1, .doc = "name of registered microblx type to transport" },
 	{ .name = "data_len", .type_name = "uint32_t", .max = 1, .doc = "array length (multiplier) of data (default: 1)" },
 	{ .name = "buffer_len", .type_name = "uint32_t", .min = 1, .max = 1, .doc = "max number of data elements the buffer shall hold" },
+	{ .name = "loglevel_overruns", .type_name = "int", .min = 0, .max = 1, .doc = "loglevel for reporting overflows (default: NOTICE, -1 to disable)" },
 	{ 0 },
 };
 
@@ -47,6 +46,7 @@ struct cyclic_block_info {
 
 	unsigned long overruns;		/* stats */
 	ubx_port_t *p_overruns;
+	int loglevel_overruns;
 };
 
 struct cyclic_elem_header {
@@ -76,6 +76,7 @@ static int cyclic_init(ubx_block_t *i)
 {
 	int ret = -1;
 	long len;
+	const int *ival;
 	const uint32_t *val;
 	const char *type_name;
 	struct cyclic_block_info *bbi;
@@ -89,11 +90,24 @@ static int cyclic_init(ubx_block_t *i)
 
 	bbi = (struct cyclic_block_info *)i->private_data;
 
+	/* read loglevel_overruns */
+	len = cfg_getptr_int(i, "loglevel_overruns", &ival);
+	assert(len>=0);
+
+	bbi->loglevel_overruns = (len==0) ? UBX_LOGLEVEL_NOTICE : *ival;
+
+	if (bbi->loglevel_overruns < -1 || bbi->loglevel_overruns > UBX_LOGLEVEL_DEBUG) {
+		ubx_err(i, "EINVALID_CONFIG: loglevel_overruns:	%i",
+			bbi->loglevel_overruns);
+		ret = EINVALID_CONFIG;
+		goto out_free_priv_data;
+	}
+
 	/* read and check buffer_len config */
 	len = cfg_getptr_uint32(i, "buffer_len", &val);
 
 	if (*val == 0) {
-		ubx_err(i, "config buffer_len=0");
+		ubx_err(i, "EINVALID_CONFIG: buffer_len=0");
 		ret = EINVALID_CONFIG;
 		goto out_free_priv_data;
 	}
@@ -112,7 +126,7 @@ static int cyclic_init(ubx_block_t *i)
 	bbi->type = ubx_type_get(i->ni, type_name);
 
 	if (bbi->type == NULL) {
-		ubx_err(i, "unkown type %s", type_name);
+		ubx_err(i, "EINVALID_CONFIG: unkown type %s", type_name);
 		ret = EINVALID_CONFIG;
 		goto out_free_priv_data;
 	}
@@ -122,7 +136,7 @@ static int cyclic_init(ubx_block_t *i)
 
 	if (lfds611_ringbuffer_new(&bbi->rbs, bbi->buffer_len,
 				   cyclic_data_elem_init, bbi) == 0) {
-		ubx_err(i, "alloc ringbuf of %lu x %s [%lu]",
+		ubx_err(i, "EOUTOFMEM: ringbuf of %lu x %s [%lu]",
 			bbi->buffer_len, type_name, bbi->data_len);
 		ret = EOUTOFMEM;
 		goto out_free_priv_data;
@@ -130,6 +144,7 @@ static int cyclic_init(ubx_block_t *i)
 
 	/* cache port ptrs */
 	bbi->p_overruns = ubx_port_get(i, "overruns");
+	assert(bbi->p_overruns);
 
 	ret = 0;
 	goto out;
@@ -176,9 +191,13 @@ static void cyclic_write(ubx_block_t *i, const ubx_data_t *msg)
 
 	if (ret) {
 		bbi->overruns++;
+
 		write_ulong(bbi->p_overruns, &bbi->overruns);
-		ubx_notice(i, "buffer overrun [cnt: %ld]",
-			   bbi->overruns);
+
+		if (bbi->loglevel_overruns >= 0) {
+			ubx_block_log(bbi->loglevel_overruns, i,
+				      "buffer overrun: #%ld", bbi->overruns);
+		}
 	}
 
 	/* write */
@@ -263,3 +282,4 @@ static void cyclic_mod_cleanup(ubx_node_info_t *ni)
 
 UBX_MODULE_INIT(cyclic_mod_init)
 UBX_MODULE_CLEANUP(cyclic_mod_cleanup)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)

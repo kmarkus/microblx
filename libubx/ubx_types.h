@@ -97,7 +97,7 @@ enum {
 
 	EINVALID_BLOCK_TYPE,		/* invalid block type */
 	EINVALID_PORT_TYPE,		/* invalid port type */
-	EINVALID_CONFIG_TYPE,		/* invalid port type */
+	EINVALID_CONFIG_TYPE,		/* invalid config type */
 
 	EINVALID_CONFIG_LEN,		/* invalid config array length */
 
