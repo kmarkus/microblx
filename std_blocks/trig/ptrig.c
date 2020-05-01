@@ -2,8 +2,10 @@
  * A pthread based trigger block
  */
 
-/* #define DEBUG 1 */
+#undef UBX_DEBUG
+
 #define CONFIG_PTHREAD_SETNAME
+#define CONFIG_PTHREAD_SETAFFINITY
 
 #ifdef CONFIG_PTHREAD_SETNAME
  #define _GNU_SOURCE
@@ -55,6 +57,9 @@ ubx_config_t ptrig_config[] = {
 	{ .name = "stacksize", .type_name = "size_t", .doc = "stacksize as per pthread_attr_setstacksize(3)" },
 	{ .name = "sched_priority", .type_name = "int", .doc = "pthread priority" },
 	{ .name = "sched_policy", .type_name = "char", .doc = "pthread scheduling policy" },
+#ifdef CONFIG_PTHREAD_SETAFFINITY
+	{ .name = "affinity", .type_name = "int", .doc = "list of CPUs to set the pthread CPU affinity to" },
+#endif
 	{ .name = "thread_name", .type_name = "char", .doc = "thread name (for dbg), default is block name" },
 	{ .name = "trig_blocks", .type_name = "struct ubx_trig_spec", .doc = "specification of blocks to trigger" },
 	{ .name = "tstats_mode", .type_name = "int", .doc = "enable timing statistics over all blocks", },
@@ -289,14 +294,41 @@ static int ptrig_init(ubx_block_t *b)
 	}
 
 #ifdef CONFIG_PTHREAD_SETNAME
+	/* pthread_setname_np */
 	len = cfg_getptr_char(b, "thread_name", &threadname);
-	if (len < 0)
-		goto out_err;
+	assert(len>=0);
 
 	threadname = (len > 0) ? threadname : b->name;
 
 	if (pthread_setname_np(inf->tid, threadname))
 		ubx_err(b, "failed to set thread_name to %s", threadname);
+#endif
+
+#ifdef CONFIG_PTHREAD_SETAFFINITY
+	/* cpu affinity */
+	const int *aff;
+	len = cfg_getptr_int(b, "affinity", &aff);
+	assert(len>=0);
+
+	if (len > 0) {
+		cpu_set_t cpuset;
+		CPU_ZERO(&cpuset);
+
+		for (int i=0; i<len; i++) {
+			ubx_debug(b, "setting affinity to CPU core %i",	aff[i]);
+			CPU_SET(aff[i], &cpuset);
+		}
+
+		ret = pthread_setaffinity_np(inf->tid, sizeof(cpu_set_t), &cpuset);
+
+		if (ret != 0) {
+			ubx_err(b, "pthread_setaffinity_np failed: %s", strerror(ret));
+			ret = -1;
+			goto out_err;
+		}
+	} else {
+		ubx_debug(b, "setting no thread affinity");
+	}
 #endif
 
 	/* OK */
