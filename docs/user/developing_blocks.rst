@@ -173,7 +173,7 @@ Retrieve and use it in the other hooks:
 
 .. code:: c
 
-   struct block_info inf*;
+   struct block_info *inf;
 
    inf = (struct random_info*) b->private_data;
 
