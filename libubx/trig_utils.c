@@ -153,10 +153,6 @@ int do_trigger(struct trig_info *trig_inf)
 		if (trig_inf->tstats_mode == 2)
 			ubx_gettime(&blk_ts_start);
 
-		/* default to 1 */
-		((struct ubx_trig_spec *)trig)->num_steps =
-			(trig->num_steps == 0) ? 1 : trig->num_steps;
-
 		/* step block */
 		for (int steps = 0; steps < trig->num_steps; steps++) {
 			if (ubx_cblock_step(trig->b) != 0) {
@@ -209,6 +205,13 @@ int trig_info_init(struct trig_info *trig_inf,
 		for (int i = 0; i < trig_inf->trig_list_len; i++)
 			tstat_init(&trig_inf->blk_tstats[i], trig_inf->trig_list[i].b->name);
 	}
+
+	/* let num_steps default to 1 */
+	for (int i = 0; i < trig_inf->trig_list_len; i++) {
+		if (trig_inf->trig_list[i].num_steps == 0)
+			((struct ubx_trig_spec*) &trig_inf->trig_list[i])->num_steps = 1;
+	}
+
 	return 0;
 }
 
