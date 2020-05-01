@@ -18,5 +18,7 @@ def_type_accessors(int16, int16_t);
 def_type_accessors(int32, int32_t);
 def_type_accessors(int64, int64_t);
 
+def_type_accessors(size_t, size_t);
+
 def_type_accessors(float, float);
 def_type_accessors(double, double);
