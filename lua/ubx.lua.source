@@ -328,6 +328,7 @@ function M.load_module(ni, libfile)
 	 if res ~= 0 then
 	    error(red("loading module ", true)..magenta(modpath)..red(" failed", true))
 	 end
+	 info(ni, "lua", "loaded module "..modpath)
 	 M.ffi_load_types(ni)
 	 return modpath
       end
