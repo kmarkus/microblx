@@ -5,6 +5,9 @@ This file tracks user visible API changes
 
 ## next
 
+- core: add `ubx_node_clear`. This function stops, cleans up and
+  removes all non-prototype blocks.
+
 - `ptrig`: add CPU `affinity` config (optional). This takes a list of
   the cores to run on. Default is no affinity.
 

@@ -265,20 +265,17 @@ int ubx_node_init(ubx_node_info_t *ni, const char *name, uint32_t attrs)
 }
 
 /**
- * ubx_node_cleanup - cleanup a node
+ * ubx_node_clear
  *
- * This stops, cleanups and rm's all blocks and unloads all
- * modules. The node is empty but still valid afterwards.
+ * Stop, cleanup and remove all blocks of the given node.
  *
  * @param ni
  */
-void ubx_node_cleanup(ubx_node_info_t *ni)
+void ubx_node_clear(ubx_node_info_t *ni)
 {
-	int cnt;
-	ubx_module_t *m = NULL, *mtmp = NULL;
 	ubx_block_t *b = NULL, *btmp = NULL;
 
-	logf_debug(ni, "cleaning up node %s", ni->name);
+	logf_debug(ni, "node %s", ni->name);
 
 	/* stop all blocks */
 	HASH_ITER(hh, ni->blocks, b, btmp) {
@@ -306,6 +303,24 @@ void ubx_node_cleanup(ubx_node_info_t *ni)
 				logf_err(ni, "ubx_block_rm failed for %s", b->name);
 		}
 	}
+}
+
+/**
+ * ubx_node_cleanup - cleanup a node
+ *
+ * This function will run ubx_node_clear and then unload all
+ * modules. The node is empty but still valid afterwards.
+ *
+ * @param ni
+ */
+void ubx_node_cleanup(ubx_node_info_t *ni)
+{
+	int cnt;
+	ubx_module_t *m = NULL, *mtmp = NULL;
+
+	logf_debug(ni, "node %s", ni->name);
+
+	ubx_node_clear(ni);
 
 	/* unload all modules. */
 	HASH_ITER(hh, ni->modules, m, mtmp) {
