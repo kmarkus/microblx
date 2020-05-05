@@ -19,7 +19,9 @@ local M={}
 -- shortcuts
 local foreach = utils.foreach
 local ts = tostring
+local fmt = string.format
 local insert = table.insert
+local safets = ubx.safe_tostr
 
 -- node configuration
 _NC = nil
@@ -40,15 +42,22 @@ end
 
 --- Create logging helper functions.
 local function def_loggers(ni, src)
-   crit = function(msg) stderr(msg); ubx.crit(ni, src, msg) end
-   err = function(msg) stderr(msg); ubx.err(ni, src, msg) end
-   warn = function(msg) stderr(msg); ubx.warn(ni, src, msg) end
-   notice = function(msg) stderr(msg); ubx.notice(ni, src, msg) end
-   info = function(msg) stderr(msg); ubx.info(ni, src, msg) end
+   err = function(format, ...)
+      local msg = fmt(format, unpack{...}); stderr(msg); ubx.err(ni, src, msg)
+   end
+   warn = function(format, ...)
+      local msg = fmt(format, unpack{...}); stderr(msg); ubx.warn(ni, src, msg)
+   end
+   notice = function(format, ...)
+      local msg = fmt(format, unpack{...}); stderr(msg); ubx.notice(ni, src, msg)
+   end
+   info = function(format, ...)
+      local msg = fmt(format, unpack{...}); stderr(msg); ubx.info(ni, src, msg)
+   end
 end
 
-local function err_exit(code, msg)
-   err(msg)
+local function err_exit(code, format, ...)
+   err(format, ...)
    os.exit(code)
 end
 
@@ -490,8 +499,8 @@ local function lc_unconn_inports(ni, res)
 			function(p)
 			   if p.in_interaction == nil then
 			      res[#res+1] = yellow("unconnected input port ", true) ..
-				 green(ubx.safe_tostr(b.name)) .. "." ..
-				 cyan(ubx.safe_tostr(p.name))
+				 green(safets(b.name)) .. "." ..
+				 cyan(safets(p.name))
 			   end
 			end, ubx.is_inport)
    end
@@ -505,8 +514,8 @@ local function lc_unconn_outports(ni, res)
 			function(p)
 			   if p.out_interaction == nil then
 			      res[#res+1] = yellow("unconnected output port ", true) ..
-				 green(ubx.safe_tostr(b.name)) .. "." ..
-				 cyan(ubx.safe_tostr(p.name))
+				 green(safets(b.name)) .. "." ..
+				 cyan(safets(p.name))
 			   end
 			end, ubx.is_outport)
    end
@@ -530,12 +539,11 @@ M._checks = {
 local function late_checks(conf, ni)
    if not conf.checks then return end
    local res = {}
-   info("running late validation ("..
-	   table.concat(conf.checks, ", ")..")")
+   info("running late validation (%s)", table.concat(conf.checks, ", "))
    foreach(
       function (chk)
 	 if not M._checks[chk] then
-	    err_exit(1, "unknown check "..chk)
+	    err_exit(1, "unknown check %s", chk)
 	 end
 	 M._checks[chk].fun(ni,res)
       end,
@@ -564,11 +572,12 @@ end
 function system.startup(self, ni)
 
    local function block_start(b)
-      local bname = ubx.safe_tostr(b.name)
-      info("starting block ".. green(bname))
+      local bname = safets(b.name)
+      info("starting block %s", green(bname))
       local ret = ubx.block_tostate(b, 'active')
       if ret ~= 0 then
-	 err_exit(ret, "failed to start block "..bname..": "..(ubx.retval_tostr[ret] or ts(ret)))
+	 err_exit(ret, "failed to start block %s: %s",
+		  bname, (ubx.retval_tostr[ret] or ts(ret)))
       end
    end
 
@@ -585,7 +594,7 @@ end
 function system.pulldown(self, ni)
 
    local function block_stop (b)
-      info("stopping active block "..ubx.safe_tostr((b.name)))
+      info("stopping active block %s", safets((b.name)))
       ubx.block_tostate(b, 'inactive')
    end
 
@@ -616,7 +625,7 @@ local function import_modules(ni, s)
       function(m)
 	 if loaded[m] then return
 	 else
-	    info("importing module "..magenta(m))
+	    info("importing module %s", magenta(m))
 	    ubx.load_module(ni, m)
 	    loaded[m]=true
 	 end
@@ -629,7 +638,7 @@ end
 local function create_blocks(ni, root_sys)
    mapblocks(
       function(b,i,p)
-	 info("creating block "..green(b._fqn).." ["..blue(b.type).."]")
+	 info("creating block %s [%s]", green(b._fqn), blue(b.type))
 	 ubx.block_create(ni, b.type, b._fqn)
       end, root_sys)
 end
@@ -650,16 +659,16 @@ local function build_nodecfg_tab(ni, root_sys)
    -- a config of the same name exists
    local function create_nc(cfg, name, s)
       if NC[name] then
-	 notice("node config "..name.." in "..s._fqn.." shadowed by a higher one")
+	 notice("node config %s in %s shadowed by a higher one", name, s._fqn)
 	 return
       end
 
       local d = ubx.data_alloc(ni, cfg.type, 1)
       ubx.data_set(d, cfg.config, true)
       NC[name] = d
-      info("creating node config "..blue(name)..
-	      "["..magenta(cfg.type).."] "..
-	      yellow(utils.tab2str(cfg.config)))
+      info("creating node config %s [%s] %s",
+	   blue(name), magenta(cfg.type),
+	   yellow(utils.tab2str(cfg.config)))
    end
 
    mapndconfigs(create_nc, root_sys)
@@ -678,18 +687,49 @@ local function preproc_configs(ni, c, s)
       local bfqn = s._fqn..name
       local ptr = ubx.block_get(ni, bfqn)
       if ptr==nil then
-	 err_exit(1, "error: failed to resolve # blockref to block "..bfqn)
+	 err_exit(1, "error: failed to resolve # blockref to block %s", bfqn)
       elseif ubx.is_proto(ptr) then
-	 err_exit(1, "error: block #"..bfqn.." is a proto block")
+	 err_exit(1, "error: block #%s is a proto block", bfqn)
       end
-      info(magenta("resolved # blockref to "..bfqn))
+      info("resolved # blockref to %s", magenta(bfqn))
       tab[key]=ptr
    end
 
    utils.maptree(replace_hash, c.config, function(v,_) return type(v)=='string' end)
 end
 
+-- apply a single value
+local function apply_cfg_val(b, name, val, NC)
+   local blkcfg = ubx.block_config_get(b, name)
+   local blkfqn = safets(b.name)
 
+   if blkcfg==nil then
+      err_exit(1, "block %s has no config %s", blkfqn, name)
+   end
+
+   -- check for references to node configs
+   local nodecfg = check_noderef(val)
+
+   if nodecfg then
+      if not NC[nodecfg] then
+	 err_exit(1, "invalid node config reference '%s'", val)
+      end
+      info("nodecfg %s.%s with %s %s",
+	   green(blkfqn), blue(name), yellow(nodecfg),
+	   yellow(utils.tab2str(NC[nodecfg])))
+
+      local ret = ubx.config_assign(blkcfg, NC[nodecfg])
+      if ret < 0 then
+	 err_exit(1, "failed to assign nodecfg %s to %s: %s",
+		  utils.tab2str(NC[nodecfg]),
+		  green(blkfqn.."."..blue(name)),
+		  ubx.retval_tostr[ret])
+      end
+   else -- regular config
+      info("cfg %s.%s: %s", green(blkfqn), blue(name), yellow(utils.tab2str(val)))
+      ubx.set_config(b, name, val)
+   end
+end
 
 --- Configure a the given block with a config
 -- (scalar, table or node cfg reference '&ndcfg'
@@ -699,48 +739,16 @@ end
 -- @param configured table to remember already configured block-configs
 local function apply_config(cfg, b, NC, configured)
 
-   -- apply a single value
-   local function apply_cfg_val(name, val)
+   for name,val in pairs(cfg.config) do
       local cfgfqn = cfg._tgt._fqn..'.'..name
 
       if configured[cfgfqn] then
-	 notice("skipping "..cfgfqn.." config "..utils.tab2str(val)..": already configured")
+	 notice("skipping %s config %s: already configured", cfgfqn, utils.tab2str(val))
 	 return
       end
 
-      local blkcfg = ubx.block_config_get(b, name)
-
-      if blkcfg==nil then
-	 err_exit(1, "non-existing config '"..cfg.name.. "."..name.."'")
-      end
-
-      -- check for references to node configs
-      local nodecfg = check_noderef(val)
-
-      if nodecfg then
-	 if not NC[nodecfg] then
-	    err_exit(1, "invalid node config reference '"..val.."'")
-	 end
-
-	 info("nodecfg "..green(cfg._tgt._fqn.."."..blue(name))
-		 .." with "..yellow(nodecfg).." "..yellow(utils.tab2str(NC[nodecfg])))
-	 local ret = ubx.config_assign(blkcfg, NC[nodecfg])
-	 if ret < 0 then
-	    err_exit(1, "failed to assign nodecfg "..
-			utils.tab2str(NC[nodecfg]).." to "..
-			green(cfg._tgt._fqn.."."..blue(name))..": "..
-			ubx.retval_tostr[ret])
-	 end
-      else -- regular config
-	 info("cfg "..green(cfg._tgt._fqn).."."..blue(name)..": "..yellow(utils.tab2str(val)))
-	 ubx.set_config(b, name, val)
-      end
+      apply_cfg_val(b, name, val, NC)
       configured[cfgfqn] = true
-
-   end
-
-   for name,val in pairs(cfg.config) do
-      apply_cfg_val(name,val)
    end
 end
 
@@ -761,13 +769,13 @@ local function configure_blocks(ni, root_sys, NC)
       function(cfg, i)
 	 local b = get_ubx_block(ni, cfg._tgt)
 	 if b == nil then
-	    err_exit(1, "error: config "..cfg._fqn.." for block "..
-			cfg.name.."no ubx block instance found")
+	    err_exit(1, "error: config %s for block %s: no such block found",
+		     cfg._fqn, cfg.name)
 	 end
 
 	 local bstate = b:get_block_state()
 	 if bstate ~= 'preinit' then
-	    warn("block "..cfg._tgt._fqn.." not in state preinit but "..bstate)
+	    warn("block %s not in state preinit but %s", cfg._tgt._fqn, bstate)
 	    return
 	 end
 
@@ -778,10 +786,11 @@ local function configure_blocks(ni, root_sys, NC)
    mapblocks(
       function(btab,i,p)
 	 local b = get_ubx_block(ni, btab)
-	 info("initializing block "..ubx.safe_tostr(b.name))
+	 info("initializing block %s", safets(b.name))
 	 local ret = ubx.block_init(b)
 	 if ret ~= 0 then
-	    err_exit(ret, "failed to initialize block "..btab.name..": "..tonumber(ret))
+	    err_exit(ret, "failed to initialize block %s: %d",
+		     btab.name, tonumber(ret))
 	 end
       end, root_sys)
 end
@@ -802,7 +811,7 @@ local function connect_blocks(ni, root_sys)
 	 local ib = ubx.block_get(ni, srcblk)
 
 	 if ib==nil then
-	    err_exit(1, "unkown block "..ts(srcblk))
+	    err_exit(1, "do_connect: unkown src block %s", ts(srcblk))
 	 end
 
 	 if not ubx.is_iblock_instance(ib) then
@@ -813,51 +822,50 @@ local function connect_blocks(ni, root_sys)
 	 local ptgt = ubx.port_get(btgt, tgtport)
 
 	 if ubx.port_connect_in(ptgt, ib) ~= 0 then
-	    err_exit(1, "failed to connect interaction "..srcblk..
-			" to port "..ts(tgtblk).."."..ts(tgtport))
+	    err_exit(1, "failed to connect interaction %s to port %s.%s",
+			srcblk, ts(tgtblk), ts(tgtport))
 	 end
-	 info("connecting "..green(srcblk).." (iblock) -> "
-		 ..green(ts(tgtblk)).."."..cyan(ts(tgtport)))
-
+	 info("connecting %s (iblock) ->  %s.%s",
+	      green(srcblk), green(ts(tgtblk), cyan(ts(tgtport))))
       elseif tgtport==nil then
 	 -- src is a port, target is an interaction
 	 local ib = ubx.block_get(ni, tgtblk)
 
 	 if ib==nil then
-	    err_exit(1, "unkown block "..ts(tgtblk))
+	    err_exit(1, "unkown block %s", ts(tgtblk))
 	 end
 
 	 if not ubx.is_iblock_instance(ib) then
-	    err_exit(1, ts(tgtblk).." not a valid iblock instance")
+	    err_exit(1, "%s not a valid iblock instance", ts(tgtblk))
 	 end
 
 	 local bsrc = ubx.block_get(ni, srcblk)
 	 local psrc = ubx.port_get(bsrc, srcport)
 
 	 if ubx.port_connect_out(psrc, ib) ~= 0 then
-	    err_exit(1, "failed to connect "
-			..ts(srcblk).."." ..ts(srcport).." to "
-			..ts(tgtblk).." (iblock)")
+	    err_exit(1, "failed to connect %s.%s to %s (iblock)",
+		     ts(srcblk), ts(srcport), ts(tgtblk))
 	 end
-	 info("connecting "..green(ts(srcblk)).."."..cyan(ts(srcport)).." -> "
-		 ..green(tgtblk).." (iblock)")
+	 info("connecting %s.%s -> %s (iblock)",
+	      green(ts(srcblk)), cyan(ts(srcport)), green(tgtblk))
       else
 	 -- both src and target are ports
 	 local bufflen = c.buffer_length or 1
 
-	 info("connecting "..green(ts(srcblk))..'.'..cyan(ts(srcport))
-		 .." -["..yellow(ts(bufflen), true).."]".."-> "
-		 ..green(ts(tgtblk)).."."..cyan(ts(tgtport)))
+	 info("connecting %s.%s -[%d]-> %s.%s",
+	      green(ts(srcblk)), cyan(ts(srcport)),
+	      yellow(ts(bufflen), true),
+	      green(ts(tgtblk)), cyan(ts(tgtport)))
 
 	 local bsrc = ubx.block_get(ni, srcblk)
 	 local btgt = ubx.block_get(ni, tgtblk)
 
 	 if bsrc==nil then
-	    err_exit(1, "ERR: no block named "..srcblk.. " found")
+	    err_exit(1, "ERR: src block %s not found", srcblk)
 	 end
 
 	 if btgt==nil then
-	    err_exit(1, "ERR: no block named "..tgtblk.. " found")
+	    err_exit(1, "ERR: tgt block %s not found", tgtblk)
 	 end
 	 ubx.conn_lfds_cyclic(bsrc, srcport, btgt, tgtport, bufflen)
       end
@@ -879,7 +887,7 @@ function system.merge(self, sys)
       foreach(
 	 function (ndcfg, name)
 	    if dest.node_configurations[name] then
-	       warn("merge: overriding existing destination system node_config "..name)
+	       warn("merge: overriding existing destination system node_config %s", name)
 	    end
 	    dest.node_configurations[name] = ndcfg
 	 end, src.node_configurations)
@@ -889,7 +897,7 @@ function system.merge(self, sys)
       foreach(
 	 function (subsys, name)
 	    if dest.subsystems[name] then
-	       warn("merge: overriding existing destination subsystem "..name)
+	       warn("merge: overriding existing destination subsystem %s", name)
 	    end
 	    dest.subsystems[name] = subsys
 	 end, src.subsystems)
