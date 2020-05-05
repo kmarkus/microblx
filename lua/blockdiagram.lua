@@ -694,7 +694,7 @@ end
 -- @param cfg config table
 -- @param b ubx_block_t
 -- @param NC global config table
--- @param configured table of already configured configs
+-- @param configured table to remember already configured configs
 local function apply_config(cfg, b, NC, configured)
 
    for name,val in pairs(cfg.config) do
@@ -737,29 +737,6 @@ local function apply_config(cfg, b, NC, configured)
    end
 end
 
---- Configure apply the given cfg to it's block in ni
--- @param ni node_info
--- @param cfg config table
--- @param NC node (global) configuration table
--- @param configured table of already configured configs
-local function configure_block(ni, cfg, NC, configured)
-   local bfqn =	cfg._tgt._fqn
-   local b = get_ubx_block(ni, cfg._tgt)
-
-   if b==nil then
-      err_exit(1, "error: config "..cfg._fqn.." for block "..
-		  cfg.name.."no ubx block instance found")
-   end
-
-   local bstate = b:get_block_state()
-   if bstate ~= 'preinit' then
-      warn("block "..bfqn.." not in state preinit but "..bstate)
-      return
-   end
-
-   apply_config(cfg, b, NC, configured)
-end
-
 --- configure all blocks
 -- @param ni node_info
 -- @param root_sys root system
@@ -775,7 +752,19 @@ local function configure_blocks(ni, root_sys, NC)
    -- apply configurations to blocks
    mapconfigs(
       function(cfg, i)
-	 configure_block(ni, cfg, NC, configured)
+	 local b = get_ubx_block(ni, cfg._tgt)
+	 if b == nil then
+	    err_exit(1, "error: config "..cfg._fqn.." for block "..
+			cfg.name.."no ubx block instance found")
+	 end
+
+	 local bstate = b:get_block_state()
+	 if bstate ~= 'preinit' then
+	    warn("block "..cfg._tgt._fqn.." not in state preinit but "..bstate)
+	    return
+	 end
+
+	 apply_config(cfg, b, NC, configured)
       end, root_sys)
 
    -- initialize all blocks (brings them to state 'inactive')
