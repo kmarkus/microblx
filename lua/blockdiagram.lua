@@ -689,21 +689,29 @@ local function preproc_configs(ni, c, s)
    utils.maptree(replace_hash, c.config, function(v,_) return type(v)=='string' end)
 end
 
+
+
 --- Configure a the given block with a config
 -- (scalar, table or node cfg reference '&ndcfg'
 -- @param cfg config table
 -- @param b ubx_block_t
 -- @param NC global config table
--- @param configured table to remember already configured configs
+-- @param configured table to remember already configured block-configs
 local function apply_config(cfg, b, NC, configured)
 
-   for name,val in pairs(cfg.config) do
-
+   -- apply a single value
+   local function apply_cfg_val(name, val)
       local cfgfqn = cfg._tgt._fqn..'.'..name
 
       if configured[cfgfqn] then
 	 notice("skipping "..cfgfqn.." config "..utils.tab2str(val)..": already configured")
-	 goto continue
+	 return
+      end
+
+      local blkcfg = ubx.block_config_get(b, name)
+
+      if blkcfg==nil then
+	 err_exit(1, "non-existing config '"..cfg.name.. "."..name.."'")
       end
 
       -- check for references to node configs
@@ -712,11 +720,6 @@ local function apply_config(cfg, b, NC, configured)
       if nodecfg then
 	 if not NC[nodecfg] then
 	    err_exit(1, "invalid node config reference '"..val.."'")
-	 end
-	 local blkcfg = ubx.block_config_get(b, name)
-
-	 if blkcfg==nil then
-	    err_exit(1, "non-existing config '"..cfg.name.. "."..name.."'")
 	 end
 
 	 info("nodecfg "..green(cfg._tgt._fqn.."."..blue(name))
@@ -733,7 +736,11 @@ local function apply_config(cfg, b, NC, configured)
 	 ubx.set_config(b, name, val)
       end
       configured[cfgfqn] = true
-      ::continue::
+
+   end
+
+   for name,val in pairs(cfg.config) do
+      apply_cfg_val(name,val)
    end
 end
 
