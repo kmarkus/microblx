@@ -8,19 +8,19 @@
 -- SPDX-License-Identifier: BSD-3-Clause
 --
 
-local ffi=require "ffi"
-local bit=require "bit"
-local cdata = require "cdata"
-local utils= require "utils"
-local ac=require "ansicolors"
-local time=require"time"
+local ffi = require("ffi")
+local bit = require("bit")
+local cdata = require("cdata")
+local utils = require("utils")
+local ac = require("ansicolors")
+local time = require("time")
 require "strict"
 
 local ts = tostring
 local concat = table.concat
 local fmt = string.format
 
-local M={}
+local M = {}
 
 --- set to false to disable terminal colors
 M.color = false
