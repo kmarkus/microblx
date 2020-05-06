@@ -1167,6 +1167,29 @@ function M.port_read(p, rval)
    return ubx.__port_read(p, rval), rval
 end
 
+--- Read from port with timeout.
+-- @param p port to read from
+-- @param timeout duration to block in seconds
+-- @param data optional data to store result of read
+-- @return num or -1 if timeout
+-- @return result or nil
+function M.port_read_timed(p, timeout, data)
+   local len
+   timeout = timeout or 1
+   local ts_start = ffi.new("struct ubx_timespec")
+   local ts_cur = ffi.new("struct ubx_timespec")
+
+   M.clock_mono_gettime(ts_start)
+   M.clock_mono_gettime(ts_cur)
+
+   while ts_cur.sec - ts_start.sec < timeout do
+      len, data = M.port_read(p, data)
+      if len>0 then return len, data end
+      M.clock_mono_gettime(ts_cur)
+   end
+   return 0
+end
+
 function M.port_write(p, wval)
    assert(p, "invalid port")
    if M.is_data(wval) then
@@ -1183,30 +1206,6 @@ end
 function M.port_write_read(p, wdat, rdat)
    M.port_write(p, wdat)
    return M.port_read(p, rdat)
-end
-
---- Read from port with timeout.
--- @param p port to read from
--- @param data data to store result of read
--- @param timeout duration to block in seconds
-function M.port_read_timed(p, rval, timeout)
-   local res
-   local ts_start=ffi.new("struct ubx_timespec")
-   local ts_cur=ffi.new("struct ubx_timespec")
-
-   if type(rval)~='cdata' then
-      rval=M.port_alloc_read_sample(p)
-   end
-
-   M.clock_mono_gettime(ts_start)
-   M.clock_mono_gettime(ts_cur)
-
-   while ts_cur - ts_start < timeout do
-      res=ubx.__port_read(p, rval)
-      if res>0 then return res, rval end
-      M.clock_mono_gettime(ts_cur)
-   end
-   error("port_read_timed: timeout after reading "..M.safe_tostr(p.name).." for "..tostring(timeout).." seconds")
 end
 
 function M.port_out_size(p)
@@ -1582,27 +1581,6 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 	     end)
    return p
 end
-
---- Read from port with timeout.
--- @param p port to read from
--- @param data data to store result of read
--- @param sec duration to block in seconds
-function M.port_read_timed(p, data, sec)
-   local res
-   local ts_start=ffi.new("struct ubx_timespec")
-   local ts_cur=ffi.new("struct ubx_timespec")
-
-   M.clock_mono_gettime(ts_start)
-   M.clock_mono_gettime(ts_cur)
-
-   while ts_cur.sec - ts_start.sec < sec do
-      res=M.port_read(p, data)
-      if res>0 then return res end
-      M.clock_mono_gettime(ts_cur)
-   end
-   error("port_read_timed: timeout after reading "..M.safe_tostr(p.name).." for "..tostring(sec).." seconds")
-end
-
 
 local block_uid_cnt = 0
 local function gen_block_uid()
