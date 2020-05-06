@@ -305,4 +305,71 @@ function TestComp:test_nodecfg3()
    lu.assert_equals( NI:b("sub2/sub1/rnd3"):c("min_max_config"):tolua(), { min=555, max=777 } )
 end
 
+
+function TestComp:test_late_config()
+   local type_name = 'struct kdl_vector'
+   local data_len = 1
+   local value = { x=11.1, y=222.2, z=333.3 }
+
+   NI = bd.system {
+      imports = { 'stdtypes', 'cconst', 'testtypes', 'lfds_cyclic' },
+      blocks = { { name="cconst1", type="consts/cconst" } },
+      configurations = {
+	 { name="cconst1",
+	   config = {
+	      type_name=type_name, data_len=data_len, value=value
+	   }
+	 }
+      },
+   }:launch{nodename = 'test_late_config' }
+
+   lu.assert_not_nil(NI)
+   local cconst1 = NI:b('cconst1')
+   lu.assert_not_nil(cconst1)
+   local port = ubx.port_clone_conn(cconst1, 'out')
+   lu.assert_not_nil(port)
+
+   for _=1,10 do
+      cconst1:do_step()
+      local len, val = port:read()
+      lu.assert_equals(tonumber(len), data_len)
+      lu.assert_equals(val:tolua(), value)
+   end
+end
+
+function TestComp:test_late_config2()
+   local type_name = 'struct kdl_vector'
+   local data_len = 3
+   local value = {
+      { x=1, y=2, z=3 },
+      { x=4, y=5, z=6 },
+      { x=7, y=8, z=9 }
+   }
+
+   NI = bd.system {
+      imports = { 'stdtypes', 'cconst', 'testtypes', 'lfds_cyclic' },
+      blocks = { { name="cconst1", type="consts/cconst" } },
+      configurations = {
+	 { name="cconst1",
+	   config = {
+	      type_name=type_name, data_len=data_len, value=value
+	   }
+	 }
+      },
+   }:launch{nodename = 'test_late_config2' }
+
+   lu.assert_not_nil(NI)
+   local cconst1 = NI:b('cconst1')
+   lu.assert_not_nil(cconst1)
+   local port = ubx.port_clone_conn(cconst1, 'out')
+   lu.assert_not_nil(port)
+
+   for _=1,10 do
+      cconst1:do_step()
+      local len, val = port:read()
+      lu.assert_equals(tonumber(len), data_len)
+      lu.assert_equals(val:tolua(), value)
+   end
+end
+
 os.exit( lu.LuaUnit.run() )
