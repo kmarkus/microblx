@@ -749,7 +749,6 @@ local function apply_config(cfg, b, NC, configured, nonexist)
       local cfgfqn = cfg._tgt._fqn..'.'..name
 
       if ubx.block_config_get(b, name) == nil then
-	 notice("skipping non-existing config %s %s", cfgfqn, utils.tab2str(val))
 	 nonexist[cfgfqn] = true
 	 goto continue
       end
@@ -792,6 +791,8 @@ local function reapply_config(cfg, b, NC, configured, nonexist)
 	 nonexist[cfgfqn] = false
 	 goto continue
       end
+
+      notice("late config of %s with %s", cfgfqn, utils.tab2str(val))
 
       if configured[cfgfqn] then
 	 notice("skipping config %s: already configured with %s", cfgfqn, utils.tab2str(val))
