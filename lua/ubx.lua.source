@@ -18,7 +18,7 @@ require "strict"
 
 local ts = tostring
 local concat = table.concat
-local format = string.format
+local fmt = string.format
 
 local M={}
 
@@ -500,8 +500,8 @@ local ubx_node_info_mt = {
       local num_cb, num_ib, inv = M.num_blocks(ni)
       local num_types = M.num_types(ni)
 
-      return string.format("%s <node>: #blocks: %d (#cb: %d, #ib: %d), #types: %d",
-			   green(M.safe_tostr(ni.name)), num_cb + num_ib, num_cb, num_ib, num_types)
+      return fmt("%s <node>: #blocks: %d (#cb: %d, #ib: %d), #types: %d",
+		 green(M.safe_tostr(ni.name)), num_cb + num_ib, num_cb, num_ib, num_types)
    end,
    __index = {
       get_name = function (ni) return M.safe_tostr(ni.name) end,
@@ -589,23 +589,23 @@ function M.block_pp(b)
    if M.is_block(b) then bt = M.block_totab(b) else bt = b end
 
    if bt.block_type == 'cblock' then
-      local fmt = "%s [state: %s, steps: %u] (type: %s, prototype: %s, attrs: %s)"
+      local f = "%s [state: %s, steps: %u] (type: %s, prototype: %s, attrs: %s)"
 
-      res[#res+1] = fmt:format(green(bt.name),
-			       block_state_color(bt.state),
-			       bt.stat_num_steps,
-			       bt.block_type,
-			       blue(bt.prototype),
-			       table.concat(bt.attrs, ', '))
+      res[#res+1] = f:format(green(bt.name),
+			     block_state_color(bt.state),
+			     bt.stat_num_steps,
+			     bt.block_type,
+			     blue(bt.prototype),
+			     table.concat(bt.attrs, ', '))
    elseif bt.block_type == 'iblock' then
-      local fmt = "%s [state: %s, reads: %u, writes: %u] (type: %s, prototype: %s, attrs: %s)"
-      res[#res+1] = fmt:format(green(bt.name),
-			       block_state_color(bt.state),
-			       bt.stat_num_reads,
-			       bt.stat_num_writes,
-			       bt.block_type,
-			       blue(bt.prototype),
-			       table.concat(bt.attrs, ', '))
+      local f = "%s [state: %s, reads: %u, writes: %u] (type: %s, prototype: %s, attrs: %s)"
+      res[#res+1] = f:format(green(bt.name),
+			     block_state_color(bt.state),
+			     bt.stat_num_reads,
+			     bt.stat_num_writes,
+			     bt.block_type,
+			     blue(bt.prototype),
+			     table.concat(bt.attrs, ', '))
    else
       error("unknown block type "..bt.block_type)
    end
@@ -753,7 +753,7 @@ function M.ffi_load_types(ni)
 	 local struct_str = preproc(ffi.string(t.private_data))
 	 local ret, err = pcall(ffi.cdef, struct_str)
 	 if ret==false then
-	    error(format("loading type %s: %s", M.safe_tostr(t.name), err))
+	    error(fmt("loading type %s: %s", M.safe_tostr(t.name), err))
 	 end
       end
    end
@@ -1500,7 +1500,7 @@ $conns
 end
 
 local __pcc_cnt=0
-function pcc_cnt()
+local function pcc_cnt()
    __pcc_cnt=__pcc_cnt+1
    return __pcc_cnt
 end
@@ -1511,11 +1511,13 @@ end
 -- @param buff_len1 desired buffer length (if port is in/out: length of out->in buffer)
 -- @param buff_len2 only if port is in/out port: length of in->out buffer
 -- @return the new port
-function M.port_clone_conn(block, pname, buff_len1, buff_len2)
+function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns)
    local prot = M.port_get(block, pname)
    local p=ffi.new("ubx_port_t")
 
-   -- print("port_clone_conn, block=", ubx.safe_tostr(block.name), ", port=", pname)
+   loglevel_overruns = loglevel_overruns or 6
+
+   -- ("port_clone_conn, block=", ubx.safe_tostr(block.name), ", port=", pname)
 
    if M.clone_port_data(p, M.safe_tostr(prot.name)..'_inv', prot.doc,
 			prot.out_type, prot.out_data_len,
@@ -1527,17 +1529,17 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
    if p.in_type and p.out_type then buff_len2 = buff_len2 or buff_len1 end
 
    -- New port is an out-port?
-   local i_p_to_prot=nil
+   local i_p_to_prot
    if p.out_type~=nil then
-      local iname = string.format("PCC%d->%s.%s",
-				  pcc_cnt(), M.safe_tostr(block.name), pname)
+      local iname = fmt("PCC%d->%s.%s", pcc_cnt(), M.safe_tostr(block.name), pname)
 
       -- print("creating interaction", iname, buff_len1, tonumber(p.out_type.size * p.out_data_len))
 
       i_p_to_prot = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
-				     { buffer_len=buff_len1,
-				       type_name=ffi.string(p.out_type_name),
-				       data_len=tonumber(p.out_data_len) })
+				   { buffer_len=buff_len1,
+				     type_name=ffi.string(p.out_type_name),
+				     data_len=tonumber(p.out_data_len),
+				     loglevel_overruns = loglevel_overruns })
       M.block_init(i_p_to_prot)
 
       if M.ports_connect_uni(p, prot, i_p_to_prot)~=0 then
@@ -1545,18 +1547,20 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
 	 error("failed to connect port"..M.safe_tostr(p.name))
       end
       M.block_start(i_p_to_prot)
+      info(block.ni, "lua", fmt("port_clone_conn: %s, buffer_len: %d, data_len: %d",
+				iname, buff_len1, tonumber(p.out_data_len)))
    end
 
-   local i_prot_to_p = nil
+   local i_prot_to_p
 
    if p.in_type ~= nil then -- new port is an in-port?
-      local iname = string.format("PCC%d<-%s.%s",
-				  pcc_cnt(), M.safe_tostr(block.name), pname)
+      local iname = fmt("PCC%d<-%s.%s", pcc_cnt(), M.safe_tostr(block.name), pname)
 
       i_prot_to_p = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
-				     { buffer_len=buff_len2,
-				       type_name=ffi.string(p.in_type_name),
-				       data_len=tonumber(p.in_data_len) })
+				   { buffer_len=buff_len2,
+				     type_name=ffi.string(p.in_type_name),
+				     data_len=tonumber(p.in_data_len),
+				     loglevel_overruns = loglevel_overruns })
 
       M.block_init(i_prot_to_p)
 
@@ -1566,6 +1570,8 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2)
 	 error("failed to connect port"..M.safe_tostr(p.name))
       end
       M.block_start(i_prot_to_p)
+      info(block.ni, "lua", fmt("port_clone_conn: %s, buffer_len: %d, data_len: %d",
+				iname, buff_len2, tonumber(p.in_data_len)))
    end
 
 
@@ -1601,7 +1607,7 @@ end
 local block_uid_cnt = 0
 local function gen_block_uid()
    block_uid_cnt = block_uid_cnt+1
-   return string.format("i_%08x", block_uid_cnt)
+   return fmt("i_%08x", block_uid_cnt)
 end
 
 --- Connect two blocks' ports via a unidirectional connection.

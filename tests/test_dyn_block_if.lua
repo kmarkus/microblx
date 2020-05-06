@@ -26,7 +26,7 @@ lb1=ubx.block_create(ni, "lua/luablock", "lb1")
 assert_not_nil(lb1)
 
 local p_exec_str=ubx.port_get(lb1, "exec_str")
-local p_exec_str = ubx.port_clone_conn(lb1, "exec_str", 4, 4, code_str_len, 1)
+local p_exec_str = ubx.port_clone_conn(lb1, "exec_str", 4, 4)
 
 local d1=ubx.data_alloc(ni, "char")
 local d2=ubx.data_alloc(ni, "int")
