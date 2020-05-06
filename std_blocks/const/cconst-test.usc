@@ -1,0 +1,41 @@
+-- -*- mode: lua; -*-
+
+local bd = require("blockdiagram")
+
+local TYPE_NAME = 'struct ptrig_period'
+local DATA_LEN = 1
+local VALUE = { sec=99, usec = 333 }
+local BUF_LEN = 8
+
+return bd.system
+{
+   imports = { "stdtypes", "cconst", 'mqueue', 'ptrig' },
+
+   blocks = {
+      { name="cconst1", type="consts/cconst" },
+      { name="ptrig1", type="std_triggers/ptrig" },
+      { name="mq1", type="mqueue" },
+   },
+
+   configurations = {
+      {
+	 name="cconst1",
+	 config = { type_name=TYPE_NAME, data_len=DATA_LEN, value=VALUE, }
+      },
+      {
+	 name="ptrig1",
+	 config = { period = { sec=1, usec=0}, trig_blocks = { b = "#cconst1" } }
+      },
+      {
+	 name="mq1",
+	 config = { mq_id = "const_value",
+	    type_name = TYPE_NAME,
+	    data_len = DATA_LEN,
+	    buffer_len = BUF_LEN
+	 }
+      },
+   },
+   connections = {
+      { src = "cconst1.out", tgt = "mq1" },
+   }
+}
