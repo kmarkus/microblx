@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-BLOCKS="const_int random pid luablock ramp_int32 ptrig trig lfds_cyclic hexdump mqueue"
+BLOCKS="random pid luablock ramp_int32 cconst iconst ptrig trig lfds_cyclic hexdump mqueue"
 BLOCK_INDEX=docs/user/block_index.rst
 
 cat <<EOF > $BLOCK_INDEX

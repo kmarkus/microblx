@@ -20,11 +20,13 @@ Configs
    stacksize, ``size_t``, "stacksize as per pthread_attr_setstacksize(3)"
    sched_priority, ``int``, "pthread priority"
    sched_policy, ``char``, "pthread scheduling policy"
+   affinity, ``int``, "list of CPUs to set the pthread CPU affinity to"
    thread_name, ``char``, "thread name (for dbg), default is block name"
    trig_blocks, ``struct ubx_trig_spec``, "specification of blocks to trigger"
    tstats_mode, ``int``, "enable timing statistics over all blocks"
    tstats_profile_path, ``char``, "directory to write the timing stats file to"
    tstats_output_rate, ``double``, "throttle output on tstats port"
+   tstats_skip_first, ``int``, "skip N steps before acquiring stats"
    loglevel, ``int``, ""
 
 
