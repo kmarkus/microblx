@@ -61,11 +61,16 @@ end
 --- read from the given mqueue and print the result
 -- @param mqtab message queue id
 -- @return never returns
-local function read(mqtab)
+local function read(mqtab, preloads)
 
    local ni = ubx.node_create("ubx-mq")
    ubx.load_module(ni, "stdtypes")
    ubx.load_module(ni, "mqueue")
+
+   for _,m in ipairs(preloads) do
+      ubx.load_module(ni, m)
+   end
+
    local typ = ubx.type_get_by_hashstr(ni, mqtab.hashstr)
 
    if typ == nil then
@@ -106,6 +111,15 @@ if opttab['-h'] then
    usage(); os.exit(0)
 end
 
+local preloads
+if opttab['-p'] then
+   if not opttab['-p'][1] then
+      print("-p requires an argument")
+      os.exit(1)
+   end
+   preloads = utils.split(opttab['-p'][1], ',')
+end
+
 local mqs = mqueues_get()
 
 if opttab[0][1] == "list" then
@@ -121,7 +135,7 @@ elseif opttab[0][1] == "read" then
    end
 
    for _,m in ipairs(mqs) do
-      if m.mq_id == mq_id then read(m) end
+      if m.mq_id == mq_id then read(m, preloads) end
    end
    print(fmt("invalid ubx queue id %s", mq_id))
    os.exit(1)
