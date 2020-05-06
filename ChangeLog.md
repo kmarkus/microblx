@@ -5,6 +5,20 @@ This file tracks user visible API changes
 
 ## next
 
+- `trig`, `ptrig`: indepent of `tstats_output_rate`, all stats are
+  written to the port `tstats` (if it exists) in `stop()`.
+
+- `port_clone_conn`: add `loglevel_overruns` argument.
+
+- `const` block refactored into a generic block that is configured
+  with the ubx `type_name` and `data_len`, and then with the actual
+  value of the type. Both a cblock `cconst` and an iblock `iconst`
+  variant are available.
+
+- blockdiagram: small extension to support dynamic configurations. If
+  a config does not exist in state `preinit`, configuration will be
+  retried in `inactive`.
+
 - core: add `ubx_node_clear`. This function stops, cleans up and
   removes all non-prototype blocks.
 
