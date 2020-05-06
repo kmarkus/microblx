@@ -698,14 +698,19 @@ local function preproc_configs(ni, c, s)
    utils.maptree(replace_hash, c.config, function(v,_) return type(v)=='string' end)
 end
 
--- apply a single value
+--- apply a single configuration to a block
+--
+-- This can be a regular or a node config value. In the latter case,
+-- it will be looked up in NC. This function assumes that the config
+-- exists.
+--
+-- @param b ubx_block_t*
+-- @param name configuration name
+-- @param val configuration value
+-- @param NC node configuration table
 local function apply_cfg_val(b, name, val, NC)
    local blkcfg = ubx.block_config_get(b, name)
    local blkfqn = safets(b.name)
-
-   if blkcfg==nil then
-      err_exit(1, "block %s has no config %s", blkfqn, name)
-   end
 
    -- check for references to node configs
    local nodecfg = check_noderef(val)
@@ -737,19 +742,67 @@ end
 -- @param b ubx_block_t
 -- @param NC global config table
 -- @param configured table to remember already configured block-configs
-local function apply_config(cfg, b, NC, configured)
+-- @param nonexist table to remember nonexisting configurations
+local function apply_config(cfg, b, NC, configured, nonexist)
 
    for name,val in pairs(cfg.config) do
       local cfgfqn = cfg._tgt._fqn..'.'..name
 
+      if ubx.block_config_get(b, name) == nil then
+	 notice("skipping non-existing config %s %s", cfgfqn, utils.tab2str(val))
+	 nonexist[cfgfqn] = true
+	 goto continue
+      end
+
       if configured[cfgfqn] then
-	 notice("skipping %s config %s: already configured", cfgfqn, utils.tab2str(val))
-	 return
+	 notice("skipping config %s: already configured with %s", cfgfqn, utils.tab2str(val))
+	 goto continue
       end
 
       apply_cfg_val(b, name, val, NC)
       configured[cfgfqn] = true
+
+      ::continue::
    end
+end
+
+--- Configure the previously unconfigured configs
+--
+-- This function is to be called after init and is intended to
+-- configure dynamically added configs. Thus, it will ignore all
+-- configurations that are not in the nonexist table
+--
+-- @param cfg config table
+-- @param b ubx_block_t
+-- @param NC global config table
+-- @param configured table to remember already configured block-configs
+-- @param nonexist table to remember nonexisting configurations
+local function reapply_config(cfg, b, NC, configured, nonexist)
+   for name,val in pairs(cfg.config) do
+      local cfgfqn = cfg._tgt._fqn..'.'..name
+
+      -- skip all but the previously non-existing. Don't exit for the
+      -- previously configured ( nonexist[] = false ) so that we get
+      -- the "skipping already configured" message
+      if nonexist[cfgfqn] == nil then goto continue end
+
+      if ubx.block_config_get(b, name) == nil then
+	 err_exit(1, "can't reapply %s: no config %s even after init",
+		  cfg._fqn, cfgfqn)
+	 nonexist[cfgfqn] = false
+	 goto continue
+      end
+
+      if configured[cfgfqn] then
+	 notice("skipping config %s: already configured with %s", cfgfqn, utils.tab2str(val))
+	 goto continue
+      end
+
+      apply_cfg_val(b, name, val, NC)
+      configured[cfgfqn] = true
+      ::continue::
+   end
+
 end
 
 --- configure all blocks
@@ -758,8 +811,16 @@ end
 -- @param NC
 local function configure_blocks(ni, root_sys, NC)
 
-   -- table of already configured configs { [<blockfqn.config>] = true }
+   -- table of already configured configs
+   -- { [<blkfqn.config>] = true }
+   -- to avoid double configuration
    local configured = {}
+
+   -- table of configurations that were skipped because
+   -- non-existant. These will be retried in reapply_config to handle
+   -- dynamically created configurations that will be interpreted in
+   -- the start hook.
+   local nonexist = {}
 
    -- substitue #blockname syntax
    mapconfigs(function(c, i, s) preproc_configs(ni, c, s, i) end, root_sys)
@@ -775,11 +836,11 @@ local function configure_blocks(ni, root_sys, NC)
 
 	 local bstate = b:get_block_state()
 	 if bstate ~= 'preinit' then
-	    warn("block %s not in state preinit but %s", cfg._tgt._fqn, bstate)
+	    warn("applying configs: block %s not in state preinit but %s", cfg._tgt._fqn, bstate)
 	    return
 	 end
 
-	 apply_config(cfg, b, NC, configured)
+	 apply_config(cfg, b, NC, configured, nonexist)
       end, root_sys)
 
    -- initialize all blocks (brings them to state 'inactive')
@@ -793,6 +854,32 @@ local function configure_blocks(ni, root_sys, NC)
 		     btab.name, tonumber(ret))
 	 end
       end, root_sys)
+
+   -- reapply configurations to blocks
+   mapconfigs(
+      function(cfg, i)
+	 local b = get_ubx_block(ni, cfg._tgt)
+	 if b == nil then
+	    err_exit(1, "error: config %s for block %s: no such block found",
+		     cfg._fqn, cfg.name)
+	 end
+
+	 local bstate = b:get_block_state()
+
+	 if bstate ~= 'inactive' then
+	    warn("reapplying configs: block %s not in state preinit but %s",
+		 cfg._tgt._fqn, bstate)
+	    return
+	 end
+
+	 reapply_config(cfg, b, NC, configured, nonexist)
+      end, root_sys)
+
+   -- check that all initially non-existing configs were configured
+   for cfgfqn, val in pairs(nonexist) do
+      assert(val==true, fmt("unconfigured nonexist config %s reapply", cfgfqn))
+   end
+
 end
 
 --- Connect blocks
