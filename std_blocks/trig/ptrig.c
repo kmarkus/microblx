@@ -137,6 +137,7 @@ static void *thread_startup(void *arg)
 
 		while (inf->state != BLOCK_STATE_ACTIVE) {
 			trig_info_tstats_log(b, &inf->trig_inf);
+			trig_info_tstats_output(b, &inf->trig_inf);
 
 			ret = write_tstats_to_profile_path(b, &inf->trig_inf);
 

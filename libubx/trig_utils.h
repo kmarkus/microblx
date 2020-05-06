@@ -111,6 +111,11 @@ int do_trigger(struct trig_info* trig_inf);
  */
 void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf);
 
+/**
+ * write all current stats to the tstats port
+ * @param trig_inf trigger info	to log
+ */
+void trig_info_tstats_output(ubx_block_t *b, struct trig_info *trig_inf);
 
 /**
  * construct the tstats log file name

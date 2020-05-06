@@ -131,6 +131,25 @@ static void tstats_output_throttled(struct trig_info *trig_inf, uint64_t now)
 	trig_inf->tstats_output_last_msg = now;
 }
 
+/* output all tstats on the tstats_port */
+void trig_info_tstats_output(ubx_block_t *b, struct trig_info *trig_inf)
+{
+	switch (trig_inf->tstats_mode) {
+	case TSTATS_DISABLED:
+		return;
+	case TSTATS_PERBLOCK:
+		for(int i=0; i<trig_inf->trig_list_len; i++)
+			write_tstat(trig_inf->p_tstats, &trig_inf->blk_tstats[i]);
+		/* fall through */
+	case TSTATS_GLOBAL:
+		write_tstat(trig_inf->p_tstats, &trig_inf->global_tstats);
+		break;
+	default:
+		ubx_err(b, "invalid TSTATS_MODE %i", trig_inf->tstats_mode);
+		return;
+	}
+}
+
 /*
  * basic triggering and tstats management
  */

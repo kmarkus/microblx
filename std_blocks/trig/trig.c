@@ -69,6 +69,7 @@ void trig_stop(ubx_block_t *b)
 	struct trig_info *trig_inf = (struct trig_info*) b->private_data;
 
 	trig_info_tstats_log(b, trig_inf);
+	trig_info_tstats_output(b, trig_inf);
 
 	ret = write_tstats_to_profile_path(b, trig_inf);
 
