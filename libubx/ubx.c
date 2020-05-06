@@ -178,12 +178,12 @@ ubx_module_t *ubx_module_get(ubx_node_info_t *ni, const char *lib)
 }
 
 /**
- * ubx_module_unload - unload a module from a node.
+ * ubx_module_close - close a module from a node.
  *
  * @param ni node_info
  * @param lib name of module library to unload
  */
-void ubx_module_unload(ubx_node_info_t *ni, const char *lib)
+static void ubx_module_cleanup(ubx_node_info_t *ni, const char *lib)
 {
 	ubx_module_t *mod;
 
@@ -191,19 +191,42 @@ void ubx_module_unload(ubx_node_info_t *ni, const char *lib)
 
 	if (mod == NULL) {
 		logf_err(ni, "unknown module %s", lib);
-		goto out;
+		return;
+	}
+
+	mod->cleanup(ni);
+}
+
+static void ubx_module_close(ubx_node_info_t *ni, const char *lib)
+{
+	ubx_module_t *mod;
+
+	HASH_FIND_STR(ni->modules, lib, mod);
+
+	if (mod == NULL) {
+		logf_err(ni, "unknown module %s", lib);
+		return;
 	}
 
 	HASH_DEL(ni->modules, mod);
 
-	mod->cleanup(ni);
-
 	dlclose(mod->handle);
 	free((char *)mod->id);
 	free(mod);
- out:
-	return;
 }
+
+/**
+ * ubx_module_unload - unload a module from a node.
+ *
+ * @param ni node_info
+ * @param lib name of module library to unload
+ */
+void ubx_module_unload(ubx_node_info_t *ni, const char *lib)
+{
+	ubx_module_cleanup(ni, lib);
+	ubx_module_close(ni, lib);
+}
+
 
 /**
  * initalize node_info
@@ -322,21 +345,29 @@ void ubx_node_cleanup(ubx_node_info_t *ni)
 
 	ubx_node_clear(ni);
 
-	/* unload all modules. */
+	/* cleanup all modules. */
 	HASH_ITER(hh, ni->modules, m, mtmp) {
 		logf_debug(ni, "unloading module %s", m->id);
-		ubx_module_unload(ni, m->id);
+		ubx_module_cleanup(ni, m->id);
 	}
 
 	cnt = ubx_num_types(ni);
 	if (cnt > 0)
-		logf_warn(ni, "%d types after cleanup", cnt);
-	cnt = ubx_num_modules(ni);
-	if (cnt > 0)
-		logf_warn(ni, "%d modules after cleanup", cnt);
+		logf_warn(ni, "not has types after cleanup");
+
 	cnt = ubx_num_blocks(ni);
 	if (cnt > 0)
 		logf_warn(ni, "%d blocks after cleanup", cnt);
+
+	/* close all modules. */
+	HASH_ITER(hh, ni->modules, m, mtmp) {
+		logf_debug(ni, "unloading module %s", m->id);
+		ubx_module_close(ni, m->id);
+	}
+
+	cnt = ubx_num_modules(ni);
+	if (cnt > 0)
+		logf_warn(ni, "%d modules after cleanup", cnt);
 
 	ni->cur_seqid = 0;
 }
