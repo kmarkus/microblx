@@ -1027,6 +1027,43 @@ function M.set_config_tab(b, ctab)
    for n,v in pairs(ctab) do M.set_config(b, n, v) end
 end
 
+--- Configure a block with a table of configuration values.
+--
+-- This version will initialize the block and configure dynamically
+-- added configs that were skipped before in a second run.
+-- @param b block
+-- @param ctab configuration tab
+function M.do_configure(b, ctab)
+   local deferred = {}
+
+   local state = b:get_block_state()
+
+   if state ~= 'preinit' then
+      error("do_configure: block not in state preinit but "..state)
+   end
+
+   for n,v in pairs(ctab) do
+      if M.block_config_get(b, n) == nil then
+	 deferred[n] = v
+      else
+	 M.set_config(b, n, v)
+      end
+   end
+
+   local ret = M.block_init(b)
+   if ret ~= 0 then
+      error(fmt("do_configure: failed to initalize %s", M.safe_tostr(b.name)))
+   end
+
+   for n,v in pairs(deferred) do
+      if M.block_config_get(b, n) == nil then
+	 error(fmt("do_configure: block %s has no config %s",
+		   M.safe_tostr(b.name), n))
+      end
+      M.set_config(b, n, v)
+   end
+end
+
 -- safely load a table from a string
 -- @param str table string to load
 -- @return true or false
