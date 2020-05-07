@@ -248,3 +248,15 @@ uint64_t ubx_ts_to_ns(const struct ubx_timespec *ts)
 {
 	return ts->sec * (uint64_t)NSEC_PER_SEC + ts->nsec;
 }
+
+/**
+ * ubx_ts_to_us - convert ubx_timespec to uint64_t [us]
+ *
+ * @param ts
+ *
+ * @return time in microseconds
+ */
+uint64_t ubx_ts_to_us(const struct ubx_timespec *ts)
+{
+	return ts->sec * (uint64_t)USEC_PER_SEC + ts->nsec / NSEC_PER_USEC;
+}

@@ -10,9 +10,9 @@
 #include <limits.h>
 #include "trig_utils.h"
 
-#define FILE_HDR "block, cnt, min, max, avg\n"
-#define FILE_FMT "%s, %lu, %11.9f, %11.9f, %11.9f\n"
-#define LOG_FMT "TSTAT: %s: cnt %lu, min %11.9f, max %11.9f, avg %11.9f"
+#define FILE_HDR "block, cnt, min_us, max_us, avg_us\n"
+#define FILE_FMT "%s, %lu, %lu, %lu, %lu\n"
+#define LOG_FMT "TSTAT: %s: cnt %luus, min %luus, max %luus, avg %luus"
 static const char *tstat_global_id = "#total#";
 
 def_port_accessors(tstat, struct ubx_tstat)
@@ -77,9 +77,9 @@ int tstat_write(FILE *fp, struct ubx_tstat *stats)
 
 		fprintf(fp, FILE_FMT,
 			stats->block_name, stats->cnt,
-			ubx_ts_to_double(&stats->min),
-			ubx_ts_to_double(&stats->max),
-			ubx_ts_to_double(&avg));
+			ubx_ts_to_us(&stats->min),
+			ubx_ts_to_us(&stats->max),
+			ubx_ts_to_us(&avg));
 	} else {
 		fprintf(fp, "%s: cnt: 0 - no stats aquired\n", stats->block_name);
 	}
@@ -104,9 +104,9 @@ void tstat_log(const ubx_block_t *b, const struct ubx_tstat *stats)
 
 	ubx_info(b, LOG_FMT,
 		 stats->block_name, stats->cnt,
-		 ubx_ts_to_double(&stats->min),
-		 ubx_ts_to_double(&stats->max),
-		 ubx_ts_to_double(&avg));
+		 ubx_ts_to_us(&stats->min),
+		 ubx_ts_to_us(&stats->max),
+		 ubx_ts_to_us(&avg));
 }
 
 /* helpers for throttled port output or logging */
