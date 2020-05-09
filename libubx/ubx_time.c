@@ -63,24 +63,12 @@ int ubx_gettime(struct ubx_timespec *uts)
  *
  * @return non-zero in case of error, 0 otherwise.
  */
-static int ubx_clock_mono_gettime(struct ubx_timespec *uts)
+int ubx_clock_mono_gettime(struct ubx_timespec *uts)
 {
-	int ret = EINVALID_ARG;
-	struct timespec ts;
-
 	if (uts == NULL)
-		goto out;
+		return EINVALID_ARG;
 
-	ret = clock_gettime(CLOCK_MONOTONIC, &ts);
-	if (ret != 0)
-		goto out;
-
-	uts->sec = ts.tv_sec;
-	uts->nsec = ts.tv_nsec;
-	ret = 0;
-
-out:
-	return ret;
+	return clock_gettime(CLOCK_MONOTONIC, (struct timespec*) uts);
 }
 
 int ubx_gettime(struct ubx_timespec *uts)
