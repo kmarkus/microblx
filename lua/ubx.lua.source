@@ -385,7 +385,7 @@ function M.clock_mono_sleep(sec, nsec)
    local ts = ffi.new("struct ubx_timespec")
    ts.sec=sec
    ts.nsec=nsec or 0
-   M.clock_mono_nanosleep(ts)
+   M.clock_mono_nanosleep(0, ts)
 end
 
 function M.block_get(ni, bname)
