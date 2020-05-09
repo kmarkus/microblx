@@ -735,9 +735,6 @@ function M.data_alloc(ni, type_name, num)
    return M.__data_alloc(t, num)
 end
 
-M.data_free = ubx.ubx_data_free
-M.type_get = ubx.ubx_type_get
-
 --- Load the registered C types into the luajit ffi.
 -- @param ni node_info_t*
 function M.ffi_load_types(ni)
