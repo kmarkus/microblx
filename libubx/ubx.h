@@ -11,16 +11,6 @@
 #ifndef _UBX_H
 #define _UBX_H
 
-/* constants */
-#define NSEC_PER_SEC		1000000000
-#define USEC_PER_SEC		1000000
-#define NSEC_PER_USEC           1000
-
-/* config array length checking */
-#define CONFIG_LEN_MAX		UINT16_MAX
-
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
-
 #include "typemacros.h"
 
 #ifdef __cplusplus
@@ -52,6 +42,16 @@ extern "C"
 
 #include "ubx_proto.h"
 #include "rtlog.h"
+
+/* constants */
+#define NSEC_PER_SEC		1000000000
+#define USEC_PER_SEC		1000000
+#define NSEC_PER_USEC           1000
+
+/* config array length checking */
+#define CONFIG_LEN_MAX		UINT16_MAX
+
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 /*
  * Debug stuff

@@ -13,6 +13,8 @@
 #include <fcntl.h>
 #include <pthread.h>
 
+#include <config.h>
+
 #include "ubx.h"
 #include "rtlog.h"
 

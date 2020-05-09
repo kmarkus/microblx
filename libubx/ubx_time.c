@@ -1,6 +1,8 @@
 /* Time handling */
 
+#include "math.h"
 #include "ubx.h"
+#include <config.h>
 
 #ifdef TIMESRC_TSC
 /**
@@ -30,7 +32,7 @@ static uint64_t rdtscp(void)
  *
  * @param uts
  *
- * @return 0 (rdtsc does not fail)
+ * @return 0 or EINVALID_ARG
  */
 int ubx_tsc_gettime(struct ubx_timespec *uts)
 {
@@ -52,36 +54,43 @@ out:
 	return ret;
 }
 
-int ubx_tsc_nanosleep(struct ubx_timespec *uts)
+/**
+ * ubx_tsc_nanosleep - get elapsed using tsc counter
+ *
+ * @param flags	(same flags as clock_nanosleep)
+ * @param request abs or relative time to sleep
+ * @return 0 or error
+ */
+int ubx_tsc_nanosleep(int flags, struct ubx_timespec *request)
 {
 	int ret;
-	struct ubx_timespec end, now;
+	struct ubx_timespec *endp, end, now;
 
-	ret = ubx_tsc_gettime(&end);
+	if (flags & TIMER_ABSTIME) {
+		endp = request;
+	} else {
+		ret = ubx_tsc_gettime(&end);
 
-	if (ret)
-		goto out;
-
-	ubx_ts_add(end, uts, end);
-
-	for (;;) {
-		ret = ubx_tsc_gettime(&now);
 		if (ret)
 			goto out;
 
-		if (ubx_ts_cmp(&now, &end) == 1)
+		ubx_ts_add(&end, request, &end);
+		endp = &end;
+	}
+
+	for (;;) {
+		ret = ubx_tsc_gettime(&now);
+
+		if (ret)
+			goto out;
+
+		if (ubx_ts_cmp(&now, endp) == 1)
 			break;
 	}
 out:
 	return ret;
 }
-
-/* default */
-int ubx_gettime(struct ubx_timespec *uts)
-{
-	return ubx_tsc_gettime(uts);
-}
-#endif
+#endif /* TIMESRC_TSC */
 
 /**
  * ubx_clock_mono_gettime
@@ -99,14 +108,6 @@ int ubx_clock_mono_gettime(struct ubx_timespec *uts)
 	return clock_gettime(CLOCK_MONOTONIC, (struct timespec*) uts);
 }
 
-#ifndef TIMESRC_TSC
-int ubx_gettime(struct ubx_timespec *uts)
-{
-	return ubx_clock_mono_gettime(uts);
-}
-#endif
-
-
 /**
  * ubx_clock_mono_nanosleep - sleep for specified timespec
  *
@@ -114,33 +115,21 @@ int ubx_gettime(struct ubx_timespec *uts)
  *
  * @return non-zero in case of error, 0 otherwise
  */
-int ubx_clock_mono_nanosleep(struct ubx_timespec *uts)
+int ubx_clock_mono_nanosleep(int flags, struct ubx_timespec *request)
 {
-	int ret;
-	struct timespec ts;
-
-	ret = clock_gettime(CLOCK_MONOTONIC, &ts);
-
-	if (ret)
-		goto out;
-
-	ts.tv_sec += uts->sec;
-	ts.tv_nsec += uts->nsec;
-
-	if (ts.tv_nsec >= NSEC_PER_SEC) {
-		ts.tv_sec += ts.tv_nsec / NSEC_PER_SEC;
-		ts.tv_nsec = ts.tv_nsec % NSEC_PER_SEC;
-	}
-
-	for (;;) {
-		ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
-		if (ret != EINTR)
-			goto out;
-	}
-
-out:
-	return ret;
+	struct timespec *ts = (struct timespec*) request;
+	return clock_nanosleep(CLOCK_MONOTONIC, flags, ts, NULL);
 }
+
+
+#ifdef TIMESRC_TSC
+int ubx_gettime(struct ubx_timespec *uts) { return ubx_tsc_gettime(uts); }
+int ubx_nanosleep(int flags, struct ubx_timespec *uts) { return ubx_tsc_nanosleep(flags, uts); }
+#else
+int ubx_gettime(struct ubx_timespec *uts) { return ubx_clock_mono_gettime(uts); }
+int ubx_nanosleep(int flags, struct ubx_timespec *uts) { return ubx_clock_mono_nanosleep(flags, uts); }
+#endif /* TIMESRC_TSC */
+
 
 /**
  * Compare two ubx_timespecs

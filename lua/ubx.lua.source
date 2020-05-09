@@ -378,7 +378,7 @@ function M.block_create(ni, type, name, conf)
 end
 
 -- OS stuff
-M.clock_mono_gettime = ubx.ubx_gettime
+M.clock_mono_gettime = ubx.ubx_clock_mono_gettime
 M.clock_mono_nanosleep = ubx.ubx_clock_mono_nanosleep
 
 function M.clock_mono_sleep(sec, nsec)

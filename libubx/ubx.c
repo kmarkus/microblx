@@ -10,12 +10,8 @@
 
 #undef UBX_DEBUG
 
-#include <config.h>
-
 #include "ubx.h"
-#ifdef TIMESRC_TSC
-#include <math.h>
-#endif
+#include <config.h>
 
 /*
  * Internal helper functions
@@ -275,6 +271,10 @@ int ubx_node_init(ubx_node_info_t *ni, const char *name, uint32_t attrs)
 		};
 		logf_info(ni, "mlockall CUR|FUT succeeded");
 	}
+
+#ifdef TIMESRC_TSC
+	logf_info(ni, "TSC timesource enabled");
+#endif
 
 	ni->attrs = attrs;
 	ni->blocks = NULL;
