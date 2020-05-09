@@ -786,7 +786,7 @@ local function reapply_config(cfg, b, NC, configured, nonexist)
       if nonexist[cfgfqn] == nil then goto continue end
 
       if ubx.block_config_get(b, name) == nil then
-	 err_exit(1, "can't reapply %s: no config %s even after init",
+	 err_exit(1, "No config %s (even after init) to apply %s",
 		  cfg._fqn, cfgfqn)
 	 nonexist[cfgfqn] = false
 	 goto continue
@@ -894,16 +894,16 @@ local function connect_blocks(ni, root_sys)
       local tgtport = c._tgtport
 
       -- are we connecting to an interaction?
-      if c._srcport==nil then
+      if srcport==nil then
 	 -- src is interaction, target a port
 	 local ib = ubx.block_get(ni, srcblk)
 
 	 if ib==nil then
-	    err_exit(1, "do_connect: unkown src block %s", ts(srcblk))
+	    err_exit(1, "do_connect: unknown src block %s", srcblk)
 	 end
 
 	 if not ubx.is_iblock_instance(ib) then
-	    err_exit(1, ts(srcblk).." not a valid iblock instance")
+	    err_exit(1, "%s is not a valid iblock instance", srcblk)
 	 end
 
 	 local btgt = ubx.block_get(ni, tgtblk)
@@ -911,20 +911,19 @@ local function connect_blocks(ni, root_sys)
 
 	 if ubx.port_connect_in(ptgt, ib) ~= 0 then
 	    err_exit(1, "failed to connect interaction %s to port %s.%s",
-			srcblk, ts(tgtblk), ts(tgtport))
+			srcblk, tgtblk, tgtport)
 	 end
-	 info("connecting %s (iblock) ->  %s.%s",
-	      green(srcblk), green(ts(tgtblk), cyan(ts(tgtport))))
+	 info("connecting %s (iblock) ->  %s.%s", srcblk, tgtblk, tgtport)
       elseif tgtport==nil then
 	 -- src is a port, target is an interaction
 	 local ib = ubx.block_get(ni, tgtblk)
 
 	 if ib==nil then
-	    err_exit(1, "unkown block %s", ts(tgtblk))
+	    err_exit(1, "do_connect: unknown tgt block %s", tgtblk)
 	 end
 
 	 if not ubx.is_iblock_instance(ib) then
-	    err_exit(1, "%s not a valid iblock instance", ts(tgtblk))
+	    err_exit(1, "%s not a valid iblock instance", tgtblk)
 	 end
 
 	 local bsrc = ubx.block_get(ni, srcblk)
@@ -932,18 +931,15 @@ local function connect_blocks(ni, root_sys)
 
 	 if ubx.port_connect_out(psrc, ib) ~= 0 then
 	    err_exit(1, "failed to connect %s.%s to %s (iblock)",
-		     ts(srcblk), ts(srcport), ts(tgtblk))
+		     srcblk, srcport, tgtblk)
 	 end
-	 info("connecting %s.%s -> %s (iblock)",
-	      green(ts(srcblk)), cyan(ts(srcport)), green(tgtblk))
+	 info("connecting %s.%s -> %s (iblock)", srcblk, srcport, tgtblk)
       else
 	 -- both src and target are ports
 	 local bufflen = c.buffer_length or 1
 
 	 info("connecting %s.%s -[%d]-> %s.%s",
-	      green(ts(srcblk)), cyan(ts(srcport)),
-	      yellow(ts(bufflen), true),
-	      green(ts(tgtblk)), cyan(ts(tgtport)))
+	      srcblk, srcport, bufflen, tgtblk, tgtport)
 
 	 local bsrc = ubx.block_get(ni, srcblk)
 	 local btgt = ubx.block_get(ni, tgtblk)
