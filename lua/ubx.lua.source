@@ -262,7 +262,7 @@ M.debug = dbg
 -- @return struct ubx_timespec with current time
 function M.clock_mono_gettime(ts)
    ts = ts or ffi.new("struct ubx_timespec")
-   ubx.ubx_gettime(ts)
+   ubx.ubx_clock_mono_gettime(ts)
    return ts
 end
 
@@ -378,9 +378,6 @@ function M.block_create(ni, type, name, conf)
 end
 
 -- OS stuff
-M.clock_mono_gettime = ubx.ubx_clock_mono_gettime
-M.clock_mono_nanosleep = ubx.ubx_clock_mono_nanosleep
-
 function M.clock_mono_sleep(sec, nsec)
    local ts = ffi.new("struct ubx_timespec")
    ts.sec=sec
@@ -1199,7 +1196,7 @@ end
 function M.port_read(p, rval)
    assert(p, "invalid port")
    if not M.is_data(rval) then
-      rval=M.port_alloc_read_sample(p)
+      rval = M.port_alloc_read_sample(p)
    end
    return ubx.__port_read(p, rval), rval
 end
@@ -1211,8 +1208,7 @@ end
 -- @return num or -1 if timeout
 -- @return result or nil
 function M.port_read_timed(p, timeout, data)
-   local len
-   timeout = timeout or 1
+   timeout = timeout or 0
    local ts_start = ffi.new("struct ubx_timespec")
    local ts_cur = ffi.new("struct ubx_timespec")
 
@@ -1220,8 +1216,9 @@ function M.port_read_timed(p, timeout, data)
    M.clock_mono_gettime(ts_cur)
 
    while ts_cur.sec - ts_start.sec < timeout do
-      len, data = M.port_read(p, data)
-      if len>0 then return len, data end
+      local len, res = M.port_read(p, data)
+      if len>0 then return len, res end
+      M.clock_mono_sleep(0, 50000)
       M.clock_mono_gettime(ts_cur)
    end
    return 0
