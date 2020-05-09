@@ -1,10 +1,11 @@
 -- -*- mode: lua; -*-
 
 local bd = require("blockdiagram")
+local u = require("utils")
 
 local TYPE_NAME = 'struct ptrig_period'
-local DATA_LEN = 1
-local VALUE = { sec=99, usec = 333 }
+local DATA_LEN = 200
+local VALUE = u.fill({ sec=99, usec = 333 }, DATA_LEN)
 local BUF_LEN = 8
 
 return bd.system
@@ -24,7 +25,7 @@ return bd.system
       },
       {
 	 name="ptrig1",
-	 config = { period = { sec=1, usec=0}, trig_blocks = { b = "#cconst1" } }
+	 config = { period = { sec=0, usec=10000}, trig_blocks = { b = "#cconst1" } }
       },
       {
 	 name="mq1",

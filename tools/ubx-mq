@@ -78,7 +78,7 @@ local function read(mqtab, preloads)
       os.exit(1)
    end
 
-   local sample = ubx.__data_alloc(ni, typ, mqtab.data_len)
+   local sample = ubx.__data_alloc(typ, mqtab.data_len)
 
    ubx.block_create(ni, "mqueue", "mq", {
 		       mq_id = mqtab.mq_id,
