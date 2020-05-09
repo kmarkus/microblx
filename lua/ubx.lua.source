@@ -1605,12 +1605,8 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 				iname, buff_len2, tonumber(p.in_data_len)))
    end
 
-
-   -- cleanup interaction and port once the reference is lost
-   ffi.gc(p, function (p)
-		-- print("cleaning up port PCC port "..M.safe_tostr(p.name))
-		M.port_free_data(p)
-	     end)
+   -- cleanup port once the reference is lost
+   ffi.gc(p, ubx.ubx_port_free_data)
    return p
 end
 
