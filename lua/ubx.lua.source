@@ -1210,13 +1210,17 @@ function M.port_read_timed(p, timeout, data)
    local ts_start = ffi.new("struct ubx_timespec")
    local ts_cur = ffi.new("struct ubx_timespec")
 
+   if not M.is_data(data) then
+      data = M.port_alloc_read_sample(p)
+   end
+
    M.clock_mono_gettime(ts_start)
    M.clock_mono_gettime(ts_cur)
 
    while ts_cur.sec - ts_start.sec < timeout do
-      local len, res = M.port_read(p, data)
-      if len>0 then return len, res end
-      M.clock_mono_sleep(0, 50000)
+      local len = ubx.__port_read(p, data)
+      if len>0 then return len, data end
+      M.clock_mono_sleep(0, 10*1000^2)
       M.clock_mono_gettime(ts_cur)
    end
    return 0
