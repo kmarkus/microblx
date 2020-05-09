@@ -327,7 +327,7 @@ void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf)
 char* tstats_build_filename(const char *blockname, const char *profile_path)
 {
 	int len, ret;
-	char *bn = NULL;
+	char *bn;
 	char *filename = NULL;
 
 	bn = strdup(blockname);
