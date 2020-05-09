@@ -12,7 +12,7 @@
 
 #define FILE_HDR "block, cnt, min_us, max_us, avg_us\n"
 #define FILE_FMT "%s, %lu, %lu, %lu, %lu\n"
-#define LOG_FMT "TSTAT: %s: cnt %luus, min %luus, max %luus, avg %luus"
+#define LOG_FMT "TSTAT: %s: cnt %lu, min %lu us, max %lu us, avg %lu us"
 static const char *tstat_global_id = "#total#";
 
 def_port_accessors(tstat, struct ubx_tstat)
