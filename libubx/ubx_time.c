@@ -26,11 +26,13 @@ static uint64_t rdtscp(void)
 /**
  * ubx_tsc_gettime - get elapsed using tsc counter
  *
+ * @TODO: needs refactoring to avoid the double conversion.
+ *
  * @param uts
  *
  * @return 0 (rdtsc does not fail)
  */
-static int ubx_tsc_gettime(struct ubx_timespec *uts)
+int ubx_tsc_gettime(struct ubx_timespec *uts)
 {
 	int ret = EINVALID_ARG;
 	double ts, frac, integral;
@@ -50,11 +52,37 @@ out:
 	return ret;
 }
 
+int ubx_tsc_nanosleep(struct ubx_timespec *uts)
+{
+	int ret;
+	struct ubx_timespec end, now;
+
+	ret = ubx_tsc_gettime(&end);
+
+	if (ret)
+		goto out;
+
+	ubx_ts_add(end, uts, end);
+
+	for (;;) {
+		ret = ubx_tsc_gettime(&now);
+		if (ret)
+			goto out;
+
+		if (ubx_ts_cmp(&now, &end) == 1)
+			break;
+	}
+out:
+	return ret;
+}
+
+/* default */
 int ubx_gettime(struct ubx_timespec *uts)
 {
 	return ubx_tsc_gettime(uts);
 }
-#else
+#endif
+
 /**
  * ubx_clock_mono_gettime
  *           - get current time using clock_gettime(CLOCK_MONOTONIC).
@@ -71,11 +99,13 @@ int ubx_clock_mono_gettime(struct ubx_timespec *uts)
 	return clock_gettime(CLOCK_MONOTONIC, (struct timespec*) uts);
 }
 
+#ifndef TIMESRC_TSC
 int ubx_gettime(struct ubx_timespec *uts)
 {
 	return ubx_clock_mono_gettime(uts);
 }
 #endif
+
 
 /**
  * ubx_clock_mono_nanosleep - sleep for specified timespec
@@ -90,6 +120,7 @@ int ubx_clock_mono_nanosleep(struct ubx_timespec *uts)
 	struct timespec ts;
 
 	ret = clock_gettime(CLOCK_MONOTONIC, &ts);
+
 	if (ret)
 		goto out;
 
