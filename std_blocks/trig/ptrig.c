@@ -127,15 +127,20 @@ static void *thread_startup(void *arg)
 	int ret;
 	ubx_block_t *b;
 	struct ptrig_inf *inf;
-	struct timespec ts;
+	struct ubx_timespec next, period;
 
 	b = (ubx_block_t *) arg;
 	inf = (struct ptrig_inf *)b->private_data;
 
+	period.sec = inf->period->sec;
+	period.nsec = inf->period->usec * NSEC_PER_USEC;
+
 	while (1) {
+
 		pthread_mutex_lock(&inf->mutex);
 
 		while (inf->state != BLOCK_STATE_ACTIVE) {
+
 			trig_info_tstats_log(b, &inf->trig_inf);
 			trig_info_tstats_output(b, &inf->trig_inf);
 
@@ -150,24 +155,21 @@ static void *thread_startup(void *arg)
 		inf->thread_state = THREAD_ACTIVE;
 		pthread_mutex_unlock(&inf->mutex);
 
-		ret = clock_gettime(CLOCK_MONOTONIC, &ts);
+		ret = ubx_gettime(&next);
+
 		if (ret) {
-			ubx_err(b, "clock_gettime failed: %s",
-				strerror(errno));
+			ubx_err(b, "ubx_gettime failed: %s", strerror(errno));
 			goto out;
 		}
 
 		do_trigger(&inf->trig_inf);
 
-		ts.tv_sec += inf->period->sec;
-		ts.tv_nsec += inf->period->usec * NSEC_PER_USEC;
-		tsnorm(&ts);
+		ubx_ts_add(&next, &period, &next);
 
-		ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts,
-				      NULL);
+		ret = ubx_nanosleep(TIMER_ABSTIME, &next);
+
 		if (ret) {
-			ubx_err(b, "clock_nanosleep failed: %s",
-				strerror(errno));
+			ubx_err(b, "clock_nanosleep failed: %s", strerror(errno));
 			goto out;
 		}
 	}
