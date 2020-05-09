@@ -111,7 +111,7 @@ if opttab['-h'] then
    usage(); os.exit(0)
 end
 
-local preloads
+local preloads = {}
 if opttab['-p'] then
    if not opttab['-p'][1] then
       print("-p requires an argument")
