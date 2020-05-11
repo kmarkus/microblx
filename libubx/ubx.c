@@ -110,8 +110,11 @@ int ubx_module_load(ubx_node_info_t *ni, const char *lib)
 		logf_err(ni, "cloning mod name failed");
 		goto out_err_free_mod;
 	}
-
+#ifdef UBX_CONFIG_VALGRIND
+	mod->handle = dlopen(lib, RTLD_NOW | RTLD_NODELETE);
+#else
 	mod->handle = dlopen(lib, RTLD_NOW);
+#endif
 	if (mod->handle == NULL) {
 		ubx_log(UBX_LOGLEVEL_ERR, ni, "dlopen", "%s", dlerror());
 		goto out_err_free_id;
