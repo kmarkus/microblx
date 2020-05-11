@@ -5,8 +5,11 @@ This file tracks user visible API changes
 
 ## next
 
-- `trig`, `ptrig`: indepent of `tstats_output_rate`, all stats are
-  written to the port `tstats` (if it exists) in `stop()`.
+- `trig`, `ptrig`:
+   - indepent of `tstats_output_rate`, all stats are written to the
+	 port `tstats` (if it exists) in `stop()`.
+   - config `autostop_steps` added to stop ptrig after triggering this
+     number of times.
 
 - `port_clone_conn`: add `loglevel_overruns` argument.
 
