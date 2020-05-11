@@ -8,11 +8,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
+#include <inttypes.h>
 #include "trig_utils.h"
 
-#define FILE_HDR "block, cnt, min_us, max_us, avg_us\n"
-#define FILE_FMT "%s, %lu, %lu, %lu, %lu\n"
-#define LOG_FMT "TSTAT: %s: cnt %lu, min %lu us, max %lu us, avg %lu us"
+
+static const char *FILE_HDR = "block, cnt, min_us, max_us, avg_us\n";
+static const char *FILE_FMT = "%s, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n";
+static const char *LOG_FMT = "TSTAT: %s: cnt %" PRIu64 " , min %" PRIu64 " us, max %" PRIu64 " us, avg %" PRIu64 " us";
 static const char *tstat_global_id = "#total#";
 
 def_port_accessors(tstat, struct ubx_tstat)
@@ -392,7 +394,7 @@ int tstat_write_file(ubx_block_t *b,
 		goto out_free;
 	}
 
-	fprintf(fp, FILE_HDR);
+	fprintf(fp, "%s", FILE_HDR);
 
 	tstat_write(fp, tstats);
 
@@ -441,7 +443,7 @@ int trig_info_tstats_write(ubx_block_t *b,
 		goto out_free;
 	}
 
-	fprintf(fp, FILE_HDR);
+	fprintf(fp, "%s", FILE_HDR);
 
 	switch (trig_inf->tstats_mode) {
 	case TSTATS_PERBLOCK:
