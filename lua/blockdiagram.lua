@@ -786,8 +786,8 @@ local function reapply_config(cfg, b, NC, configured, nonexist)
       if nonexist[cfgfqn] == nil then goto continue end
 
       if ubx.block_config_get(b, name) == nil then
-	 err_exit(1, "No config %s (even after init) to apply %s",
-		  cfg._fqn, cfgfqn)
+	 err_exit(1, "block %s [%s] has no config '%s'",
+		  cfg._tgt._fqn, cfg._tgt.type, name)
 	 nonexist[cfgfqn] = false
 	 goto continue
       end
