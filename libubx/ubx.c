@@ -2233,17 +2233,20 @@ int ubx_block_start(ubx_block_t *b)
 	if (ret < 0)
 		goto out;
 
+	b->block_state = BLOCK_STATE_ACTIVE;
+
 	if (b->start == NULL)
 		goto out_ok;
 
 	ret = b->start(b);
+
 	if (ret != 0) {
+		b->block_state = BLOCK_STATE_INACTIVE;
 		ubx_err(b, "start failed");
 		goto out;
 	}
 
  out_ok:
-	b->block_state = BLOCK_STATE_ACTIVE;
 	ret = 0;
 
  out:
