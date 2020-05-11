@@ -53,6 +53,8 @@ ubx_type_t ptrig_types[] = {
 
 def_cfg_getptr_fun(cfg_getptr_ptrig_period, struct ptrig_period);
 
+static void ptrig_stop(ubx_block_t *b);
+
 /* configuration */
 ubx_config_t ptrig_config[] = {
 	{ .name = "period", .type_name = "struct ptrig_period", .doc = "trigger period in { sec, ns }", },
@@ -64,6 +66,8 @@ ubx_config_t ptrig_config[] = {
 #endif
 	{ .name = "thread_name", .type_name = "char", .doc = "thread name (for dbg), default is block name" },
 	{ .name = "trig_blocks", .type_name = "struct ubx_trig_spec", .doc = "specification of blocks to trigger" },
+	{ .name = "autostop_steps", .type_name = "int64_t", .doc = "if set and > 0, block stops itself after X steps", .max=1 },
+
 	{ .name = "tstats_mode", .type_name = "int", .doc = "enable timing statistics over all blocks", },
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "directory to write the timing stats file to" },
 	{ .name = "tstats_output_rate", .type_name = "double", .doc = "throttle output on tstats port" },
@@ -109,6 +113,8 @@ struct ptrig_inf {
 	const struct ptrig_period *period;
 
 	struct trig_info trig_inf;
+
+	int64_t autostop_steps;
 };
 
 
@@ -166,6 +172,15 @@ static void *thread_startup(void *arg)
 
 		ubx_ts_add(&next, &period, &next);
 
+		/* check autostop_steps */
+		if (inf->autostop_steps > 0) {
+			if (--inf->autostop_steps == 0) {
+				ubx_info(b, "autostop_steps reached 0, stopping block");
+				ubx_block_stop(b);
+				continue;
+			}
+		}
+
 		ret = ubx_nanosleep(TIMER_ABSTIME, &next);
 
 		if (ret) {
@@ -184,11 +199,18 @@ int ptrig_handle_config(ubx_block_t *b)
 	long len;
 	int ret = -EINVALID_CONFIG;
 	unsigned int schedpol;
+	const int64_t *autostop_steps;
 	const char *schedpol_str;
 	const size_t *stacksize = NULL;
 	const int *prio;
 	struct sched_param sched_param; /* prio */
 	struct ptrig_inf *inf = (struct ptrig_inf *)b->private_data;
+
+	/* autostop_steps */
+	len = cfg_getptr_int64(b, "autostop_steps", &autostop_steps);
+	assert(len >= 0);
+
+	inf->autostop_steps = (len > 0) ? *autostop_steps : -1;
 
 	/* period */
 	len = cfg_getptr_ptrig_period(b, "period", &inf->period);
