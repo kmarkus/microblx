@@ -133,7 +133,7 @@ local ubx_ffi_headers = {
    "include/ubx/ubx_proto.h",
 }
 
-local ubx_ffi_lib = "lib/libubx.so.UBX_IF"
+local ubx_ffi_lib = "lib/libubx.so"
 
 local ubx = nil
 local prefixes = { "/usr", "/usr/local" }

@@ -27,7 +27,7 @@ pkginclude_HEADERS = ubx.h \
 libubx_la_SOURCES = $(libubx_includes) \
 		    md5.c ubx.c ubx_time.c ubx_utils.c trig_utils.c rtlog.c accessors.c
 
-libubx_la_LDFLAGS = -version-info $(UBX_LT_VER) -lrt -lpthread -ldl
+libubx_la_LDFLAGS = -lrt -lpthread -ldl
 
 librtlog_client_la_SOURCES = rtlog_client.c
 librtlog_client_la_LDFLAGS = -shared -lrt

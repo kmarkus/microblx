@@ -2,10 +2,6 @@ m4_define([package_version_major],[0])
 m4_define([package_version_minor],[8])
 m4_define([package_version_micro],[0])
 
-m4_define([libubx_if_current], [9])  dnl inc if IF added, removed or changed
-m4_define([libubx_if_revision], [0]) dnl always inc if src changed, zero if current is inc'ed
-m4_define([libubx_if_age], [0])      dnl inc if API changes are backwards compatible, zero otherwise
-
 AC_INIT([ubx], [package_version_major.package_version_minor.package_version_micro])
 AM_INIT_AUTOMAKE([foreign -Wall])
 
@@ -26,11 +22,8 @@ m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT(disable-static)
 
 AC_SUBST([UBX_VER], [package_version_major.package_version_minor])
-AC_SUBST([UBX_LT_VER], [libubx_if_current:libubx_if_revision:libubx_if_age])
 AC_SUBST([UBX_MODDIR], [$libdir/$PACKAGE/$UBX_VER])
 AC_SUBST([UBX_CFLAGS], ["-Wall -Wextra -Werror"])
-AC_SUBST([UBX_IF_CURRENT], [libubx_if_current])
-AC_SUBST([UBX_IF_AGE], [libubx_if_age])
 
 AC_ARG_ENABLE([timesrc-tsc],
   AS_HELP_STRING([--enable-timesrc-tsc], [use TSC as timesource instead of POSIX time]),
