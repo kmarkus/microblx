@@ -625,7 +625,6 @@ local function import_modules(ni, s)
       function(m)
 	 if loaded[m] then return
 	 else
-	    info("importing module %s", magenta(m))
 	    ubx.load_module(ni, m)
 	    loaded[m]=true
 	 end
