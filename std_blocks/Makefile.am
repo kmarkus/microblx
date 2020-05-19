@@ -9,5 +9,6 @@ SUBDIRS = cppdemo \
           random \
           const \
           ramp \
+          rand \
           simple_fifo \
           webif
