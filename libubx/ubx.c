@@ -1124,8 +1124,9 @@ static ubx_block_t *ubx_block_clone(ubx_block_t *prot, const char *name)
 	ubx_config_t *srcconf, *tgtconf;
 
 	newb = calloc(1, sizeof(ubx_block_t));
+
 	if (newb == NULL)
-		goto out_free;
+		goto out;
 
 	newb->block_state = BLOCK_STATE_PREINIT;
 
@@ -1209,8 +1210,9 @@ static ubx_block_t *ubx_block_clone(ubx_block_t *prot, const char *name)
 	/* all ok */
 	return newb;
 
- out_free:
+out_free:
 	ubx_block_free(newb);
+out:
 	return NULL;
 }
 
