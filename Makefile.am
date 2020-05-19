@@ -10,7 +10,7 @@ docs:
 cppcheck:
 	@cppcheck -q \
 		  --enable=all \
-		  -Ilibubx/ -DRAMP_T=int \
+		  -Ilibubx/ -DRAMP_T=int -DRAND_DOUBLE_T=1 \
 		  --suppress=missingInclude \
 		  --suppress=unusedFunction \
 		  --suppress=*:std_blocks/webif/mongoose.c \
