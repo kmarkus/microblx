@@ -15,6 +15,7 @@
 /* constants */
 enum {
 	BLOCK_NAME_MAXLEN	= 30,
+	PORT_NAME_MAXLEN	= 64,
 	TYPE_NAME_MAXLEN	= 30,
 	TYPE_HASH_LEN		= 16,   		/* binary md5 */
 	TYPE_HASHSTR_LEN	= TYPE_HASH_LEN*2,   	/* hexstring md5 */
