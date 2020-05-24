@@ -8,14 +8,16 @@
 # define RAND_T double
 #elif RAND_UINT32_T == 1
 # define RAND_T uint32_t
+# define BLOCK_NAME "rand_uint32"
 #elif RAND_INT32_T == 1
 # define RAND_T int32_t
+# define BLOCK_NAME "rand_int32"
 #else
 # error "no type defined"
 #endif
 
 #ifndef BLOCK_NAME
- #define BLOCK_NAME RAND_T
+# define BLOCK_NAME "rand_" QUOTE(RAND_T)
 #endif
 
 #include <stdlib.h>
@@ -111,7 +113,7 @@ void rand_step(ubx_block_t *b)
 
 /* put everything together */
 ubx_block_t rand_block = {
-	.name = "rand_" QUOTE(BLOCK_NAME),
+	.name = BLOCK_NAME,
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = rand_meta,
 	.configs = rand_config,
@@ -132,7 +134,7 @@ int rand_mod_init(ubx_node_info_t *ni)
 
 void rand_mod_cleanup(ubx_node_info_t *ni)
 {
-	ubx_block_unregister(ni, "rand_" QUOTE(BLOCK_NAME));
+	ubx_block_unregister(ni, BLOCK_NAME);
 }
 
 /*
