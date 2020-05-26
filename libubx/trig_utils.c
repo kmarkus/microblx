@@ -398,6 +398,8 @@ int tstat_write_file(ubx_block_t *b,
 
 	tstat_write(fp, tstats);
 
+	fclose(fp);
+
 	ubx_info(b, "wrote tstats_profile to %s", filename);
 	ret = 0;
 
