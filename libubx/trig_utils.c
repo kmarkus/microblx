@@ -14,7 +14,7 @@
 
 static const char *FILE_HDR = "block, cnt, min_us, max_us, avg_us\n";
 static const char *FILE_FMT = "%s, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n";
-static const char *LOG_FMT = "TSTAT: %s: cnt %" PRIu64 " , min %" PRIu64 " us, max %" PRIu64 " us, avg %" PRIu64 " us";
+static const char *LOG_FMT = "TSTAT: %s: cnt %" PRIu64 ", min %" PRIu64 " us, max %" PRIu64 " us, avg %" PRIu64 " us";
 static const char *tstat_global_id = "#total#";
 
 def_port_accessors(tstat, struct ubx_tstat)
