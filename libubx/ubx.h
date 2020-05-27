@@ -14,7 +14,7 @@
 /* Enable this to configure microblx suitable for being run with
  * valgrind. Right now this will pass RTLD_NODELETE to dlopen to allow
  * it to print meaningful leak traces */
-#define UBX_CONFIG_VALGRIND
+#undef UBX_CONFIG_VALGRIND
 
 #include "typemacros.h"
 
