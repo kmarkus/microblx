@@ -7,25 +7,24 @@ microblx: hard realtime function blocks
 [![Documentation status](https://readthedocs.org/projects/microblx/badge/?version=latest)](http://microblx.readthedocs.io/?badge=latest)
 
 Microblx is a lightweight and hard real-time safe function block
-framework. Main use-cases are building embedded control systems or
-signal processing applications.
+framework for use-cases such as *embedded control* or *signal
+processing*. It provides generic and configurable code for typical
+challenges such as *lock-free communication* between different
+criticality domains, real-time safe logging or triggers with
+configurable POSIX attributes.
 
 Main features:
 
-- **minimal**: small core in C with few dependencies
-- **hard real-time safe**: no run-time allocations
-- **extensible**: easy to add new communications channels (called interaction blocks)
-- simple yet expressive **textual language** to specify
-  block compositions and launch these using `ubx_launch`
-- **standard components**:
-  - communication: lock free buffers, POSIX message queues,
-  - computation: PID controller, ramps, ...
-  - generic triggers including built in latency profiling
+- **hard real-time safe**: no run-time allocations or non-deterministic system calls
+- **simple model**: computations, connections and triggers are all blocks themselves
+- **extensible**: it's very easy to add a new type, trigger block or connection
+- **composing applications**: applications are described using a simple textual lanugage
+- **standard blocks and tools** included:
+  - *communication*: lock free buffers, POSIX message queues,
+  - *computations*: PID controller, ramps, constants, random ...
+  - *triggers*: periodic, passive incl. built in latency profiling
   - real-time safe logging
-- various **cmdline tools**
-  - log client (`ubx-log`)
-  - block stub code generation (`ubx-genblock`)
-  - inspection and doc generation (`ubx-modinfo`)
+- **minimal**: no arbitrary abstractions, just "configurable" POSIX
 
 Documentation
 -------------
@@ -54,6 +53,15 @@ mailing list:
 
 It is possible to subscribe by email by sending a mail to
 `microblx+subscribe@googlegroups.com`
+
+Related Projects
+----------------
+
+The following is a list of projects related to microblx:
+
+- [meta-microblx yocto layer](https://github.com/kmarkus/meta-microblx)
+- [microblx types for the Kinematics and Dynamics (KDL) library](https://github.com/kmarkus/microblx-kdl-types)
+- [microblx connector blocks for ROS1](https://github.com/kmarkus/microblx-ros)
 
 Contributing
 ------------
