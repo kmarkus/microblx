@@ -1,7 +1,9 @@
 /* A minimal, well (over-) documented example function block that
  * checks a threshold and outputs events */
 
-#undef UBX_DEBUG
+#define UBX_DEBUG
+
+/* Note: for builds out of microblx set this to <ubx/ubx.h> */
 #include "ubx.h"
 
 /* threshold block meta data - used by modinfo tool */
@@ -23,7 +25,7 @@ ubx_config_t thres_config[] = {
 ubx_port_t thres_ports[] = {
 	{ .name = "in",  .in_type_name = "double", .doc="input signal to compare" },
 	{ .name = "state", .out_type_name = "int", .doc="1 if above threshold, 0 if below" },
-	{ .name = "events", .out_type_name = "struct thres_event", .doc="threshold crossing events" },
+	{ .name = "event", .out_type_name = "struct thres_event", .doc="threshold crossing events" },
 	{ 0 },
 };
 
@@ -41,13 +43,13 @@ ubx_type_t thres_event_type = def_struct_type(struct thres_event, &thres_event_h
  *    void write_thres_event(ubx_port_t*, const struct thres_event*)
  *    long read_thres_event(ubx_port_t*, struct thres_event*)
  */
-def_port_accessors(thresevent, struct thres_event)
+def_port_accessors(thres_event, struct thres_event)
 
 /* block instance state. To be allocated in the init hook */
 struct thres_info {
-	const double *threshold;	/* pointer to configuration */
-	int state;			/* current state of threshold: 1 if above, 0 if below */
-	ubx_port_t *pin, *pout;		/* cached pointers to port */
+	const double *threshold;		/* pointer to configuration */
+	int state;				/* current state of threshold: 1 if above, 0 if below */
+	ubx_port_t *pin, *pstate, *pevent;	/* cached pointers to port */
 };
 
 /* init hook: allocate, check configs, cache ports */
@@ -73,7 +75,13 @@ int thres_init(ubx_block_t *b)
 
 	/* cache the port ptrs: avoids repeated lookups in step */
 	inf->pin = ubx_port_get(b, "in");
-	inf->pout = ubx_port_get(b, "out");
+	assert(inf->pin);
+
+	inf->pstate = ubx_port_get(b, "state");
+	assert(inf->pstate);
+
+	inf->pevent = ubx_port_get(b, "event");
+	assert(inf->pevent);
 
 	return 0;
 }
@@ -88,9 +96,9 @@ void thres_cleanup(ubx_block_t *b)
 void thres_step(ubx_block_t *b)
 {
 	long len;
-	int res;
+	int state;
 	double inval;
-	struct thres_event;
+	struct thres_event ev;
 
 	struct thres_info *inf = (struct thres_info *)b->private_data;
 
@@ -103,8 +111,19 @@ void thres_step(ubx_block_t *b)
 		return;	/* no data on port */
 	}
 
-	res = (inval > *inf->threshold) ? 1 : 0;
-	write_int(inf->pout, &res);
+	state = (inval > *inf->threshold) ? 1 : 0;
+
+	if (state != inf->state) {
+		ubx_debug(b, "threshold %f exceeded in %s direction",
+			  *inf->threshold,
+			  (state == 1) ? "rising" : "falling");
+		ev.dir = state;
+		ubx_gettime(&ev.ts);
+		write_thres_event(inf->pevent, &ev);
+	}
+
+	write_int(inf->pstate, &state);
+	inf->state = state;
 }
 
 

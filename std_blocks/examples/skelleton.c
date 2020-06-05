@@ -2,7 +2,8 @@
 
 #define UBX_DEBUG
 
-#include <ubx/ubx.h>
+/* Note: for builds out of microblx set this to <ubx/ubx.h> */
+#include "ubx.h"
 
 char skel_meta[] = "{ doc='an almost empty skelleton block' }";
 

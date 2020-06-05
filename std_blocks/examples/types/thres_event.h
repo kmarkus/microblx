@@ -1,5 +1,3 @@
-#include <ubx/ubx.h>
-
 #ifndef THRES_EVENT_H
 #define THRES_EVENT_H
 
