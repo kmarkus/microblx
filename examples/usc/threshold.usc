@@ -1,30 +1,53 @@
---- Example usc using threshold
+--- The following usc defines a simple example application.
 --
--- this usc connects a ramp to the threshold
+-- A ramp feeds a sine generator which in turn is threshold checked.
+-- Threshold checking outputs the current state as well as events upon
+-- passing the threshold. The events are connected to a mqueue block,
+-- where they can be output / logged using ubx-mq.
+--
+-- The composition looks as sketched below
+--   ---> depicts data flow
+--   ...> means "triggers"
+--
+--
+--   /------\    /-----\    /-----\    /----\
+--   | ramp |--->| sin |--->|thres|--->| mq |
+--   \------/    \-----/    \-----/    \----/
+--      ^           ^          ^
+--      .           . #2       .
+--   #1 .           .          .
+--      .        /------\      . #3
+--      .........| trig |.......
+--               \------/
 --
 
 return bd.system
 {
    imports = {
-      "stdtypes", "ptrig", "lfds_cyclic", "threshold", "ramp_double", "mqueue"
+      "stdtypes", "ptrig", "lfds_cyclic", "mqueue",
+      "threshold", "ramp_double", "math_double"
    },
 
    blocks = {
       { name="thres", type="threshold" },
       { name="ramp", type="ramp_double" },
+      { name="sin", type="math_double" },
       { name="trigger", type="std_triggers/ptrig" },
       { name="mq", type="mqueue" },
    },
 
-
    configurations = {
       {
 	 name="thres",
-	 config = { threshold = 99.99 }
+	 config = { threshold = 0.8 }
       },
       {
 	 name="ramp",
-	 config = { slope=0.1 }
+	 config = { slope=0.05 }
+      },
+      {
+	 name="sin",
+	 config = { func="sin" }
       },
       {
 	 name="trigger",
@@ -32,6 +55,7 @@ return bd.system
 	   period = {sec=0, usec=10000 }, -- 100 Hz
 	    trig_blocks = {
 	       { b="#ramp" },
+	       { b="#sin" },
 	       { b="#thres"} }
 	 }
       },
@@ -43,7 +67,8 @@ return bd.system
    },
 
    connections = {
-      { src="ramp.out", tgt="thres.in" },
+      { src="ramp.out", tgt="sin.x" },
+      { src="sin.y", tgt="thres.in" },
       { src="thres.event", tgt="mq" },
    },
 }
