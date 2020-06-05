@@ -3,7 +3,7 @@ AM_LDFLAGS = -module -avoid-version -shared -export-dynamic
 
 ubxmoddir = $(UBX_MODDIR)
 
-ubxmod_LTLIBRARIES = threshold.la skelleton.la random.la
+ubxmod_LTLIBRARIES = threshold.la skelleton.la random.la simple_fifo.la
 
 BUILT_SOURCES = types/thres_event.h.hexarr \
 		types/foo_type.h.hexarr \
@@ -19,6 +19,9 @@ skelleton_la_LIBADD = $(top_builddir)/libubx/libubx.la
 
 random_la_SOURCES = random.c
 random_la_LIBADD = $(top_builddir)/libubx/libubx.la
+
+simple_fifo_la_SOURCES = simple_fifo.c
+simple_fifo_la_LIBADD = $(top_builddir)/libubx/libubx.la
 
 %.h.hexarr: %.h
 	$(top_srcdir)/tools/ubx-tocarr -s $< -d $<.hexarr

@@ -9,6 +9,5 @@ SUBDIRS = const \
           pid \
           ramp \
           rand \
-          simple_fifo \
           trig \
           webif

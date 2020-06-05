@@ -77,7 +77,6 @@ std_blocks/examples/Makefile
 std_blocks/pid/Makefile
 std_blocks/ramp/Makefile
 std_blocks/rand/Makefile
-std_blocks/simple_fifo/Makefile
 std_blocks/trig/Makefile
 std_blocks/webif/Makefile
 std_types/Makefile
