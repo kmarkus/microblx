@@ -10,6 +10,7 @@ Welcome to microblx's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   installation.rst	     
    getting_started.rst
    developing_blocks.rst
    composing_systems.rst

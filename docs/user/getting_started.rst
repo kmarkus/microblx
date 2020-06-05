@@ -1,133 +1,46 @@
 Getting started
 ===============
 
-Overview
---------
+Microblx in a nutshell
+----------------------
 
-Microblx is a lightweight, hard real-time safe function block model
-and implementation. Microblx applications are built from the following
-primitives:
+Building a microblx application typically involves two steps:
 
-- **module**: a shared library that contains one or more blocks or
-  types that are registered/deregistered with a *node* when the module
-  is loaded/unloaded.
+**1. Implement the required blocks**
 
-- **node**: a container for blocks and types. Keeps track of block
-  instances cleans up during shutdown. Typically one node is used per
-  process is used.
-
-- **block**: the basic building block. Is defined by filling in a
-  ``ubx_block_t`` type and registering it with a microblx
-  ``ubx_node_t``. Blocks *have* configuration, ports and operations.
-
-  Each block is part of a module and becomes available once the module
-  is loaded in a node.
-
-  There are two types of blocks: **computation blocks** (“cblocks”,
-  ``BLOCK_TYPE_COMPUTATION``) encapsulate “functionality” such as
-  drivers and controllers. **interaction blocks** (“iblocks”,
-  ``BLOCK_TYPE_INTERACTION``) are used to implement communication or
-  interaction between blocks. This manual focuses on how to build
-  cblocks, since this is what most application builders need to do.
-
-  Each block has zero or many of
-
-  - **config**: defines any the static configuration blocks can have,
-    such as control parameters, device file names etc.
-
-  - **ports**: defines the type of the data involved in interactions
-    between blocks (e.g. for data-flow).
-
-- **type**: microblx essentially uses the C type system (primitive
-  types and structs and arrays of the former) for `configs` and values
-  sent via `ports`. To be usable via the scripting layer and the DSL,
-  custom types must be registered with microblx. The `stdtypes` module
-  contains generic, frequently types (e.g. stdints like `uint32` or
-  time handling `ubx_tstat`).
-
-
-Installation
-------------
-
-Dependencies
-~~~~~~~~~~~~
-
-- uthash (apt: ``uthash-dev``)
-- luajit (>=v2.0.0) (apt: ``luajit`` and ``libluajit-5.1-dev``) (not strictly required, but recommended)
-- ``uutils`` Lua utilities `uutils git <https://github.com/kmarkus/uutils>`_
-- ``liblfds`` lock free data structures (v6.1.1) `liblfds6.1.1 git <https://github.com/liblfds/liblfds6.1.1>`_
-- autotools etc. (apt: ``automake``, ``libtool``, ``pkg-config``, ``make``)
-- ``cproto`` (apt: ``cproto``) use by Make to generate prototype header file
+- define each *blocks API*:
+  - *configs*: what is (statically) configurable
+  - *ports*: which data flows in and out of the block
   
-To run the tests:
+- implement the desired block *hooks*
+  - For example `init` is typically used to initialize, allocate memory and/or validate configuration.
+  - the `step` hook implements the "main" functionality and is executed when the block is *triggered*.
+  - `cleanup` is to "undo" `init` (i.e. free resources etc.)
 
-- ``lua-unit`` (apt: ``lua-unit``, `git <https://github.com/bluebird75/luaunit>`_) (to run the tests)
+A minimal block example can be found under
+`./std_blocks/minimal/threshold.c`
 
-Building and setting up
-~~~~~~~~~~~~~~~~~~~~~~~
+**2. Define the application using a usc file**
 
-Using yocto
-^^^^^^^^^^^
+- which *block instances* to create
+- the *configuration* of for each block
+- the *connections* to create between ports
+- the *triggering* of blocks (i.e. the schedule of when to trigger the step functions of each block)
 
-The best way to use microblx on an embedded system is by using the
-`meta-microblx <https://github.com/kmarkus/meta-microblx>`_ yocto
-layer. Please see the README in that repository for further steps.
-
-Building manually
-^^^^^^^^^^^^^^^^^
-
-Building to run locally on a PC.
-
-Before building microblx, liblfds611 needs to be built and
-installed. There is a set of patches in the microblx repository to
-clean up the packaging of liblfds. Follow the instructions below:
-
-Clone the code:
-
-.. code:: bash
-   
-   $ git clone https://github.com/liblfds/liblfds6.1.1.git
-   $ git clone https://github.com/kmarkus/microblx.git
-   $ git clone https://github.com/kmarkus/uutils.git
+A `usc` file can be directly launched using the `ubx-launch` tool.
 
 
-First build *lfds-6.1.1*:
-
-.. code:: bash
-
-	  $ cd liblfds6.1.1
-	  $ git am ../microblx/liblfds/*.patch
-	  $ ./bootstrap
-	  $ ./configure
-	  $ make
-	  $ sudo make install
-
-Then install *uutils*:
-
-.. code:: bash
-	  
-	  $ cd ../uutils
-	  $ sudo make install
-
-
-Now build *microblx*:
-
-.. code:: bash
-	  
-	  $ cd ../microblx
-	  $ ./bootstrap
-	  $ ./configure
-	  $ make
-	  $ sudo make install
-
-
-
-Quickstart
-----------
+Run the minimal threshold exxample
+----------------------------------
 
 NOTE: the following assumes microblx was installed in the default
 locations under ``/usr/local/``. If you installed it in a different
 location you will need to adopt the path to the examples.
+
+
+
+
+
 
 Run the PID controller block
 ----------------------------
@@ -136,8 +49,8 @@ This example is to demonstrate a hierarchical controller composition
 consisting of a PID controller and a trajectory controller (a simple
 ramp).
 
-Before launching the composition, it is advisable to run the logging
-client to see potential errors:
+Before launching the composition, run the log client to see potential
+errors:
 
 .. code:: sh
 
@@ -200,3 +113,41 @@ For example to print the ``controller_pid-out`` signal:
    {1777570.2200001,1777570.2200001,1777570.2200001,1777570.2200001,1777570.2200001,1777570.2200001,1777570.2200001,1777570.2200001,1777570.2200001,1777570.2200001}
    ...
 
+   
+Important to know
+-----------------
+
+Some more concepts that are good to know:
+
+- **modules** are shared libraries that contain blocks or custom types
+  and are loaded when the application is launched.
+
+- a **node** is a run-time container into which *modules* are loaded
+  and which keeps track of blocks etc.
+
+- **types**: microblx essentially uses the C type system (primitive
+  types, structs and arrays of both) for `configs` and data sent via
+  `ports`. To be supported by tools (that is in `usc` files or by
+  tools like `ubx-mq`), custom types must be registered with
+  microblx. The `stdtypes` module contains a large number of common
+  types like `int`, `double`, stdints (`int32_t`) or time handling
+  `ubx_tstat`.
+
+- **cblocks** vs **iblocks**: there are two types of blocks: *cblocks*
+  (computation blocks) are the "regular" functional blocks with a
+  `step` hooks. In contrast *iblocks* (interaction blocks) are used to
+  implement communication between blocks and implement `read` and
+  `write` hooks. For most applications the available iblocks are
+  sufficient, but sometimes creating a custom one can be useful.
+
+- **triggers**: *triggers* are really just cblocks with a
+  configuration for specifying a schedule and other properties such as
+  period, thread priority, etc. `ptrig` is the most commonly used
+  trigger which implements a periodic, POSIX pthread based
+  trigger. Sometimes it is useful to implement custom triggers that
+  trigger based on external events. The `trig_utils` functions (see
+  `./libubx/trig_utils.h`) make this straightforward.
+
+- **dynamic block interface**: sometimes the type or length of the
+  port data is not static but depends on configuration values
+  themselves. This is almost always the case for iblocks
