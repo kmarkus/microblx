@@ -114,7 +114,7 @@ void thres_step(ubx_block_t *b)
 	state = (inval > *inf->threshold) ? 1 : 0;
 
 	if (state != inf->state) {
-		ubx_debug(b, "threshold %f exceeded in %s direction",
+		ubx_debug(b, "threshold %f passed in %s direction",
 			  *inf->threshold,
 			  (state == 1) ? "rising" : "falling");
 		ev.dir = state;
