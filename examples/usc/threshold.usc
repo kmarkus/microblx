@@ -1,0 +1,49 @@
+--- Example usc using threshold
+--
+-- this usc connects a ramp to the threshold
+--
+
+return bd.system
+{
+   imports = {
+      "stdtypes", "ptrig", "lfds_cyclic", "threshold", "ramp_double", "mqueue"
+   },
+
+   blocks = {
+      { name="thres", type="threshold" },
+      { name="ramp", type="ramp_double" },
+      { name="trigger", type="std_triggers/ptrig" },
+      { name="mq", type="mqueue" },
+   },
+
+
+   configurations = {
+      {
+	 name="thres",
+	 config = { threshold = 99.99 }
+      },
+      {
+	 name="ramp",
+	 config = { slope=0.1 }
+      },
+      {
+	 name="trigger",
+	 config = {
+	   period = {sec=0, usec=10000 }, -- 100 Hz
+	    trig_blocks = {
+	       { b="#ramp" },
+	       { b="#thres"} }
+	 }
+      },
+      { name="mq", config = {
+	   mq_id="threshold_events",
+	   type_name = 'struct thres_event', buffer_len = 8 }
+      },
+
+   },
+
+   connections = {
+      { src="ramp.out", tgt="thres.in" },
+      { src="thres.event", tgt="mq" },
+   },
+}
