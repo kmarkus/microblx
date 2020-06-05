@@ -1,10 +1,11 @@
 Microblx Module Index
 =====================
 
-.. include:: block_random.rst
 .. include:: block_pid.rst
 .. include:: block_luablock.rst
-.. include:: block_ramp_int32.rst
+.. include:: block_ramp_double.rst
+.. include:: block_rand_double.rst
+.. include:: block_math_double.rst
 .. include:: block_cconst.rst
 .. include:: block_iconst.rst
 .. include:: block_ptrig.rst
