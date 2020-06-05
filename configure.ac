@@ -72,6 +72,7 @@ std_blocks/hexdump/Makefile
 std_blocks/lfds_buffers/Makefile
 std_blocks/logging/Makefile
 std_blocks/luablock/Makefile
+std_blocks/math/Makefile
 std_blocks/mqueue/Makefile
 std_blocks/examples/Makefile
 std_blocks/pid/Makefile
