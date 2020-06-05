@@ -3,12 +3,9 @@
 -- A ramp feeds a sine generator which in turn is threshold checked.
 -- Threshold checking outputs the current state as well as events upon
 -- passing the threshold. The events are connected to a mqueue block,
--- where they can be output / logged using ubx-mq.
+-- where they can be logged using ubx-mq.
 --
--- The composition looks as sketched below
---   ---> depicts data flow
---   ...> means "triggers"
---
+-- This usc describes the following setup:
 --
 --   /------\    /-----\    /-----\    /----\
 --   | ramp |--->| sin |--->|thres|--->| mq |
@@ -20,12 +17,20 @@
 --      .........| trig |.......
 --               \------/
 --
+--   ---> depicts data flow
+--   ...> means "triggers"
+--
 
 return bd.system
 {
    imports = {
-      "stdtypes", "ptrig", "lfds_cyclic", "mqueue",
-      "threshold", "ramp_double", "math_double"
+      "stdtypes",
+      "ptrig",
+      "lfds_cyclic",
+      "mqueue",
+      "threshold",
+      "ramp_double",
+      "math_double"
    },
 
    blocks = {
@@ -59,11 +64,13 @@ return bd.system
 	       { b="#thres"} }
 	 }
       },
-      { name="mq", config = {
-	   mq_id="threshold_events",
-	   type_name = 'struct thres_event', buffer_len = 8 }
+      {
+	 name="mq",
+	 config = {
+	    mq_id="threshold_events",
+	    type_name = 'struct thres_event', buffer_len = 8
+	 }
       },
-
    },
 
    connections = {
