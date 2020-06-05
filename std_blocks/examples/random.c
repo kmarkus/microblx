@@ -1,8 +1,9 @@
 /*
- * A fblock that generates random numbers.
+ * A simple random number generator function block.
  *
- * This is to be a well (over) documented block to serve as a good
- * example.
+ * Note: this is just an didactical/testing block.
+ *
+ * If you need a real random block, use the rand_* blocks instead.
  */
 
 #undef UBX_DEBUG
@@ -13,120 +14,55 @@
 
 #include "ubx.h"
 
-/* declare and initialize a microblx type. This will be registered /
- * deregistered in the module init / cleanup at the end of this
- * file.
- *
- * Include regular header file and it's char array representation
- * (used for luajit reflection, logging, etc.)
- */
 #include "types/random_config.h"
 #include "types/random_config.h.hexarr"
 
-/*
- * declare the type and give the char array type representation as the
- * type private_data
- */
 ubx_type_t random_config_type = def_struct_type(struct random_config,
 						&random_config_h);
 
-/* declare a type safe cfg read helper. This has the following prototype:
- *
- * long cfg_getptr_random_config(ubx_block_t *b,
- * 				 const char *cfg_name,
- * 				 const struct random_config **valptr);
- * the return value is
- *  <0: error code (i.e. theconfiguration doesn't exist)
- *   0: the config is unconfigured
- *  >0: the has been configured and the return value is the array length of the config
- */
 def_cfg_getptr_fun(cfg_getptr_random_config, struct random_config)
 
-/*
- * function block meta-data
- * used by higher level functions.
- */
 char rnd_meta[] =
 	"{ doc='A random number generator function block',"
 	"  realtime=true,"
 	"}";
 
-/* configuration
- * upon cloning the following happens:
- *   - value.type is resolved
- *   - value.data will point to a buffer of size value.len*value.type->size
- *
- * if an array is required, then .value = { .len=<LENGTH> } can be used.
- */
 ubx_config_t rnd_config[] = {
 	{ .name = "loglevel", .type_name = "int" },
 	{ .name = "min_max_config", .type_name = "struct random_config", .min = 1, .max = 1 },
 	{ 0 },
 };
 
-/* Ports
- */
 ubx_port_t rnd_ports[] = {
 	{ .name = "seed", .in_type_name = "unsigned int" },
 	{ .name = "rnd", .out_type_name = "unsigned int" },
 	{ 0 },
 };
 
-/* block local info
- *
- * This struct holds the information needed by the hook functions
- * below.
- */
 struct random_info {
 	unsigned int min;
 	unsigned int max;
 };
 
 
-/**
- * rnd_init - block init function.
- *
- * for RT blocks: any memory should be allocated here.
- *
- * @param b
- *
- * @return Ok if 0,
- */
-static int rnd_init(ubx_block_t *b)
+int rnd_init(ubx_block_t *b)
 {
-	int ret = 0;
-
 	b->private_data = calloc(1, sizeof(struct random_info));
+
 	if (b->private_data == NULL) {
 		ubx_crit(b, "__func__: ENOMEM");
-		ret = EOUTOFMEM;
-		goto out;
+		return EOUTOFMEM;
 	}
 
- out:
-	return ret;
+	return 0;
 }
 
-/**
- * rnd_cleanup - cleanup block.
- *
- * for RT blocks: free all memory here
- *
- * @param b
- */
-static void rnd_cleanup(ubx_block_t *b)
+void rnd_cleanup(ubx_block_t *b)
 {
 	free(b->private_data);
 }
 
-/**
- * rnd_start - start the random block.
- *
- * @param b
- *
- * @return 0 if Ok, if non-zero block will not be started.
- */
-static int rnd_start(ubx_block_t *b)
+int rnd_start(ubx_block_t *b)
 {
 	uint32_t seed, ret;
 	long len;
@@ -166,13 +102,7 @@ static int rnd_start(ubx_block_t *b)
 	return 0;
 }
 
-/**
- * rnd_step - this function implements the main functionality of the
- * block. Ports are read and written here.
- *
- * @param b
- */
-static void rnd_step(ubx_block_t *b)
+void rnd_step(ubx_block_t *b)
 {
 	unsigned int rand_val;
 	struct random_info *inf = (struct random_info *)b->private_data;
@@ -186,9 +116,6 @@ static void rnd_step(ubx_block_t *b)
 }
 
 
-/* put everything together
- *
- */
 ubx_block_t random_comp = {
 	.name = "random/random",
 	.meta_data = rnd_meta,
@@ -197,42 +124,25 @@ ubx_block_t random_comp = {
 	.ports = rnd_ports,
 	.configs = rnd_config,
 
-	/* ops */
 	.init = rnd_init,
 	.start = rnd_start,
 	.cleanup = rnd_cleanup,
 	.step = rnd_step,
 };
 
-/**
- * rnd_module_init - initialize module
- *
- * here types and blocks are registered.
- *
- * @param ni
- *
- * @return 0 if OK, non-zero otherwise (prevents loading the module).
- */
-static int rnd_module_init(ubx_node_info_t *ni)
+int rnd_module_init(ubx_node_info_t *ni)
 {
-	ubx_type_register(ni, &random_config_type);
+	if (ubx_type_register(ni, &random_config_type))
+		return -1;
 	return ubx_block_register(ni, &random_comp);
 }
 
-/**
- * rnd_module_cleanup
- *
- * unregister blocks.
- *
- * @param ni
- */
-static void rnd_module_cleanup(ubx_node_info_t *ni)
+void rnd_module_cleanup(ubx_node_info_t *ni)
 {
 	ubx_type_unregister(ni, "struct random_config");
 	ubx_block_unregister(ni, "random/random");
 }
 
-/* declare the module init and cleanup function */
 UBX_MODULE_INIT(rnd_module_init)
 UBX_MODULE_CLEANUP(rnd_module_cleanup)
 UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)

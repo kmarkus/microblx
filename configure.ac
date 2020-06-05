@@ -75,7 +75,6 @@ std_blocks/luablock/Makefile
 std_blocks/mqueue/Makefile
 std_blocks/examples/Makefile
 std_blocks/pid/Makefile
-std_blocks/random/Makefile
 std_blocks/ramp/Makefile
 std_blocks/rand/Makefile
 std_blocks/simple_fifo/Makefile
