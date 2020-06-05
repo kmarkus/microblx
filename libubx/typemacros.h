@@ -29,7 +29,7 @@ long FUNCNAME ## _array(const ubx_port_t* p, TYPENAME* val, const int len) \
 	static ubx_type_t *type = NULL;				   \
 								   \
 	if (p == NULL || p->block == NULL) {			   \
-		ERR("%s: invalid input port", __func__);	   \
+		ERR("invalid input port");			   \
 		return EINVALID_PORT;				   \
 	} else if (p->in_type == NULL) {				\
 		ubx_err(p->block, "%s: port %s not an input port", __func__, p->name); \
@@ -75,7 +75,7 @@ int FUNCNAME ## _array(const ubx_port_t *p, const TYPENAME *val, const int len) 
 	static ubx_type_t *type = NULL;					\
 									\
 	if (p == NULL || p->block == NULL) {				\
-		ERR("%s: invalid output port", __func__);		\
+		ERR("invalid output port");				\
 		return EINVALID_PORT;					\
 	} else if (p->out_type == NULL) {				\
 		ubx_err(p->block, "%s: port %s not an output port", __func__, p->name); \
