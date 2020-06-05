@@ -101,6 +101,7 @@ enum {
 	EINVALID_CONFIG_TYPE,		/* invalid config type */
 
 	EINVALID_CONFIG_LEN,		/* invalid config array length */
+	EINVALID_DATA_LEN,		/* invalid data length */
 
 	EINVALID_PORT_DIR,		/* invalid port direction */
 
