@@ -3,7 +3,19 @@ ChangeLog
 
 This file tracks user visible API changes
 
-## next
+## v0.8.1
+
+- doc improvements:
+  - added `examples/usc/threshold.usc` gentle example
+  - `docs/user/` introduction improved
+
+- added `math_double` block which supports a large number of `math.h`
+  functions.
+
+- `std_blocks/examples` cleanup
+   - `simple_fifo` and `random` moved under `examples/`
+   - added `skelleton.c` as a minimal but complete empty block
+   - added `threshold` example block for use in simple usc intro
 
 - `trig`, `ptrig`:
    - indepent of `tstats_output_rate`, all stats are written to the
