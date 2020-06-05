@@ -72,7 +72,7 @@ void cyclic_data_elem_del(void *user_data, void *user_state)
 
 
 /* init */
-static int cyclic_init(ubx_block_t *i)
+int cyclic_init(ubx_block_t *i)
 {
 	int ret = -1;
 	long len;
@@ -156,7 +156,7 @@ static int cyclic_init(ubx_block_t *i)
 }
 
 /* cleanup */
-static void cyclic_cleanup(ubx_block_t *i)
+void cyclic_cleanup(ubx_block_t *i)
 {
 	struct cyclic_block_info *bbi;
 
@@ -166,7 +166,7 @@ static void cyclic_cleanup(ubx_block_t *i)
 }
 
 /* write */
-static void cyclic_write(ubx_block_t *i, const ubx_data_t *msg)
+void cyclic_write(ubx_block_t *i, const ubx_data_t *msg)
 {
 	int ret;
 	long len;
@@ -217,7 +217,7 @@ static void cyclic_write(ubx_block_t *i, const ubx_data_t *msg)
 }
 
 /* where to check whether the msg->data len is long enough? */
-static long cyclic_read(ubx_block_t *i, ubx_data_t *msg)
+long cyclic_read(ubx_block_t *i, ubx_data_t *msg)
 {
 	unsigned long readlen, readsz;
 	struct cyclic_block_info *bbi;
@@ -270,12 +270,12 @@ ubx_block_t cyclic_comp = {
 	.read = cyclic_read,
 };
 
-static int cyclic_mod_init(ubx_node_info_t *ni)
+int cyclic_mod_init(ubx_node_info_t *ni)
 {
 	return ubx_block_register(ni, &cyclic_comp);
 }
 
-static void cyclic_mod_cleanup(ubx_node_info_t *ni)
+void cyclic_mod_cleanup(ubx_node_info_t *ni)
 {
 	ubx_block_unregister(ni, "lfds_buffers/cyclic");
 }

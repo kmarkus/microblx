@@ -1,5 +1,5 @@
 
-AM_CFLAGS = -I$(top_srcdir)/libubx $(UBX_CFLAGS)
+AM_CFLAGS = -I$(top_srcdir)/libubx $(UBX_CFLAGS) -fvisibility=hidden
 
 ubxmoddir = $(UBX_MODDIR)
 ubxmod_LTLIBRARIES = simple_fifo.la

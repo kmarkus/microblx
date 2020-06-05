@@ -48,10 +48,10 @@ struct webif_info {
 };
 
 
-static int init_lua(struct webif_info *inf);
+int init_lua(struct webif_info *inf);
 
 /* This function will be called by mongoose on every new request. */
-static int begin_request_handler(struct mg_connection *conn)
+int begin_request_handler(struct mg_connection *conn)
 {
 	int len;
 	const char *res, *mime_type;
@@ -120,7 +120,7 @@ static int begin_request_handler(struct mg_connection *conn)
 	return 1;
 }
 
-static int init_lua(struct webif_info *inf)
+int init_lua(struct webif_info *inf)
 {
 	int ret = -1;
 
@@ -153,7 +153,7 @@ static int init_lua(struct webif_info *inf)
 }
 
 
-static int wi_init(ubx_block_t *c)
+int wi_init(ubx_block_t *c)
 {
 	int ret = -EOUTOFMEM;
 	struct webif_info *inf;
@@ -180,7 +180,7 @@ static int wi_init(ubx_block_t *c)
 	return ret;
 }
 
-static void wi_cleanup(ubx_block_t *c)
+void wi_cleanup(ubx_block_t *c)
 {
 	struct webif_info *inf = (struct webif_info *) c->private_data;
 
@@ -189,7 +189,7 @@ static void wi_cleanup(ubx_block_t *c)
 	free(c->private_data);
 }
 
-static int wi_start(ubx_block_t *c)
+int wi_start(ubx_block_t *c)
 {
 	const char *port_num;
 	long len;
@@ -221,7 +221,7 @@ static int wi_start(ubx_block_t *c)
 	return -1;
 }
 
-static void wi_stop(ubx_block_t *c)
+void wi_stop(ubx_block_t *c)
 {
 	struct webif_info *inf;
 
@@ -244,12 +244,12 @@ ubx_block_t webif_comp = {
 	.cleanup = wi_cleanup,
 };
 
-static int webif_init(ubx_node_info_t *ni)
+int webif_init(ubx_node_info_t *ni)
 {
 	return ubx_block_register(ni, &webif_comp);
 }
 
-static void webif_cleanup(ubx_node_info_t *ni)
+void webif_cleanup(ubx_node_info_t *ni)
 {
 	ubx_block_unregister(ni, "webif/webif");
 }

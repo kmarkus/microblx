@@ -41,7 +41,7 @@ struct mqueue_info {
 };
 
 
-static int mqueue_init(ubx_block_t *i)
+int mqueue_init(ubx_block_t *i)
 {
 	int ret = -1;
 	long len, mq_flags = 0;
@@ -161,7 +161,7 @@ static int mqueue_init(ubx_block_t *i)
 	return ret;
 }
 
-static void mqueue_cleanup(ubx_block_t *i)
+void mqueue_cleanup(ubx_block_t *i)
 {
 	int ret;
 	struct mqueue_info *inf = (struct mqueue_info *)i->private_data;
@@ -177,7 +177,7 @@ static void mqueue_cleanup(ubx_block_t *i)
 	free(inf);
 }
 
-static long mqueue_read(ubx_block_t *i, ubx_data_t *data)
+long mqueue_read(ubx_block_t *i, ubx_data_t *data)
 {
 	int ret = 0, size;
 	struct mqueue_info *inf;
@@ -206,7 +206,7 @@ static long mqueue_read(ubx_block_t *i, ubx_data_t *data)
 	return ret;
 }
 
-static void mqueue_write(ubx_block_t *i, const ubx_data_t *data)
+void mqueue_write(ubx_block_t *i, const ubx_data_t *data)
 {
 	int ret, size;
 	struct mqueue_info *inf;
@@ -256,12 +256,12 @@ ubx_block_t mqueue_comp = {
 
 };
 
-static int mqueue_mod_init(ubx_node_info_t *ni)
+int mqueue_mod_init(ubx_node_info_t *ni)
 {
 	return ubx_block_register(ni, &mqueue_comp);
 }
 
-static void mqueue_mod_cleanup(ubx_node_info_t *ni)
+void mqueue_mod_cleanup(ubx_node_info_t *ni)
 {
 	ubx_block_unregister(ni, "mqueue");
 }

@@ -101,7 +101,7 @@ int call_hook(ubx_block_t *b, const char *fname, int require_fun, int require_re
  *
  * @return 0 if Ok, -1 otherwise.
  */
-static int init_lua_state(struct ubx_block *b,
+int init_lua_state(struct ubx_block *b,
 			  const char *lua_file,
 			  const char *lua_str)
 {
@@ -144,7 +144,7 @@ static int init_lua_state(struct ubx_block *b,
 }
 
 
-static int luablock_init(ubx_block_t *b)
+int luablock_init(ubx_block_t *b)
 {
 	const char *lua_file = NULL;
 	const char *lua_str = NULL;
@@ -196,7 +196,7 @@ static int luablock_init(ubx_block_t *b)
 	return ret;
 }
 
-static int luablock_start(ubx_block_t *b)
+int luablock_start(ubx_block_t *b)
 {
 	return call_hook(b, "start", 0, 1);
 }
@@ -206,7 +206,7 @@ static int luablock_start(ubx_block_t *b)
  *
  * @param b
  */
-static void luablock_step(ubx_block_t *b)
+void luablock_step(ubx_block_t *b)
 {
 	int len = 0, ret;
 	struct luablock_info *inf = (struct luablock_info *)b->private_data;
@@ -231,12 +231,12 @@ static void luablock_step(ubx_block_t *b)
 	}
 }
 
-static void luablock_stop(ubx_block_t *b)
+void luablock_stop(ubx_block_t *b)
 {
 	call_hook(b, "stop", 0, 0);
 }
 
-static void luablock_cleanup(ubx_block_t *b)
+void luablock_cleanup(ubx_block_t *b)
 {
 	struct luablock_info *inf = (struct luablock_info *)b->private_data;
 
@@ -263,12 +263,12 @@ ubx_block_t lua_comp = {
 	.cleanup = luablock_cleanup,
 };
 
-static int lua_init(ubx_node_info_t *ni)
+int lua_init(ubx_node_info_t *ni)
 {
 	return ubx_block_register(ni, &lua_comp);
 }
 
-static void lua_cleanup(ubx_node_info_t *ni)
+void lua_cleanup(ubx_node_info_t *ni)
 {
 	ubx_block_unregister(ni, "lua/luablock");
 }

@@ -9,15 +9,13 @@
 
 #include "ubx.h"
 
-UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
-
 char hexdumpmeta[] =
 	"{ doc='hexdump interaction',"
 	"  realtime=false,"
 	"}";
 
 /* hexdump a buffer */
-static void hexdump(unsigned char *buf, unsigned long index, unsigned long width)
+void hexdump(unsigned char *buf, unsigned long index, unsigned long width)
 {
 	unsigned long i, fill;
 
@@ -40,7 +38,7 @@ static void hexdump(unsigned char *buf, unsigned long index, unsigned long width
 	printf("\n");
 }
 
-static void hexdump_write(ubx_block_t *i, const ubx_data_t *data)
+void hexdump_write(ubx_block_t *i, const ubx_data_t *data)
 {
 	const char *typename = get_typename(data);
 
@@ -58,15 +56,16 @@ ubx_block_t hexdump_comp = {
 	.write = hexdump_write,
 };
 
-static int hexdump_mod_init(ubx_node_info_t *ni)
+int hexdump_mod_init(ubx_node_info_t *ni)
 {
 	return ubx_block_register(ni, &hexdump_comp);
 }
 
-static void hexdump_mod_cleanup(ubx_node_info_t *ni)
+void hexdump_mod_cleanup(ubx_node_info_t *ni)
 {
 	ubx_block_unregister(ni, "hexdump/hexdump");
 }
 
 UBX_MODULE_INIT(hexdump_mod_init)
 UBX_MODULE_CLEANUP(hexdump_mod_cleanup)
+UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)

@@ -1,5 +1,5 @@
 /*
- * A fifoed interaction block
+ * A locked, fifo interaction block
  */
 
 #undef UBX_DEBUG
