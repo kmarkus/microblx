@@ -25,10 +25,11 @@ The following describes these steps in detail and is based on the
 (heavily) documented random number generator block
 (``std_blocks/random/``).
 
-Note: Instead of manually implementing the above, a tool
-``ubx-genblock`` is available which can generate blocks including
-interfaces from a simple description. See `Generating blocks with
-ubx_genblock`_.
+.. note::
+   Instead of manually implementing the above, a tool
+   ``ubx-genblock`` is available which can generate blocks including
+   interfaces from a simple description. See `Generating blocks with
+   ubx_genblock`_.
 
 Declaring configuration
 -----------------------
@@ -46,10 +47,11 @@ Configuration is described with a ``{ 0 }`` terminated array of
 The above defines a single configuration called ``min_max_config`` of
 the type ``struct random_config``.
 
-**Note:**: custom types like ``struct random_config`` must be
-registered with the system. (see section `Declaring types`_.)
-Primitives (`int`, `float`, `uint32_t`, ...) are available from the
-``stdtypes`` module.
+.. note::
+   custom types like ``struct random_config`` must be registered with
+   the system. (see section `Declaring types`_.)  Primitives (`int`,
+   `float`, `uint32_t`, ...) are available from the ``stdtypes``
+   module.
 
 To reduce boilerplate validation code in blocks, ``min`` and ``max``
 attributes can be used to define permitted length of configuration

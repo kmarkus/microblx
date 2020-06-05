@@ -6,58 +6,125 @@ Microblx in a nutshell
 
 Building a microblx application typically involves two steps:
 
-**1. Implement the required blocks**
+Implement the required blocks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- define each *blocks API*:
+define the **block API**
+
   - *configs*: what is (statically) configurable
   - *ports*: which data flows in and out of the block
-  
-- implement the desired block *hooks*
-  - For example `init` is typically used to initialize, allocate memory and/or validate configuration.
-  - the `step` hook implements the "main" functionality and is executed when the block is *triggered*.
-  - `cleanup` is to "undo" `init` (i.e. free resources etc.)
 
-A minimal block example can be found under
-`./std_blocks/minimal/threshold.c`
 
-**2. Define the application using a usc file**
+and implement the required block **hooks**
+
+  - For example, ``init`` is typically used to initialize, allocate memory and/or validate configuration.
+  - the ``step`` hook implements the "main" functionality and is executed when the block is **triggered**.
+  - ``cleanup`` is to "undo" ``init`` (i.e. free resources etc.)
+
+Take a look at a simple `threshold checking
+<https://github.com/kmarkus/microblx/blob/dev/std_blocks/examples/threshold.c>`_
+demo block.
+
+.. note::
+   You can examine a block interface using ``ubx-modinfo``, e.g. run
+   ``$ ubx-modinfo show threshold``.
+
+Define the application using a usc file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This involves specifying
 
 - which *block instances* to create
 - the *configuration* of for each block
 - the *connections* to create between ports
 - the *triggering* of blocks (i.e. the schedule of when to trigger the step functions of each block)
 
-A `usc` file can be directly launched using the `ubx-launch` tool.
+A small, ready to run usc demo using the `threshold` block is
+available `here
+<https://github.com/kmarkus/microblx/blob/dev/examples/usc/threshold.usc>`_
+
+`usc` applications can be launched using the `ubx-launch` tool, as
+shown in the following example.
 
 
-Run the minimal threshold exxample
-----------------------------------
+Run the threshold example
+-------------------------
 
-NOTE: the following assumes microblx was installed in the default
-locations under ``/usr/local/``. If you installed it in a different
-location you will need to adopt the path to the examples.
+In this small example, a ramp feeds a sine generator whose output is
+checked whether it exceeds a threshold. The threshold block outputs
+the current state (1: *above* or 0: *below*) as well as *events* upon
+passing the threshold. The events are connected to a mqueue block,
+where they can be logged using the ``ubx-mq`` tool. The actual
+composition looks as follows
+
+.. code:: text
+
+   /------\    /-----\    /-----\    /----\
+   | ramp |--->| sin |--->|thres|--->| mq |
+   \------/    \-----/    \-----/    \----/
+      ^           ^          ^
+      .           . #2       .
+   #1 .           .          .
+      .        /------\      . #3
+      .........| trig |.......
+               \------/
+
+   ---> depicts data flow
+   ...> means "triggers"
 
 
+Before launching, start a ubx logger client in a separate terminal:
+
+.. code:: sh
+
+   $ ubx-log
+   waiting for rtlog.logshm to appear
+
+.. note::
+   The following assumes microblx was installed in the default
+   locations under ``/usr/local/``. If you installed it in a different
+   location you will need to adapt the path.
+
+Then in a new terminal:
+
+.. code:: sh
+
+   $ ubx-launch -loglevel 7 -c /usr/local/share/ubx/examples/usc/threshold.usc
+   core_prefix: /usr/local
+   prefixes:    /usr, /usr/local
 
 
+We increase the loglevel to 7 (DEBUG) so that debug messages will be
+visible. In the log window you should now see "threshold passed"
+messages.
+
+As the events output by the ``thres`` block are made available via a
+``mqueue``, these can easily be dumped to stdout using ``ubx-mq``:
+
+.. code:: sh
+
+   $ ubx-mq read threshold_events -p threshold
+   {ts={nsec=135724534,sec=287814},dir=1}
+   {ts={nsec=321029297,sec=287814},dir=0}
+   {ts={nsec=448964856,sec=287815},dir=1}
+
+To stop the application again, just type ``Ctrl-c`` in the
+``ubx-lauch`` window.
 
 
 Run the PID controller block
 ----------------------------
 
-This example is to demonstrate a hierarchical controller composition
-consisting of a PID controller and a trajectory controller (a simple
-ramp).
+This more complex example demonstrates how multiple, modular ``usc``
+files can be *composed* into an application and how configuration can
+be *overlayed*. The use-case is a robot controller composition which
+shall be used in a test mode (extra mqueue ouputs, no real-time
+priorities) and in regular mode (real-time priorities, no debug
+outputs).
 
-Before launching the composition, run the log client to see potential
-errors:
+Before launching, run ``ubx-log`` as above to see potential errors.
 
-.. code:: sh
-
-   $ ubx-log
-   
-
-and then in another terminal:
+Then:
 
 .. code:: sh
 
@@ -78,9 +145,7 @@ Use the webif block
 
 The cmdline arg ``-webif`` instructed ``ubx-launch`` to create a web
 interface block. This block is useful for debugging and introspecting
-the application:
-
-Explore:
+the application. Browser to http://localhost:8888 and explore:
 
 1. clicking on the node graph will show the connections
 2. clicking on blocks will show their interface
@@ -92,7 +157,8 @@ Examining data-flow
 ~~~~~~~~~~~~~~~~~~~
 
 The ``pid_test.usc`` creates several mqueue blocks in order to export
-internal signals for debugging. They can be accessed using the ``ubx-mq`` tool:
+internal signals for debugging. They can be accessed using the
+``ubx-mq`` tool:
 
 .. code:: sh
 
@@ -113,11 +179,11 @@ For example to print the ``controller_pid-out`` signal:
    {1777570.2200001,1777570.2200001,1777570.2200001,1777570.2200001,1777570.2200001,1777570.2200001,1777570.2200001,1777570.2200001,1777570.2200001,1777570.2200001}
    ...
 
-   
-Important to know
------------------
 
-Some more concepts that are good to know:
+Important concepts
+------------------
+
+The following concepts are important to know:
 
 - **modules** are shared libraries that contain blocks or custom types
   and are loaded when the application is launched.

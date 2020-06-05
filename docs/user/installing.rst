@@ -15,15 +15,15 @@ Make sure to install the following dependencies
   header file
 - luajit (>=v2.0.0) (apt: ``luajit`` and ``libluajit-5.1-dev``)
 
-Optionally, to run the tests:
-
-- ``lua-unit`` (apt: ``lua-unit``, `git
-  <https://github.com/bluebird75/luaunit>`_) (to run the tests)
-
 The following must be installed from source (see instructions below):
 
 - ``uutils`` Lua utilities `uutils git <https://github.com/kmarkus/uutils>`_
 - ``liblfds`` lock free data structures (v6.1.1) `liblfds6.1.1 git <https://github.com/liblfds/liblfds6.1.1>`_
+
+Optionally, to run the tests:
+
+- ``lua-unit`` (apt: ``lua-unit``, `git
+  <https://github.com/bluebird75/luaunit>`_) (to run the tests)
 
 Building
 ~~~~~~~~
