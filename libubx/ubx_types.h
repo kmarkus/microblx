@@ -14,12 +14,14 @@
 
 /* constants */
 enum {
-	BLOCK_NAME_MAXLEN	= 30,
-	PORT_NAME_MAXLEN	= 64,
-	TYPE_NAME_MAXLEN	= 30,
-	TYPE_HASH_LEN		= 16,   		/* binary md5 */
-	TYPE_HASHSTR_LEN	= TYPE_HASH_LEN*2,   	/* hexstring md5 */
-	LOG_MSG_MAXLEN		= 120,
+	UBX_BLOCK_NAME_MAXLEN	= 63,
+	UBX_PORT_NAME_MAXLEN	= 63,
+	UBX_CONFIG_NAME_MAXLEN  = 63,
+	UBX_TYPE_NAME_MAXLEN	= 31,
+	UBX_LOG_MSG_MAXLEN	= 127,
+
+	UBX_TYPE_HASH_LEN	= 16,   			/* binary md5 */
+	UBX_TYPE_HASHSTR_LEN	= UBX_TYPE_HASH_LEN * 2,	/* hexstring md5 */
 };
 
 struct ubx_type;
@@ -55,7 +57,7 @@ typedef struct ubx_type {
 
 	long size;			/* size in bytes */
 	const void *private_data;	/* private data. */
-	uint8_t hash[TYPE_HASH_LEN+1];
+	uint8_t hash[UBX_TYPE_HASH_LEN+1];
 	UT_hash_handle hh;
 } ubx_type_t;
 
@@ -315,6 +317,6 @@ struct ubx_timespec {
 struct ubx_log_msg {
 	int level;
 	struct ubx_timespec ts;
-	char src[BLOCK_NAME_MAXLEN + 1];
-	char msg[LOG_MSG_MAXLEN + 1];
+	char src[UBX_BLOCK_NAME_MAXLEN + 1];
+	char msg[UBX_LOG_MSG_MAXLEN + 1];
 };

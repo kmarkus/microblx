@@ -3,6 +3,16 @@ ChangeLog
 
 This file tracks user visible API changes
 
+## next
+
+- renamed constants for consistency:
+  - `BLOCK_NAME_MAXLEN` -> `UBX_BLOCK_NAME_MAXLEN`
+  - `PORT_NAME_MAXLEN` -> `UBX_PORT_NAME_MAXLEN`
+  - `TYPE_NAME_MAXLEN` -> `UBX_TYPE_NAME_MAXLEN`
+  - `LOG_MSG_MAXLEN` -> `UBX_LOG_MSG_MAXLEN`
+  - `TYPE_HASH_LEN` -> `UBX_TYPE_HASH_LEN`
+  - `TYPE_HASHSTR_LEN` -> `UBX_TYPE_HASHSTR_LEN`
+
 ## v0.8.1
 
 - doc improvements:

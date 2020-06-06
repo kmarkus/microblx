@@ -29,8 +29,8 @@ def_cfg_getptr_fun(cfg_getptr_trig_spec, struct ubx_trig_spec)
  */
 void tstat_init(struct ubx_tstat *ts, const char *block_name)
 {
-	strncpy(ts->block_name, block_name, BLOCK_NAME_MAXLEN);
-	ts->block_name[BLOCK_NAME_MAXLEN] = '\0';
+	strncpy(ts->block_name, block_name, UBX_BLOCK_NAME_MAXLEN);
+	ts->block_name[UBX_BLOCK_NAME_MAXLEN] = '\0';
 
 	ts->min.sec = LONG_MAX;
 	ts->min.nsec = LONG_MAX;

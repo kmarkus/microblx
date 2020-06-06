@@ -49,7 +49,7 @@ int mqueue_init(ubx_block_t *i)
 	const long *val_long;
 	const char *chrptr;
 
-	char hexhash[TYPE_HASHSTR_LEN+1];
+	char hexhash[UBX_TYPE_HASHSTR_LEN + 1];
 
 	struct mqueue_info *inf;
 	struct mq_attr mqa;

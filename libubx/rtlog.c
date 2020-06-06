@@ -35,10 +35,10 @@ void __ubx_log(const int level, const ubx_node_info_t *ni, const char *src, cons
 	ubx_gettime(&msg.ts);
 	msg.level = level;
 
-	strncpy(msg.src, src, BLOCK_NAME_MAXLEN);
+	strncpy(msg.src, src, UBX_BLOCK_NAME_MAXLEN);
 
 	va_start(args, fmt);
-	vsnprintf(msg.msg, LOG_MSG_MAXLEN, fmt, args);
+	vsnprintf(msg.msg, UBX_LOG_MSG_MAXLEN, fmt, args);
 	va_end(args);
 
 	if (!ni->log) {
