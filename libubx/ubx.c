@@ -2427,7 +2427,6 @@ long __port_read(const ubx_port_t *port, ubx_data_t *data)
 		if ((*iaptr)->block_state == BLOCK_STATE_ACTIVE) {
 			ret = (*iaptr)->read(*iaptr, data);
 			if (ret > 0) {
-				((ubx_port_t *)port)->stat_reads++;
 				(*iaptr)->stat_num_reads++;
 				goto out;
 			}
@@ -2480,8 +2479,6 @@ void __port_write(const ubx_port_t *port, const ubx_data_t *data)
 			(*iaptr)->stat_num_writes++;
 		}
 	}
-
-	((ubx_port_t *)port)->stat_writes++;
 
  out:
 	return;

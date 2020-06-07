@@ -5,6 +5,14 @@ This file tracks user visible API changes
 
 ## next
 
+- ubx_types.h cleanup:
+  - convert dynamically allocated strings to fixed strings. This
+    simplifies block creation and allows gcc to statically catch cases
+    where a block names are too long and would be truncated (e.g. in
+    logging).
+  - removed port `state`, which was never used
+  - removed port statistics
+
 - renamed constants for consistency:
   - `BLOCK_NAME_MAXLEN` -> `UBX_BLOCK_NAME_MAXLEN`
   - `PORT_NAME_MAXLEN` -> `UBX_PORT_NAME_MAXLEN`
