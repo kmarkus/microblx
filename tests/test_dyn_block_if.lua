@@ -77,7 +77,7 @@ function test_port_add_rm()
 					    "testport"..tostring(k),
 					    -- "{ desc='a testport without further meaning "..tostring(k).."' }",
 					    "",
-					    "int32_t", 5, "size_t", 1, 0)
+					    "int32_t", 5, "size_t", 1)
 			    end
 		      ]]))
 
@@ -109,7 +109,7 @@ function test_config_add_rm()
 			       ubx.config_add(this,
 					      "testconfig"..tostring(k),
 					      "{ desc='a testconfig without further meaning' }",
-					      "int32_t", 5)
+					      "int32_t")
 			    end
 		      ]]))
 

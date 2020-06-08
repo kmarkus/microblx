@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-#undef UBX_DEBUG
+#define UBX_DEBUG
 
 #include "ubx.h"
 #include <config.h>
@@ -1673,9 +1673,6 @@ int ubx_config_rm(ubx_block_t *b, const char *name)
 	if (b == NULL || name == NULL)
 		return EINVALID_ARG;
 
-	if (b->attrs & BLOCK_ATTR_PROTO)
-		ubx_warn(b, "config_rm: modifying prototype block");
-
 	c = ubx_config_get(b, name);
 
 	if (c == NULL) {
@@ -1758,9 +1755,6 @@ static int __ubx_port_add(ubx_block_t *b,
 			  const long out_data_len)
 {
 	ubx_port_t *pnew;
-
-	if (b->attrs & BLOCK_ATTR_PROTO)
-		ubx_warn(b, "modifying prototype block");
 
 	if (ubx_port_get(b, name)) {
 		ubx_err(b, "port_add: %s already exists", name);
@@ -1930,10 +1924,6 @@ int ubx_port_rm(ubx_block_t *b, const char *name)
 
 	if (b == NULL || name == NULL)
 		return EINVALID_ARG;
-
-	if (b->attrs & BLOCK_ATTR_PROTO)
-		ubx_warn(b, "modifying prototype block");
-
 
 	p = ubx_port_get(b, name);
 

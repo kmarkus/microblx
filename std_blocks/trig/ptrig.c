@@ -48,7 +48,6 @@ ubx_port_t ptrig_ports[] = {
 /* types defined by ptrig block */
 ubx_type_t ptrig_types[] = {
 	def_struct_type(struct ptrig_period, &ptrig_period_h),
-	{ 0 },
 };
 
 def_cfg_getptr_fun(cfg_getptr_ptrig_period, struct ptrig_period);
@@ -119,7 +118,7 @@ struct ptrig_inf {
 
 
 /* helper for normalizing struct timespecs */
-static inline void tsnorm(struct timespec *ts)
+inline void tsnorm(struct timespec *ts)
 {
 	if (ts->tv_nsec >= NSEC_PER_SEC) {
 		ts->tv_sec += ts->tv_nsec / NSEC_PER_SEC;
@@ -128,7 +127,7 @@ static inline void tsnorm(struct timespec *ts)
 }
 
 /* thread entry */
-static void *thread_startup(void *arg)
+void *thread_startup(void *arg)
 {
 	int ret;
 	ubx_block_t *b;
@@ -310,7 +309,7 @@ out:
 }
 
 /* init */
-static int ptrig_init(ubx_block_t *b)
+int ptrig_init(ubx_block_t *b)
 {
 	long len;
 	int ret = EOUTOFMEM;
@@ -392,7 +391,7 @@ static int ptrig_init(ubx_block_t *b)
 	return ret;
 }
 
-static int ptrig_start(ubx_block_t *b)
+int ptrig_start(ubx_block_t *b)
 {
 	int ret;
 	struct ptrig_inf *inf;
@@ -416,7 +415,7 @@ out:
 	return ret;
 }
 
-static void ptrig_stop(ubx_block_t *b)
+void ptrig_stop(ubx_block_t *b)
 {
 	struct ptrig_inf *inf = (struct ptrig_inf *)b->private_data;
 
@@ -425,7 +424,7 @@ static void ptrig_stop(ubx_block_t *b)
 	pthread_mutex_unlock(&inf->mutex);
 }
 
-static void ptrig_cleanup(ubx_block_t *b)
+void ptrig_cleanup(ubx_block_t *b)
 {
 	int ret;
 
@@ -476,21 +475,22 @@ ubx_block_t ptrig_comp = {
 	.cleanup = ptrig_cleanup
 };
 
-static int ptrig_mod_init(ubx_node_info_t *ni)
+int ptrig_mod_init(ubx_node_info_t *ni)
 {
 	int ret;
-	ubx_type_t *tptr;
 
-	for (tptr = ptrig_types; tptr->name != NULL; tptr++) {
-		ret = ubx_type_register(ni, tptr);
+	for (unsigned int i=0; i<ARRAY_SIZE(ptrig_types); i++) {
+		ret = ubx_type_register(ni, &ptrig_types[i]);
 		if (ret != 0) {
-			ubx_log(UBX_LOGLEVEL_ERR, ni,
-				__func__,
-				"failed to register type %s", tptr->name);
+			ubx_log(UBX_LOGLEVEL_ERR, ni, __func__,
+				"failed to register type %s",
+				ptrig_types[i].name);
 			goto out;
 		}
 	}
+
 	ret = ubx_block_register(ni, &ptrig_comp);
+
 	if (ret != 0) {
 		ubx_log(UBX_LOGLEVEL_ERR, ni, __func__,
 			"failed to register ptrig block");
@@ -499,12 +499,10 @@ static int ptrig_mod_init(ubx_node_info_t *ni)
 	return ret;
 }
 
-static void ptrig_mod_cleanup(ubx_node_info_t *ni)
+void ptrig_mod_cleanup(ubx_node_info_t *ni)
 {
-	ubx_type_t *tptr;
-
-	for (tptr = ptrig_types; tptr->name != NULL; tptr++)
-		ubx_type_unregister(ni, tptr->name);
+	for (unsigned int i=0; i<ARRAY_SIZE(ptrig_types); i++)
+		ubx_type_unregister(ni, ptrig_types[i].name);
 
 	ubx_block_unregister(ni, "std_triggers/ptrig");
 }

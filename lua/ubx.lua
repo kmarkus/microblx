@@ -204,18 +204,18 @@ function M.is_config(x) return ffi.istype("ubx_config_t", x) end
 function M.is_port(x) return ffi.istype("ubx_port_t", x) end
 function M.is_data(x) return ffi.istype("ubx_data_t", x) end
 
-function M.is_proto(b) return b.prototype==nil end	 --- Is protoype block predicate.
-function M.is_instance(b) return b.prototype~=nil end	 --- Is instance block predicate.
-function M.is_cblock(b) return b.type==ffi.C.BLOCK_TYPE_COMPUTATION end  --- Is computational block predicate.
-function M.is_iblock(b) return b.type==ffi.C.BLOCK_TYPE_INTERACTION end  --- Is interaction block predicate.
-function M.is_cblock_instance(b) return M.is_cblock(b) and not M.is_proto(b) end  --- Is computational block instance predicate.
-function M.is_iblock_instance(b) return M.is_iblock(b) and not M.is_proto(b) end  --- Is interaction block instance predicate.
-function M.is_cblock_proto(b) return M.is_cblock(b) and M.is_proto(b) end --- Is computational block prototype predicate.
-function M.is_iblock_proto(b) return M.is_iblock(b) and M.is_proto(b) end --- Is interaction block prototype predicate.
+function M.is_proto(b) return bit.band(b.attrs, ffi.C.BLOCK_ATTR_PROTO) ~= 0 end
+function M.is_instance(b) return not M.is_proto(b) end
+function M.is_cblock(b) return b.type==ffi.C.BLOCK_TYPE_COMPUTATION end
+function M.is_iblock(b) return b.type==ffi.C.BLOCK_TYPE_INTERACTION end
+function M.is_cblock_instance(b) return M.is_cblock(b) and not M.is_proto(b) end
+function M.is_iblock_instance(b) return M.is_iblock(b) and not M.is_proto(b) end
+function M.is_cblock_proto(b) return M.is_cblock(b) and M.is_proto(b) end
+function M.is_iblock_proto(b) return M.is_iblock(b) and M.is_proto(b) end
 
 -- Port predicates
-function M.is_outport(p) return p.out_type_name ~= nil end
-function M.is_inport(p) return p.in_type_name ~= nil end
+function M.is_outport(p) return p.out_type ~= nil end
+function M.is_inport(p) return p.in_type ~= nil end
 function M.is_inoutport(p) return M.is_outport(p) and M.is_inport(p) end
 
 ------------------------------------------------------------------------------
@@ -557,10 +557,10 @@ function M.block_totab(b)
    res.block_type=M.block_type_tostr[b.type]
    res.state = M.block_state_tostr[b.block_state]
 
-   if b.prototype~=nil then
+   if b.prototype ~= nil then
       res.prototype = M.safe_tostr(b.prototype.name)
    else
-      res.prototype=false
+      res.prototype = false
    end
 
    res.ports = M.ports_map(b, M.port_totab)
@@ -1286,11 +1286,11 @@ function M.port_totab(p)
    ptab.doc = M.safe_tostr(p.doc)
    ptab.attrs = tonumber(p.attrs)
    if M.is_inport(p) then
-      ptab.in_type_name = M.safe_tostr(p.in_type_name)
+      ptab.in_type_name = M.safe_tostr(p.in_type.name)
       ptab.in_data_len = tonumber(p.in_data_len)
    end
    if M.is_outport(p) then
-      ptab.out_type_name = M.safe_tostr(p.out_type_name)
+      ptab.out_type_name = M.safe_tostr(p.out_type.name)
       ptab.out_data_len = tonumber(p.out_data_len)
    end
    ptab.connections = M.port_conns_totab(p)
@@ -1479,8 +1479,10 @@ function M.node_todot(ni)
    --- Add trigger edges
    local function gen_dot_trigger_edges(b, res)
 
-      if not (b.prototype=="std_triggers/ptrig" or
-	      b.prototype=="std_triggers/trig") then return end
+      if not (b.prototype ~= nil and
+		 (b.prototype.name == "std_triggers/ptrig" or
+		  b.prototype.name == "std_triggers/trig")) then return end
+
       local trig_blocks_cfg
 
       for i,c in ipairs(b.configs) do
@@ -1546,39 +1548,54 @@ end
 -- @param buff_len2 only if port is in/out port: length of in->out buffer
 -- @return the new port
 function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns)
+
    local prot = M.port_get(block, pname)
-   local p=ffi.new("ubx_port_t")
+   local p = ffi.new("ubx_port_t")
+   local pn = M.safe_tostr(prot.name)..'_inv'
 
-   loglevel_overruns = loglevel_overruns or 6
+   ffi.copy(p.name, pn, #pn + 1)
+   p.out_type = prot.in_type
+   p.out_data_len = prot.in_data_len
+   p.in_type = prot.out_type
+   p.in_data_len = prot.out_data_len
+   p.out_type_name = nil
+   p.in_type_name = nil
 
-   -- ("port_clone_conn, block=", ubx.safe_tostr(block.name), ", port=", pname)
-
-   if M.clone_port_data(p, M.safe_tostr(prot.name)..'_inv', prot.doc,
-			prot.out_type, prot.out_data_len,
-			prot.in_type, prot.in_data_len, 0) ~= 0 then
-      error("port_clone_conn: cloning port data failed")
+   if p.out_type ~= nil then
+      p.attrs = bit.bor(p.attrs, ffi.C.PORT_DIR_OUT)
+      if p.out_data_len == 0 then p.out_data_len = 1 end
+   end
+   if p.in_type ~= nil then
+      p.attrs = bit.bor(p.attrs, ffi.C.PORT_DIR_IN)
+      if p.in_data_len == 0 then p.in_data_len = 1 end
    end
 
    buff_len1 = buff_len1 or 1
-   if p.in_type and p.out_type then buff_len2 = buff_len2 or buff_len1 end
+
+   if p.in_type and p.out_type then
+      buff_len2 = buff_len2 or buff_len1
+   end
+
+   loglevel_overruns = loglevel_overruns or 6
 
    -- New port is an out-port?
    local i_p_to_prot
    if p.out_type~=nil then
       local iname = fmt("PCC%d->%s.%s", pcc_cnt(), M.safe_tostr(block.name), pname)
 
-      -- print("creating interaction", iname, buff_len1, tonumber(p.out_type.size * p.out_data_len))
-
       i_p_to_prot = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
-				   { buffer_len=buff_len1,
-				     type_name=ffi.string(p.out_type_name),
-				     data_len=tonumber(p.out_data_len),
-				     loglevel_overruns = loglevel_overruns })
+				   {
+				      buffer_len = buff_len1,
+				      type_name = ffi.string(p.out_type.name),
+				      data_len = tonumber(p.out_data_len),
+				      loglevel_overruns = loglevel_overruns
+				   }
+      )
+
       M.block_init(i_p_to_prot)
 
-      if M.ports_connect_uni(p, prot, i_p_to_prot)~=0 then
-	 M.port_free_data(p)
-	 error("failed to connect port"..M.safe_tostr(p.name))
+      if M.ports_connect_uni(p, prot, i_p_to_prot) ~= 0 then
+	 error("failed to connect port "..M.safe_tostr(p.name))
       end
       M.block_start(i_p_to_prot)
       info(block.ni, "lua", fmt("port_clone_conn: %s, buffer_len: %d, data_len: %d",
@@ -1591,16 +1608,15 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
       local iname = fmt("PCC%d<-%s.%s", pcc_cnt(), M.safe_tostr(block.name), pname)
 
       i_prot_to_p = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
-				   { buffer_len=buff_len2,
-				     type_name=ffi.string(p.in_type_name),
-				     data_len=tonumber(p.in_data_len),
+				   { buffer_len = buff_len2,
+				     type_name = ffi.string(p.in_type.name),
+				     data_len = tonumber(p.in_data_len),
 				     loglevel_overruns = loglevel_overruns })
 
       M.block_init(i_prot_to_p)
 
-      if M.ports_connect_uni(prot, p, i_prot_to_p)~=0 then
+      if M.ports_connect_uni(prot, p, i_prot_to_p) ~= 0 then
 	 -- TODO disconnect if connected above.
-	 M.port_free_data(p)
 	 error("failed to connect port"..M.safe_tostr(p.name))
       end
       M.block_start(i_prot_to_p)
@@ -1609,7 +1625,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
    end
 
    -- cleanup port once the reference is lost
-   ffi.gc(p, ubx.ubx_port_free)
+   -- ffi.gc(p, ubx.ubx_port_free)
    return p
 end
 
@@ -1682,7 +1698,7 @@ end
 -- @param b2 block owning port2
 -- @param pname2 name of port2
 -- @param element_num number of elements
--- @param dont start if true, interaction will not be started
+-- @param dont_start if true, interaction will not be started
 function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
    local p1, p2, len1, len2
 
@@ -1706,8 +1722,8 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
 
    if p1.out_type ~= p2.in_type then
       error("conn_lfds_cyclic: port type mismatch:\n"..
-	       "\t"..bname1.."."..pname1.. " of type " ..M.safe_tostr(p1.out_type_name).."\n"..
-	       "\t"..bname2.."."..pname2.. " of type " ..M.safe_tostr(p2.in_type_name))
+	       "\t"..bname1.."."..pname1.. " of type " ..M.safe_tostr(p1.out_type.name).."\n"..
+	       "\t"..bname2.."."..pname2.. " of type " ..M.safe_tostr(p2.in_type.name))
    end
 
    len1, len2 = tonumber(p1.out_data_len), tonumber(p2.in_data_len)
@@ -1724,7 +1740,7 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
 
    return M.conn_uni(b1, pname1, b2, pname2, "lfds_buffers/cyclic",
 		     { buffer_len=element_num,
-		       type_name=M.safe_tostr(p1.out_type_name),
+		       type_name=M.safe_tostr(p1.out_type.name),
 		       data_len=utils.min(len1, len2) }, dont_start)
 end
 

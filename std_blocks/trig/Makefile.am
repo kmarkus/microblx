@@ -1,7 +1,8 @@
 # trig: simple trigger block
 
 AM_CFLAGS = -I$(top_srcdir)/libubx \
-	    -I$(top_srcdir)/std_types/stdtypes/types/ $(UBX_CFLAGS)
+	    -I$(top_srcdir)/std_types/stdtypes/types/ \
+	     $(UBX_CFLAGS) -fvisibility=hidden
 
 AM_LDFLAGS = -module -avoid-version -shared -export-dynamic
 

@@ -353,7 +353,6 @@ ubx_type_t types[] = {
 	def_struct_type(struct $(t.name), &$(t.name)_h),
 @    end
 @ end
-	{ 0 },
 };
 
 /* block meta information */
@@ -479,15 +478,11 @@ ubx_block_t $(bm.name)_block = {
 /* $(bm.name) module init and cleanup functions */
 int $(bm.name)_mod_init(ubx_node_info_t* ni)
 {
-	int ret = -1;
-	ubx_type_t *tptr;
-
 	ubx_log(UBX_LOGLEVEL_DEBUG, ni, __func__, "");
 
-	for(tptr=types; tptr->name!=NULL; tptr++) {
-		if(ubx_type_register(ni, tptr) != 0) {
-			goto out;
-		}
+	for (unsigned int i=0; i<ARRAY_SIZE(types); i++) {
+		if(ubx_type_register(ni, &types[i]) != 0)
+			return -1;
 	}
 
 	if(ubx_block_register(ni, &$(bm.name)_block) != 0)
@@ -500,12 +495,10 @@ out:
 
 void $(bm.name)_mod_cleanup(ubx_node_info_t *ni)
 {
-	const ubx_type_t *tptr;
-
 	ubx_log(UBX_LOGLEVEL_DEBUG, ni, __func__, "");
 
-	for(tptr=types; tptr->name!=NULL; tptr++)
-		ubx_type_unregister(ni, tptr->name);
+	for (unsigned int i=0; i<ARRAY_SIZE(types); i++) {
+		ubx_type_unregister(ni, types[i].name);
 
 	ubx_block_unregister(ni, "$(bm.name)");
 }

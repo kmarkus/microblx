@@ -6,6 +6,7 @@ local utils = require("utils")
 local UMF_CHECK_VERBOSE=false
 
 ubx.color=false
+local loglevel = 7
 
 ---
 --- simple composition
@@ -113,7 +114,7 @@ end
 function TestComp:test_leaf()
    local num_err, res = leaf:validate(UMF_CHECK_VERBOSE)
    lu.assert_equals(num_err, 0)
-   NI =	leaf:launch({ nodename="test_leaf", nostart=true})
+   NI =	leaf:launch({ nodename="test_leaf", nostart=true, loglevel=loglevel})
    lu.assert_not_nil(NI)
 
    -- check configs
@@ -141,7 +142,7 @@ end
 function TestComp:test_comp1()
    local num_err, res = comp1:validate(UMF_CHECK_VERBOSE)
    lu.assert_equals(num_err, 0)
-   NI =	comp1:launch({ nodename="test_comp1", nostart=true})
+   NI =	comp1:launch({ nodename="test_comp1", nostart=true, loglevel=loglevel})
    lu.assert_not_nil(NI)
 
    -- check configs
@@ -183,7 +184,7 @@ end
 function TestComp:test_comp2()
    local num_err, res = comp2:validate(UMF_CHECK_VERBOSE)
    lu.assert_equals(num_err, 0)
-   NI =	comp2:launch({ nodename="test_comp2", nostart=true})
+   NI =	comp2:launch({ nodename="test_comp2", nostart=true, loglevel=loglevel})
    lu.assert_not_nil(NI)
 
    lu.assert_equals( NI:b("rnd1"):c("min_max_config"):tolua(), { min=100, max=101 } )
@@ -224,7 +225,7 @@ local ndcfg1 = bd.system {
 function TestComp:test_nodecfg1()
    local num_err, res = ndcfg1:validate(UMF_CHECK_VERBOSE)
    lu.assert_equals(num_err, 0)
-   NI =	ndcfg1:launch({ nodename="test_nodecfg1", nostart=true})
+   NI =	ndcfg1:launch({ nodename="test_nodecfg1", nostart=true, loglevel=loglevel})
    lu.assert_not_nil(NI)
 
       -- check configs
@@ -257,7 +258,7 @@ local ndcfg2 = bd.system {
 function TestComp:test_nodecfg2()
    local num_err, res = ndcfg2:validate(UMF_CHECK_VERBOSE)
    lu.assert_equals(num_err, 0)
-   NI =	ndcfg2:launch({ nodename="test_nodecfg2", nostart=true})
+   NI =	ndcfg2:launch({ nodename="test_nodecfg2", nostart=true, loglevel=loglevel})
    lu.assert_not_nil(NI)
 
    -- check configs
@@ -292,7 +293,7 @@ local ndcfg3 = bd.system {
 function TestComp:test_nodecfg3()
    local num_err, res = ndcfg3:validate(UMF_CHECK_VERBOSE)
    lu.assert_equals(num_err, 0)
-   NI =	ndcfg3:launch({ nodename="test_nodecfg3", nostart=true})
+   NI =	ndcfg3:launch({ nodename="test_nodecfg3", nostart=true, loglevel=loglevel})
    lu.assert_not_nil(NI)
 
    -- check configs
@@ -321,7 +322,7 @@ function TestComp:test_late_config()
 	   }
 	 }
       },
-   }:launch{nodename = 'test_late_config' }
+   }:launch{nodename = 'test_late_config', loglevel=loglevel }
 
    lu.assert_not_nil(NI)
    local cconst1 = NI:b('cconst1')
@@ -356,7 +357,7 @@ function TestComp:test_late_config2()
 	   }
 	 }
       },
-   }:launch{nodename = 'test_late_config2' }
+   }:launch{nodename = 'test_late_config2', loglevel=loglevel }
 
    lu.assert_not_nil(NI)
    local cconst1 = NI:b('cconst1')

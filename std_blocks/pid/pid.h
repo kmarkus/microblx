@@ -6,12 +6,6 @@
 
 UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
 
-/* includes types and type metadata */
-
-ubx_type_t types[] = {
-	{ 0 },
-};
-
 /* block meta information */
 char pid_meta[] =
 	" { doc='',"
@@ -79,30 +73,14 @@ ubx_block_t pid_block = {
 /* pid module init and cleanup functions */
 int pid_mod_init(ubx_node_info_t* ni)
 {
-	int ret = -1;
-	ubx_type_t *tptr;
-
-	for(tptr=types; tptr->name!=NULL; tptr++) {
-		if(ubx_type_register(ni, tptr) != 0) {
-			goto out;
-		}
-	}
-
 	if(ubx_block_register(ni, &pid_block) != 0)
-		goto out;
+		return -1;
 
-	ret=0;
-out:
-	return ret;
+	return 0;
 }
 
 void pid_mod_cleanup(ubx_node_info_t *ni)
 {
-	const ubx_type_t *tptr;
-
-	for(tptr=types; tptr->name!=NULL; tptr++)
-		ubx_type_unregister(ni, tptr->name);
-
 	ubx_block_unregister(ni, "pid");
 }
 
