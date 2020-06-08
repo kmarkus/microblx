@@ -36,6 +36,7 @@ extern "C"
 #include <limits.h>
 #include <sys/prctl.h>
 #include <uthash.h>
+#include <utlist.h>
 
 #ifdef __cplusplus
 /* ubx_typescpp includes ubx_types */

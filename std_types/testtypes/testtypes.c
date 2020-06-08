@@ -31,21 +31,16 @@ ubx_type_t types[] = {
 
 static int testtypes_init(ubx_node_info_t* ni)
 {
-	ubx_type_t *tptr;
-	for(tptr=types; tptr->name!=NULL; tptr++) {
-		/* TODO check for errors */
-		ubx_type_register(ni, tptr);
-	}
+	for (int i=0; i<ARRAY_SIZE(types); i++)
+		ubx_type_register(ni, &types[i]);
 
 	return 0;
 }
 
 static void testtypes_cleanup(ubx_node_info_t *ni)
 {
-	const ubx_type_t *tptr;
-
-	for(tptr=types; tptr->name!=NULL; tptr++)
-		ubx_type_unregister(ni, tptr->name);
+	for (int i=0; i<ARRAY_SIZE(types); i++)
+		ubx_type_unregister(ni, types[i].name);
 }
 
 UBX_MODULE_INIT(testtypes_init)

@@ -78,7 +78,7 @@ static int const_init(ubx_block_t *b)
 	inf->data_len = (len>0) ? *data_len : 1;
 
 	/* add config 'value' */
-	ret = ubx_config_add(b, VALUE, NULL, type_name,	inf->data_len);
+	ret = ubx_config_add(b, VALUE, NULL, type_name);
 
 	if (ret != 0)
 		goto out_free;

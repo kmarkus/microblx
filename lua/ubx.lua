@@ -558,7 +558,7 @@ function M.block_totab(b)
    res.state = M.block_state_tostr[b.block_state]
 
    if b.prototype~=nil then
-      res.prototype = M.safe_tostr(b.prototype)
+      res.prototype = M.safe_tostr(b.prototype.name)
    else
       res.prototype=false
    end
@@ -1285,7 +1285,6 @@ function M.port_totab(p)
    ptab.name = M.safe_tostr(p.name)
    ptab.doc = M.safe_tostr(p.doc)
    ptab.attrs = tonumber(p.attrs)
-   ptab.state = tonumber(p.state)
    if M.is_inport(p) then
       ptab.in_type_name = M.safe_tostr(p.in_type_name)
       ptab.in_data_len = tonumber(p.in_data_len)
@@ -1375,9 +1374,9 @@ function M.ports_map(b, fun, pred)
    local res={}
    pred = pred or function() return true end
    local port_ptr=b.ports
-   while port_ptr~=nil and port_ptr.name~= nil do
+   while port_ptr~=nil do
       if pred(port_ptr) then res[#res+1]=fun(port_ptr) end
-      port_ptr=port_ptr+1
+      port_ptr=port_ptr.next
    end
    return res
 end
@@ -1390,9 +1389,9 @@ end
 function M.ports_foreach(b, fun, pred)
    pred = pred or function() return true end
    local port_ptr=b.ports
-   while port_ptr~=nil and port_ptr.name~= nil do
+   while port_ptr~=nil do
       if pred(port_ptr) then fun(port_ptr) end
-      port_ptr=port_ptr+1
+      port_ptr=port_ptr.next
    end
 end
 
@@ -1405,9 +1404,9 @@ function M.configs_map(b, fun, pred)
    local res={}
    pred = pred or function() return true end
    local conf_ptr=b.configs
-   while conf_ptr~=nil and conf_ptr.name~=nil do
+   while conf_ptr~=nil do
       if pred(conf_ptr) then res[#res+1]=fun(conf_ptr) end
-      conf_ptr=conf_ptr+1
+      conf_ptr=conf_ptr.next
    end
    return res
 end
@@ -1610,7 +1609,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
    end
 
    -- cleanup port once the reference is lost
-   ffi.gc(p, ubx.ubx_port_free_data)
+   ffi.gc(p, ubx.ubx_port_free)
    return p
 end
 

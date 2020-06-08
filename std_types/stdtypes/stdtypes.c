@@ -33,27 +33,20 @@ ubx_type_t basic_types[] = {
 	/* std struct types */
 	def_struct_type(struct ubx_tstat, &tstat_h),
 	def_struct_type(struct ubx_trig_spec, &trig_spec_h),
-
-	{ 0 },
 };
 
 static int stdtypes_init(ubx_node_info_t* ni)
 {
-	ubx_type_t *tptr;
-	for(tptr=basic_types; tptr->name!=NULL; tptr++) {
-		/* TODO check for errors */
-		ubx_type_register(ni, tptr);
-	}
+	for(int i=0; i<ARRAY_SIZE(basic_types); i++)
+		ubx_type_register(ni, &basic_types[i]);
 
 	return 0;
 }
 
 static void stdtypes_cleanup(ubx_node_info_t *ni)
 {
-	const ubx_type_t *tptr;
-
-	for(tptr=basic_types; tptr->name!=NULL; tptr++)
-		ubx_type_unregister(ni, tptr->name);
+	for(int i=0; i<ARRAY_SIZE(basic_types); i++)
+		ubx_type_unregister(ni, basic_types[i].name);
 }
 
 UBX_MODULE_INIT(stdtypes_init)

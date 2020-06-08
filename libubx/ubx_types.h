@@ -28,6 +28,44 @@ enum {
 	UBX_TYPE_HASHSTR_LEN	= UBX_TYPE_HASH_LEN * 2,	/* hexstring md5 */
 };
 
+/* return error codes */
+enum {
+	EINVALID_BLOCK = -32767,	/* invalid block */
+	EINVALID_PORT,			/* invalid port */
+	EINVALID_CONFIG,		/* invalid config */
+	EINVALID_TYPE,			/* invalid config */
+
+	EINVALID_BLOCK_TYPE,		/* invalid block type */
+	EINVALID_PORT_TYPE,             /* invalid port type */
+	EINVALID_CONFIG_TYPE,		/* invalid config type */
+
+	EINVALID_CONFIG_LEN,		/* invalid config array length */
+	EINVALID_DATA_LEN,		/* invalid data length */
+
+	EINVALID_PORT_DIR,		/* invalid port direction */
+
+	EINVALID_ARG,			/* UBX EINVAL */
+	EWRONG_STATE,			/* invalid FSM state */
+	ENOSUCHENT,			/* no such entity */
+	EENTEXISTS,			/* entity exists already */
+	EALREADY_REGISTERED,		/* entity already registered */
+	ETYPE_MISMATCH,			/* mismatching types */
+	EOUTOFMEM,			/* UBX ENOMEM */
+
+};
+
+enum {
+	UBX_LOGLEVEL_EMERG	= 0,	/* system unusable */
+	UBX_LOGLEVEL_ALERT	= 1,	/* immediate action required */
+	UBX_LOGLEVEL_CRIT	= 2,	/* critical */
+	UBX_LOGLEVEL_ERR	= 3,	/* error */
+	UBX_LOGLEVEL_WARN	= 4,	/* warning conditions */
+	UBX_LOGLEVEL_NOTICE	= 5,	/* normal but significant */
+	UBX_LOGLEVEL_INFO	= 6,	/* info msg */
+	UBX_LOGLEVEL_DEBUG	= 7	/* debug messages */
+};
+
+
 struct ubx_type;
 struct ubx_data;
 struct ubx_block;
@@ -42,7 +80,6 @@ void __ubx_cleanup_module(struct ubx_node_info *ni);
 
 
 /* type and value (data) */
-
 enum {
 	TYPE_CLASS_BASIC = 1,
 	TYPE_CLASS_STRUCT,	/* simple sequential memory struct */
@@ -103,41 +140,6 @@ enum {
 	PORT_READ_DROPPED		= -2
 };
 
-/* return error codes */
-enum {
-	EINVALID_BLOCK = -32767,	/* invalid block */
-	EINVALID_PORT,			/* invalid port */
-	EINVALID_CONFIG,		/* invalid config */
-	EINVALID_TYPE,			/* invalid config */
-
-	EINVALID_BLOCK_TYPE,		/* invalid block type */
-	EINVALID_CONFIG_TYPE,		/* invalid config type */
-
-	EINVALID_CONFIG_LEN,		/* invalid config array length */
-	EINVALID_DATA_LEN,		/* invalid data length */
-
-	EINVALID_PORT_DIR,		/* invalid port direction */
-
-	EINVALID_ARG,			/* UBX EINVAL */
-	EWRONG_STATE,			/* invalid FSM state */
-	ENOSUCHENT,			/* no such entity */
-	EENTEXISTS,			/* entity exists already */
-	EALREADY_REGISTERED,		/* entity already registered */
-	ETYPE_MISMATCH,			/* mismatching types */
-	EOUTOFMEM,			/* UBX ENOMEM */
-
-};
-
-enum {
-	UBX_LOGLEVEL_EMERG	= 0,	/* system unusable */
-	UBX_LOGLEVEL_ALERT	= 1,	/* immediate action required */
-	UBX_LOGLEVEL_CRIT	= 2,	/* critical */
-	UBX_LOGLEVEL_ERR	= 3,	/* error */
-	UBX_LOGLEVEL_WARN	= 4,	/* warning conditions */
-	UBX_LOGLEVEL_NOTICE	= 5,	/* normal but significant */
-	UBX_LOGLEVEL_INFO	= 6,	/* info msg */
-	UBX_LOGLEVEL_DEBUG	= 7	/* debug messages */
-};
 
 /**
  * struct ubx_port
@@ -148,6 +150,8 @@ enum {
  * @out_interaction: output iblocks to write to
  * @in_type: pointer to input type. resolved upon creation.
  * @in_data_len: array length of input data
+ * @next: linked list ptr
+ * @prev: linked list ptr
  * @out_type: pointer to output type. resolved upon creation.
  * @out_data_len: array length of output data
  * @name: name of port
@@ -164,8 +168,8 @@ enum {
  * respective type names can be accessed via port->in_type->name.
  */
 typedef struct ubx_port {
-	const char name[UBX_PORT_NAME_MAXLEN + 1];
 	const char *doc;
+	char name[UBX_PORT_NAME_MAXLEN + 1];
 
 	const char *out_type_name;
 	const char *in_type_name;
@@ -174,10 +178,13 @@ typedef struct ubx_port {
 	long out_data_len;
 
 	/* instance fields */
+	struct ubx_port *prev;
+	struct ubx_port *next;
+
 	uint32_t attrs;
 
-	ubx_type_t *in_type;
-	ubx_type_t *out_type;
+	const ubx_type_t *in_type;
+	const ubx_type_t *out_type;
 
 	const struct ubx_block *block;
 
@@ -207,8 +214,8 @@ typedef struct ubx_port {
  * config.type->name.
  */
 typedef struct ubx_config {
-	const char name[UBX_CONFIG_NAME_MAXLEN + 1];
 	const char *doc;
+	char name[UBX_CONFIG_NAME_MAXLEN + 1];
 	const char *type_name;
 	long data_len;
 	uint16_t min;
@@ -216,19 +223,28 @@ typedef struct ubx_config {
 
 	const struct ubx_block *block;
 
-	ubx_type_t *type;
+	const ubx_type_t *type;
 	ubx_data_t *value;
 
 	uint32_t attrs;
+
+	struct ubx_config *prev;
+	struct ubx_config *next;
+
 } ubx_config_t;
 
+
+/**
+ * anonymous enum for config attributes
+ *
+ * @CONFIG_ATTR_CHECKLATE: perform checking of min, max before start
+ *			   instead of before init hook
+ * @CONFIG_ATTR_DYN: 	   the configuration was added to the interface
+ * 		           dynamically using @ubx_config_add.
+ */
 enum {
-	CONFIG_ATTR_RDONLY =	 1<<0,
-	CONFIG_ATTR_CHECKLATE =  2<<1	/*
-					 * perform checking of min,
-					 * max before start instead of
-					 * before init hook
-					 */
+	CONFIG_ATTR_CHECKLATE = 1<<0,
+	CONFIG_ATTR_DYN =	3<<1
 };
 
 /*
@@ -241,10 +257,18 @@ enum {
 	BLOCK_TYPE_INTERACTION
 };
 
-/* Block attributes */
+
+/**
+ * Block attributes
+ *
+ * @BLOCK_ATTR_PROTO:   block is a prototype block
+ * @BLOCK_ATTR_TRIGGER: block is a trigger
+ * @BLOCK_ATTR_ACTIVE:  block is active (spawns one or more threads)
+ */
 enum {
-	BLOCK_ATTR_TRIGGER =	1<<0,	/* block is a trigger */
-	BLOCK_ATTR_ACTIVE =	1<<1,	/* block is active (has a thread) */
+	BLOCK_ATTR_PROTO =	1<<0,
+	BLOCK_ATTR_TRIGGER =	1<<1,
+	BLOCK_ATTR_ACTIVE =	1<<2,
 };
 
 /* block states */
@@ -295,7 +319,7 @@ typedef struct ubx_block {
 	ubx_port_t *ports;
 	ubx_config_t *configs;
 
-	const ubx_block_t *prototype;
+	const struct ubx_block *prototype;
 
 	struct ubx_node_info *ni;
 
