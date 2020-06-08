@@ -1550,7 +1550,12 @@ end
 function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns)
 
    local prot = M.port_get(block, pname)
-   local p = ffi.new("ubx_port_t")
+
+   local p = ffi.cast("ubx_port_t*", ffi.C.malloc(ffi.sizeof("ubx_port_t")))
+   if p == nil then error("failed to allocate port") end
+   ffi.fill(p, ffi.sizeof("ubx_port_t"))
+   ffi.gc(p, ubx.ubx_port_free)
+
    local pn = M.safe_tostr(prot.name)..'_inv'
 
    ffi.copy(p.name, pn, #pn + 1)
@@ -1624,8 +1629,6 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 				iname, buff_len2, tonumber(p.in_data_len)))
    end
 
-   -- cleanup port once the reference is lost
-   -- ffi.gc(p, ubx.ubx_port_free)
    return p
 end
 
