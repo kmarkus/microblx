@@ -943,8 +943,8 @@ int ubx_config_assign(ubx_config_t *c, ubx_data_t *d)
  */
 void ubx_block_free(ubx_block_t *b)
 {
-	struct ubx_port *p, *ptmp;
-	struct ubx_config *c, *ctmp;
+	struct ubx_port *p = NULL, *ptmp = NULL;
+	struct ubx_config *c = NULL, *ctmp = NULL;
 
 	if (b->meta_data)
 		free((char *)b->meta_data);
@@ -990,8 +990,8 @@ static ubx_block_t *ubx_block_clone(ubx_block_t *prot, const char *name)
 {
 	int ret;
 	ubx_block_t *newb;
-	ubx_config_t *csrc;
-	ubx_port_t *psrc;
+	ubx_config_t *csrc = NULL;
+	ubx_port_t *psrc = NULL;
 
 	newb = calloc(1, sizeof(ubx_block_t));
 
@@ -1445,7 +1445,7 @@ out:
  */
 ubx_config_t *ubx_config_get(const ubx_block_t *b, const char *name)
 {
-	ubx_config_t *c;
+	ubx_config_t *c = NULL;
 
 	if (b == NULL) {
 		ERR("port_get: block is NULL");
@@ -1551,24 +1551,28 @@ static int __ubx_config_add(ubx_block_t *b,
 			    uint16_t max,
 			    uint32_t attrs)
 {
+	int ret;
 	ubx_config_t *cnew;
 
 	if (ubx_config_get(b, name)) {
 		ubx_err(b, "config_add: %s already exists", name);
-		return EENTEXISTS;
+		ret = EENTEXISTS;
+		goto out;
 	}
 
 	cnew = calloc(1, sizeof(struct ubx_config));
 
 	if (cnew == NULL) {
 		ubx_err(b, "EOUTOFMEM");
-		return EOUTOFMEM;
+		ret = EOUTOFMEM;
+		goto out;
 	}
 
 	if (strlen(name) > UBX_CONFIG_NAME_MAXLEN) {
 		ubx_err(b, "config_add: name %s too long (max: %u)",
 			name, UBX_CONFIG_NAME_MAXLEN);
-		return EINVALID_CONFIG;
+		ret = EINVALID_CONFIG;
+		goto out_free;
 	}
 
 	strncpy((char*) cnew->name, name, UBX_CONFIG_NAME_MAXLEN);
@@ -1587,8 +1591,8 @@ static int __ubx_config_add(ubx_block_t *b,
 		cnew->doc = strdup(doc);
 		if (cnew->doc == NULL) {
 			ubx_err(b, "EOUTOFMEM: failed to alloc config %s docstr", name);
-			free(cnew);
-			return EOUTOFMEM;
+			ret = EOUTOFMEM;
+			goto out_free;
 		};
 	}
 
@@ -1597,8 +1601,12 @@ static int __ubx_config_add(ubx_block_t *b,
 	cnew->block = b;
 
 	DL_APPEND(b->configs, cnew);
-
 	return 0;
+
+out_free:
+	free(cnew);
+out:
+	return ret;
 }
 
 /**
@@ -1626,10 +1634,8 @@ int ubx_config_add2(ubx_block_t *b,
 {
 	ubx_type_t *type;
 
-	if (b == NULL) {
-		ubx_err(b, "config_add: block is NULL");
+	if (b == NULL)
 		return EINVALID_BLOCK;
-	}
 
 	if (name == NULL) {
 		ubx_err(b, "config_add: name is NULL");
@@ -1713,7 +1719,7 @@ int ubx_config_rm(ubx_block_t *b, const char *name)
 static int check_minmax(const ubx_block_t *b, const int checklate)
 {
 	int ret = 0;
-	struct ubx_config *c;
+	struct ubx_config *c = NULL;
 
 	DL_FOREACH(b->configs, c) {
 		if (c->min == 0 && c->max == 0)
@@ -1761,6 +1767,7 @@ static int __ubx_port_add(ubx_block_t *b,
 			  const ubx_type_t *out_type,
 			  const long out_data_len)
 {
+	int ret;
 	ubx_port_t *pnew;
 
 	if (ubx_port_get(b, name)) {
@@ -1772,13 +1779,15 @@ static int __ubx_port_add(ubx_block_t *b,
 
 	if (pnew == NULL) {
 		ubx_err(b, "EOUTOFMEM");
-		return EOUTOFMEM;
+		ret = EOUTOFMEM;
+		goto out;
 	}
 
 	if (strlen(name) > UBX_PORT_NAME_MAXLEN) {
 		ubx_err(b, "port_add: name %s too long (max: %u)",
 			name, UBX_PORT_NAME_MAXLEN);
-		return EINVALID_PORT;
+		ret = EINVALID_PORT;
+		goto out_free;
 	}
 
 	strncpy((char*) pnew->name, name, UBX_PORT_NAME_MAXLEN);
@@ -1787,8 +1796,8 @@ static int __ubx_port_add(ubx_block_t *b,
 		pnew->doc = strdup(doc);
 		if (pnew->doc == NULL) {
 			ubx_err(b, "EOUTOFMEM: failed to alloc port %s docstr", name);
-			free(pnew);
-			return EOUTOFMEM;
+			ret = EOUTOFMEM;
+			goto out_free;
 		}
 	}
 
@@ -1802,6 +1811,11 @@ static int __ubx_port_add(ubx_block_t *b,
 	DL_APPEND(b->ports, pnew);
 
 	return 0;
+
+out_free:
+	free(pnew);
+out:
+	return ret;
 }
 
 /**
