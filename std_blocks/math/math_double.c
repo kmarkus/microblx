@@ -2,7 +2,7 @@
  * math double function block
  */
 
-#define UBX_DEBUG
+#undef UBX_DEBUG
 
 #include <string.h>
 #include <math.h>
