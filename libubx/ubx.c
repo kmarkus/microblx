@@ -1782,8 +1782,8 @@ static int __ubx_port_add(ubx_block_t *b,
 
 	pnew->in_type = in_type;
 	pnew->out_type = out_type;
-	pnew->in_data_len = in_data_len;
-	pnew->out_data_len = out_data_len;
+	pnew->in_data_len = (in_data_len == 0) ? 1 : in_data_len;
+	pnew->out_data_len = (out_data_len == 0) ? 1 : out_data_len;
 
 	if (in_type != NULL)
 		pnew->attrs |= PORT_DIR_IN;
