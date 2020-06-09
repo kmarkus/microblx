@@ -65,7 +65,6 @@ enum {
 	UBX_LOGLEVEL_DEBUG	= 7	/* debug messages */
 };
 
-
 struct ubx_type;
 struct ubx_data;
 struct ubx_block;
@@ -144,49 +143,34 @@ enum {
 /**
  * struct ubx_port
  *
- * @block: parent block owning this port
- * @attrs: port attributes (PORT_DIR_IN, PORT_DIR_OUT)
- * @in_interaction: input iblocks to read from
- * @out_interaction: output iblocks to write to
- * @in_type: pointer to input type. resolved upon creation.
- * @in_data_len: array length of input data
- * @next: linked list ptr
- * @prev: linked list ptr
- * @out_type: pointer to output type. resolved upon creation.
- * @out_data_len: array length of output data
  * @name: name of port
  * @doc: short doc string
- * @in_type_name: ubx type name for input
- * @out_type_name: ubx type name for output
+ * @attrs: port attributes (PORT_DIR_IN, PORT_DIR_OUT)
+ * @block: parent block owning this port
+ * @in_type: pointer to input type. resolved upon creation.
+ * @out_type: pointer to output type. resolved upon creation.
+ * @in_data_len: array length of input data
+ * @out_data_len: array length of output data
+ * @next: linked list ptr
+ * @prev: linked list ptr
+ * @in_interaction: input iblocks to read from
+ * @out_interaction: output iblocks to write to
  *
- * The fields @name, @doc, @in_type_name, @out_type_name, @in_data_len
- * and @out_data_len are supported for static port declarations. All
- * others fields are used by port instances and are ignored in
- * declarations.
- *
- * For instances, @in_type_name and @out_type_name are not set. The
- * respective type names can be accessed via port->in_type->name.
  */
 typedef struct ubx_port {
-	const char *doc;
 	char name[UBX_PORT_NAME_MAXLEN + 1];
-
-	const char *out_type_name;
-	const char *in_type_name;
-
-	long in_data_len;
-	long out_data_len;
-
-	/* instance fields */
-	struct ubx_port *prev;
-	struct ubx_port *next;
-
+	const char *doc;
 	uint32_t attrs;
+	const struct ubx_block *block;
 
 	const ubx_type_t *in_type;
 	const ubx_type_t *out_type;
 
-	const struct ubx_block *block;
+	long in_data_len;
+	long out_data_len;
+
+	struct ubx_port *prev;
+	struct ubx_port *next;
 
 	struct ubx_block **in_interaction;
 	struct ubx_block **out_interaction;
@@ -197,36 +181,26 @@ typedef struct ubx_port {
  * struct ubx_config - represents a block configuration
  * @name: name of config
  * @doc: short docstring
- * @type_name: ubx type name of config
- * @data_len: array length of data (used for declaration only, TODO: get rid of this?)
+ * @attrs: attributes (CHECKLATE, ...)
  * @block: parent block owning this config
  * @type: type of configuration
  * @value: reference to data
- * @attrs: attributes (CHECKLATE, ...)
  * @min: required minimum array length
  * @max: required maximum array length
- *
- * The fields @name @doc @type_name @data_len @min abd @max are
- * supported in static port declarations. All others fields are used
- * at runtime and ignore in declarations.
- *
- * For instances @type_name is unset. The type must be accessed via
- * config.type->name.
+ * @prev: linked list ptr
+ * @next: linked list ptr
  */
 typedef struct ubx_config {
-	const char *doc;
 	char name[UBX_CONFIG_NAME_MAXLEN + 1];
-	const char *type_name;
-	long data_len;
-	uint16_t min;
-	uint16_t max;
-
+	const char *doc;
+	uint32_t attrs;
 	const struct ubx_block *block;
 
 	const ubx_type_t *type;
 	ubx_data_t *value;
 
-	uint32_t attrs;
+	uint16_t min;
+	uint16_t max;
 
 	struct ubx_config *prev;
 	struct ubx_config *next;
@@ -283,9 +257,9 @@ enum {
  * @name: block name
  * @meta_data: block meta data
  * @type: block type
- * @attrs: bock attributes (BLOCK_ATTR_ACTIVE, ...)
- * @ports: {0} terminated array of static ports
- * @configs: {0} terminated array of static configurations
+ * @attrs: block attributes (BLOCK_ATTR_ACTIVE, ...)
+ * @ports: head ptr to double linked list of ports
+ * @configs: head ptr to double linked list of configurations
  * @block_state: current state in block life cycle FSM
  * @prototype: pointer to prototype block (if any)
  * @ni: parent ubx_node
@@ -302,11 +276,6 @@ enum {
  * @stat_num_writes: wrte count statistics (only BLOCK_TYPE_INTERACTION)
  * @private_data: pointer to block instance state
  * @hh UT_hash_handle
- *
- * The fields @name, @meta_data, @type, @attrs, @ports @configs and
- * the hooks can be used for static block prototype declarations. All
- * other fields are used at runtime and are ignore for static
- * declarations.
  */
 typedef struct ubx_block {
 	const char name[UBX_BLOCK_NAME_MAXLEN + 1];
@@ -320,7 +289,6 @@ typedef struct ubx_block {
 	ubx_config_t *configs;
 
 	const struct ubx_block *prototype;
-
 	struct ubx_node_info *ni;
 
 	const int *loglevel;
