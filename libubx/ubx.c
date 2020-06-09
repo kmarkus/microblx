@@ -1237,7 +1237,7 @@ int ubx_port_connect_out(ubx_port_t *p, ubx_block_t *iblock)
 {
 	int ret = -1;
 
-	if (p->attrs & PORT_DIR_OUT) {
+	if (IS_OUTPORT(p)) {
 		ret = array_block_add(&p->out_interaction, iblock);
 		if (ret != 0)
 			goto out;
@@ -1265,7 +1265,7 @@ int ubx_port_connect_in(ubx_port_t *p, ubx_block_t *iblock)
 {
 	int ret;
 
-	if (p->attrs & PORT_DIR_IN) {
+	if (IS_INPORT(p)) {
 		ret = array_block_add(&p->in_interaction, iblock);
 		if (ret != 0)
 			goto out;
@@ -1339,7 +1339,7 @@ int ubx_port_disconnect_out(ubx_port_t *out_port, ubx_block_t *iblock)
 {
 	int ret = -1;
 
-	if (out_port->attrs & PORT_DIR_OUT) {
+	if (IS_OUTPORT(out_port)) {
 		ret = array_block_rm(&out_port->out_interaction, iblock);
 		if (ret != 0)
 			goto out;
@@ -1368,7 +1368,7 @@ int ubx_port_disconnect_in(ubx_port_t *in_port, ubx_block_t *iblock)
 {
 	int ret = -1;
 
-	if (in_port->attrs & PORT_DIR_IN) {
+	if (IS_INPORT(in_port)) {
 		ret = array_block_rm(&in_port->in_interaction, iblock);
 		if (ret != 0)
 			goto out;
@@ -1784,12 +1784,6 @@ static int __ubx_port_add(ubx_block_t *b,
 	pnew->out_type = out_type;
 	pnew->in_data_len = (in_data_len == 0) ? 1 : in_data_len;
 	pnew->out_data_len = (out_data_len == 0) ? 1 : out_data_len;
-
-	if (in_type != NULL)
-		pnew->attrs |= PORT_DIR_IN;
-
-	if (out_type != NULL)
-		pnew->attrs |= PORT_DIR_OUT;
 
 	pnew->block = b;
 
@@ -2227,7 +2221,7 @@ long __port_read(const ubx_port_t *port, ubx_data_t *data)
 		goto out;
 	}
 
-	if ((port->attrs & PORT_DIR_IN) == 0) {
+	if (!IS_INPORT(port)) {
 		ret = EINVALID_PORT_DIR;
 		goto out;
 	};
@@ -2277,7 +2271,7 @@ void __port_write(const ubx_port_t *port, const ubx_data_t *data)
 		goto out;
 	}
 
-	if ((port->attrs & PORT_DIR_OUT) == 0) {
+	if (!IS_OUTPORT(port)) {
 		ubx_err(port->block, "not an OUT-port");
 		goto out;
 	};

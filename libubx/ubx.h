@@ -49,6 +49,7 @@ extern "C"
 #include "ubx_proto.h"
 #include "rtlog.h"
 
+
 /* constants */
 #define NSEC_PER_SEC		1000000000
 #define USEC_PER_SEC		1000000
@@ -58,6 +59,14 @@ extern "C"
 #define CONFIG_LEN_MAX		UINT16_MAX
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
+/* predicates */
+#define IS_PROTO(b) (b->prototype == NULL)
+#define IS_INSTANCE(b) (b->prototype != NULL)
+
+#define IS_OUTPORT(p) (p->out_type != NULL)
+#define IS_INPORT(p)  (p->in_type != NULL)
+#define IS_INOUTPORT(p) (IS_INPORT(p) && IS_OUTPORT(b))
 
 /*
  * Debug stuff
@@ -104,5 +113,7 @@ __attribute__ ((visibility("default"))) void __ubx_cleanup_module(ubx_node_info_
 #ifdef __cplusplus
 }
 #endif
+
+
 
 #endif /* _UBX_H */

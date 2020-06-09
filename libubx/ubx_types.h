@@ -125,20 +125,11 @@ typedef struct ubx_data {
 } ubx_data_t;
 
 
-/* Port attributes */
-enum {
-	/* Directionality */
-	PORT_DIR_IN	= 1 << 0,
-	PORT_DIR_OUT	= 1 << 1,
-	PORT_DIR_INOUT  = PORT_DIR_IN & PORT_DIR_OUT
-};
-
 enum {
 	PORT_READ_NODATA		= 0,
 	PORT_READ_BUFF_TOO_SMALL	= -1,
 	PORT_READ_DROPPED		= -2
 };
-
 
 /**
  * struct ubx_port
