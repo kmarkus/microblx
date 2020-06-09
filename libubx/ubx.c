@@ -542,15 +542,15 @@ out:
 }
 
 /**
- * ubx_block_unregister - unregister a block.
+ * ubx_block_unregister - unregister a block and free its memory.
  *
  * @param ni
  * @param type
  * @param name
  *
- * @return the unregistered block or NULL in case of failure.
+ * @return 0 if OK, -1 otherwise
  */
-ubx_block_t *ubx_block_unregister(ubx_node_info_t *ni, const char *name)
+int ubx_block_unregister(ubx_node_info_t *ni, const char *name)
 {
 	ubx_block_t *tmpc;
 
@@ -558,12 +558,12 @@ ubx_block_t *ubx_block_unregister(ubx_node_info_t *ni, const char *name)
 
 	if (tmpc == NULL) {
 		logf_err(ni, "block %s not registered", name);
-		goto out;
+		return -1;
 	}
 
 	HASH_DEL(ni->blocks, tmpc);
- out:
-	return tmpc;
+	ubx_block_free(tmpc);
+	return 0;
 }
 
 
@@ -1151,10 +1151,9 @@ int ubx_block_rm(ubx_node_info_t *ni, const char *name)
 		goto out;
 	}
 
-	if (ubx_block_unregister(ni, name) == NULL)
+	if (ubx_block_unregister(ni, name) != 0)
 		logf_err(ni, "block %s failed to unregister", name);
 
-	ubx_block_free(b);
 	ret = 0;
  out:
 	return ret;
