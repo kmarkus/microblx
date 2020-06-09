@@ -755,25 +755,26 @@ ubx_data_t *__ubx_data_alloc(const ubx_type_t *typ, const long array_len)
 		goto out;
 
 	d = calloc(1, sizeof(ubx_data_t));
+
 	if (d == NULL)
-		goto out_nomem;
+		goto out;
+
+	if (array_len > 0) {
+		d->data = calloc(array_len, typ->size);
+		if (d->data == NULL)
+			goto out_free;
+	}
 
 	d->type = typ;
 	d->len = array_len;
 
-	d->data = calloc(array_len, typ->size);
-	if (d->data == NULL)
-		goto out_nomem;
-
 	/* all ok */
 	goto out;
 
- out_nomem:
-	if (d)
-		free(d);
+out_free:
+	free(d);
 	d = NULL;
-
- out:
+out:
 	return d;
 }
 
@@ -1970,7 +1971,7 @@ int ubx_port_rm(ubx_block_t *b, const char *name)
  */
 ubx_port_t *ubx_port_get(const ubx_block_t *b, const char *name)
 {
-	ubx_port_t *p;
+	ubx_port_t *p = NULL;
 
 	if (b == NULL) {
 		ERR("port_get: block is NULL");
