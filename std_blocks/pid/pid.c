@@ -142,12 +142,17 @@ void pid_step(ubx_block_t *b)
 	len_msr = read_double_array(inf->ports.msr, inf->msr, inf->data_len);
 	len_des = read_double_array(inf->ports.des, inf->des, inf->data_len);
 
-	if (len_msr < 0) {
+	if (len_msr < 0 || len_des < 0) {
+		ubx_err(b, "error reading ports");
+		goto out;
+	}
+
+	if (len_msr == 0) {
 		ubx_err(b, "ENODATA: no data on port msr");
 		goto out;
 	}
 
-	if (len_des < 0) {
+	if (len_des == 0) {
 		ubx_err(b, "ENODATA: no data on port des");
 		goto out;
 	}
