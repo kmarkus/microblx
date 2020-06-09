@@ -30,27 +30,27 @@ enum {
 
 /* return error codes */
 enum {
-	EINVALID_BLOCK = -32767,	/* invalid block */
-	EINVALID_PORT,			/* invalid port */
-	EINVALID_CONFIG,		/* invalid config */
-	EINVALID_TYPE,			/* invalid config */
+	EINVALID_BLOCK 		= -32767, /* invalid block */
+	EINVALID_PORT,			  /* invalid port */
+	EINVALID_CONFIG,		  /* invalid config */
+	EINVALID_TYPE,			  /* invalid config */
 
-	EINVALID_BLOCK_TYPE,		/* invalid block type */
-	EINVALID_PORT_TYPE,             /* invalid port type */
-	EINVALID_CONFIG_TYPE,		/* invalid config type */
+	EINVALID_BLOCK_TYPE,		  /* invalid block type */
+	EINVALID_PORT_TYPE,               /* invalid port type */
+	EINVALID_CONFIG_TYPE,		  /* invalid config type */
 
-	EINVALID_CONFIG_LEN,		/* invalid config array length */
-	EINVALID_DATA_LEN,		/* invalid data length */
+	EINVALID_CONFIG_LEN,		  /* invalid config array length */
+	EINVALID_DATA_LEN,		  /* invalid data length */
 
-	EINVALID_PORT_DIR,		/* invalid port direction */
+	EINVALID_PORT_DIR,		  /* invalid port direction */
 
-	EINVALID_ARG,			/* UBX EINVAL */
-	EWRONG_STATE,			/* invalid FSM state */
-	ENOSUCHENT,			/* no such entity */
-	EENTEXISTS,			/* entity exists already */
-	EALREADY_REGISTERED,		/* entity already registered */
-	ETYPE_MISMATCH,			/* mismatching types */
-	EOUTOFMEM,			/* UBX ENOMEM */
+	EINVALID_ARG,			  /* UBX EINVAL */
+	EWRONG_STATE,			  /* invalid FSM state */
+	ENOSUCHENT,			  /* no such entity */
+	EENTEXISTS,			  /* entity exists already */
+	EALREADY_REGISTERED,		  /* entity already registered */
+	ETYPE_MISMATCH,			  /* mismatching types */
+	EOUTOFMEM,			  /* UBX ENOMEM */
 
 };
 
@@ -132,6 +132,17 @@ enum {
 };
 
 /**
+ * anonymous enum for port attributes
+ *
+ * @PORT_ATTR_DYN: the configuration was added to the interface
+ * 		   dynamically using @ubx_config_add (opposed to being
+ * 		   added during block creation).
+ */
+enum {
+	PORT_ATTR_DYN 		= 1<<0
+};
+
+/**
  * struct ubx_port
  *
  * @name: name of port
@@ -209,7 +220,7 @@ typedef struct ubx_config {
  */
 enum {
 	CONFIG_ATTR_CHECKLATE = 1<<0,
-	CONFIG_ATTR_DYN =	3<<1
+	CONFIG_ATTR_DYN =	1<<1
 };
 
 /*
@@ -366,6 +377,7 @@ typedef struct ubx_node_info {
 	void *log_data;
 } ubx_node_info_t;
 
+
 /**
  * struct ubx_timespec
  *
@@ -379,6 +391,7 @@ struct ubx_timespec {
 	long sec;
 	long nsec;
 };
+
 
 /**
  * struct ubx_log_msg - ubx log message
