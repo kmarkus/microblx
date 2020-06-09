@@ -5,13 +5,26 @@ This file tracks user visible API changes
 
 ## next
 
-- ubx_types.h cleanup:
-  - convert dynamically allocated strings to fixed strings. This
-    simplifies block creation and allows gcc to statically catch cases
-    where a block names are too long and would be truncated (e.g. in
-    logging).
-  - removed port `state`, which was never used
-  - removed port statistics
+- ubx_types, ubx core cleanup
+
+  - `ubx_block_`: store `ports` and `configs` in a `utlist.h` double
+	linked list instead of a dynamic array (see the
+	[motivation](docs/dev/002-stable-port-ptrs.md)).
+	
+	- static prototype registration has changed. Use the types
+	   - `ubx_block_type`, `ubx_port_type` and `ubx_config_type`
+	   - `ubx_block_register(ubx_node_info_t*, struct ubx_block_type* bt)`
+
+  - convert object names (node, block, port, config) from dynamically
+	allocated strings to fixed strings. This simplifies block creation
+	and allows gcc to statically catch cases where a block names are
+	too long and would be truncated (e.g. in logging).
+
+  - remove port `state`, which was never used. The functions
+	`ubx_port_add` (lua `ubx.port_add`) consequently drop the last
+	parameter.
+
+  - removed port statistics (were never used)
 
 - renamed constants for consistency:
   - `BLOCK_NAME_MAXLEN` -> `UBX_BLOCK_NAME_MAXLEN`
@@ -39,7 +52,7 @@ This file tracks user visible API changes
    - indepent of `tstats_output_rate`, all stats are written to the
 	 port `tstats` (if it exists) in `stop()`.
    - config `autostop_steps` added to stop ptrig after triggering this
-     number of times.
+	 number of times.
 
 - `port_clone_conn`: add `loglevel_overruns` argument.
 
@@ -80,7 +93,7 @@ This file tracks user visible API changes
   parameters are the same, so simple renaming will work in most cases):
 
   - `def_port_readers(FUNCNAME, TYPENAME)`
-    `def_port_writers(FUNCNAME, TYPENAME)`
+	`def_port_writers(FUNCNAME, TYPENAME)`
 
   will each define both single element function as well as the array
   version, e.g. for the writer side:
@@ -147,22 +160,22 @@ This file tracks user visible API changes
 - **triggering**: `trig`, `ptrig`, `trig_utils`
 
   - `tstat_utils`: rename to `trig_utils`. Created generic trigger
-     implementation in `trig_utils` for use by `trig` and `ptrig` as
-     well as custom user `triggers`.
+	 implementation in `trig_utils` for use by `trig` and `ptrig` as
+	 well as custom user `triggers`.
 
   - `ptrig` and `trig` converted to use generic trigger handling from
-    `trig_utils`
+	`trig_utils`
 
   - `tstats_enabled` renamed to `tstats_mode`. Values are
-    - 0: off
-    - 1: total tstats only
-    - 2: total and per block tstats
+	- 0: off
+	- 1: total tstats only
+	- 2: total and per block tstats
 
   - `ptrig` and `trig`: new config `tstats_output_rate` for
-    configuring how often statistics are written to the tstats port.
+	configuring how often statistics are written to the tstats port.
 
   - config `tstats_print_on_stop` dropped. New behavior is: if
-    `tstats_mode` is non-zero, then stats will be logged on stop.
+	`tstats_mode` is non-zero, then stats will be logged on stop.
 
 - `stattypes`: merge into `stdtypes` as this only contains the
   ubx_tstat type. Hence, there is no need to import `stattypes`
