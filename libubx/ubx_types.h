@@ -237,14 +237,12 @@ enum {
 /**
  * Block attributes
  *
- * @BLOCK_ATTR_PROTO:   block is a prototype block
  * @BLOCK_ATTR_TRIGGER: block is a trigger
  * @BLOCK_ATTR_ACTIVE:  block is active (spawns one or more threads)
  */
 enum {
-	BLOCK_ATTR_PROTO =	1<<0,
-	BLOCK_ATTR_TRIGGER =	1<<1,
-	BLOCK_ATTR_ACTIVE =	1<<2,
+	BLOCK_ATTR_TRIGGER =	1<<0,
+	BLOCK_ATTR_ACTIVE =	1<<1,
 };
 
 /* block states */
@@ -353,7 +351,7 @@ enum {
  * struct ubx_node_info - node information
  * holds references to all known blocks and types
  * @name: name of node
- * @blocks: UT_hash hash table of all blocks (prototypes and instances)
+ * @blocks: UT_hash hash table of all blocks
  * @types: UT_hash hash table of types
  * @modules: UT_hash hash table of loaded modules
  * @cur_seqid: running sequence id for registered types. This is used

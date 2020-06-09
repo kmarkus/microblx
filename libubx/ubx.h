@@ -60,7 +60,7 @@ struct ubx_proto_config;
 
 /* predicates */
 #define IS_PROTO(b) (b->prototype == NULL)
-#define IS_INSTANCE(b) (b->prototype != NULL)
+#define IS_INSTANCE(b) (!IS_PROTO(b))
 
 #define IS_OUTPORT(p) (p->out_type != NULL)
 #define IS_INPORT(p)  (p->in_type != NULL)

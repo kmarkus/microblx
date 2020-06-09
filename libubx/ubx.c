@@ -464,7 +464,7 @@ int ubx_block_register(ubx_node_info_t *ni, struct ubx_proto_block *prot)
 	strncpy((char*) newb->name, prot->name, UBX_BLOCK_NAME_MAXLEN);
 
 	newb->type = prot->type;
-	newb->attrs |= BLOCK_ATTR_PROTO;
+	newb->prototype = NULL;
 
 	/* needs to be set here for ubx_port/config_add */
 	newb->ni = ni;
@@ -1004,7 +1004,7 @@ static ubx_block_t *ubx_block_clone(ubx_block_t *prot, const char *name)
 	newb->prototype = prot;
 
 	newb->type = prot->type;
-	newb->attrs = (prot->attrs & ~BLOCK_ATTR_PROTO);
+	newb->attrs = prot->attrs;
 	newb->meta_data = NULL;
 
 	newb->init = prot->init;
@@ -1080,7 +1080,7 @@ ubx_block_t *ubx_block_create(ubx_node_info_t *ni, const char *type, const char 
 		goto out;
 	}
 
-	if ((prot->attrs & BLOCK_ATTR_PROTO) == 0) {
+	if (IS_INSTANCE(prot)) {
 		logf_warn(ni, "block %s is not a prototype", type);
 		goto out;
 	}

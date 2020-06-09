@@ -199,18 +199,18 @@ function M.is_config(x) return ffi.istype("ubx_config_t", x) end
 function M.is_port(x) return ffi.istype("ubx_port_t", x) end
 function M.is_data(x) return ffi.istype("ubx_data_t", x) end
 
-function M.is_proto(b) return bit.band(b.attrs, ffi.C.BLOCK_ATTR_PROTO) ~= 0 end
+function M.is_proto(b) assert(M.is_block(b)); return b.prototype == nil end
 function M.is_instance(b) return not M.is_proto(b) end
-function M.is_cblock(b) return b.type==ffi.C.BLOCK_TYPE_COMPUTATION end
-function M.is_iblock(b) return b.type==ffi.C.BLOCK_TYPE_INTERACTION end
+function M.is_cblock(b) assert(M.is_block(b)); return b.type==ffi.C.BLOCK_TYPE_COMPUTATION end
+function M.is_iblock(b) assert(M.is_block(b)); return b.type==ffi.C.BLOCK_TYPE_INTERACTION end
 function M.is_cblock_instance(b) return M.is_cblock(b) and not M.is_proto(b) end
 function M.is_iblock_instance(b) return M.is_iblock(b) and not M.is_proto(b) end
 function M.is_cblock_proto(b) return M.is_cblock(b) and M.is_proto(b) end
 function M.is_iblock_proto(b) return M.is_iblock(b) and M.is_proto(b) end
 
 -- Port predicates
-function M.is_outport(p) return p.out_type ~= nil end
-function M.is_inport(p) return p.in_type ~= nil end
+function M.is_outport(p) assert(M.is_port(p)); return p.out_type ~= nil end
+function M.is_inport(p) assert(M.is_port(p)); return p.in_type ~= nil end
 function M.is_inoutport(p) return M.is_outport(p) and M.is_inport(p) end
 
 ------------------------------------------------------------------------------
@@ -1546,9 +1546,10 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 
    local prot = M.port_get(block, pname)
 
-   local p = ffi.cast("ubx_port_t*", ffi.C.malloc(ffi.sizeof("ubx_port_t")))
+   local p = ffi.C.malloc(ffi.sizeof("ubx_port_t"))
    if p == nil then error("failed to allocate port") end
    ffi.fill(p, ffi.sizeof("ubx_port_t"))
+   p = ffi.cast("ubx_port_t*", p)
    ffi.gc(p, ubx.ubx_port_free)
 
    local pn = M.safe_tostr(prot.name)..'_inv'
