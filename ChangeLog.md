@@ -8,7 +8,7 @@ This file tracks user visible API changes
 - `ubx_block_`: store `ports` and `configs` in a `utlist.h` double
   linked list instead of a dynamic array
   ([background](docs/dev/002-stable-port-ptrs.md)).
-	
+
 - registration of static blocks has changed. Use the types
   `ubx_proto_block_t`, `ubx_proto_port_t` and `ubx_proto_config_t` to
   define blocks definition and `ubx_block_register(ubx_node_info_t*,
@@ -17,21 +17,25 @@ This file tracks user visible API changes
   (i.e. in hooks etc) the non-`_proto_` versions are used as before
   ([background](docs/dev/002-stable-port-ptrs.md)).
 
+- `ubx_config_add2` adds a config incl `min`/`max` constraints and
+  attrs.
+
+- `ubx_port_add`: the past parameter `state` has been dropped (as has
+  the member in `ubx_port_t`.
+
 - `ubx_types.h`: converted object names (node, block, port, config)
   from dynamically allocated strings to fixed strings where
-  possible. This simplifies block creation and allows gcc to
-  statically catch cases where a block names are too long and would be
-  truncated in logging.
+  possible.
 
-- `ubx_types.h`, ports: 
+- `ubx_types.h`, ports:
    - removed port `state`, which was never used. The functions
-     `ubx_port_add` (lua `ubx.port_add`) consequently drop the last
-     parameter.
-	
+	 `ubx_port_add` (lua `ubx.port_add`) consequently drop the last
+	 parameter.
+
    - removed port direction attributes `PORT_DIR_OUT` and
-     `PORT_DIR_IN`. Instead this is determined from a non-NULL `in_`
-     or `out_type` ptr. The macros `IS_OUTPORT`, `IS_INPORT` and
-     `IS_INOUTPORT` do this in a portable way.
+	 `PORT_DIR_IN`. Instead this is determined from a non-NULL `in_`
+	 or `out_type` ptr. The macros `IS_OUTPORT`, `IS_INPORT` and
+	 `IS_INOUTPORT` do this in a portable way.
 
    - removed port statistics (were never used)
 
