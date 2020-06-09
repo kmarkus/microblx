@@ -464,6 +464,7 @@ int ubx_block_register(ubx_node_info_t *ni, struct ubx_proto_block *prot)
 	strncpy((char*) newb->name, prot->name, UBX_BLOCK_NAME_MAXLEN);
 
 	newb->type = prot->type;
+	newb->attrs = prot->attrs;
 	newb->prototype = NULL;
 
 	/* needs to be set here for ubx_port/config_add */
