@@ -81,7 +81,6 @@ block_spec = ObjectSpec {
       name=StringSpec{},
       meta_data=StringSpec{},
       license=StringSpec{},
-      cpp=BoolSpec{},
       configure_ac=BoolSpec{},
       port_cache=BoolSpec{},
       types=types_spec,
@@ -98,7 +97,7 @@ block_spec = ObjectSpec {
 	 optional={ "start", "stop", "step" },
       },
    },
-   optional={ 'meta_data', 'cpp', 'types', 'configurations', 'ports', 'configure_ac' },
+   optional={ 'meta_data', 'types', 'configurations', 'ports', 'configure_ac' },
 }
 
 --- Validate a block model.
@@ -218,7 +217,7 @@ AC_PROG_INSTALL
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT(disable-static)
 
-PKG_CHECK_MODULES(UBX, ubx0 >= 0.6.0)
+PKG_CHECK_MODULES(UBX, ubx0 >= 0.8.1)
 
 PKG_CHECK_VAR([UBX_MODDIR], [ubx0], [UBX_MODDIR])
   AC_MSG_CHECKING([ubx module directory])
@@ -270,9 +269,9 @@ $(bm.name)_la_SOURCES = $(bm.name).c
 @ end
 $(bm.name)_la_LDFLAGS = -module -avoid-version -shared -export-dynamic @UBX_LIBS@
 @ if bm.cpp then
-$(bm.name)_la_CPPFLAGS = -I${top_srcdir}/libubx @UBX_CFLAGS@
+$(bm.name)_la_CPPFLAGS = -I${top_srcdir}/libubx @UBX_CFLAGS@ -fvisibility=hidden
 @ else
-$(bm.name)_la_CFLAGS = -I${top_srcdir}/libubx @UBX_CFLAGS@
+$(bm.name)_la_CFLAGS = -I${top_srcdir}/libubx @UBX_CFLAGS@ -fvisibility=hidden
 @ end
 %.h.hexarr: %.h
 	ubx-tocarr -s $< -d $<.hexarr
@@ -305,25 +304,6 @@ function doublequote(v)
    if v ~= nil then return fmt('"%s"', v) end
 end
 
---- Generate an entry in a port declaration.
--- Moved out due to improve readability of the conditional
--- @param t type entry
--- @return designated C initializer string
-function gen_port_decl_cpp(t)
-   p = {}
-   p.name = doublequote(t.name)
-   p.doc = doublequote(t.doc) or 'NULL'
-
-   p.out_type_name = doublequote(t.out_type_name) or 'NULL'
-   p.out_data_len = t.out_data_len or 1
-
-   p.in_type_name = doublequote(t.in_type_name) or 'NULL'
-   p.in_data_len = t.in_data_len or 1
-
-   return utils.expand('ubx_port_cpp($name, $in_type_name, $in_data_len, $out_type_name, $out_data_len, $doc),', p)
-end
-
-
 --- Generate the interface of an ubx block.
 -- @param bm block model
 -- @param fd open file to write to (optional, default: io.stdout)
@@ -347,11 +327,7 @@ UBX_MODULE_LICENSE_SPDX($(bm.license))
 
 ubx_type_t types[] = {
 @ for _,t in ipairs(bm.types or {}) do
-@    if bm.cpp then
-        ubx_type_cpp("struct $(t.name)", TYPE_CLASS_STRUCT, sizeof(struct $(t.name)), &$(t.name)_h),
-@    else
 	def_struct_type(struct $(t.name), &$(t.name)_h),
-@    end
 @ end
 };
 
@@ -362,26 +338,18 @@ char $(bm.name)_meta[] =
 	"}";
 
 /* declaration of block configuration */
-ubx_config_t $(bm.name)_config[] = {
+ubx_proto_config_t $(bm.name)_config[] = {
 @ for _,c in ipairs(bm.configurations or {}) do
 @       c.doc = c.doc or ''
-@    if bm.cpp then
-	ubx_config_cpp("$(c.name)", "$(c.type_name)", "$(c.doc)"),
-@    else
 	{ .name="$(c.name)", .type_name = "$(c.type_name)", .doc="$(c.doc)" },
-@    end
 @ end
 	{ 0 },
 };
 
 /* declaration port block ports */
-ubx_port_t $(bm.name)_ports[] = {
+ubx_proto_port_t $(bm.name)_ports[] = {
 @ for _,p in ipairs(bm.ports or {}) do
-@     if bm.cpp then
-	$(gen_port_decl_cpp(p))
-@     else
 	$(gen_port_decl(p))
-@     end
 @ end
 	{ 0 },
 };
@@ -423,36 +391,7 @@ void $(bm.name)_cleanup(ubx_block_t *b);
 void $(bm.name)_step(ubx_block_t *b);
 @ end
 
-
-/* put everything together */
-@ if bm.cpp then
-ubx_block_t $(bm.name)_block = ubx_block_cpp(
-	"$(bm.name)",
-	BLOCK_TYPE_COMPUTATION,
-	$(bm.name)_meta,
-	$(bm.name)_config,
-	$(bm.name)_ports,
-
-	// ops
-	$(bm.name)_init,
-@    if bm.operations.start then
-	$(bm.name)_start,
-@    else
-	NULL,
-@    end
-@    if bm.operations.stop then
-	$(bm.name)_stop,
-@    else
-	NULL,
-@    end
-@    if bm.operations.step then
-	$(bm.name)_step,
-@    else
-	NULL,
-@    end
-	$(bm.name)_cleanup);
-@ else
-ubx_block_t $(bm.name)_block = {
+ubx_proto_block_t $(bm.name)_block = {
 	.name = "$(bm.name)",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = $(bm.name)_meta,
@@ -472,13 +411,12 @@ ubx_block_t $(bm.name)_block = {
 	.step = $(bm.name)_step,
 @    end
 };
-@ end
 
 
 /* $(bm.name) module init and cleanup functions */
 int $(bm.name)_mod_init(ubx_node_info_t* ni)
 {
-	ubx_log(UBX_LOGLEVEL_DEBUG, ni, __func__, "");
+	ubx_log(UBX_LOGLEVEL_DEBUG, ni, "%s", __func__);
 
 	for (unsigned int i=0; i<ARRAY_SIZE(types); i++) {
 		if(ubx_type_register(ni, &types[i]) != 0)
@@ -486,18 +424,16 @@ int $(bm.name)_mod_init(ubx_node_info_t* ni)
 	}
 
 	if(ubx_block_register(ni, &$(bm.name)_block) != 0)
-		goto out;
+		return -1;
 
-	ret=0;
-out:
-	return ret;
+	return 0;
 }
 
 void $(bm.name)_mod_cleanup(ubx_node_info_t *ni)
 {
-	ubx_log(UBX_LOGLEVEL_DEBUG, ni, __func__, "");
+	ubx_log(UBX_LOGLEVEL_DEBUG, ni, "%s", __func__);
 
-	for (unsigned int i=0; i<ARRAY_SIZE(types); i++) {
+	for (unsigned int i=0; i<ARRAY_SIZE(types); i++)
 		ubx_type_unregister(ni, types[i].name);
 
 	ubx_block_unregister(ni, "$(bm.name)");
@@ -508,7 +444,6 @@ void $(bm.name)_mod_cleanup(ubx_node_info_t *ni)
 UBX_MODULE_INIT($(bm.name)_mod_init)
 UBX_MODULE_CLEANUP($(bm.name)_mod_cleanup)
 ]], { gen_port_decl=gen_port_decl,
-      gen_port_decl_cpp=gen_port_decl_cpp,
       doublequote=doublequote,
       ipairs=ipairs, table=table,
       bm=bm, generate_rd_wr_helpers=generate_rd_wr_helpers } )
