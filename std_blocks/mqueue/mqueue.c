@@ -16,7 +16,7 @@ char mqueue_meta[] =
 	"  realtime=true,"
 	"}";
 
-ubx_config_t mqueue_config[] = {
+ubx_proto_config_t mqueue_config[] = {
 	{ .name = "mq_id", .type_name = "char", .min = 1, .max = NAME_MAX, .doc = "mqueue base id" },
 	{ .name = "type_name", .type_name = "char", .min = 1, .doc = "name of registered microblx type to transport" },
 	{ .name = "data_len", .type_name = "long", .max = 1, .doc = "array length (multiplier) of data (default: 1)" },
@@ -241,14 +241,12 @@ void mqueue_write(ubx_block_t *i, const ubx_data_t *data)
 	return;
 }
 
-/* put everything together */
-ubx_block_t mqueue_comp = {
+ubx_proto_block_t mqueue_comp = {
 	.name = "mqueue",
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = mqueue_meta,
 	.configs = mqueue_config,
 
-	/* ops */
 	.init = mqueue_init,
 	.cleanup = mqueue_cleanup,
 	.read = mqueue_read,

@@ -22,7 +22,7 @@ char cyclic_meta[] =
 	"}";
 
 /* configuration */
-ubx_config_t cyclic_config[] = {
+ubx_proto_config_t cyclic_config[] = {
 	{ .name = "type_name", .type_name = "char", .min = 1, .doc = "name of registered microblx type to transport" },
 	{ .name = "data_len", .type_name = "uint32_t", .max = 1, .doc = "array length (multiplier) of data (default: 1)" },
 	{ .name = "buffer_len", .type_name = "uint32_t", .min = 1, .max = 1, .doc = "max number of data elements the buffer shall hold" },
@@ -30,7 +30,7 @@ ubx_config_t cyclic_config[] = {
 	{ 0 },
 };
 
-ubx_port_t cyclic_ports[] = {
+ubx_proto_port_t cyclic_ports[] = {
 	/* generic arm+base */
 	{ .name = "overruns", .out_type_name = "unsigned long", .doc = "Number of buffer overruns. Value is output only upon change." },
 	{ 0 },
@@ -255,7 +255,7 @@ long cyclic_read(ubx_block_t *i, ubx_data_t *msg)
 }
 
 /* put everything together */
-ubx_block_t cyclic_comp = {
+ubx_proto_block_t cyclic_comp = {
 	.name = "lfds_buffers/cyclic",
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = cyclic_meta,

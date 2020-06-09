@@ -13,7 +13,7 @@ char pid_meta[] =
 	"}";
 
 /* declaration of block configuration */
-ubx_config_t pid_config[] = {
+ubx_proto_config_t pid_config[] = {
 	{ .name="Kp", .type_name = "double", .doc="P-gain (def: 0)" },
 	{ .name="Ki", .type_name = "double", .doc="I-gain (def: 0)" },
 	{ .name="Kd", .type_name = "double", .doc="D-gain (def: 0)" },
@@ -22,7 +22,7 @@ ubx_config_t pid_config[] = {
 };
 
 /* declaration port block ports */
-ubx_port_t pid_ports[] = {
+ubx_proto_port_t pid_ports[] = {
 	{ .name="msr", .in_type_name="double", .in_data_len=1, .doc="measured input signal"  },
 	{ .name="des", .in_type_name="double", .in_data_len=1, .doc="desired input signal"  },
 	{ .name="out", .out_type_name="double", .out_data_len=1, .doc="controller output"  },
@@ -56,7 +56,7 @@ void pid_step(ubx_block_t *b);
 
 
 /* put everything together */
-ubx_block_t pid_block = {
+ubx_proto_block_t pid_block = {
 	.name = "pid",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = pid_meta,

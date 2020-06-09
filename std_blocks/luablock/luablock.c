@@ -15,12 +15,12 @@
 
 #define EXEC_STR_BUFF_SIZE	(16 * 1024 * 1024)
 
-ubx_port_t lua_ports[] = {
+ubx_proto_port_t lua_ports[] = {
 	{ .name = "exec_str", .in_type_name = "char", .out_type_name = "int", .in_data_len = 16777216 },
 	{ 0 }
 };
 
-ubx_config_t lua_conf[] = {
+ubx_proto_config_t lua_conf[] = {
 	{ .name = "lua_file", .type_name = "char" },
 	{ .name = "lua_str", .type_name = "char" },
 	{ .name = "loglevel", .type_name = "int" },
@@ -248,7 +248,7 @@ void luablock_cleanup(ubx_block_t *b)
 
 
 /* put everything together */
-ubx_block_t lua_comp = {
+ubx_proto_block_t lua_comp = {
 	.name = "lua/luablock",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = luablock_meta,

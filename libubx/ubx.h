@@ -46,6 +46,10 @@ extern "C"
 #include "ubx_types.h"
 #endif
 
+struct ubx_proto_block;
+struct ubx_proto_port;
+struct ubx_proto_config;
+
 #include "ubx_proto.h"
 #include "rtlog.h"
 
@@ -110,10 +114,72 @@ __attribute__ ((visibility("default"))) int __ubx_initialize_module(ubx_node_inf
 #define UBX_MODULE_CLEANUP(exitfn) \
 __attribute__ ((visibility("default"))) void __ubx_cleanup_module(ubx_node_info_t *ni) { exitfn(ni); }
 
+/* prototype definition */
+
+/**
+ * struct ubx_proto_port
+ * @doc: docstring
+ * @name: name of prototype (i.e. it's type)
+ * @attrs: port attributes (currently unused)
+ * @out_type_name: name of output type
+ * @in_type_name: name of input type
+ * @in_data_len: array size of input data
+ * @out_data_len: array size output data
+ */
+typedef struct ubx_proto_port {
+	const char *doc;
+	char name[UBX_PORT_NAME_MAXLEN + 1];
+	uint32_t attrs;
+	const char *out_type_name;
+	const char *in_type_name;
+	long out_data_len;
+	long in_data_len;
+} ubx_proto_port_t;
+
+typedef struct ubx_proto_config {
+	const char *doc;
+	char name[UBX_CONFIG_NAME_MAXLEN + 1];
+	const char *type_name;
+	uint32_t attrs;
+	uint16_t min;
+	uint16_t max;
+} ubx_proto_config_t;
+
+typedef struct ubx_proto_block {
+	const char *meta_data;
+	const char name[UBX_BLOCK_NAME_MAXLEN + 1];
+	uint32_t attrs;
+	uint16_t type;
+
+	struct ubx_proto_port *ports;
+	struct ubx_proto_config *configs;
+
+	int (*init)(struct ubx_block *b);
+	int (*start)(struct ubx_block *b);
+	void (*stop)(struct ubx_block *b);
+	void (*cleanup)(struct ubx_block *b);
+
+	union {
+		/* COMP_TYPE_COMPUTATION */
+		struct {
+			void (*step)(struct ubx_block *cblock);
+			unsigned long stat_num_steps;
+		};
+
+		/* COMP_TYPE_INTERACTION */
+		struct {
+			long (*read)(struct ubx_block *iblock,
+				     ubx_data_t *value);
+			void (*write)(struct ubx_block *iblock,
+				      const ubx_data_t *value);
+			unsigned long stat_num_reads;
+			unsigned long stat_num_writes;
+		};
+	};
+} ubx_proto_block_t;
+
 #ifdef __cplusplus
 }
 #endif
-
-
 
 #endif /* _UBX_H */

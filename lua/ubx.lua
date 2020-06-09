@@ -109,11 +109,6 @@ local function setup_enums()
       [ffi.C.TYPE_CLASS_CUSTOM]='custom'
    }
 
-   M.port_attrs_tostr={
-      [ffi.C.PORT_DIR_IN]='in',
-      [ffi.C.PORT_DIR_OUT]='out',
-   }
-
    M.block_state_tostr={
       [ffi.C.BLOCK_STATE_PREINIT]='preinit',
       [ffi.C.BLOCK_STATE_INACTIVE]='inactive',
@@ -1110,7 +1105,7 @@ function M.config_totab(c)
    res.name = M.safe_tostr(c.name)
 
    res.doc = M.safe_tostr(c.doc)
-   res.type_name = M.safe_tostr(c.type_name)
+   res.type_name = M.safe_tostr(c.type.name)
    if c.value ~= nil then
       res.value = M.data_tolua(c.value)
    end
@@ -1560,19 +1555,17 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 
    ffi.copy(p.name, pn, #pn + 1)
    p.out_type = prot.in_type
-   p.out_data_len = prot.in_data_len
    p.in_type = prot.out_type
-   p.in_data_len = prot.out_data_len
-   p.out_type_name = nil
-   p.in_type_name = nil
 
-   if p.out_type ~= nil then
-      p.attrs = bit.bor(p.attrs, ffi.C.PORT_DIR_OUT)
-      if p.out_data_len == 0 then p.out_data_len = 1 end
-   end
-   if p.in_type ~= nil then
-      p.attrs = bit.bor(p.attrs, ffi.C.PORT_DIR_IN)
+   p.in_data_len = prot.out_data_len
+   p.out_data_len = prot.in_data_len
+
+   if M.is_inport(p) then
       if p.in_data_len == 0 then p.in_data_len = 1 end
+   end
+
+   if M.is_outport(p) then
+      if p.out_data_len == 0 then p.out_data_len = 1 end
    end
 
    buff_len1 = buff_len1 or 1

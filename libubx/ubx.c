@@ -13,10 +13,6 @@
 #include "ubx.h"
 #include <config.h>
 
-/*
- * Internal helper functions
- */
-
 /* core logging helpers */
 #define CORE_LOG_SRC			"ubxcore"
 
@@ -442,17 +438,17 @@ static int __block_register(ubx_node_info_t *ni, ubx_block_t *block)
  *
  * @return 0 if Ok, < 0 otherwise.
  */
-int ubx_block_register(ubx_node_info_t *ni, ubx_block_t *prot)
+int ubx_block_register(ubx_node_info_t *ni, struct ubx_proto_block *prot)
 {
 	int ret;
-	struct ubx_port *p;
-	struct ubx_config *c;
+	struct ubx_proto_port *p;
+	struct ubx_proto_config *c;
 	ubx_block_t *newb;
 
 	newb = calloc(1, sizeof(ubx_block_t));
 
 	if (newb == NULL) {
-		logf_err(prot->ni, "EOUTOFMEM");
+		logf_err(ni, "EOUTOFMEM");
 		return EOUTOFMEM;
 	}
 
@@ -884,8 +880,6 @@ int ubx_num_modules(ubx_node_info_t *ni)
  */
 void ubx_port_free(ubx_port_t *p)
 {
-	if (p->out_type_name) free((char *)p->out_type_name);
-	if (p->in_type_name) free((char *)p->in_type_name);
 	if (p->in_interaction) free((struct ubx_block_t *)p->in_interaction);
 	if (p->out_interaction) free((struct ubx_block_t *)p->out_interaction);
 	if (p->doc) free((char *)p->doc);
@@ -900,7 +894,6 @@ void ubx_port_free(ubx_port_t *p)
 static void ubx_config_free(ubx_config_t *c)
 {
 	if (c->doc) free((char *)c->doc);
-	if (c->type_name) free((char *)c->type_name);
 	if (c->value) ubx_data_free(c->value);
 	free(c);
 }

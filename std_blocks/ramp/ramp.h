@@ -23,7 +23,7 @@ char ramp_meta[] =
 	"}";
 
 /* declaration of block configuration */
-ubx_config_t ramp_config[] = {
+ubx_proto_config_t ramp_config[] = {
 	{ .name = "start", .type_name = QUOTE(RAMP_T), .doc = "ramp starting value (def 0)" },
 	{ .name = "slope", .type_name = QUOTE(RAMP_T), .doc = "rate of change (def: 1)" },
 	{ .name = "data_len", .type_name = "long", .doc = "length of output data (def: 1)" },
@@ -31,7 +31,7 @@ ubx_config_t ramp_config[] = {
 };
 
 /* declaration port block ports */
-ubx_port_t ramp_ports[] = {
+ubx_proto_port_t ramp_ports[] = {
 	{ .name = "out", .out_type_name = QUOTE(RAMP_T), .out_data_len = 1, .doc = "ramp generator output"  },
 	{ 0 },
 };
@@ -59,15 +59,13 @@ void ramp_cleanup(ubx_block_t *b);
 void ramp_step(ubx_block_t *b);
 
 
-/* put everything together */
-ubx_block_t ramp_block = {
+ubx_proto_block_t ramp_block = {
 	.name = "ramp_" QUOTE(BLOCK_NAME),
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = ramp_meta,
 	.configs = ramp_config,
 	.ports = ramp_ports,
 
-	/* ops */
 	.init = ramp_init,
 	.start = ramp_start,
 	.cleanup = ramp_cleanup,
@@ -75,7 +73,6 @@ ubx_block_t ramp_block = {
 };
 
 
-/* ramp module init and cleanup functions */
 int ramp_mod_init(ubx_node_info_t *ni)
 {
 	if (ubx_block_register(ni, &ramp_block) != 0)

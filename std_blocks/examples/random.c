@@ -27,13 +27,13 @@ char rnd_meta[] =
 	"  realtime=true,"
 	"}";
 
-ubx_config_t rnd_config[] = {
+ubx_proto_config_t rnd_config[] = {
 	{ .name = "loglevel", .type_name = "int" },
 	{ .name = "min_max_config", .type_name = "struct random_config", .min = 1, .max = 1 },
 	{ 0 },
 };
 
-ubx_port_t rnd_ports[] = {
+ubx_proto_port_t rnd_ports[] = {
 	{ .name = "seed", .in_type_name = "unsigned int" },
 	{ .name = "rnd", .out_type_name = "unsigned int" },
 	{ 0 },
@@ -116,7 +116,7 @@ void rnd_step(ubx_block_t *b)
 }
 
 
-ubx_block_t random_comp = {
+ubx_proto_block_t random_comp = {
 	.name = "random/random",
 	.meta_data = rnd_meta,
 	.type = BLOCK_TYPE_COMPUTATION,

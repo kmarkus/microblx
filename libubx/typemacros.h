@@ -49,7 +49,7 @@ long FUNCNAME ## _array(const ubx_port_t* p, TYPENAME* val, const int len) \
 		/* check type */					\
 		if (p->in_type != type) {				\
 			ubx_err(p->block, "%s: ETYPE_MISMATCH: expected %s but port %s is %s", \
-				__func__, QUOTE(TYPENAME), p->name, p->in_type_name); \
+				__func__, QUOTE(TYPENAME), p->name, p->in_type->name); \
 			return ETYPE_MISMATCH;				\
 		}							\
 	}								\
@@ -95,7 +95,7 @@ int FUNCNAME ## _array(const ubx_port_t *p, const TYPENAME *val, const int len) 
 		/* check type */					\
 		if (p->out_type != type) {				\
 			ubx_err(p->block, "%s: ETYPE_MISMATCH: expected %s but port %s is %s", \
-				__func__, QUOTE(TYPENAME), p->name, p->out_type_name); \
+				__func__, QUOTE(TYPENAME), p->name, p->out_type->name); \
 			return ETYPE_MISMATCH;				\
 		}							\
 	}								\

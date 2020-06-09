@@ -7,13 +7,13 @@
 
 char skel_meta[] = "{ doc='an almost empty skelleton block' }";
 
-ubx_config_t skel_config[] = {
+ubx_proto_config_t skel_config[] = {
 	{ .name = "foo", .type_name = "struct foo_type", .min=0, .max=1, .doc="foo to output" },
 	{ .name = "loglevel", .type_name = "int" },
 	{ 0 },
 };
 
-ubx_port_t skel_ports[] = {
+ubx_proto_port_t skel_ports[] = {
 	{ .name = "in",  .in_type_name = "struct foo_type", .doc="just an in foo" },
 	{ .name = "out",  .out_type_name = "struct foo_type", .doc="just an out foo" },
 	{ 0 },
@@ -105,7 +105,7 @@ void skel_step(ubx_block_t *b)
 	}
 }
 
-ubx_block_t skel_comp = {
+ubx_proto_block_t skel_comp = {
 	.name = "skelleton",
 	.meta_data = skel_meta,
 	.type = BLOCK_TYPE_COMPUTATION,

@@ -20,7 +20,7 @@ const char iconst_meta[] = "{ doc='const value i-block', realtime=true }";
 const char cconst_meta[] = "{ doc='const value c-block', realtime=true }";
 #endif
 
-ubx_config_t const_config[] = {
+ubx_proto_config_t const_config[] = {
 	{ .name=TYPE_NAME, .type_name="char", .doc="ubx type name of the value to output" },
 	{ .name=DATA_LEN, .type_name="long", .doc="data length of the value to output", .min=0, .max=1 },
 	{ 0 },
@@ -158,7 +158,7 @@ void const_cleanup(ubx_block_t *b)
 }
 
 /* put everything together */
-ubx_block_t const_comp = {
+ubx_proto_block_t const_comp = {
 #ifdef BUILD_IBLOCK
 	.name = "consts/iconst",
 	.type = BLOCK_TYPE_INTERACTION,

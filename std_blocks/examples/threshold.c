@@ -11,7 +11,7 @@ char thres_meta[] =
 	"{ doc='A minimal block that checks whether its input is above a threshold' }";
 
 /* Configurations */
-ubx_config_t thres_config[] = {
+ubx_proto_config_t thres_config[] = {
 	{ .name = "threshold", .type_name = "double", .min = 1, .max = 1, .doc="threshold to check" },
 
 	/* if a 'loglevel' config is defined, it will automatically
@@ -22,7 +22,7 @@ ubx_config_t thres_config[] = {
 };
 
 /* Ports */
-ubx_port_t thres_ports[] = {
+ubx_proto_port_t thres_ports[] = {
 	{ .name = "in",  .in_type_name = "double", .doc="input signal to compare" },
 	{ .name = "state", .out_type_name = "int", .doc="1 if above threshold, 0 if below" },
 	{ .name = "event", .out_type_name = "struct thres_event", .doc="threshold crossing events" },
@@ -128,7 +128,7 @@ void thres_step(ubx_block_t *b)
 
 
 /* put everything together */
-ubx_block_t thres_comp = {
+ubx_proto_block_t thres_comp = {
 	.name = "threshold",
 	.meta_data = thres_meta,
 	.type = BLOCK_TYPE_COMPUTATION,

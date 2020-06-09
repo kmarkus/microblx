@@ -48,7 +48,7 @@ const struct mathfunc functions [] = {
 #define CMUL		"mul"
 #define CADD		"add"
 
-ubx_config_t math_config[] = {
+ubx_proto_config_t math_config[] = {
 	{ .name = CFUNC, .type_name = "char", .doc = "math function to compute", .min=1 },
 	{ .name = CDATA_LEN, .type_name = "long", .doc = "length of output data (def: 1)" },
 	{ .name = CMUL, .type_name = "double", .doc = "optional factor to multiply with y (def: 1)" },
@@ -56,7 +56,7 @@ ubx_config_t math_config[] = {
 	{ 0 },
 };
 
-ubx_port_t math_ports[] = {
+ubx_proto_port_t math_ports[] = {
 	{ .name = "x", .in_type_name = "double", .out_data_len = 1, .doc = "math input"  },
 	{ .name = "y", .out_type_name = "double", .out_data_len = 1, .doc = "math output"  },
 	{ 0 },
@@ -195,7 +195,7 @@ void math_step(ubx_block_t *b)
 }
 
 /* put everything together */
-ubx_block_t math_block = {
+ubx_proto_block_t math_block = {
 	.name = "math_double",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = math_meta,

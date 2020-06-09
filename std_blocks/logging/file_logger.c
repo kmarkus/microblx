@@ -25,7 +25,7 @@ char file_logger_meta[] =
 	"  realtime=false,"
 	"}";
 
-ubx_config_t file_logger_conf[] = {
+ubx_proto_config_t file_logger_conf[] = {
 	{ .name = "report_conf", .type_name = "char" },
 	{ .name = "filename", .type_name = "char" },
 	{ .name = "separator", .type_name = "char"},
@@ -190,7 +190,7 @@ static void file_logger_cleanup(ubx_block_t *b)
 
 
 /* put everything together */
-ubx_block_t lua_comp = {
+ubx_proto_block_t lua_comp = {
 	.name = "logging/file_logger",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = file_logger_meta,

@@ -28,7 +28,7 @@ char fifometa[] =
 	"}";
 
 /* configuration */
-ubx_config_t fifo_config[] = {
+ubx_proto_config_t fifo_config[] = {
 	{ .name = "fifo_size", .type_name = "uint32_t" },
 	{ .name = "overrun_policy", .type_name = "uint32_t" },
 	{ 0 },
@@ -242,7 +242,7 @@ static long fifo_read(ubx_block_t *i, ubx_data_t *msg)
 }
 
 /* put everything together */
-ubx_block_t fifo_comp = {
+ubx_proto_block_t fifo_comp = {
 	.name = "examples/simple_fifo",
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = fifometa,

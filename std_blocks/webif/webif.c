@@ -28,7 +28,7 @@ UBX_MODULE_LICENSE_SPDX(GPL-2.0)
 #define WEBIF_FILE "/home/mk/prog/c/microblx/std_blocks/webif/webif.lua"
 #endif
 
-ubx_config_t webif_conf[] = {
+ubx_proto_config_t webif_conf[] = {
 	{ .name = "port", .type_name = "char",
 	  .doc = "Port to listen on (default: " WEBIF_DEFAULT_PORT ")" },
 	{ 0 }
@@ -230,7 +230,7 @@ void wi_stop(ubx_block_t *c)
 }
 
 /* put everything together */
-ubx_block_t webif_comp = {
+ubx_proto_block_t webif_comp = {
 	.name = "webif/webif",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.attrs = BLOCK_ATTR_ACTIVE,

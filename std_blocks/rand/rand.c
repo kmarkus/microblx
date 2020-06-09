@@ -33,14 +33,14 @@ char rand_meta[] =
 /* declaration of block configuration */
 #define SEED 	"seed"
 
-ubx_config_t rand_config[] = {
+ubx_proto_config_t rand_config[] = {
 	{ .name = SEED, .type_name = "long", .doc = "seed to initialize with" },
 	{ 0 },
 };
 
 /* declaration port block ports */
 #define OUT	"out"
-ubx_port_t rand_ports[] = {
+ubx_proto_port_t rand_ports[] = {
 	{ .name = OUT, .out_type_name = QUOTE(RAND_T), .out_data_len = 1, .doc = "rand generator output"  },
 	{ 0 },
 };
@@ -111,22 +111,20 @@ void rand_step(ubx_block_t *b)
 
 }
 
-/* put everything together */
-ubx_block_t rand_block = {
+
+ubx_proto_block_t rand_block = {
 	.name = BLOCK_NAME,
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = rand_meta,
 	.configs = rand_config,
 	.ports = rand_ports,
 
-	/* ops */
 	.init = rand_init,
 	.cleanup = rand_cleanup,
 	.step = rand_step,
 };
 
 
-/* rand module init and cleanup functions */
 int rand_mod_init(ubx_node_info_t *ni)
 {
 	return ubx_block_register(ni, &rand_block);
@@ -137,10 +135,6 @@ void rand_mod_cleanup(ubx_node_info_t *ni)
 	ubx_block_unregister(ni, BLOCK_NAME);
 }
 
-/*
- * declare module init and cleanup functions, so that the ubx core can
- * find these when the module is loaded/unloaded
- */
 UBX_MODULE_INIT(rand_mod_init)
 UBX_MODULE_CLEANUP(rand_mod_cleanup)
 UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)

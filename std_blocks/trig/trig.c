@@ -17,13 +17,13 @@ char trig_meta[] =
 	"  realtime=true,"
 	"}";
 
-ubx_port_t trig_ports[] = {
+ubx_proto_port_t trig_ports[] = {
 	{ .name = "tstats", .out_type_name = "struct ubx_tstat", .doc = "timing statistics (if enabled)"},
 	{ 0 },
 };
 
 /* configuration */
-ubx_config_t trig_config[] = {
+ubx_proto_config_t trig_config[] = {
 	{ .name = "trig_blocks", .type_name = "struct ubx_trig_spec", .doc = "list of blocks to trigger" },
 	{ .name = "tstats_mode", .type_name = "int", .doc = "0: off (def), 1: global only, 2: per block", },
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "directory to write the timing stats file to" },
@@ -85,8 +85,7 @@ void trig_cleanup(ubx_block_t *b)
 }
 
 
-/* put everything together */
-ubx_block_t trig_comp = {
+ubx_proto_block_t trig_comp = {
 	.name = "std_triggers/trig",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.attrs = BLOCK_ATTR_TRIGGER,

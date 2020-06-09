@@ -47,7 +47,7 @@ void hexdump_write(ubx_block_t *i, const ubx_data_t *data)
 }
 
 /* put everything together */
-ubx_block_t hexdump_comp = {
+ubx_proto_block_t hexdump_comp = {
 	.name = "hexdump/hexdump",
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = hexdumpmeta,

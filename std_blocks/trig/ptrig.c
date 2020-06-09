@@ -33,19 +33,17 @@
 #define	THREAD_STOP_TIMEOUT_US	50000
 #define	THREAD_STOP_RETRIES	20
 
-/* ptrig metadata */
 char ptrig_meta[] =
 	"{ doc='pthread based trigger',"
 	"  realtime=true,"
 	"}";
 
-ubx_port_t ptrig_ports[] = {
+ubx_proto_port_t ptrig_ports[] = {
 	{ .name = "tstats", .out_type_name = "struct ubx_tstat", .doc = "out port for totals and per block timing statistics" },
 	{ .name = "shutdown", .in_type_name = "int", .doc = "input port for stopping ptrig" },
 	{ 0 },
 };
 
-/* types defined by ptrig block */
 ubx_type_t ptrig_types[] = {
 	def_struct_type(struct ptrig_period, &ptrig_period_h),
 };
@@ -54,8 +52,7 @@ def_cfg_getptr_fun(cfg_getptr_ptrig_period, struct ptrig_period);
 
 static void ptrig_stop(ubx_block_t *b);
 
-/* configuration */
-ubx_config_t ptrig_config[] = {
+ubx_proto_config_t ptrig_config[] = {
 	{ .name = "period", .type_name = "struct ptrig_period", .doc = "trigger period in { sec, ns }", },
 	{ .name = "stacksize", .type_name = "size_t", .doc = "stacksize as per pthread_attr_setstacksize(3)" },
 	{ .name = "sched_priority", .type_name = "int", .doc = "pthread priority" },
@@ -460,7 +457,7 @@ cancel:
 }
 
 /* put everything together */
-ubx_block_t ptrig_comp = {
+ubx_proto_block_t ptrig_comp = {
 	.name = "std_triggers/ptrig",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.attrs = BLOCK_ATTR_TRIGGER | BLOCK_ATTR_ACTIVE,
