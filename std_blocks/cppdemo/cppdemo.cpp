@@ -12,86 +12,75 @@
 
 using namespace std;
 
-/* function block meta-data
- * used by higher level functions.
- */
 char cppdemo_meta[] =
-	"{ doc='A cppdemo number generator function block',"
-	"  realtime=true,"
-	"}";
+    "{ doc='A cppdemo number generator function block',"
+    "  realtime=true,"
+    "}";
 
-/* configuration */
-ubx_config_t cppdemo_config[] = {
-	ubx_config_cpp("test_conf", "double", "a test config value"),
-	{ 0 },
+ubx_proto_config_t cppdemo_config[] = {
+    { .name="test_conf", .type_name="double", .doc="a test config value" },
+    { 0 },
 };
 
-
-ubx_port_t cppdemo_ports[] = {
-	// name, in_type, in_data_len, out_type, out_data_len
-	ubx_port_cpp("foo", "unsigned int", 1, NULL, 0, "Out port writing foo unsigned ints"),
-	ubx_port_cpp("bar", NULL, 0, "unsigned int", 1, "In port reading bar unsigned ints"),
-	{ 0 },
+ubx_proto_port_t cppdemo_ports[] = {
+    { .name="foo", .in_type_name="unsigned int", .doc="Out port writing foo unsigned ints" },
+    { .name="bar", .out_type_name="unsigned int", .doc="In port reading bar unsigned ints" },
+    { 0 },
 };
 
 /* define a type, registration in module hooks below */
-struct ubx_type_cpp cpp_demo_type("struct cpp_demo_type",
-				  TYPE_CLASS_STRUCT,
-				  sizeof(struct cpp_demo_type),
-				  (void*) &cpp_demo_type_h);
+ubx_type_t cpp_demo_type =
+    def_struct_type(struct cpp_demo_type, &cpp_demo_type_h);
 
 static int cppdemo_init(ubx_block_t *c)
 {
-	cout << "cppdemo_init: hi from " << c->name << endl;
-	return 0;
+    cout << "cppdemo_init: hi from " << c->name << endl;
+    return 0;
 }
-
-
 static void cppdemo_cleanup(ubx_block_t *c)
 {
-	cout << "cppdemo_cleanup: hi from " << c->name << endl;
+    cout << "cppdemo_cleanup: hi from " << c->name << endl;
 }
 
 static int cppdemo_start(ubx_block_t *c)
 {
-	cout << "cppdemo_start: hi from " << c->name << endl;
-	return 0; /* Ok */
+    cout << "cppdemo_start: hi from " << c->name << endl;
+    return 0;
 }
 
 static void cppdemo_stop(ubx_block_t *c)
 {
-	cout << "cppdemo_stop: hi from " << c->name << endl;
+    cout << "cppdemo_stop: hi from " << c->name << endl;
 }
 
 static void cppdemo_step(ubx_block_t *c) {
-	cout << "cppdemo_step: hi from " << c->name << endl;
+    cout << "cppdemo_step: hi from " << c->name << endl;
 }
 
 
-/* put everything together */
-
-ubx_block_t cppdemo_comp = ubx_block_cpp(
-	"cppdemo/cppdemo",
-	BLOCK_TYPE_COMPUTATION,
-	cppdemo_meta,
-	cppdemo_config,
-	cppdemo_ports,
-	cppdemo_init,
-	cppdemo_start,
-	cppdemo_stop,
-	cppdemo_step,
-	cppdemo_cleanup);
+ubx_proto_block_t cppdemo_comp =
+{
+    .name = "cppdemo",
+    .meta_data = cppdemo_meta,
+    .type = BLOCK_TYPE_COMPUTATION,
+    .configs = cppdemo_config,
+    .init = cppdemo_init,
+    .start = cppdemo_start,
+    .stop = cppdemo_stop,
+    .cleanup = cppdemo_cleanup,
+    .step = cppdemo_step,
+};
 
 static int cppdemo_init(ubx_node_info_t* ni)
 {
-	ubx_type_register(ni, &cpp_demo_type);
-	return ubx_block_register(ni, &cppdemo_comp);
+    ubx_type_register(ni, &cpp_demo_type);
+    return ubx_block_register(ni, &cppdemo_comp);
 }
 
 static void cppdemo_cleanup(ubx_node_info_t *ni)
 {
-	ubx_type_unregister(ni, "cpp_demo_type");
-	ubx_block_unregister(ni, "cppdemo/cppdemo");
+    ubx_type_unregister(ni, "cpp_demo_type");
+    ubx_block_unregister(ni, "cppdemo/cppdemo");
 }
 
 UBX_MODULE_INIT(cppdemo_init)

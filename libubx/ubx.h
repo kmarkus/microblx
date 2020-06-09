@@ -38,13 +38,7 @@ extern "C"
 #include <uthash.h>
 #include <utlist.h>
 
-#ifdef __cplusplus
-/* ubx_typescpp includes ubx_types */
-/* this is needed since no ifdef protection is allowed in ubx_types. */
-#include "ubx_types_cpp.h"
-#else
 #include "ubx_types.h"
-#endif
 
 struct ubx_proto_block;
 struct ubx_proto_port;
@@ -127,27 +121,27 @@ __attribute__ ((visibility("default"))) void __ubx_cleanup_module(ubx_node_info_
  * @out_data_len: array size output data
  */
 typedef struct ubx_proto_port {
-	const char *doc;
-	char name[UBX_PORT_NAME_MAXLEN + 1];
+	const char *name;
 	uint32_t attrs;
 	const char *out_type_name;
-	const char *in_type_name;
 	long out_data_len;
+	const char *in_type_name;
 	long in_data_len;
+	const char *doc;
 } ubx_proto_port_t;
 
 typedef struct ubx_proto_config {
-	const char *doc;
-	char name[UBX_CONFIG_NAME_MAXLEN + 1];
+	const char *name;
 	const char *type_name;
 	uint32_t attrs;
 	uint16_t min;
 	uint16_t max;
+	const char *doc;
 } ubx_proto_config_t;
 
 typedef struct ubx_proto_block {
+	const char *name;
 	const char *meta_data;
-	const char name[UBX_BLOCK_NAME_MAXLEN + 1];
 	uint32_t attrs;
 	uint16_t type;
 

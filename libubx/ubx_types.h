@@ -98,14 +98,14 @@ enum {
  * @hash: binary hash of this type
  */
 typedef struct ubx_type {
-	struct ubx_node_info *ni;
-	unsigned long seqid;
+	const char *name;
 	uint32_t type_class;
 	long size;
-	UT_hash_handle hh;
 	const void *private_data;
+	struct ubx_node_info *ni;
+	unsigned long seqid;
+	UT_hash_handle hh;
 	const char *doc;
-	const char name[UBX_TYPE_NAME_MAXLEN + 1];
 	uint8_t hash[UBX_TYPE_HASH_LEN + 1];
 } ubx_type_t;
 
@@ -160,7 +160,7 @@ enum {
  *
  */
 typedef struct ubx_port {
-	char name[UBX_PORT_NAME_MAXLEN + 1];
+	const char name[UBX_PORT_NAME_MAXLEN + 1];
 	const char *doc;
 	uint32_t attrs;
 	const struct ubx_block *block;
@@ -193,7 +193,7 @@ typedef struct ubx_port {
  * @next: linked list ptr
  */
 typedef struct ubx_config {
-	char name[UBX_CONFIG_NAME_MAXLEN + 1];
+	const char name[UBX_CONFIG_NAME_MAXLEN + 1];
 	const char *doc;
 	uint32_t attrs;
 	const struct ubx_block *block;

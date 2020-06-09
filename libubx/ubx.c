@@ -453,7 +453,15 @@ int ubx_block_register(ubx_node_info_t *ni, struct ubx_proto_block *prot)
 	}
 
 	newb->block_state = BLOCK_STATE_PREINIT;
-	strncpy((char*) newb->name, prot->name, UBX_BLOCK_NAME_MAXLEN+1);
+
+	if(strlen(prot->name) > UBX_BLOCK_NAME_MAXLEN) {
+		logf_err(ni, "block name %s too long (max: %u)",
+			 prot->name, UBX_BLOCK_NAME_MAXLEN);
+		ret = EINVALID_BLOCK;
+		goto out_err;
+	}
+
+	strncpy((char*) newb->name, prot->name, UBX_BLOCK_NAME_MAXLEN);
 
 	newb->type = prot->type;
 	newb->attrs |= BLOCK_ATTR_PROTO;
@@ -480,7 +488,7 @@ int ubx_block_register(ubx_node_info_t *ni, struct ubx_proto_block *prot)
 	}
 
 	if (prot->ports) {
-		for (p = prot->ports; p->name[0] != '\0'; p++) {
+		for (p = prot->ports; p->name != NULL; p++) {
 			ret = ubx_port_add(newb,
 					   p->name,
 					   p->doc,
@@ -494,7 +502,7 @@ int ubx_block_register(ubx_node_info_t *ni, struct ubx_proto_block *prot)
 	}
 
 	if (prot->configs != NULL) {
-		for (c = prot->configs; c->name[0] != '\0'; c++) {
+		for (c = prot->configs; c->name != NULL; c++) {
 			ret = ubx_config_add2(newb,
 					      c->name,
 					      c->doc,
@@ -569,19 +577,22 @@ ubx_block_t *ubx_block_unregister(ubx_node_info_t *ni, const char *name)
  */
 int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type)
 {
-	int ret;
 	ubx_type_t *tmp;
 
 	if (type == NULL) {
 		logf_err(ni, "type is NULL");
-		ret = EINVALID_TYPE;
-		goto out;
+		return EINVALID_TYPE;
 	}
 
 	if (type->name == NULL) {
 		logf_err(ni, "type name is NULL");
-		ret = EINVALID_TYPE;
-		goto out;
+		return EINVALID_TYPE;
+	}
+
+	if (strlen(type->name) > UBX_TYPE_NAME_MAXLEN) {
+		logf_err(ni, "type name %s too long (max: %u)",
+			 type->name, UBX_TYPE_NAME_MAXLEN);
+		return EINVALID_TYPE;
 	}
 
 	/* check that its not already registered */
@@ -590,8 +601,7 @@ int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type)
 	if (tmp != NULL) {
 		/* check if types are the same, if yes no error */
 		logf_warn(ni, "%s already registered.", tmp->name);
-		ret = EALREADY_REGISTERED;
-		goto out;
+		return EALREADY_REGISTERED;
 	}
 
 	type->seqid = ni->cur_seqid++;
@@ -604,9 +614,7 @@ int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type)
 
 	logf_debug(ni, "registered type %s: seqid %lu, ptr %p",
 		   type->name, type->seqid, type);
-	ret = 0;
- out:
-	return ret;
+	return 0;
 }
 
 /**
@@ -1557,7 +1565,13 @@ static int __ubx_config_add(ubx_block_t *b,
 		return EOUTOFMEM;
 	}
 
-	strncpy(cnew->name, name, UBX_CONFIG_NAME_MAXLEN);
+	if (strlen(name) > UBX_CONFIG_NAME_MAXLEN) {
+		ubx_err(b, "config_add: name %s too long (max: %u)",
+			name, UBX_CONFIG_NAME_MAXLEN);
+		return EINVALID_CONFIG;
+	}
+
+	strncpy((char*) cnew->name, name, UBX_CONFIG_NAME_MAXLEN);
 
 	cnew->min = min;
 	cnew->max = (max == 0 && min > 0) ? CONFIG_LEN_MAX : max;
@@ -1761,8 +1775,13 @@ static int __ubx_port_add(ubx_block_t *b,
 		return EOUTOFMEM;
 	}
 
-	/* populate fields */
-	strncpy(pnew->name, name, UBX_PORT_NAME_MAXLEN);
+	if (strlen(name) > UBX_PORT_NAME_MAXLEN) {
+		ubx_err(b, "port_add: name %s too long (max: %u)",
+			name, UBX_PORT_NAME_MAXLEN);
+		return EINVALID_PORT;
+	}
+
+	strncpy((char*) pnew->name, name, UBX_PORT_NAME_MAXLEN);
 
 	if (doc) {
 		pnew->doc = strdup(doc);

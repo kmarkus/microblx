@@ -1553,7 +1553,8 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 
    local pn = M.safe_tostr(prot.name)..'_inv'
 
-   ffi.copy(p.name, pn, #pn + 1)
+   ffi.copy(ffi.cast("char*", p.name), pn, #pn + 1)
+
    p.out_type = prot.in_type
    p.in_type = prot.out_type
 

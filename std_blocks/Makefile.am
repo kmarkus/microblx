@@ -1,4 +1,5 @@
 SUBDIRS = const \
+	  cppdemo \
 	  examples \
           hexdump \
           lfds_buffers \

@@ -16,7 +16,6 @@ internalinclude_HEADERS = internal/rtlog_common.h \
 
 pkginclude_HEADERS = ubx.h \
 		  ubx_types.h \
-		  ubx_types_cpp.h \
 		  typemacros.h \
 		  ubx_proto.h \
 		  ubx_uthash_ffi.h \
