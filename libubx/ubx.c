@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-#define UBX_DEBUG
+#undef UBX_DEBUG
 
 #include "ubx.h"
 #include <config.h>
