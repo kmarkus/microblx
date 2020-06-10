@@ -6,26 +6,25 @@
 -- SPDX-License-Identifier: BSD-3-Clause
 --
 
-utils=require "utils"
-umf=require "umf"
+local utils = require "utils"
+local umf = require "umf"
 local ts = tostring
 local fmt = string.format
 
 ---
 --- ubx block meta-model
 ---
-AnySpec=umf.AnySpec
-NumberSpec=umf.NumberSpec
-BoolSpec=umf.BoolSpec
-StringSpec=umf.StringSpec
-TableSpec=umf.TableSpec
-ObjectSpec=umf.ObjectSpec
-EnumSpec=umf.EnumSpec
+local NumberSpec=umf.NumberSpec
+local BoolSpec=umf.BoolSpec
+local StringSpec=umf.StringSpec
+local TableSpec=umf.TableSpec
+local ObjectSpec=umf.ObjectSpec
+local EnumSpec=umf.EnumSpec
 
-block=umf.class("block")
+block = umf.class("block")
 
 -- types
-types_spec=TableSpec{
+local types_spec = TableSpec{
    name="types",
    array = {
       TableSpec {
@@ -39,21 +38,21 @@ types_spec=TableSpec{
 }
 
 -- configurations
-configurations_spec=TableSpec{
+local configurations_spec = TableSpec{
    name="configurations",
    array = {
       TableSpec {
 	 name="configuration",
-	 dict={ name=StringSpec{}, type_name=StringSpec{}, len=NumberSpec{min=1}, doc=StringSpec{} },
+	 dict={ name=StringSpec{}, type_name=StringSpec{}, min=NumberSpec{}, max=NumberSpec{}, doc=StringSpec{} },
 	 sealed='both',
-	 optional={ 'len', 'doc' },
+	 optional={ 'len', 'doc', 'min', 'max' },
       },
    },
    sealed='both'
 }
 
 -- configurations
-ports_spec=TableSpec{
+local ports_spec = TableSpec{
    name="ports",
    array = {
       TableSpec {
@@ -73,7 +72,7 @@ ports_spec=TableSpec{
    sealed='both'
 }
 
-block_spec = ObjectSpec {
+local block_spec = ObjectSpec {
    name="block",
    type=block,
    sealed="both",
@@ -105,7 +104,7 @@ function block:validate(verbose)
    return umf.check(self, block_spec, verbose)
 end
 
-function usage()
+local function usage()
    print( [[
 ubx-genblock: generate the code for an empty microblx block.
 
@@ -126,16 +125,21 @@ end
 --- Generate a struct type stub
 -- @param data
 -- @param fd file to write to (optional, default: io.stdout)
-function generate_struct_type(fd, typ)
+local function generate_struct_type(fd, typ)
    fd = fd or io.stdout
+   local guardsym = string.upper(typ.name)
    local res, str = utils.preproc(
 [[
 /* generated type stub, extend this struct with real information */
+#ifndef $(guardsym)_H
+#define $(guardsym)_H
 
 struct $(type_name) {
 	/* TODO: fill in body */
 };
-]], { table=table, type_name=typ.name } )
+
+#endif /* $(guardsym)_H */
+]], { table=table, type_name=typ.name, guardsym=guardsym } )
 
    if not res then error(str) end
    fd:write(str)
@@ -144,39 +148,24 @@ end
 --- Generate type read/write helpers
 -- @param block_model
 -- @return string
-function generate_rd_wr_helpers(bm)
-   -- extract a suitable name from the type
-   local function find_name(n)
-      local nm = string.match(n, "%s*struct%s+([%w_]+)")
-      if nm then return nm end
-      return utils.trim(n)
-   end
-
-   -- remove duplicates
-   local function filter_dupes(lst)
-      local res = {}
-      local track = {}
-      for _,v in ipairs(lst) do
-	 if not track[v] then res[#res+1] = v; track[v]=true; end
-      end
-      return res
-   end
-
+local function generate_type_accessors(bm)
    local res = {}
-   for _,p in ipairs(bm.ports or {}) do
-      if p.in_type_name or p.out_type_name then
-	 res[#res+1] = utils.expand("def_port_accessors($name, $type_name)",
-				    { name=find_name(p.name), type_name=p.in_type_name })
+
+   for _,p in ipairs(bm.types or {}) do
+      if bm.cpp then
+	 res[#res+1] = utils.expand("def_class_accessors($name, struct $name);", { name=p.name })
+      else
+	 res[#res+1] = utils.expand("def_type_accessors($name, struct $name);", { name=p.name })
       end
    end
 
-   return table.concat(filter_dupes(res), "\n")
+   return table.concat(res, "\n")
 end
 
 --- Generate configure.ac
 -- @param bm block model
 -- @param fd file to write to (optional, default: io.stdout)
-function generate_bootstrap(fd, bm)
+local function generate_bootstrap(fd, bm)
 fd:write([[
 #!/bin/sh
 
@@ -192,8 +181,8 @@ function generate_configure_ac(fd, bm)
 
    local res, str = utils.preproc([[
 m4_define([package_version_major],[0])
-m4_define([package_version_minor],[3])
-m4_define([package_version_micro],[0])
+m4_define([package_version_minor],[0])
+m4_define([package_version_micro],[1])
 
 AC_INIT([$(bm.name)], [package_version_major.package_version_minor.package_version_micro])
 AM_INIT_AUTOMAKE([foreign -Wall])
@@ -286,7 +275,7 @@ end
 -- Moved out due to improve readability of the conditional
 -- @param t type entry
 -- @return designated C initializer string
-function gen_port_decl(t)
+local function gen_port_decl(t)
    t.in_data_len = t.in_data_len or 1
    t.out_data_len = t.out_data_len or 1
    t.doc = t.doc or ''
@@ -300,14 +289,14 @@ function gen_port_decl(t)
    end
 end
 
-function doublequote(v)
+local function doublequote(v)
    if v ~= nil then return fmt('"%s"', v) end
 end
 
 --- Generate the interface of an ubx block.
 -- @param bm block model
 -- @param fd open file to write to (optional, default: io.stdout)
-function generate_block_if(fd, bm)
+local function generate_block_if(fd, bm)
    fd = fd or io.stdout
    local res, str = utils.preproc(
 [[
@@ -341,7 +330,9 @@ char $(bm.name)_meta[] =
 ubx_proto_config_t $(bm.name)_config[] = {
 @ for _,c in ipairs(bm.configurations or {}) do
 @       c.doc = c.doc or ''
-	{ .name="$(c.name)", .type_name = "$(c.type_name)", .doc="$(c.doc)" },
+@       c.min = c.min or 0
+@       c.max = c.max or 0
+	{ .name="$(c.name)", .type_name = "$(c.type_name)", .min=$(c.min), .max=$(c.max), .doc="$(c.doc)" },
 @ end
 	{ 0 },
 };
@@ -362,11 +353,7 @@ struct $(bm.name)_port_cache {
 @    end
 };
 
-/* declare a helper function to update the port cache this is necessary
- * because the port ptrs can change if ports are dynamically added or
- * removed. This function should hence be called after all
- * initialization is done, i.e. typically in 'start'
- */
+/* helper function to cache ports. call in init */
 static void update_port_cache(ubx_block_t *b, struct $(bm.name)_port_cache *pc)
 {
 @    for _,t in ipairs(bm.ports or {}) do
@@ -375,8 +362,8 @@ static void update_port_cache(ubx_block_t *b, struct $(bm.name)_port_cache *pc)
 }
 @ end -- if bm.port_cache
 
-/* for each port type, declare convenience functions to read/write from ports */
-$(generate_rd_wr_helpers(bm))
+/* define safe accessors for the new types */
+$(generate_type_accessors(bm))
 
 /* block operation forward declarations */
 int $(bm.name)_init(ubx_block_t *b);
@@ -443,10 +430,10 @@ void $(bm.name)_mod_cleanup(ubx_node_info_t *ni)
  * find these when the module is loaded/unloaded */
 UBX_MODULE_INIT($(bm.name)_mod_init)
 UBX_MODULE_CLEANUP($(bm.name)_mod_cleanup)
-]], { gen_port_decl=gen_port_decl,
-      doublequote=doublequote,
-      ipairs=ipairs, table=table,
-      bm=bm, generate_rd_wr_helpers=generate_rd_wr_helpers } )
+]], { gen_port_decl = gen_port_decl,
+      doublequote = doublequote,
+      ipairs = ipairs, table = table,
+      bm = bm, generate_type_accessors = generate_type_accessors } )
 
    if not res then error(str) end
    fd:write(str)
@@ -456,7 +443,7 @@ end
 --- Generate the interface of an ubx block.
 -- @param bm block model
 -- @param fd open file to write to (optional, default: io.stdout)
-function generate_block_body(fd, bm)
+local function generate_block_body(fd, bm)
    fd = fd or io.stdout
    local res, str = utils.preproc(
 [[
@@ -549,7 +536,7 @@ end
 --- Generate a simple blockdiagram interface of an ubx block.
 -- @param bm block model
 -- @param fd open file to write to (optional, default: io.stdout)
-function generate_bd_system(fd, bm, outdir)
+local function generate_bd_system(fd, bm, outdir)
    fd = fd or io.stdout
    local res, str = utils.preproc(
 [[
@@ -559,9 +546,6 @@ return bd.system
 {
    imports = {
       "stdtypes",
-      "ptrig",
-      "lfds_cyclic",
-      "logger",
       "$(bm.name)",
    },
 
@@ -678,12 +662,12 @@ if block_model.cpp then h_ext = '.hpp' end
 
 -- static part
 local codegen_tab = {
-   { fun=generate_bootstrap, funargs={ block_model }, file="bootstrap", overwrite=true, executable=true },
-   { fun=generate_configure_ac, funargs={ block_model }, file="configure.ac", overwrite=false },
-   { fun=generate_automakefile, funargs={ block_model }, file="Makefile.am", overwrite=false },
-   { fun=generate_block_if, funargs={ block_model } , file=block_model.name..h_ext, overwrite=true },
-   { fun=generate_block_body, funargs={ block_model }, file=block_model.name..c_ext, overwrite=false },
-   { fun=generate_bd_system, funargs={ block_model, outdir }, file=block_model.name..".usc", overwrite=false },
+   { fun = generate_bootstrap, funargs = { block_model }, file = "bootstrap", overwrite = true, executable = true },
+   { fun = generate_configure_ac, funargs = { block_model }, file = "configure.ac", overwrite = false },
+   { fun = generate_automakefile, funargs = { block_model }, file = "Makefile.am", overwrite = false },
+   { fun = generate_block_if, funargs = { block_model } , file = block_model.name..h_ext, overwrite = true },
+   { fun = generate_block_body, funargs = { block_model }, file = block_model.name..c_ext, overwrite = false },
+   { fun = generate_bd_system, funargs = { block_model, outdir }, file = block_model.name..".usc", overwrite = false },
 }
 
 -- add types
