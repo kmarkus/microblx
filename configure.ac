@@ -1,6 +1,6 @@
 m4_define([package_version_major],[0])
-m4_define([package_version_minor],[8])
-m4_define([package_version_micro],[1])
+m4_define([package_version_minor],[9])
+m4_define([package_version_micro],[0])
 
 AC_INIT([ubx], [package_version_major.package_version_minor.package_version_micro])
 AM_INIT_AUTOMAKE([foreign -Wall])

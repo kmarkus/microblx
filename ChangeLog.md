@@ -3,7 +3,9 @@ ChangeLog
 
 This file tracks user visible API changes
 
-## next
+## 0.9.0
+
+- `ubx-genblock` updated
 
 - `ubx_ports_connect_uni`/`ubx_ports_disconnect_uni`/
   - removed `_uni` suffix
