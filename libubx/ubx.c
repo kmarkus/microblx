@@ -493,6 +493,7 @@ int ubx_block_register(ubx_node_info_t *ni, struct ubx_proto_block *prot)
 			ret = ubx_port_add(newb,
 					   p->name,
 					   p->doc,
+					   p->attrs & PORT_ATTR_CLONED,
 					   p->in_type_name,
 					   p->in_data_len,
 					   p->out_type_name,
@@ -510,7 +511,7 @@ int ubx_block_register(ubx_node_info_t *ni, struct ubx_proto_block *prot)
 					      c->type_name,
 					      c->min,
 					      c->max,
-					      c->attrs);
+					      c->attrs & CONFIG_ATTR_CLONED);
 			if (ret)
 				goto out_err;
 		}
@@ -966,6 +967,7 @@ void ubx_block_free(ubx_block_t *b)
 static int __ubx_port_add(ubx_block_t *b,
 			  const char *name,
 			  const char *doc,
+			  const uint32_t attrs,
 			  const ubx_type_t *in_type,
 			  const long in_data_len,
 			  const ubx_type_t *out_type,
@@ -1031,7 +1033,7 @@ static ubx_block_t *ubx_block_clone(ubx_block_t *prot, const char *name)
 				       csrc->type,
 				       csrc->min,
 				       csrc->max,
-				       csrc->attrs);
+				       csrc->attrs & CONFIG_ATTR_CLONED);
 		if (ret != 0)
 			goto out_free;
 	}
@@ -1040,6 +1042,7 @@ static ubx_block_t *ubx_block_clone(ubx_block_t *prot, const char *name)
 		ret = __ubx_port_add(newb,
 				     psrc->name,
 				     NULL,
+				     psrc->attrs & PORT_ATTR_CLONED,
 				     psrc->in_type,
 				     psrc->in_data_len,
 				     psrc->out_type,
@@ -1763,6 +1766,7 @@ static int check_minmax(const ubx_block_t *b, const int checklate)
 static int __ubx_port_add(ubx_block_t *b,
 			  const char *name,
 			  const char *doc,
+			  const uint32_t attrs,
 			  const ubx_type_t *in_type,
 			  const long in_data_len,
 			  const ubx_type_t *out_type,
@@ -1802,6 +1806,7 @@ static int __ubx_port_add(ubx_block_t *b,
 		}
 	}
 
+	pnew->attrs = attrs;
 	pnew->in_type = in_type;
 	pnew->out_type = out_type;
 	pnew->in_data_len = (in_data_len == 0) ? 1 : in_data_len;
@@ -1835,6 +1840,7 @@ out:
 int ubx_port_add(ubx_block_t *b,
 		 const char *name,
 		 const char *doc,
+		 const uint32_t attrs,
 		 const char *in_type_name,
 		 const long in_data_len,
 		 const char *out_type_name,
@@ -1860,7 +1866,7 @@ int ubx_port_add(ubx_block_t *b,
 			return EINVALID_TYPE;
 		}
 	}
-	return __ubx_port_add(b, name, doc, in_type, in_data_len, out_type, out_data_len);
+	return __ubx_port_add(b, name, doc, attrs, in_type, in_data_len, out_type, out_data_len);
 }
 
 /**
@@ -1872,10 +1878,11 @@ int ubx_port_add(ubx_block_t *b,
  * @param out_data_len
  * @return < 0 in case of error, 0 otherwise
  */
-int ubx_outport_add(ubx_block_t *b, const char *name, const char *doc,
+int ubx_outport_add(ubx_block_t *b, const char *name, const char *doc, uint32_t attrs,
 		    const char *out_type_name, long out_data_len)
 {
-	return ubx_port_add(b, name, doc, NULL, 0, out_type_name, out_data_len);
+	return ubx_port_add(b, name, doc, attrs,
+			    NULL, 0, out_type_name, out_data_len);
 }
 
 /**
@@ -1925,10 +1932,10 @@ int ubx_outport_resize(struct ubx_port *p, long len)
  * @param in_data_len
  * @return < 0 in case of error, 0 otherwise
  */
-int ubx_inport_add(ubx_block_t *b, const char *name, const char *doc,
+int ubx_inport_add(ubx_block_t *b, const char *name, const char *doc, uint32_t attrs,
 		   const char *in_type_name, long in_data_len)
 {
-	return ubx_port_add(b, name, doc, in_type_name, in_data_len, NULL, 0);
+	return ubx_port_add(b, name, doc, attrs, in_type_name, in_data_len, NULL, 0);
 }
 
 /**

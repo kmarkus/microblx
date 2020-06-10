@@ -16,7 +16,7 @@ lists instead. This simplifies the code and guarantees stable
 pointers. Iterating over all ports becomes as simple as:
 
 ```C
-ubx_port_t *p;
+ubx_port_t *p = NULL;
 
 DL_FOREACH(b->ports, p) {
 	write_int(p, 42);

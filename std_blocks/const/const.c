@@ -85,7 +85,7 @@ static int const_init(ubx_block_t *b)
 
 #ifndef BUILD_IBLOCK
 	/* add port 'out' */
-	ret = ubx_outport_add(b, OUT, "const value output port",
+	ret = ubx_outport_add(b, OUT, "const value output port", 0,
 			      type_name, inf->data_len);
 
 	if (ret != 0)

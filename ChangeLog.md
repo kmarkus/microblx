@@ -20,14 +20,21 @@ This file tracks user visible API changes
 - `ubx_config_add2` adds a config incl `min`/`max` constraints and
   attrs.
 
-- `ubx_port_add`: the past parameter `state` has been dropped (as has
-  the member in `ubx_port_t`.
+- The attributes `CONFIG_ATTR_CLONED` and `PORT_ATTR_CLONED` are set
+  for ports/configs that were created as a consequence of creating a
+  block by cloning. Put differently, these attributes are unset for
+  configs and ports that were added dynamically.
+
+- `ubx_port_add` `ubx_inport_add`, `ubx_outport_add`: the parameter
+  `state` has been dropped (as has the member in `ubx_port_t`. Instead
+  `attrs` has been added as parameter #4. Check `ubx_proto.h` for the
+  new prototypes.
 
 - `ubx_types.h`: converted object names (node, block, port, config)
   from dynamically allocated strings to fixed strings where
   possible.
 
-- `ubx_types.h`, ports:
+- `ubx_types.h`:
    - removed port `state`, which was never used. The functions
 	 `ubx_port_add` (lua `ubx.port_add`) consequently drop the last
 	 parameter.

@@ -77,6 +77,7 @@ function test_port_add_rm()
 					    "testport"..tostring(k),
 					    -- "{ desc='a testport without further meaning "..tostring(k).."' }",
 					    "",
+                                            0,
 					    "int32_t", 5, "size_t", 1)
 			    end
 		      ]]))

@@ -16,8 +16,8 @@ local ubx=require "ubx"
 local p_ramp_cnt, p_test_result
 
 function init(b)
-   ubx.inport_add(b, "ramp_cnt", "ramp counter in", "uint64_t", 1)
-   ubx.outport_add(b, "test_result", "test results", "int", 1)
+   ubx.inport_add(b, "ramp_cnt", "ramp counter in", 0, "uint64_t", 1)
+   ubx.outport_add(b, "test_result", "test results", 0, "int", 1)
    p_ramp_cnt = ubx.port_get(b, "ramp_cnt")
    p_test_result = ubx.port_get(b, "test_result")
    return true

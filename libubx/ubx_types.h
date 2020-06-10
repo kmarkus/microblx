@@ -15,7 +15,9 @@
 #ifndef UBX_TYPES_H
 #define UBX_TYPES_H
 
-/* constants */
+/**
+ * constants
+ */
 enum {
 	UBX_NODE_NAME_MAXLEN	= 31,
 	UBX_BLOCK_NAME_MAXLEN	= 63,
@@ -28,7 +30,9 @@ enum {
 	UBX_TYPE_HASHSTR_LEN	= UBX_TYPE_HASH_LEN * 2,	/* hexstring md5 */
 };
 
-/* return error codes */
+/**
+ * error codes
+ */
 enum {
 	EINVALID_BLOCK 		= -32767, /* invalid block */
 	EINVALID_PORT,			  /* invalid port */
@@ -54,6 +58,9 @@ enum {
 
 };
 
+/**
+ * loglevels
+ */
 enum {
 	UBX_LOGLEVEL_EMERG	= 0,	/* system unusable */
 	UBX_LOGLEVEL_ALERT	= 1,	/* immediate action required */
@@ -71,18 +78,33 @@ struct ubx_block;
 struct ubx_node_info;
 struct ubx_log_msg;
 
-/*
- * module and node
+/**
+ * __ubx_initialize_module - module initialization hook
+ *
+ * @ni: node handle for the module to register blocks and types
+ * @return: 0 if OK, -1 otherwise
  */
 int __ubx_initialize_module(struct ubx_node_info *ni);
+
+/**
+ * __ubx_cleanup_module - module cleanuphook
+ *
+ * @ni: node handle for the module to unregister blocks and types
+ */
 void __ubx_cleanup_module(struct ubx_node_info *ni);
 
 
-/* type and value (data) */
+/**
+ * type classes
+ *
+ * @TYPE_CLASS_BASIC: primivitve C type
+ * @TYPE_CLASS_STRUCT: C struct type
+ *
+ * currently only BASIC and STRUCT are used
+ */
 enum {
 	TYPE_CLASS_BASIC = 1,
 	TYPE_CLASS_STRUCT,	/* simple sequential memory struct */
-	TYPE_CLASS_CUSTOM	/* requires custom serialization */
 };
 
 /**
@@ -134,12 +156,19 @@ enum {
 /**
  * anonymous enum for port attributes
  *
- * @PORT_ATTR_DYN: the configuration was added to the interface
- * 		   dynamically using @ubx_config_add (opposed to being
- * 		   added during block creation).
+ * @PORT_ATTR_CLONED: set if this port was added during cloning from a
+ * 		      prototype, i.e. it was not added dynamically
+ * 		      later. This can be useful for identifying and
+ * 		      removing custom ports in cleanup without
+ * 		      touching the "static" ones created from the
+ * 		      prototype.
+ *
+ * the first 8 bits are reserved, the others can be used freely.
  */
 enum {
-	PORT_ATTR_DYN 		= 1<<0
+	PORT_ATTR_CLONED 		= 1<<0,
+	/* ... */
+	PORT_ATTR_RESERVED7 		= 1<<7,
 };
 
 /**
@@ -213,21 +242,29 @@ typedef struct ubx_config {
 /**
  * anonymous enum for config attributes
  *
- * @CONFIG_ATTR_CHECKLATE: perform checking of min, max before start
- *			   instead of before init hook
- * @CONFIG_ATTR_DYN: 	   the configuration was added to the interface
- * 		           dynamically using @ubx_config_add.
+ * @CONFIG_ATTR_CLONED: set if this config was added during cloning
+ * 			from a prototype, i.e. it was not added
+ * 			dynamically later. This can be useful for
+ * 			identifying and removing custom configs in
+ * 			cleanup without touching the "static" ones
+ * 			created from the prototype.
+ *
+ * @CONFIG_ATTR_CHECKLATE: perform checking of min and max before
+ *			   start instead of before init hook
+ *
+ * The first 8 bit are reserved, the others can be used freely.
  */
 enum {
-	CONFIG_ATTR_CHECKLATE = 1<<0,
-	CONFIG_ATTR_DYN =	1<<1
+	CONFIG_ATTR_CLONED = 	1<<0,
+	CONFIG_ATTR_CHECKLATE = 1<<1,
+	/* ... */
+	CONFIG_ATTR_RESERVED =	1<<7,
 };
 
-/*
- * ubx block
- */
 
-/* Block types */
+/**
+ * Block types
+ */
 enum {
 	BLOCK_TYPE_COMPUTATION = 1,
 	BLOCK_TYPE_INTERACTION
@@ -245,7 +282,9 @@ enum {
 	BLOCK_ATTR_ACTIVE =	1<<1,
 };
 
-/* block states */
+/**
+ * block lifecycle states
+ */
 enum {
 	BLOCK_STATE_PREINIT,
 	BLOCK_STATE_INACTIVE,

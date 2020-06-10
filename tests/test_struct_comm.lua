@@ -32,13 +32,11 @@ function init(b)
    ubx.ffi_load_types(b.ni)
 
    -- print("adding port 'pos_in' to block ", ubx.safe_tostr(b.name))
-   ubx.port_add(b, "pos_in",
-		  "{ desc='current measured position' }",
-		  "struct kdl_vector", 1, nil, 0)
+   ubx.port_add(b, "pos_in", "{ desc='current measured position' }",
+                0, "struct kdl_vector", 1, nil, 0)
 
-   ubx.port_add(b, "pos_out",
-		  "{ desc='desired position' }",
-		  nil, 0, "struct kdl_vector", 1)
+   ubx.port_add(b, "pos_out", "{ desc='desired position' }",
+                0, nil, 0, "struct kdl_vector", 1)
 
    rd = ubx.data_alloc(b.ni, "struct kdl_vector")
    return true

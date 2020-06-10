@@ -16,7 +16,7 @@ local ubx=require "ubx"
 local ffi=require("ffi")
 
 function init(block)
-   assert(ubx.port_add(block, "in", "test in-port", "uint32_t", 1, nil, 0))
+   assert(ubx.port_add(block, "in", "test in-port", 0, "uint32_t", 1, nil, 0))
    return true
 end
 

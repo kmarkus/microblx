@@ -11,7 +11,7 @@ framework for use-cases such as *embedded control* or *signal
 processing*. It provides generic and configurable code for typical
 challenges such as *lock-free communication* between different
 criticality domains, real-time safe logging or triggers with
-configurable POSIX attributes.
+configurable POSIX realtime properties.
 
 Main features:
 

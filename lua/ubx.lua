@@ -106,7 +106,6 @@ local function setup_enums()
    M.type_class_tostr={
       [ffi.C.TYPE_CLASS_BASIC]='basic',
       [ffi.C.TYPE_CLASS_STRUCT]='struct',
-      [ffi.C.TYPE_CLASS_CUSTOM]='custom'
    }
 
    M.block_state_tostr={
