@@ -1085,10 +1085,8 @@ ubx_block_t *ubx_block_create(ubx_node_info_t *ni, const char *type, const char 
 		goto out;
 	}
 
-	if (IS_INSTANCE(prot)) {
-		logf_warn(ni, "block %s is not a prototype", type);
-		goto out;
-	}
+	if (IS_INSTANCE(prot))
+		logf_warn(ni, "cloning from non-prototype block %s", type);
 
 	/* check if name is already used */
 	HASH_FIND_STR(ni->blocks, name, newb);

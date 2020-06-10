@@ -34,12 +34,17 @@ The following describes these steps in detail and is based on the
 Declaring configuration
 -----------------------
 
+.. note:: Since microblx v0.9, static block definitions must use
+   the "proto" types ``ubx_proto_config_t``, ``ubx_proto_port_t`` and
+   ``ubx_proto_block_t`` to define prototype blocks. At runtime
+   (i.e. in hooks etc) the non-`_proto_` versions are used as before
+
 Configuration is described with a ``{ 0 }`` terminated array of
-``ubx_config_t`` types:
+``ubx_proto_config_t`` types:
 
 .. code:: c
 
-   ubx_config_t rnd_config[] = {
+   ubx_proto_config_t rnd_config[] = {
        { .name="min_max_config", .type_name = "struct random_config" },
        { 0 },
    };
@@ -54,8 +59,8 @@ the type ``struct random_config``.
    module.
 
 To reduce boilerplate validation code in blocks, ``min`` and ``max``
-attributes can be used to define permitted length of configuration
-values. For example:
+attributes can be used to define the expected array length of
+configuration values. For example:
 
 .. code:: c
 
@@ -95,11 +100,11 @@ Declaring ports
 ---------------
 
 Like configurations, ports are described with a ``{ 0 }`` terminated
-array of ubx_config_t types:
+array of ``ubx_proto_port_t`` types:
 
 .. code:: c
 
-   ubx_port_t rnd_ports[] = {
+   ubx_proto_port_t rnd_ports[] = {
        { .name="seed", .in_type_name="unsigned int" },
        { .name="rnd", .out_type_name="unsigned int" },
        { 0 },
@@ -317,14 +322,13 @@ data-structure that can then be registered in a microblx module:
 
 .. code:: c
 
-   ubx_block_t random_comp = {
+   ubx_proto_block_t random_comp = {
        .name = "random/random",
        .type = BLOCK_TYPE_COMPUTATION,
        .meta_data = rnd_meta,
        .configs = rnd_config,
        .ports = rnd_ports,
 
-       /* ops */
        .init = rnd_init,
        .start = rnd_start,
        .step = rnd_step,
@@ -446,8 +450,8 @@ blocks registered in init:
    UBX_MODULE_CLEANUP(rnd_module_cleanup)
 
 
-Using real-time logging
------------------------
+Real-time logging
+-----------------
 
 Microblx provides logging infrastructure with loglevels similar to the
 Linux Kernel. Loglevel can be set on the (global) node level (e.g. by
@@ -602,10 +606,12 @@ Tips and Tricks
 Using C++
 ~~~~~~~~~
 
-See ``std_blocks/cppdemo``. If the designated initializer (the struct
-initalization used in this manual) are used, the block must be
-compiled with ``clang``, because g++ does not support designated
-initializers (yet).
+See the example ``std_blocks/cppdemo``.
+
+.. note:: Please note that /designated initializers/ which are used to
+	  initialize ``ubx_proto_`` structures are only supported by
+	  g++ versions 8 and newer!
+
 
 Avoiding Lua scripting
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -624,22 +630,23 @@ care of this.
 What the difference between block types and instances?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To create a block instance, it is cloned from an existing block and
-the ``block->prototype`` char pointer set to a newly allocated string
-holding the protoblocks name.
+There are very few differences. A prototype block is added by module
+init functions using ``ubx_block_register`` and must also be removed
+by the corresponding module cleanup hook using
+``ubx_block_unregister``. A prototype blocks ``prototype`` ptr is
+NULL.
 
-There’s very little difference between prototypes and instances:
+Block instances are cloned from existing blocks using
+``ubx_block_create`` and the instances ``block->prototype`` pointer is
+set to the block is was cloned from. Normally blocks are cloned from
+prototype blocks, but it is possible to clone any block (a warning is
+issued currently).
 
-- a block type’s ``prototype`` (char) ptr is ``NULL``, while an
-  instance’s points to a (copy) of the prototype’s name.
-
-- Only block instances can be deregistered and freed
-  (``ubx_block_rm``), prototypes must be deregistered (and freed if
-  necessary) by the module’s cleanup function.
 
 Module visibility
 ~~~~~~~~~~~~~~~~~
 
-The default Makefile defines ``-fvisibility=hidden``, so there’s no need
-to prepend functions and global variables with ``static``
+It is suggested to add ``-fvisibility=hidden`` to CFLAGS. This way,
+there’s no need to clutter functions and global variables with
+``static``.
 
