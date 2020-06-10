@@ -4,6 +4,12 @@ Getting started
 Microblx in a nutshell
 ----------------------
 
+Microblx is a lightweight framework to build function block based
+systems.  It is designed around a canonical component model with
+*ports* for data exchange, *configs* for configuration and a *state
+machine* for the "block" life cycle. Trigger blocks orchestrate the
+execution of the components functionality.
+
 Building a microblx application typically involves two steps:
 
 Implement the required blocks
