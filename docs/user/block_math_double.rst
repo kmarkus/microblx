@@ -6,7 +6,7 @@ Block math_double
 
 | **Type**:       cblock
 | **Attributes**: 
-| **Meta-data**:   { doc='mathmetric function block',   realtime=true,}
+| **Meta-data**:   { doc='math functions from math.h',   realtime=true,}
 | **License**:    BSD-3-Clause
 
 
@@ -18,8 +18,8 @@ Configs
 
    func, ``char``, "math function to compute"
    data_len, ``long``, "length of output data (def: 1)"
-   mul, ``double``, "optional factor to apply to result of func (def: 1)"
-   add, ``double``, "optional offset to apply to result of func (def: 0)"
+   mul, ``double``, "optional factor to multiply with y (def: 1)"
+   add, ``double``, "optional offset to add to y after mul (def: 0)"
 
 
 
