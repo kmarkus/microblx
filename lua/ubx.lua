@@ -1596,7 +1596,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 
       M.block_init(i_p_to_prot)
 
-      if M.ports_connect_uni(p, prot, i_p_to_prot) ~= 0 then
+      if M.ports_connect(p, prot, i_p_to_prot) ~= 0 then
 	 error("failed to connect port "..M.safe_tostr(p.name))
       end
       M.block_start(i_p_to_prot)
@@ -1617,7 +1617,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 
       M.block_init(i_prot_to_p)
 
-      if M.ports_connect_uni(prot, p, i_prot_to_p) ~= 0 then
+      if M.ports_connect(prot, p, i_prot_to_p) ~= 0 then
 	 -- TODO disconnect if connected above.
 	 error("failed to connect port"..M.safe_tostr(p.name))
       end
@@ -1670,7 +1670,7 @@ function M.conn_uni(b1, pname1, b2, pname2, iblock_type, iblock_config, dont_sta
 
    M.block_init(ib)
 
-   if M.ports_connect_uni(p1, p2, ib) ~= 0 then
+   if M.ports_connect(p1, p2, ib) ~= 0 then
       error("failed to connect "..bname1.."."..pname1.."->"..bname2.."."..pname2)
    end
 

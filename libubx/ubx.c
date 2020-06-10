@@ -1174,11 +1174,11 @@ int ubx_block_rm(ubx_node_info_t *ni, const char *name)
  *
  * @return < 0 in case of error, 0 otherwise.
  */
-static int array_block_add(ubx_block_t ***arr, ubx_block_t *newblock)
+static int array_block_add(const ubx_block_t ***arr, const ubx_block_t *newblock)
 {
 	int ret;
 	long newlen; /* new length of array including NULL element */
-	ubx_block_t **tmpb;
+	const ubx_block_t **tmpb;
 
 	/*
 	 * determine newlen
@@ -1204,10 +1204,10 @@ static int array_block_add(ubx_block_t ***arr, ubx_block_t *newblock)
 	return ret;
 }
 
-static int array_block_rm(ubx_block_t ***arr, ubx_block_t *rmblock)
+static int array_block_rm(const ubx_block_t ***arr, const ubx_block_t *rmblock)
 {
 	int ret = -1, cnt, match = -1;
-	ubx_block_t **tmpb;
+	const ubx_block_t **tmpb;
 
 	for (tmpb = *arr, cnt = 0; *tmpb != NULL; tmpb++, cnt++) {
 		if (*tmpb == rmblock)
@@ -1238,7 +1238,7 @@ out:
  *
  * @return  < 0 in case of error, 0 otherwise.
  */
-int ubx_port_connect_out(ubx_port_t *p, ubx_block_t *iblock)
+int ubx_port_connect_out(ubx_port_t *p, const ubx_block_t *iblock)
 {
 	int ret = -1;
 
@@ -1265,8 +1265,7 @@ out:
  *
  * @return < 0 in case of error, 0 otherwise.
  */
-
-int ubx_port_connect_in(ubx_port_t *p, ubx_block_t *iblock)
+int ubx_port_connect_in(ubx_port_t *p, const ubx_block_t *iblock)
 {
 	int ret;
 
@@ -1286,16 +1285,15 @@ out:
 }
 
 /**
- * ubx_ports_connect_uni
- *   - connect a port out- to a port in-channel using an interaction iblock.
+ * ubx_ports_connect - connect two ports with an iblock
  *
- * @param out_port
- * @param in_port
- * @param iblock
+ * @out_port output port
+ * @in_port input port
+ * @iblock iblock to use for connection
  *
  * @return < 0  in case of error, 0 otherwise.
  */
-int ubx_ports_connect_uni(ubx_port_t *out_port, ubx_port_t *in_port, ubx_block_t *iblock)
+int ubx_ports_connect(ubx_port_t *out_port, ubx_port_t *in_port, const ubx_block_t *iblock)
 {
 	int ret;
 
@@ -1340,7 +1338,7 @@ out:
  *
  * @return < 0 in case of error, 0 otherwise.
  */
-int ubx_port_disconnect_out(ubx_port_t *out_port, ubx_block_t *iblock)
+int ubx_port_disconnect_out(ubx_port_t *out_port, const ubx_block_t *iblock)
 {
 	int ret = -1;
 
@@ -1369,7 +1367,7 @@ out:
  *
  * @return < 0 in case of error, 0 otherwise.
  */
-int ubx_port_disconnect_in(ubx_port_t *in_port, ubx_block_t *iblock)
+int ubx_port_disconnect_in(ubx_port_t *in_port, const ubx_block_t *iblock)
 {
 	int ret = -1;
 
@@ -1390,15 +1388,17 @@ out:
 
 
 /**
- * ubx_ports_disconnect_uni - disconnect two ports.
+ * ubx_ports_disconnect - disconnect two ports
  *
- * @param out_port
- * @param in_port
- * @param iblock
+ * @out_port output port to disconnect
+ * @in_port input port to disconnect
+ * @iblock iblock used for connection
+ *
+ * Note that the iblock itself is not touched
  *
  * @return < 0 in case of error, 0 otherwise.
  */
-int ubx_ports_disconnect_uni(ubx_port_t *out_port, ubx_port_t *in_port, ubx_block_t *iblock)
+int ubx_ports_disconnect(ubx_port_t *out_port, ubx_port_t *in_port, const ubx_block_t *iblock)
 {
 	int ret = -1;
 
@@ -2273,7 +2273,7 @@ long __port_read(const ubx_port_t *port, ubx_data_t *data)
 	if (port->in_interaction == NULL)
 		goto out;
 
-	for (iaptr = port->in_interaction; *iaptr != NULL; iaptr++) {
+	for (iaptr = (ubx_block_t**)port->in_interaction; *iaptr != NULL; iaptr++) {
 		if ((*iaptr)->block_state == BLOCK_STATE_ACTIVE) {
 			ret = (*iaptr)->read(*iaptr, data);
 			if (ret > 0) {
@@ -2323,7 +2323,7 @@ void __port_write(const ubx_port_t *port, const ubx_data_t *data)
 		goto out;
 
 	/* pump it out */
-	for (iaptr = port->out_interaction; *iaptr != NULL; iaptr++) {
+	for (iaptr = (ubx_block_t**)port->out_interaction; *iaptr != NULL; iaptr++) {
 		if ((*iaptr)->block_state == BLOCK_STATE_ACTIVE) {
 			(*iaptr)->write(*iaptr, data);
 			(*iaptr)->stat_num_writes++;

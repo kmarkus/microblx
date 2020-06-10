@@ -187,8 +187,8 @@ typedef struct ubx_port {
 	struct ubx_port *prev;
 	struct ubx_port *next;
 
-	struct ubx_block **in_interaction;
-	struct ubx_block **out_interaction;
+	const struct ubx_block **in_interaction;
+	const struct ubx_block **out_interaction;
 } ubx_port_t;
 
 

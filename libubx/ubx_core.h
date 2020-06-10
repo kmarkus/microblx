@@ -106,13 +106,13 @@ int ubx_config_add(ubx_block_t *b, const char *name, const char *doc, const char
 int ubx_config_rm(ubx_block_t *b, const char *name);
 
 /* connecting ports */
-int ubx_port_connect_out(ubx_port_t *p, ubx_block_t *iblock);
-int ubx_port_connect_in(ubx_port_t *p, ubx_block_t *iblock);
-int ubx_port_disconnect_out(ubx_port_t *out_port, ubx_block_t *iblock);
-int ubx_port_disconnect_in(ubx_port_t *in_port, ubx_block_t *iblock);
+int ubx_port_connect_out(ubx_port_t *p, const ubx_block_t *iblock);
+int ubx_port_connect_in(ubx_port_t *p, const ubx_block_t *iblock);
+int ubx_port_disconnect_out(ubx_port_t *out_port, const ubx_block_t *iblock);
+int ubx_port_disconnect_in(ubx_port_t *in_port, const ubx_block_t *iblock);
 
-int ubx_ports_connect_uni(ubx_port_t *out_port, ubx_port_t *in_port, ubx_block_t *iblock);
-int ubx_ports_disconnect_uni(ubx_port_t *out_port, ubx_port_t *in_port, ubx_block_t *iblock);
+int ubx_ports_connect(ubx_port_t *out_port, ubx_port_t *in_port, const ubx_block_t *iblock);
+int ubx_ports_disconnect(ubx_port_t *out_port, ubx_port_t *in_port, const ubx_block_t *iblock);
 
 /* rt logging */
 void __ubx_log(const int level, const ubx_node_info_t *ni, const char *src, const char *fmt, ...);

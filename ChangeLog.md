@@ -5,6 +5,10 @@ This file tracks user visible API changes
 
 ## next
 
+- `ubx_ports_connect_uni`/`ubx_ports_disconnect_uni`/
+  - removed `_uni` suffix
+  - made iblock parameter `const`
+
 - `ubx_block_`: store `ports` and `configs` in a `utlist.h` double
   linked list instead of a dynamic array
   ([background](docs/dev/002-stable-port-ptrs.md)).
