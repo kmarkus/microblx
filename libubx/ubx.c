@@ -493,7 +493,7 @@ int ubx_block_register(ubx_node_info_t *ni, struct ubx_proto_block *prot)
 			ret = ubx_port_add(newb,
 					   p->name,
 					   p->doc,
-					   p->attrs & PORT_ATTR_CLONED,
+					   p->attrs | PORT_ATTR_CLONED,
 					   p->in_type_name,
 					   p->in_data_len,
 					   p->out_type_name,
@@ -511,7 +511,7 @@ int ubx_block_register(ubx_node_info_t *ni, struct ubx_proto_block *prot)
 					      c->type_name,
 					      c->min,
 					      c->max,
-					      c->attrs & CONFIG_ATTR_CLONED);
+					      c->attrs | CONFIG_ATTR_CLONED);
 			if (ret)
 				goto out_err;
 		}
@@ -1033,7 +1033,7 @@ static ubx_block_t *ubx_block_clone(ubx_block_t *prot, const char *name)
 				       csrc->type,
 				       csrc->min,
 				       csrc->max,
-				       csrc->attrs & CONFIG_ATTR_CLONED);
+				       csrc->attrs | CONFIG_ATTR_CLONED);
 		if (ret != 0)
 			goto out_free;
 	}
@@ -1042,7 +1042,7 @@ static ubx_block_t *ubx_block_clone(ubx_block_t *prot, const char *name)
 		ret = __ubx_port_add(newb,
 				     psrc->name,
 				     NULL,
-				     psrc->attrs & PORT_ATTR_CLONED,
+				     psrc->attrs | PORT_ATTR_CLONED,
 				     psrc->in_type,
 				     psrc->in_data_len,
 				     psrc->out_type,
