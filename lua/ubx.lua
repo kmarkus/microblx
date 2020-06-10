@@ -628,16 +628,7 @@ function M.block_tostr(b)
       bt = b
    end
 
-   if bt.prototype==false then
-      return ("%s [%s]"):format(green(bt.name), bt.block_type)
-   end
-
-   return ("%s [%s, %s, %s, attrs: %s]"):format(
-      green(bt.name),
-      bt.block_type,
-      block_state_color(bt.state),
-      blue(bt.prototype),
-      table.concat(bt.attrs, ', '))
+   return ("%s [%s]"):format(green(bt.name), bt.prototype or "proto")
 end
 
 function M.block_port_get (b, n)
