@@ -50,11 +50,6 @@ AC_CHECK_HEADERS([uthash.h], [uthash_found=yes; break;])
 AS_IF([test "x$uthash_found" != "xyes"],
     AC_MSG_ERROR([Unable to find uthash headers (install uthash-dev)]))
 
-# cproto
-AC_CHECK_PROG(CPROTO, [cproto], [yes])
-AS_IF([test x"$CPROTO" != x"yes"],
-    [AC_MSG_ERROR([Please install cproto before configuring])])
-
 # sphinx
 AC_CHECK_PROGS([SPHINXBUILD], [sphinx-build sphinx-build3 sphinx-build2], [no])
 AS_IF([test x"$SPHINXBUILD" = x"no"],

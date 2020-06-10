@@ -429,7 +429,6 @@ struct ubx_timespec {
 	long nsec;
 };
 
-
 /**
  * struct ubx_log_msg - ubx log message
  * @level: log level (%UBX_LL_ERR, ...)

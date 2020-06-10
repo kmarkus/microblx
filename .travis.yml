@@ -12,7 +12,6 @@ addons:
       - libtool
       - pkg-config
       - gcc
-      - cproto
       - g++
       - git-core
       - luajit

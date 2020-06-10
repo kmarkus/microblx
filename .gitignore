@@ -25,6 +25,5 @@ stamp-h1
 std_blocks/lfds_buffers/liblfds611/bin/
 std_blocks/lfds_buffers/liblfds611/obj/
 libubx/ubx0.pc
-libubx/ubx_proto.h
 libubx/ubxrtl0.pc
 tools/ubx-log

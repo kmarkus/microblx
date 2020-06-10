@@ -110,7 +110,7 @@ struct log_shm_inf inf;
  *
  * @param inc new write pointer offset (bytes)
  */
-void log_inc_woff(uint32_t inc)
+static void log_inc_woff(uint32_t inc)
 {
 	log_wrap_off_t next;
 

@@ -39,14 +39,18 @@ extern "C"
 #include <utlist.h>
 
 #include "ubx_types.h"
+#include "accessors.h"
 
 struct ubx_proto_block;
 struct ubx_proto_port;
 struct ubx_proto_config;
 
-#include "ubx_proto.h"
+#include "ubx_core.h"
+#include "ubx_time.h"
+#include "ubx_utils.h"
+#include "accessors.h"
+#include "md5.h"
 #include "rtlog.h"
-
 
 /* constants */
 #define NSEC_PER_SEC		1000000000

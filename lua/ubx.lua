@@ -124,7 +124,10 @@ end
 local ubx_ffi_headers = {
    "include/ubx/ubx_uthash_ffi.h",
    "include/ubx/ubx_types.h",
-   "include/ubx/ubx_proto.h",
+   "include/ubx/ubx_core.h",
+   "include/ubx/ubx_time.h",
+   "include/ubx/md5.h",
+   "include/ubx/ubx_utils.h",
 }
 
 local ubx_ffi_lib = "lib/libubx.so"

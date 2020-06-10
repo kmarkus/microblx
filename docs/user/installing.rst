@@ -11,8 +11,6 @@ Make sure to install the following dependencies
 
 - uthash (apt: ``uthash-dev``)
 - autotools etc. (apt: ``automake``, ``libtool``, ``pkg-config``, ``make``)
-- ``cproto`` (apt: ``cproto``) use by Make to generate prototype
-  header file
 - luajit (>=v2.0.0) (apt: ``luajit`` and ``libluajit-5.1-dev``)
 - lfs: lua-filesystem (apt: ``lua-filesystem``)
 
