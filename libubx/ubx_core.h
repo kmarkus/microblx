@@ -1,5 +1,6 @@
 /* ubx core API */
 
+#include "stdint.h"
 #include "ubx_types.h"
 
 #ifndef UBX_CORE_H
@@ -26,7 +27,24 @@ int ubx_module_load(ubx_node_info_t *ni, const char *lib);
 ubx_module_t *ubx_module_get(ubx_node_info_t *ni, const char *lib);
 void ubx_module_unload(ubx_node_info_t *ni, const char *lib);
 
-/* TODO drop? int ubx_block_check(ubx_node_info_t *ni, ubx_block_t *b); */
+/**
+ * __ubx_initialize_module - module initialization hook
+ *
+ * This symbol is setup by using the UBX_MODULE_INIT macro.
+ *
+ * @ni: node handle for the module to register blocks and types
+ * @return: 0 if OK, -1 otherwise
+ */
+int __ubx_initialize_module(struct ubx_node_info *ni);
+
+/**
+ * __ubx_cleanup_module - module cleanuphook
+ *
+ * This symbol is setup by using the UBX_MODULE_CLEANUP macro.
+ *
+ * @ni: node handle for the module to unregister blocks and types
+ */
+void __ubx_cleanup_module(struct ubx_node_info *ni);
 
 int ubx_block_register(ubx_node_info_t *ni, struct ubx_proto_block *prot);
 int ubx_block_unregister(ubx_node_info_t *ni, const char *name);

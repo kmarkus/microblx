@@ -79,22 +79,6 @@ struct ubx_node_info;
 struct ubx_log_msg;
 
 /**
- * __ubx_initialize_module - module initialization hook
- *
- * @ni: node handle for the module to register blocks and types
- * @return: 0 if OK, -1 otherwise
- */
-int __ubx_initialize_module(struct ubx_node_info *ni);
-
-/**
- * __ubx_cleanup_module - module cleanuphook
- *
- * @ni: node handle for the module to unregister blocks and types
- */
-void __ubx_cleanup_module(struct ubx_node_info *ni);
-
-
-/**
  * type classes
  *
  * @TYPE_CLASS_BASIC: primivitve C type
