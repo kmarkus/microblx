@@ -26,6 +26,7 @@ ubx_proto_config_t cyclic_config[] = {
 	{ .name = "type_name", .type_name = "char", .min = 1, .doc = "name of registered microblx type to transport" },
 	{ .name = "data_len", .type_name = "uint32_t", .max = 1, .doc = "array length (multiplier) of data (default: 1)" },
 	{ .name = "buffer_len", .type_name = "uint32_t", .min = 1, .max = 1, .doc = "max number of data elements the buffer shall hold" },
+	{ .name = "allow_partial", .type_name = "int", .min = 0, .max = 1, .doc = "allow msgs with len<data_len. def: 0 (no)" },
 	{ .name = "loglevel_overruns", .type_name = "int", .min = 0, .max = 1, .doc = "loglevel for reporting overflows (default: NOTICE, -1 to disable)" },
 	{ 0 },
 };
@@ -44,6 +45,7 @@ struct cyclic_block_info {
 
 	struct lfds611_ringbuffer_state *rbs;
 
+	int allow_partial;
 	unsigned long overruns;		/* stats */
 	ubx_port_t *p_overruns;
 	int loglevel_overruns;
@@ -142,6 +144,11 @@ int cyclic_init(ubx_block_t *i)
 		goto out_free_priv_data;
 	}
 
+	/* read allow_partial */
+	len = cfg_getptr_int(i, "allow_partial", &ival);
+	assert(len>=0);
+	inf->allow_partial = (len>0) ? *ival : 0;
+
 	/* cache port ptrs */
 	inf->p_overruns = ubx_port_get(i, "overruns");
 	assert(inf->p_overruns);
@@ -181,10 +188,18 @@ void cyclic_write(ubx_block_t *i, const ubx_data_t *msg)
 		goto out;
 	}
 
-	if (msg->len > inf->data_len) {
-		ubx_err(i, "msg array len too large: is: %lu, capacity: %lu",
-			msg->len, inf->data_len);
-		goto out;
+	if (inf->allow_partial) {
+		if (msg->len > inf->data_len) {
+			ubx_err(i, "msg array len too large: is: %lu, capacity: %lu",
+				msg->len, inf->data_len);
+			goto out;
+		}
+	} else {
+		if (msg->len != inf->data_len) {
+			ubx_err(i, "EINVALID_DATA_LEN: msg len %lu != data_len %lu",
+				msg->len, inf->data_len);
+			goto out;
+		}
 	}
 
 	elem = lfds611_ringbuffer_get_write_element(inf->rbs, &elem, &ret);

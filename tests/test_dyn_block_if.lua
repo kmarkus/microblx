@@ -34,7 +34,7 @@ function TestDynIF:setup()
 			 { lua_str = "ubx = require('ubx'); this=nil; function start(b) this=b; return true end" })
    assert_not_nil(lb)
 
-   local p_exec_str = ubx.port_clone_conn(lb, "exec_str", 4, 4)
+   local p_exec_str = ubx.port_clone_conn(lb, "exec_str", 1, 1, nil, 1)
    local d1=ubx.data_alloc(nd, "char")
    local d2=ubx.data_alloc(nd, "int")
 

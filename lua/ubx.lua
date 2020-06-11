@@ -1535,7 +1535,7 @@ end
 -- @param buff_len1 desired buffer length (if port is in/out: length of out->in buffer)
 -- @param buff_len2 only if port is in/out port: length of in->out buffer
 -- @return the new port
-function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns)
+function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns, allow_partial)
 
    local prot = M.port_get(block, pname)
 
@@ -1569,7 +1569,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
       buff_len2 = buff_len2 or buff_len1
    end
 
-   loglevel_overruns = loglevel_overruns or 6
+   loglevel_overruns = loglevel_overruns or ffi.C.UBX_LOGLEVEL_INFO
 
    -- New port is an out-port?
    local i_p_to_prot
@@ -1581,7 +1581,8 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 				      buffer_len = buff_len1,
 				      type_name = ffi.string(p.out_type.name),
 				      data_len = tonumber(p.out_data_len),
-				      loglevel_overruns = loglevel_overruns
+				      loglevel_overruns = loglevel_overruns,
+				      allow_partial = allow_partial or 0,
 				   }
       )
 
@@ -1604,7 +1605,10 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 				   { buffer_len = buff_len2,
 				     type_name = ffi.string(p.in_type.name),
 				     data_len = tonumber(p.in_data_len),
-				     loglevel_overruns = loglevel_overruns })
+				     loglevel_overruns = loglevel_overruns,
+				     allow_partial = allow_partial or 0,
+				   }
+      )
 
       M.block_init(i_prot_to_p)
 
