@@ -5,6 +5,11 @@ This file tracks user visible API changes
 
 ## 0.9.0
 
+- `lfds_cyclic`: added `allow_partial` config to allow transporting
+  messags that are < `data_len`. If unset, the new default is to
+  reject these. This also extends the lua port_clone_conn function
+  with an optional `allow_partial` parameter.
+
 - `ubx_node_info_t` renamed to `ubx_node_t` for
   consistency. `ubx_node_t` variables renamed from `ni` to `nd`.
 
