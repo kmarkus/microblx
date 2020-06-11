@@ -56,9 +56,9 @@ struct cyclic_elem_header {
 
 int cyclic_data_elem_init(void **user_data, void *user_state)
 {
-	struct cyclic_block_info *bbi = (struct cyclic_block_info *)user_state;
+	struct cyclic_block_info *inf = (struct cyclic_block_info *)user_state;
 
-	*user_data = calloc(1, bbi->data_len * bbi->type->size +
+	*user_data = calloc(1, inf->data_len * inf->type->size +
 			    sizeof(struct cyclic_elem_header));
 
 	return (*user_data == NULL) ? 0 : 1;
@@ -79,7 +79,7 @@ int cyclic_init(ubx_block_t *i)
 	const int *ival;
 	const uint32_t *val;
 	const char *type_name;
-	struct cyclic_block_info *bbi;
+	struct cyclic_block_info *inf;
 
 	i->private_data = calloc(1, sizeof(struct cyclic_block_info));
 	if (i->private_data == NULL) {
@@ -88,17 +88,17 @@ int cyclic_init(ubx_block_t *i)
 		goto out;
 	}
 
-	bbi = (struct cyclic_block_info *)i->private_data;
+	inf = (struct cyclic_block_info *)i->private_data;
 
 	/* read loglevel_overruns */
 	len = cfg_getptr_int(i, "loglevel_overruns", &ival);
 	assert(len>=0);
 
-	bbi->loglevel_overruns = (len==0) ? UBX_LOGLEVEL_NOTICE : *ival;
+	inf->loglevel_overruns = (len==0) ? UBX_LOGLEVEL_NOTICE : *ival;
 
-	if (bbi->loglevel_overruns < -1 || bbi->loglevel_overruns > UBX_LOGLEVEL_DEBUG) {
+	if (inf->loglevel_overruns < -1 || inf->loglevel_overruns > UBX_LOGLEVEL_DEBUG) {
 		ubx_err(i, "EINVALID_CONFIG: loglevel_overruns:	%i",
-			bbi->loglevel_overruns);
+			inf->loglevel_overruns);
 		ret = EINVALID_CONFIG;
 		goto out_free_priv_data;
 	}
@@ -112,39 +112,39 @@ int cyclic_init(ubx_block_t *i)
 		goto out_free_priv_data;
 	}
 
-	bbi->buffer_len = *val;
+	inf->buffer_len = *val;
 
 	/* read and check data_len config */
 	len = cfg_getptr_uint32(i, "data_len", &val);
 	if (len < 0)
 		goto out_free_priv_data;
 
-	bbi->data_len = (len > 0) ? *val : 1;
+	inf->data_len = (len > 0) ? *val : 1;
 
 	len = cfg_getptr_char(i, "type_name", &type_name);
 
-	bbi->type = ubx_type_get(i->nd, type_name);
+	inf->type = ubx_type_get(i->nd, type_name);
 
-	if (bbi->type == NULL) {
+	if (inf->type == NULL) {
 		ubx_err(i, "EINVALID_CONFIG: unkown type %s", type_name);
 		ret = EINVALID_CONFIG;
 		goto out_free_priv_data;
 	}
 
 	ubx_debug(i, "alloc ringbuf of %lu x %s [%lu]",
-		  bbi->buffer_len, type_name, bbi->data_len);
+		  inf->buffer_len, type_name, inf->data_len);
 
-	if (lfds611_ringbuffer_new(&bbi->rbs, bbi->buffer_len,
-				   cyclic_data_elem_init, bbi) == 0) {
+	if (lfds611_ringbuffer_new(&inf->rbs, inf->buffer_len,
+				   cyclic_data_elem_init, inf) == 0) {
 		ubx_err(i, "EOUTOFMEM: ringbuf of %lu x %s [%lu]",
-			bbi->buffer_len, type_name, bbi->data_len);
+			inf->buffer_len, type_name, inf->data_len);
 		ret = EOUTOFMEM;
 		goto out_free_priv_data;
 	}
 
 	/* cache port ptrs */
-	bbi->p_overruns = ubx_port_get(i, "overruns");
-	assert(bbi->p_overruns);
+	inf->p_overruns = ubx_port_get(i, "overruns");
+	assert(inf->p_overruns);
 
 	ret = 0;
 	goto out;
@@ -158,11 +158,11 @@ int cyclic_init(ubx_block_t *i)
 /* cleanup */
 void cyclic_cleanup(ubx_block_t *i)
 {
-	struct cyclic_block_info *bbi;
+	struct cyclic_block_info *inf;
 
-	bbi = (struct cyclic_block_info *)i->private_data;
-	lfds611_ringbuffer_delete(bbi->rbs, cyclic_data_elem_del, bbi);
-	free(bbi);
+	inf = (struct cyclic_block_info *)i->private_data;
+	lfds611_ringbuffer_delete(inf->rbs, cyclic_data_elem_del, inf);
+	free(inf);
 }
 
 /* write */
@@ -170,33 +170,33 @@ void cyclic_write(ubx_block_t *i, const ubx_data_t *msg)
 {
 	int ret;
 	long len;
-	struct cyclic_block_info *bbi;
+	struct cyclic_block_info *inf;
 	struct lfds611_freelist_element *elem;
 	struct cyclic_elem_header *hd;
 
-	bbi = (struct cyclic_block_info *)i->private_data;
+	inf = (struct cyclic_block_info *)i->private_data;
 
-	if (bbi->type != msg->type) {
+	if (inf->type != msg->type) {
 		ubx_err(i, "invalid message type %s", msg->type->name);
 		goto out;
 	}
 
-	if (msg->len > bbi->data_len) {
+	if (msg->len > inf->data_len) {
 		ubx_err(i, "msg array len too large: is: %lu, capacity: %lu",
-			msg->len, bbi->data_len);
+			msg->len, inf->data_len);
 		goto out;
 	}
 
-	elem = lfds611_ringbuffer_get_write_element(bbi->rbs, &elem, &ret);
+	elem = lfds611_ringbuffer_get_write_element(inf->rbs, &elem, &ret);
 
 	if (ret) {
-		bbi->overruns++;
+		inf->overruns++;
 
-		write_ulong(bbi->p_overruns, &bbi->overruns);
+		write_ulong(inf->p_overruns, &inf->overruns);
 
-		if (bbi->loglevel_overruns >= 0) {
-			ubx_block_log(bbi->loglevel_overruns, i,
-				      "buffer overrun: #%ld", bbi->overruns);
+		if (inf->loglevel_overruns >= 0) {
+			ubx_block_log(inf->loglevel_overruns, i,
+				      "buffer overrun: #%ld", inf->overruns);
 		}
 	}
 
@@ -210,7 +210,7 @@ void cyclic_write(ubx_block_t *i, const ubx_data_t *msg)
 	ubx_debug(i, "copying %ld bytes", len);
 
 	/* release element */
-	lfds611_ringbuffer_put_write_element(bbi->rbs, elem);
+	lfds611_ringbuffer_put_write_element(inf->rbs, elem);
 
  out:
 	return;
@@ -220,18 +220,18 @@ void cyclic_write(ubx_block_t *i, const ubx_data_t *msg)
 long cyclic_read(ubx_block_t *i, ubx_data_t *msg)
 {
 	unsigned long readlen, readsz;
-	struct cyclic_block_info *bbi;
+	struct cyclic_block_info *inf;
 	struct lfds611_freelist_element *elem;
 	struct cyclic_elem_header *hd;
 
-	bbi = (struct cyclic_block_info *)i->private_data;
+	inf = (struct cyclic_block_info *)i->private_data;
 
-	if (bbi->type != msg->type) {
+	if (inf->type != msg->type) {
 		ubx_err(i, "invalid message type %s", msg->type->name);
 		return EINVALID_TYPE;
 	}
 
-	if (lfds611_ringbuffer_get_read_element(bbi->rbs, &elem) == NULL) {
+	if (lfds611_ringbuffer_get_read_element(inf->rbs, &elem) == NULL) {
 		return 0;
 	}
 
@@ -243,13 +243,13 @@ long cyclic_read(ubx_block_t *i, ubx_data_t *msg)
 	}
 
 	readlen = MIN(msg->len, hd->data_len);
-	readsz = bbi->type->size * readlen;
+	readsz = inf->type->size * readlen;
 
 	ubx_debug(i, "%s: copying %ld bytes", i->name, readsz);
 
 	memcpy(msg->data, hd->data, readsz);
 
-	lfds611_ringbuffer_put_read_element(bbi->rbs, elem);
+	lfds611_ringbuffer_put_read_element(inf->rbs, elem);
 
 	return readlen;
 }
