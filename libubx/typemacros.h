@@ -23,7 +23,7 @@
  * Define port read functions
  */
 #define def_port_readers(FUNCNAME, TYPENAME)			   \
-long FUNCNAME ## _array(const ubx_port_t* p, TYPENAME* val, const int len) \
+long FUNCNAME ## _array(const ubx_port_t* p, TYPENAME* val, const long len) \
 {								   \
 	ubx_data_t data;					   \
 	static ubx_type_t *type = NULL;				   \
@@ -54,6 +54,12 @@ long FUNCNAME ## _array(const ubx_port_t* p, TYPENAME* val, const int len) \
 		}							\
 	}								\
 									\
+	if (len > p->in_data_len) {					\
+		ubx_err(p->block, "%s: EINVALID_DATA_LEN: data: %lu, port: %lu", \
+			__func__, p->in_data_len, len);			\
+		return EINVALID_DATA_LEN;				\
+	}								\
+									\
 	data.data = (void*) val;					\
 	data.type = type;						\
 	data.len = len;							\
@@ -69,7 +75,7 @@ long FUNCNAME(const ubx_port_t* p, TYPENAME* val)			\
  * Define port write functions
  */
 #define def_port_writers(FUNCNAME, TYPENAME)				\
-int FUNCNAME ## _array(const ubx_port_t *p, const TYPENAME *val, const int len) \
+int FUNCNAME ## _array(const ubx_port_t *p, const TYPENAME *val, const long len) \
 {									\
 	ubx_data_t data;						\
 	static ubx_type_t *type = NULL;					\
@@ -98,6 +104,12 @@ int FUNCNAME ## _array(const ubx_port_t *p, const TYPENAME *val, const int len) 
 				__func__, QUOTE(TYPENAME), p->name, p->out_type->name); \
 			return ETYPE_MISMATCH;				\
 		}							\
+	}								\
+									\
+	if (len > p->out_data_len) {					\
+		ubx_err(p->block, "%s: EINVALID_DATA_LEN: data: %lu, port: %lu", \
+			__func__, p->out_data_len, len);		\
+		return EINVALID_DATA_LEN;				\
 	}								\
 									\
 	data.data = (void*) val;					\
@@ -166,7 +178,7 @@ def_cfg_getptr_fun(cfg_getptr_ ## SUFFIX, TYPENAME)
 /* generate overloaded port RW and config accessors */
 #define gen_class_accessors(SUFFIX, CLASS, UBXTYPE)			\
                                                                         \
-long portRead(const ubx_port_t *p, CLASS* x, const int len)		\
+long portRead(const ubx_port_t *p, CLASS* x, const long len)		\
 {                                                                       \
 	return read_ ## SUFFIX ## _array(p, (UBXTYPE*) x, len);		\
 }                                                                       \
@@ -176,7 +188,7 @@ long portRead(const ubx_port_t *p, CLASS* x)				\
 	return read_ ## SUFFIX(p, (UBXTYPE*) x);			\
 }                                                                       \
 									\
-long portWrite(const ubx_port_t *p, const CLASS* x, const int len)	\
+long portWrite(const ubx_port_t *p, const CLASS* x, const long len)	\
 {                                                                       \
 	return write_ ## SUFFIX ## _array(p, (const UBXTYPE*) x, len);	\
 }                                                                       \
