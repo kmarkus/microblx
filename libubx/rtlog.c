@@ -27,7 +27,7 @@ const char *loglevel_str[] = {
 #define CONFIG_LOGGING_SHM
 
 /* basic logging function */
-void __ubx_log(const int level, const ubx_node_info_t *ni, const char *src, const char *fmt, ...)
+void __ubx_log(const int level, const ubx_node_t *nd, const char *src, const char *fmt, ...)
 {
 	va_list args;
 	struct ubx_log_msg msg;
@@ -41,21 +41,21 @@ void __ubx_log(const int level, const ubx_node_info_t *ni, const char *src, cons
 	vsnprintf(msg.msg, UBX_LOG_MSG_MAXLEN, fmt, args);
 	va_end(args);
 
-	if (!ni->log) {
+	if (!nd->log) {
 		fprintf(stderr,
 			"ERROR: rtlog: node->log is NULL (msg: %s: %s)\n",
 			msg.src, msg.msg);
 		return;
 	}
 
-	ni->log(ni, &msg);
+	nd->log(nd, &msg);
 
 	return;
 
 }
 
 #ifdef CONFIG_SIMPLE_LOGGING
-static void ubx_log_simple(const struct ubx_node_info *ni, const struct ubx_log_msg *msg)
+static void ubx_log_simple(const struct ubx_node *nd, const struct ubx_log_msg *msg)
 {
 	FILE *stream;
 	const char *level_str;
@@ -68,19 +68,19 @@ static void ubx_log_simple(const struct ubx_node_info *ni, const struct ubx_log_
 
 	fprintf(stream, "[%li.%06li] %s %s.%s: %s\n",
 		msg->ts.sec, msg->ts.nsec / NSEC_PER_USEC,
-		level_str, ni->name, msg->src, msg->msg);
+		level_str, nd->name, msg->src, msg->msg);
 }
 
-int ubx_log_init(struct ubx_node_info *ni)
+int ubx_log_init(struct ubx_node *nd)
 {
-	ni->log = ubx_log_simple;
-	ni->log_data = NULL;
+	nd->log = ubx_log_simple;
+	nd->log_data = NULL;
 	return 0;
 }
 
-void ubx_log_cleanup(struct ubx_node_info *ni)
+void ubx_log_cleanup(struct ubx_node *nd)
 {
-	ni->log = NULL;
+	nd->log = NULL;
 }
 #endif
 
@@ -130,10 +130,10 @@ static void log_inc_woff(uint32_t inc)
 	inf.buf_ptr->w = next;
 }
 
-static void ubx_log_shm(const struct ubx_node_info *ni, const struct ubx_log_msg *msg)
+static void ubx_log_shm(const struct ubx_node *nd, const struct ubx_log_msg *msg)
 {
 	struct ubx_log_msg *frame;
-	(void)(ni);
+	(void)(nd);
 
 	pthread_spin_lock(&inf.loglock);
 	frame = (struct ubx_log_msg *)&inf.buf_ptr->data[inf.buf_ptr->w.off];
@@ -143,13 +143,13 @@ static void ubx_log_shm(const struct ubx_node_info *ni, const struct ubx_log_msg
 	pthread_spin_unlock(&inf.loglock);
 }
 
-int ubx_log_init(struct ubx_node_info *ni)
+int ubx_log_init(struct ubx_node *nd)
 {
 	int ret = -1;
 
 	pthread_spin_init(&inf.loglock, PTHREAD_PROCESS_PRIVATE);
-	ni->log = ubx_log_shm;
-	ni->log_data = NULL;
+	nd->log = ubx_log_shm;
+	nd->log_data = NULL;
 
 	inf.shm_size = sizeof(log_wrap_off_t) + sizeof(struct ubx_log_msg) *
 		       LOG_BUFFER_DEPTH;
@@ -195,10 +195,10 @@ out:
 	return ret;
 }
 
-void ubx_log_cleanup(struct ubx_node_info *ni)
+void ubx_log_cleanup(struct ubx_node *nd)
 {
 	pthread_spin_destroy(&inf.loglock);
-	ni->log = NULL;
+	nd->log = NULL;
 
 	/* clean up shm */
 	munmap((void *) inf.buf_ptr, inf.shm_size);

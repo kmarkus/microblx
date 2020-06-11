@@ -186,7 +186,7 @@ function typelist_tohtml(ni)
    end
 
    -- generate list of entries
-   ubx.types_foreach(ni, gen_type_entry)
+   ubx.types_foreach(nd, gen_type_entry)
 
    -- write then out in num_type_cols tables
    elem_per_tab = math.ceil(#entries/num_type_cols)
@@ -218,7 +218,7 @@ function modlist_tohtml(ni)
    local output={}
 
    local mods =  {}
-   ubx.modules_foreach(ni,
+   ubx.modules_foreach(nd,
 		       function (m)
 			  mods[#mods+1] = { id=safe_ts(m.id),
 				   spdx_license_id=safe_ts(m.spdx_license_id) }
@@ -395,9 +395,9 @@ local block_ops = {
 	    end
 }
 
-function handle_post(ni, pd)
+function handle_post(nd, pd)
    local name, op = string.match(url_decode(pd), "([^=]+)=(.+)")
-   local b = ubx.block_get(ni, name)
+   local b = ubx.block_get(nd, name)
    if b==nil then error("handle_post: unknown block "..safe_ts(b)) end
    block_ops[op](b)
 end
@@ -449,7 +449,7 @@ function show_block(ri, ni)
    local query_string = safe_ts(ri.query_string)
    local qstab = query_string_to_tab(query_string)
    local blockname = qstab.name or " "
-   local b = ubx.block_get(ni, blockname)
+   local b = ubx.block_get(nd, blockname)
 
    if b==nil then
       local mes = "invalid blockname '"..blockname.."'"
@@ -550,11 +550,11 @@ local iblock_table_fields = { 'name', 'state', 'prototype', 'stat_num_reads', 's
 dispatch_table = {
    -- Root node overview
    ["/"] = function(ri, ni, postdata)
-	      if postdata then handle_post(ni, postdata) end
+	      if postdata then handle_post(nd, postdata) end
 	      local nodename = safe_ts(ni.name)
-	      local protoblocks = ubx.blocks_map(ni, ubx.block_totab, ubx.is_proto)
-	      local cinst = ubx.blocks_map(ni, ubx.block_totab, ubx.is_cblock_instance)
-	      local iinst = ubx.blocks_map(ni, ubx.block_totab, ubx.is_iblock_instance)
+	      local protoblocks = ubx.blocks_map(nd, ubx.block_totab, ubx.is_proto)
+	      local cinst = ubx.blocks_map(nd, ubx.block_totab, ubx.is_cblock_instance)
+	      local iinst = ubx.blocks_map(nd, ubx.block_totab, ubx.is_iblock_instance)
 
 	      table.sort(protoblocks, function (one,two) return one.block_type<two.block_type end)
 	      table.sort(cinst, function (one,two) return one.name<two.name end)
@@ -577,7 +577,7 @@ dispatch_table = {
       if postdata then
 	 local t = query_string_to_tab(postdata)
 
-	 local res, msg = pcall(ubx.set_config_str, ubx.block_get(ni, t.blockname), t.confname, t.confval)
+	 local res, msg = pcall(ubx.set_config_str, ubx.block_get(nd, t.blockname), t.confname, t.confval)
 
 	 if not res then
 	    return html("Error",
@@ -616,7 +616,7 @@ document.body.innerHTML += Viz(src("dotstr"), "svg")
 
 function request_handler(node_info, request_info_lud, postdata)
    local reqinf = ffi.cast("struct mg_request_info*", request_info_lud)
-   local ni = ffi.cast("struct ubx_node_info*", node_info)
+   local ni = ffi.cast("struct ubx_node*", node_info)
 
    local uri = safe_ts(reqinf.uri)
    local handler = dispatch_table[uri]

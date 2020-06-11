@@ -23,7 +23,7 @@ end
 function cleanup(block)
    local b=ffi.cast("ubx_block_t*", block)
    assert(ubx.port_rm(block, "in"))
-   ubx.info(b.ni, b.name, "cleanup, removed port 'in'")
+   ubx.info(b.nd, b.name, "cleanup, removed port 'in'")
 end
 ]]
 
@@ -71,9 +71,9 @@ local sys1 = bd.system {
 }
 
 function test_launch()
-   local ni=sys1:launch{nodename="sys1", nostart=true }
-   assert_not_nil(ni)
-   ubx.node_cleanup(ni)
+   local nd=sys1:launch{nodename="sys1", nostart=true }
+   assert_not_nil(nd)
+   ubx.node_cleanup(nd)
 end
 
 

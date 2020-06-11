@@ -107,10 +107,10 @@ __attribute__ ((visibility("default"))) char __ubx_module_license_spdx[] = QUOTE
 
 /* module init, cleanup */
 #define UBX_MODULE_INIT(initfn) \
-__attribute__ ((visibility("default"))) int __ubx_initialize_module(ubx_node_info_t *ni) { return initfn(ni); }
+__attribute__ ((visibility("default"))) int __ubx_initialize_module(ubx_node_t *nd) { return initfn(nd); }
 
 #define UBX_MODULE_CLEANUP(exitfn) \
-__attribute__ ((visibility("default"))) void __ubx_cleanup_module(ubx_node_info_t *ni) { exitfn(ni); }
+__attribute__ ((visibility("default"))) void __ubx_cleanup_module(ubx_node_t *nd) { exitfn(nd); }
 
 /* prototype definition */
 

@@ -142,20 +142,20 @@ ubx_proto_block_t thres_comp = {
 };
 
 /* module init: register blocks and types */
-int thres_module_init(ubx_node_info_t *ni)
+int thres_module_init(ubx_node_t *nd)
 {
-	if (ubx_type_register(ni, &thres_event_type) ||
-	    ubx_block_register(ni, &thres_comp)) {
+	if (ubx_type_register(nd, &thres_event_type) ||
+	    ubx_block_register(nd, &thres_comp)) {
 		return -1;
 	}
 	return 0;
 }
 
 /* module cleanup: unregister blocks and types */
-void thres_module_cleanup(ubx_node_info_t *ni)
+void thres_module_cleanup(ubx_node_t *nd)
 {
-	ubx_type_unregister(ni, thres_event_type.name);
-	ubx_block_unregister(ni, "threshold");
+	ubx_type_unregister(nd, thres_event_type.name);
+	ubx_block_unregister(nd, "threshold");
 }
 
 /* declare the module init and cleanup function */

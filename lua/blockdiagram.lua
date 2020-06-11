@@ -41,18 +41,18 @@ local function stderr(msg)
 end
 
 --- Create logging helper functions.
-local function def_loggers(ni, src)
+local function def_loggers(nd, src)
    err = function(format, ...)
-      local msg = fmt(format, unpack{...}); stderr(msg); ubx.err(ni, src, msg)
+      local msg = fmt(format, unpack{...}); stderr(msg); ubx.err(nd, src, msg)
    end
    warn = function(format, ...)
-      local msg = fmt(format, unpack{...}); stderr(msg); ubx.warn(ni, src, msg)
+      local msg = fmt(format, unpack{...}); stderr(msg); ubx.warn(nd, src, msg)
    end
    notice = function(format, ...)
-      local msg = fmt(format, unpack{...}); stderr(msg); ubx.notice(ni, src, msg)
+      local msg = fmt(format, unpack{...}); stderr(msg); ubx.notice(nd, src, msg)
    end
    info = function(format, ...)
-      local msg = fmt(format, unpack{...}); stderr(msg); ubx.info(ni, src, msg)
+      local msg = fmt(format, unpack{...}); stderr(msg); ubx.info(nd, src, msg)
    end
 end
 
@@ -493,7 +493,7 @@ end
 ---
 
 --- check for unconnected input ports
-local function lc_unconn_inports(ni, res)
+local function lc_unconn_inports(nd, res)
    local function blk_chk_unconn_inports(b)
       ubx.ports_foreach(b,
 			function(p)
@@ -504,11 +504,11 @@ local function lc_unconn_inports(ni, res)
 			   end
 			end, ubx.is_inport)
    end
-   ubx.blocks_map(ni, blk_chk_unconn_inports, ubx.is_cblock_instance)
+   ubx.blocks_map(nd, blk_chk_unconn_inports, ubx.is_cblock_instance)
 end
 
 --- check for unconnected output ports
-local function lc_unconn_outports(ni, res)
+local function lc_unconn_outports(nd, res)
    local function blk_chk_unconn_outports(b)
       ubx.ports_foreach(b,
 			function(p)
@@ -519,7 +519,7 @@ local function lc_unconn_outports(ni, res)
 			   end
 			end, ubx.is_outport)
    end
-   ubx.blocks_map(ni, blk_chk_unconn_outports, ubx.is_cblock_instance)
+   ubx.blocks_map(nd, blk_chk_unconn_outports, ubx.is_cblock_instance)
 end
 
 -- table of late checks
@@ -535,8 +535,8 @@ M._checks = {
 
 --- Run a late validation
 -- @param conf launch configuration
--- @param ni ubx_node_info
-local function late_checks(conf, ni)
+-- @param nd ubx_node
+local function late_checks(conf, nd)
    if not conf.checks then return end
    local res = {}
    info("running late validation (%s)", table.concat(conf.checks, ", "))
@@ -545,7 +545,7 @@ local function late_checks(conf, ni)
 	 if not M._checks[chk] then
 	    err_exit(1, "unknown check %s", chk)
 	 end
-	 M._checks[chk].fun(ni,res)
+	 M._checks[chk].fun(nd,res)
       end,
       conf.checks or {})
 
@@ -568,8 +568,8 @@ end
 
 --- Start up a system
 -- @param self system specification to load
--- @param ni node info
-function system.startup(self, ni)
+-- @param nd node info
+function system.startup(self, nd)
 
    local function block_start(b)
       local bname = safets(b.name)
@@ -582,16 +582,16 @@ function system.startup(self, ni)
    end
 
    -- start all non-active blocks
-   ubx.blocks_map(ni, block_start, is_inactive_inst)
+   ubx.blocks_map(nd, block_start, is_inactive_inst)
 
    -- start the active blocks
-   ubx.blocks_map(ni, block_start, is_active_inst)
+   ubx.blocks_map(nd, block_start, is_active_inst)
 end
 
 -- Pulldown a blockdiagram system
 -- @param self system specification to load
--- @param ni configuration table
-function system.pulldown(self, ni)
+-- @param nd configuration table
+function system.pulldown(self, nd)
 
    local function block_stop (b)
       info("stopping active block %s", safets((b.name)))
@@ -599,46 +599,46 @@ function system.pulldown(self, ni)
    end
 
    -- stop all active blocks first
-   ubx.blocks_map(ni, block_stop, is_active_inst)
+   ubx.blocks_map(nd, block_stop, is_active_inst)
 
    info("unloading all blocks")
-   ubx.node_rm(ni)
+   ubx.node_rm(nd)
 end
 
 --- Find and return ubx_block ptr
--- @param ni node_info
+-- @param nd node_info
 -- @param btab block table
 -- @return bptr
-local function get_ubx_block(ni, btab)
+local function get_ubx_block(nd, btab)
    assert(btab._fqn, "missing fqn entry of " .. ts(btab))
-   return ubx.block_get(ni, btab._fqn)
+   return ubx.block_get(nd, btab._fqn)
 end
 
 --- load the systems modules
 -- ensure modules are only loaded once
--- @param ni ubx_node_info into which to import
+-- @param nd ubx_node into which to import
 -- @param s system
-local function import_modules(ni, s)
+local function import_modules(nd, s)
    local loaded = {}
 
    mapimports(
       function(m)
 	 if loaded[m] then return
 	 else
-	    ubx.load_module(ni, m)
+	    ubx.load_module(nd, m)
 	    loaded[m]=true
 	 end
       end, s)
 end
 
 --- Instantiate blocks
--- @param ni ubx_node_info into which to instantiate the blocks
+-- @param nd ubx_node into which to instantiate the blocks
 -- @param root_sys system
-local function create_blocks(ni, root_sys)
+local function create_blocks(nd, root_sys)
    mapblocks(
       function(b,i,p)
 	 info("creating block %s [%s]", green(b._fqn), blue(b.type))
-	 ubx.block_create(ni, b.type, b._fqn)
+	 ubx.block_create(nd, b.type, b._fqn)
       end, root_sys)
 end
 
@@ -651,7 +651,7 @@ end
 -- NCs defined higher in the composition tree override lower ones.
 -- @param root_sys root system
 -- @return table of initialized config-name=ubx_data tuples
-local function build_nodecfg_tab(ni, root_sys)
+local function build_nodecfg_tab(nd, root_sys)
    local NC = {}
 
    -- instantiate a node config and add it to global table. skip it if
@@ -662,7 +662,7 @@ local function build_nodecfg_tab(ni, root_sys)
 	 return
       end
 
-      local d = ubx.data_alloc(ni, cfg.type, 1)
+      local d = ubx.data_alloc(nd, cfg.type, 1)
       ubx.data_set(d, cfg.config, true)
       NC[name] = d
       info("creating node config %s [%s] %s",
@@ -675,16 +675,16 @@ local function build_nodecfg_tab(ni, root_sys)
 end
 
 --- Substitute #blockname with corresponding ubx_block_t ptrs
--- @param ni node_info
+-- @param nd node_info
 -- @param c configuration
 -- @param s parent system
-local function preproc_configs(ni, c, s)
+local function preproc_configs(nd, c, s)
 
    local function replace_hash(val, tab, key)
       local name = string.match(val, ".*#([%w_%-%/]+)")
       if not name then return end
       local bfqn = s._fqn..name
-      local ptr = ubx.block_get(ni, bfqn)
+      local ptr = ubx.block_get(nd, bfqn)
       if ptr==nil then
 	 err_exit(1, "error: failed to resolve # blockref to block %s", bfqn)
       elseif ubx.is_proto(ptr) then
@@ -806,10 +806,10 @@ local function reapply_config(cfg, b, NC, configured, nonexist)
 end
 
 --- configure all blocks
--- @param ni node_info
+-- @param nd node_info
 -- @param root_sys root system
 -- @param NC
-local function configure_blocks(ni, root_sys, NC)
+local function configure_blocks(nd, root_sys, NC)
 
    -- table of already configured configs
    -- { [<blkfqn.config>] = true }
@@ -823,12 +823,12 @@ local function configure_blocks(ni, root_sys, NC)
    local nonexist = {}
 
    -- substitue #blockname syntax
-   mapconfigs(function(c, i, s) preproc_configs(ni, c, s, i) end, root_sys)
+   mapconfigs(function(c, i, s) preproc_configs(nd, c, s, i) end, root_sys)
 
    -- apply configurations to blocks
    mapconfigs(
       function(cfg, i)
-	 local b = get_ubx_block(ni, cfg._tgt)
+	 local b = get_ubx_block(nd, cfg._tgt)
 	 if b == nil then
 	    err_exit(1, "error: config %s for block %s: no such block found",
 		     cfg._fqn, cfg.name)
@@ -846,7 +846,7 @@ local function configure_blocks(ni, root_sys, NC)
    -- initialize all blocks (brings them to state 'inactive')
    mapblocks(
       function(btab,i,p)
-	 local b = get_ubx_block(ni, btab)
+	 local b = get_ubx_block(nd, btab)
 	 info("initializing block %s", safets(b.name))
 	 local ret = ubx.block_init(b)
 	 if ret ~= 0 then
@@ -858,7 +858,7 @@ local function configure_blocks(ni, root_sys, NC)
    -- reapply configurations to blocks
    mapconfigs(
       function(cfg, i)
-	 local b = get_ubx_block(ni, cfg._tgt)
+	 local b = get_ubx_block(nd, cfg._tgt)
 	 if b == nil then
 	    err_exit(1, "error: config %s for block %s: no such block found",
 		     cfg._fqn, cfg.name)
@@ -883,9 +883,9 @@ local function configure_blocks(ni, root_sys, NC)
 end
 
 --- Connect blocks
--- @param ni node_info
+-- @param nd node_info
 -- @param root_sys root system
-local function connect_blocks(ni, root_sys)
+local function connect_blocks(nd, root_sys)
    local function do_connect(c, i, p)
       local srcblk = c._src._fqn
       local srcport = c._srcport
@@ -895,7 +895,7 @@ local function connect_blocks(ni, root_sys)
       -- are we connecting to an interaction?
       if srcport==nil then
 	 -- src is interaction, target a port
-	 local ib = ubx.block_get(ni, srcblk)
+	 local ib = ubx.block_get(nd, srcblk)
 
 	 if ib==nil then
 	    err_exit(1, "do_connect: unknown src block %s", srcblk)
@@ -905,7 +905,7 @@ local function connect_blocks(ni, root_sys)
 	    err_exit(1, "%s is not a valid iblock instance", srcblk)
 	 end
 
-	 local btgt = ubx.block_get(ni, tgtblk)
+	 local btgt = ubx.block_get(nd, tgtblk)
 	 local ptgt = ubx.port_get(btgt, tgtport)
 
 	 if ubx.port_connect_in(ptgt, ib) ~= 0 then
@@ -915,7 +915,7 @@ local function connect_blocks(ni, root_sys)
 	 info("connecting %s (iblock) ->  %s.%s", srcblk, tgtblk, tgtport)
       elseif tgtport==nil then
 	 -- src is a port, target is an interaction
-	 local ib = ubx.block_get(ni, tgtblk)
+	 local ib = ubx.block_get(nd, tgtblk)
 
 	 if ib==nil then
 	    err_exit(1, "do_connect: unknown tgt block %s", tgtblk)
@@ -925,7 +925,7 @@ local function connect_blocks(ni, root_sys)
 	    err_exit(1, "%s not a valid iblock instance", tgtblk)
 	 end
 
-	 local bsrc = ubx.block_get(ni, srcblk)
+	 local bsrc = ubx.block_get(nd, srcblk)
 	 local psrc = ubx.port_get(bsrc, srcport)
 
 	 if ubx.port_connect_out(psrc, ib) ~= 0 then
@@ -940,8 +940,8 @@ local function connect_blocks(ni, root_sys)
 	 info("connecting %s.%s -[%d]-> %s.%s",
 	      srcblk, srcport, bufflen, tgtblk, tgtport)
 
-	 local bsrc = ubx.block_get(ni, srcblk)
-	 local btgt = ubx.block_get(ni, tgtblk)
+	 local bsrc = ubx.block_get(nd, srcblk)
+	 local btgt = ubx.block_get(nd, tgtblk)
 
 	 if bsrc==nil then
 	    err_exit(1, "ERR: src block %s not found", srcblk)
@@ -996,7 +996,7 @@ end
 --- Launch a blockdiagram system
 -- @param self system specification to load
 -- @param t configuration table
--- @return ni node_info handle
+-- @return nd node handle
 function system.launch(self, t)
 
    if self:validate(false) > 0 then self:validate(true) os.exit(1) end
@@ -1006,22 +1006,22 @@ function system.launch(self, t)
    t.nodename = t.nodename or "n"
    USE_STDERR = t.use_stderr or false
 
-   local ni = ubx.node_create(t.nodename,
+   local nd = ubx.node_create(t.nodename,
 			      { loglevel=t.loglevel,
 				mlockall=t.mlockall,
 				dumpable=t.dumpable })
 
-   def_loggers(ni, "launch")
-   import_modules(ni, self)
-   create_blocks(ni, self)
-   _NC = build_nodecfg_tab(ni, self)
-   configure_blocks(ni, self, _NC)
-   connect_blocks(ni, self)
-   late_checks(t, ni)
+   def_loggers(nd, "launch")
+   import_modules(nd, self)
+   create_blocks(nd, self)
+   _NC = build_nodecfg_tab(nd, self)
+   configure_blocks(nd, self, _NC)
+   connect_blocks(nd, self)
+   late_checks(t, nd)
 
-   if not t.nostart then system.startup(self, ni) end
+   if not t.nostart then system.startup(self, nd) end
 
-   return ni
+   return nd
 end
 
 -- exports

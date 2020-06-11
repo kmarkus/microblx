@@ -8,14 +8,14 @@ local ubx=require("ubx")
 
 local assert_equals = luaunit.assert_equals
 
-local ni=ubx.node_create("testnode")
+local nd=ubx.node_create("testnode")
 
-ubx.load_module(ni, "stdtypes")
-ubx.load_module(ni, "random")
+ubx.load_module(nd, "stdtypes")
+ubx.load_module(nd, "random")
 
-ubx.ffi_load_types(ni)
+ubx.ffi_load_types(nd)
 
-local b = ubx.block_create(ni, "random/random",
+local b = ubx.block_create(nd, "random/random",
 			   "b", {min_max_config={min=32, max=127}})
 
 function test_switch_block_inactive()

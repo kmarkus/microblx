@@ -76,7 +76,7 @@ local function report_conf_to_portlist(rc, this)
 	 conf.bname = bname
 	 conf.pname = pname
 	 conf.p_rep_name = p_rep_name
-	 conf.sample = ubx.data_alloc(ni, p.in_type_name, p.in_data_len)
+	 conf.sample = ubx.data_alloc(nd, p.in_type_name, p.in_data_len)
 	 conf.sample_cdata = ubx.data_to_cdata(conf.sample, true)
 	 conf.serfun=cdata.gen_logfun(ubx.data_to_ctype(conf.sample, true), bname)
 

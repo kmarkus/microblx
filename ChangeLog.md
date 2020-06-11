@@ -5,10 +5,13 @@ This file tracks user visible API changes
 
 ## 0.9.0
 
-- `ubx-genblock` updated
+- `ubx_node_info_t` renamed to `ubx_node_t` for
+  consistency. `ubx_node_t` variables renamed from `ni` to `nd`.
+
+- `ubx-genblock` updated to generate state of the art blocks
 
 - `ubx_ports_connect_uni`/`ubx_ports_disconnect_uni`/
-  - removed `_uni` suffix
+  - renamed: dropped `_uni` suffix
   - made iblock parameter `const`
 
 - `ubx_block_`: store `ports` and `configs` in a `utlist.h` double
@@ -17,7 +20,7 @@ This file tracks user visible API changes
 
 - registration of static blocks has changed. Use the types
   `ubx_proto_block_t`, `ubx_proto_port_t` and `ubx_proto_config_t` to
-  define blocks definition and `ubx_block_register(ubx_node_info_t*,
+  define blocks definition and `ubx_block_register(ubx_node_t*,
   ubx_block_proto_t* bt)` to register them. Note that this **only**
   changed for the static definition/registration of blocks. At runtime
   (i.e. in hooks etc) the non-`_proto_` versions are used as before

@@ -472,36 +472,36 @@ ubx_proto_block_t ptrig_comp = {
 	.cleanup = ptrig_cleanup
 };
 
-int ptrig_mod_init(ubx_node_info_t *ni)
+int ptrig_mod_init(ubx_node_t *nd)
 {
 	int ret;
 
 	for (unsigned int i=0; i<ARRAY_SIZE(ptrig_types); i++) {
-		ret = ubx_type_register(ni, &ptrig_types[i]);
+		ret = ubx_type_register(nd, &ptrig_types[i]);
 		if (ret != 0) {
-			ubx_log(UBX_LOGLEVEL_ERR, ni, __func__,
+			ubx_log(UBX_LOGLEVEL_ERR, nd, __func__,
 				"failed to register type %s",
 				ptrig_types[i].name);
 			goto out;
 		}
 	}
 
-	ret = ubx_block_register(ni, &ptrig_comp);
+	ret = ubx_block_register(nd, &ptrig_comp);
 
 	if (ret != 0) {
-		ubx_log(UBX_LOGLEVEL_ERR, ni, __func__,
+		ubx_log(UBX_LOGLEVEL_ERR, nd, __func__,
 			"failed to register ptrig block");
 	}
  out:
 	return ret;
 }
 
-void ptrig_mod_cleanup(ubx_node_info_t *ni)
+void ptrig_mod_cleanup(ubx_node_t *nd)
 {
 	for (unsigned int i=0; i<ARRAY_SIZE(ptrig_types); i++)
-		ubx_type_unregister(ni, ptrig_types[i].name);
+		ubx_type_unregister(nd, ptrig_types[i].name);
 
-	ubx_block_unregister(ni, "std_triggers/ptrig");
+	ubx_block_unregister(nd, "std_triggers/ptrig");
 }
 
 UBX_MODULE_INIT(ptrig_mod_init)

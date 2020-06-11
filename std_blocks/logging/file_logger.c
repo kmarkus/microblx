@@ -205,14 +205,14 @@ ubx_proto_block_t lua_comp = {
 	.cleanup = file_logger_cleanup,
 };
 
-static int file_logger_mod_init(ubx_node_info_t *ni)
+static int file_logger_mod_init(ubx_node_t *nd)
 {
-	return ubx_block_register(ni, &lua_comp);
+	return ubx_block_register(nd, &lua_comp);
 }
 
-static void file_logger_mod_cleanup(ubx_node_info_t *ni)
+static void file_logger_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(ni, "logging/file_logger");
+	ubx_block_unregister(nd, "logging/file_logger");
 }
 
 UBX_MODULE_INIT(file_logger_mod_init)

@@ -11,10 +11,10 @@
 
 #define UBX_LOGLEVEL_DEFAULT		UBX_LOGLEVEL_INFO
 
-#define ubx_log(level, ni, src, fmt, ...)			\
+#define ubx_log(level, nd, src, fmt, ...)			\
 do {								\
-	if (level <= (ni)->loglevel)				\
-		__ubx_log(level, ni, src, fmt, ##__VA_ARGS__);	\
+	if (level <= (nd)->loglevel)				\
+		__ubx_log(level, nd, src, fmt, ##__VA_ARGS__);	\
 } while (0)
 
 #ifdef UBX_DEBUG
@@ -36,24 +36,24 @@ do {								\
 do {										\
 	if (b->loglevel) {							\
 		if (level <= *b->loglevel) {					\
-			__ubx_log(level, b->ni, b->name, fmt, ##__VA_ARGS__);	\
+			__ubx_log(level, b->nd, b->name, fmt, ##__VA_ARGS__);	\
 		}								\
 	} else {								\
-		if (level <= b->ni->loglevel) {					\
-			__ubx_log(level, b->ni, b->name, fmt, ##__VA_ARGS__);	\
+		if (level <= b->nd->loglevel) {					\
+			__ubx_log(level, b->nd, b->name, fmt, ##__VA_ARGS__);	\
 		}								\
 	}									\
 } while (0)
 
 /* hooks for setting up logging infrastructure */
-int ubx_log_init(ubx_node_info_t *ni);
-void ubx_log_cleanup(ubx_node_info_t *ni);
+int ubx_log_init(ubx_node_t *nd);
+void ubx_log_cleanup(ubx_node_t *nd);
 
 /*
  * generic, low-level logging function. blocks should prefer the
  * standard ubx_* functions
  */
-void __ubx_log(const int level, const ubx_node_info_t *ni, const char *src, const char *fmt, ...)
+void __ubx_log(const int level, const ubx_node_t *nd, const char *src, const char *fmt, ...)
 	__attribute__((format(printf, 4, 5)));
 
 #endif /* _UBX_RTLOG_H */

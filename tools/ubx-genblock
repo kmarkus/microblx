@@ -401,29 +401,29 @@ ubx_proto_block_t $(bm.name)_block = {
 
 
 /* $(bm.name) module init and cleanup functions */
-int $(bm.name)_mod_init(ubx_node_info_t* ni)
+int $(bm.name)_mod_init(ubx_node_t* nd)
 {
-	ubx_log(UBX_LOGLEVEL_DEBUG, ni, "%s", __func__);
+	ubx_log(UBX_LOGLEVEL_DEBUG, nd, "%s", __func__);
 
 	for (unsigned int i=0; i<ARRAY_SIZE(types); i++) {
-		if(ubx_type_register(ni, &types[i]) != 0)
+		if(ubx_type_register(nd, &types[i]) != 0)
 			return -1;
 	}
 
-	if(ubx_block_register(ni, &$(bm.name)_block) != 0)
+	if(ubx_block_register(nd, &$(bm.name)_block) != 0)
 		return -1;
 
 	return 0;
 }
 
-void $(bm.name)_mod_cleanup(ubx_node_info_t *ni)
+void $(bm.name)_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_log(UBX_LOGLEVEL_DEBUG, ni, "%s", __func__);
+	ubx_log(UBX_LOGLEVEL_DEBUG, nd, "%s", __func__);
 
 	for (unsigned int i=0; i<ARRAY_SIZE(types); i++)
-		ubx_type_unregister(ni, types[i].name);
+		ubx_type_unregister(nd, types[i].name);
 
-	ubx_block_unregister(ni, "$(bm.name)");
+	ubx_block_unregister(nd, "$(bm.name)");
 }
 
 /* declare module init and cleanup functions, so that the ubx core can

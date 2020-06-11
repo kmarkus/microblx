@@ -12,7 +12,7 @@
 int main()
 {
   int len, ret=EXIT_FAILURE;
-  ubx_node_info_t ni;
+  ubx_node_t ni;
   ubx_block_t *plat1, *control1, *logger1, *ptrig1, *webif, *fifo_vel, *fifo_pos;
   ubx_data_t *d;
 

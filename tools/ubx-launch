@@ -144,7 +144,7 @@ local core_prefix, prefixes = ubx.get_prefix()
 print("core_prefix: " .. core_prefix)
 print("prefixes:    " .. table.concat(prefixes, ", "))
 
-ni = model:launch{nodename=nodename,
+nd = model:launch{nodename=nodename,
 		  verbose=true,
 		  loglevel=loglevel,
 		  use_stderr=opttab['-s'],
@@ -158,8 +158,8 @@ ni = model:launch{nodename=nodename,
 if opttab['-webif'] then
    local port = opttab['-webif'][1] or 8888
    print("starting up webinterface block (http://localhost:"..ts(port)..")")
-   ubx.load_module(ni, "webif")
-   local webif1=ubx.block_create(ni, "webif/webif", "webif1", { port=ts(port) })
+   ubx.load_module(nd, "webif")
+   local webif1=ubx.block_create(nd, "webif/webif", "webif1", { port=ts(port) })
    assert(ubx.block_init(webif1)==0)
    assert(ubx.block_start(webif1)==0)
 end
@@ -178,7 +178,7 @@ if not opttab['-i'] then
    end
 
    if not isempty(monitorblock) then
-      monblock = ni:block_get(monitorblock)
+      monblock = nd:block_get(monitorblock)
    end
 
    while duration > 0 do
@@ -192,6 +192,6 @@ if not opttab['-i'] then
 	 break
       end
    end
-   model:pulldown(ni)
+   model:pulldown(nd)
 end
 

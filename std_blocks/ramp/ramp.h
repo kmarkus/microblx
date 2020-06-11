@@ -73,17 +73,17 @@ ubx_proto_block_t ramp_block = {
 };
 
 
-int ramp_mod_init(ubx_node_info_t *ni)
+int ramp_mod_init(ubx_node_t *nd)
 {
-	if (ubx_block_register(ni, &ramp_block) != 0)
+	if (ubx_block_register(nd, &ramp_block) != 0)
 		return -1;
 
 	return 0;
 }
 
-void ramp_mod_cleanup(ubx_node_info_t *ni)
+void ramp_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(ni, "ramp_" QUOTE(BLOCK_NAME));
+	ubx_block_unregister(nd, "ramp_" QUOTE(BLOCK_NAME));
 }
 
 /*

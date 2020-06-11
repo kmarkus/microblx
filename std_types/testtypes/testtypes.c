@@ -28,18 +28,18 @@ ubx_type_t types[] = {
 	def_struct_type(struct kdl_frame, &kdl_frame_h),
 };
 
-static int testtypes_init(ubx_node_info_t* ni)
+static int testtypes_init(ubx_node_t* nd)
 {
 	for (int i=0; i<ARRAY_SIZE(types); i++)
-		ubx_type_register(ni, &types[i]);
+		ubx_type_register(nd, &types[i]);
 
 	return 0;
 }
 
-static void testtypes_cleanup(ubx_node_info_t *ni)
+static void testtypes_cleanup(ubx_node_t *nd)
 {
 	for (int i=0; i<ARRAY_SIZE(types); i++)
-		ubx_type_unregister(ni, types[i].name);
+		ubx_type_unregister(nd, types[i].name);
 }
 
 UBX_MODULE_INIT(testtypes_init)

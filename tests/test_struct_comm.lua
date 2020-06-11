@@ -14,12 +14,12 @@ assert_true = lu.assert_true
 
 local code_str_len = 16*1024*1024
 
-local ni = ubx.node_create("test_struct_comm")
+local nd = ubx.node_create("test_struct_comm")
 
-ubx.load_module(ni, "stdtypes")
-ubx.load_module(ni, "testtypes")
-ubx.load_module(ni, "luablock")
-ubx.load_module(ni, "lfds_cyclic")
+ubx.load_module(nd, "stdtypes")
+ubx.load_module(nd, "testtypes")
+ubx.load_module(nd, "luablock")
+ubx.load_module(nd, "lfds_cyclic")
 
 local lua_testcomp = [[
 ubx=require "ubx"
@@ -29,7 +29,7 @@ local rd, this
 function init(b)
    b=ffi.cast("ubx_block_t*", b)
    this=b
-   ubx.ffi_load_types(b.ni)
+   ubx.ffi_load_types(b.nd)
 
    -- print("adding port 'pos_in' to block ", ubx.safe_tostr(b.name))
    ubx.port_add(b, "pos_in", "{ desc='current measured position' }",
@@ -38,7 +38,7 @@ function init(b)
    ubx.port_add(b, "pos_out", "{ desc='desired position' }",
                 0, nil, 0, "struct kdl_vector", 1)
 
-   rd = ubx.data_alloc(b.ni, "struct kdl_vector")
+   rd = ubx.data_alloc(b.nd, "struct kdl_vector")
    return true
 end
 
@@ -66,7 +66,7 @@ end
 ]]
 
 
-lb1=ubx.block_create(ni, "lua/luablock", "lb1", { lua_str=lua_testcomp } )
+lb1=ubx.block_create(nd, "lua/luablock", "lb1", { lua_str=lua_testcomp } )
 assert_equals(ubx.block_init(lb1), 0)
 
 local p_pos_out = ubx.port_clone_conn(lb1, "pos_in", 4)
@@ -74,8 +74,8 @@ local p_pos_in = ubx.port_clone_conn(lb1, "pos_out", 4)
 
 assert_equals(ubx.block_start(lb1), 0)
 
-local _vin=ubx.data_alloc(ni, "struct kdl_vector")
-local _vout=ubx.data_alloc(ni, "struct kdl_vector")
+local _vin=ubx.data_alloc(nd, "struct kdl_vector")
+local _vout=ubx.data_alloc(nd, "struct kdl_vector")
 vcdin = ubx.data_to_cdata(_vin)
 vcdout = ubx.data_to_cdata(_vout)
 

@@ -14,10 +14,10 @@ local assert_false = lu.assert_false
 local assert_equals = lu.assert_equals
 local assert_not_equals = lu.assert_not_equals
 
-local ni=ubx.node_create("cdata_tolua_test")
+local nd=ubx.node_create("cdata_tolua_test")
 
-ubx.load_module(ni, "stdtypes")
-ubx.load_module(ni, "testtypes")
+ubx.load_module(nd, "stdtypes")
+ubx.load_module(nd, "testtypes")
 
 function test_vector()
    local init = {x=1,y=2,z=3}
@@ -94,7 +94,7 @@ function test_int_inv()
 end
 
 function test_ubx_data()
-   local ubx_data_vect = ubx.data_alloc(ni, "struct kdl_vector", 1)
+   local ubx_data_vect = ubx.data_alloc(nd, "struct kdl_vector", 1)
    local init = { x=7, y=8, z=9 }
    ubx.data_set(ubx_data_vect, init, true)
    local val = ubx.data_tolua(ubx_data_vect)
@@ -102,7 +102,7 @@ function test_ubx_data()
 end
 
 function test_ubx_data_inv()
-   local ubx_data_vect = ubx.data_alloc(ni, "struct kdl_vector", 1)
+   local ubx_data_vect = ubx.data_alloc(nd, "struct kdl_vector", 1)
    local init = { x=2, y=5, z=22 }
    ubx.data_set(ubx_data_vect, init, true)
    init.x=344
@@ -111,7 +111,7 @@ function test_ubx_data_inv()
 end
 
 function test_ubx_data_basic()
-   local ubx_data_int = ubx.data_alloc(ni, "unsigned int", 1)
+   local ubx_data_int = ubx.data_alloc(nd, "unsigned int", 1)
    local init = 4711
    ubx.data_set(ubx_data_int, init, false)
 
@@ -134,7 +134,7 @@ function test_pointer_to_prim()
 end
 
 function test_arr_data()
-   local d = ubx.data_alloc(ni, "double", 5)
+   local d = ubx.data_alloc(nd, "double", 5)
    local init = {1.1,2.2,3.3,4.4,5.5}
    ubx.data_set(d, init)
    local res = ubx.data_tolua(d)

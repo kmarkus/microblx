@@ -71,17 +71,17 @@ ubx_proto_block_t pid_block = {
 
 
 /* pid module init and cleanup functions */
-int pid_mod_init(ubx_node_info_t* ni)
+int pid_mod_init(ubx_node_t* nd)
 {
-	if(ubx_block_register(ni, &pid_block) != 0)
+	if(ubx_block_register(nd, &pid_block) != 0)
 		return -1;
 
 	return 0;
 }
 
-void pid_mod_cleanup(ubx_node_info_t *ni)
+void pid_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(ni, "pid");
+	ubx_block_unregister(nd, "pid");
 }
 
 /* declare module init and cleanup functions, so that the ubx core can

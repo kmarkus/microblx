@@ -427,10 +427,10 @@ which is called when a module is loaded:
 
 .. code:: c
 
-   1: static int rnd_module_init(ubx_node_info_t* ni)
+   1: static int rnd_module_init(ubx_node_t* ni)
    2: {
-   3:        ubx_type_register(ni, &random_config_type);
-   4:        return ubx_block_register(ni, &random_comp);
+   3:        ubx_type_register(nd, &random_config_type);
+   4:        return ubx_block_register(nd, &random_comp);
    5: }
    6: UBX_MODULE_INIT(rnd_module_init)
 
@@ -442,10 +442,10 @@ blocks registered in init:
 
 .. code:: c
 
-   static void rnd_module_cleanup(ubx_node_info_t *ni)
+   static void rnd_module_cleanup(ubx_node_t *nd)
    {
-       ubx_type_unregister(ni, "struct random_config");
-       ubx_block_unregister(ni, "random/random");
+       ubx_type_unregister(nd, "struct random_config");
+       ubx_block_unregister(nd, "random/random");
    }
    UBX_MODULE_CLEANUP(rnd_module_cleanup)
 
@@ -502,7 +502,7 @@ Outside of the block context, (e.g. in ``module_init`` or
 
 .. code:: c
 
-   ubx_log(int level, ubx_node_info_t *ni, const char* src, const char* fmt, ...)
+   ubx_log(int level, ubx_node_t *nd, const char* src, const char* fmt, ...)
 
    /* for example */
    ubx_log(UBX_LOGLEVEL_ERROR, ni, __FUNCTION__, "error %u", x);

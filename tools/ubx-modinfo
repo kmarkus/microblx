@@ -59,8 +59,8 @@ local function table_sub(t1, t2)
    return res
 end
 
-local function module_license_get(ni, modname)
-   local m = ubx.module_get(ni, modname)
+local function module_license_get(nd, modname)
+   local m = ubx.module_get(nd, modname)
    if m == nil then error("unknown module "..modname) end
    return ubx.safe_tostr(m.spdx_license_id)
 end
@@ -71,21 +71,21 @@ end
 -- @return table of blocks
 -- @return table of types
 local function module_totab(mod, premods, loglevel)
-   local ni = ubx.node_create("node", { loglevel=loglevel })
+   local nd = ubx.node_create("node", { loglevel=loglevel })
 
    if mod ~= "stdtypes" then
       premods[#premods+1] = "stdtypes"
    end
 
-   for _,m in ipairs(premods) do ubx.load_module(ni, m) end
+   for _,m in ipairs(premods) do ubx.load_module(nd, m) end
 
-   local n1 = ubx.node_totab(ni)
-   local modid = ubx.load_module(ni, mod)
-   local n2 = ubx.node_totab(ni)
+   local n1 = ubx.node_totab(nd)
+   local modid = ubx.load_module(nd, mod)
+   local n2 = ubx.node_totab(nd)
 
    local types = table_sub(n2.types, n1.types)
    local blocks = table_sub(n2.blocks, n1.blocks)
-   local spdx_license = module_license_get(ni, modid)
+   local spdx_license = module_license_get(nd, modid)
    return blocks, types, spdx_license
 end
 

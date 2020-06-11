@@ -65,14 +65,14 @@ local sys1 = bd.system {
 }
 
 function test_count_num_trigs()
-   local ni = sys1:launch{ nostart=true, loglevel=LOGLEVEL, nodename='sys1' }
-   local p_result = ubx.port_clone_conn(ni:b("tester"), "test_result")
-   sys1:startup(ni)
+   local nd = sys1:launch{ nostart=true, loglevel=LOGLEVEL, nodename='sys1' }
+   local p_result = ubx.port_clone_conn(nd:b("tester"), "test_result")
+   sys1:startup(nd)
    ubx.clock_mono_sleep(1)
-   ni:b("trig"):do_stop()
+   nd:b("trig"):do_stop()
    local _, res = p_result:read()
    assert_equals(res:tolua(), 999)
-   sys1:pulldown(ni)
+   sys1:pulldown(nd)
 end
 
 
@@ -140,12 +140,12 @@ function test_tstats()
 		     block_dur_us[res.block_name]*(1+eps)..")")
    end
 
-   local ni = sys2:launch{ nostart=true, loglevel=LOGLEVEL, nodename='sys2' }
-   local p_tstats = ubx.port_clone_conn(ni:b("trig"), "tstats", 4)
+   local nd = sys2:launch{ nostart=true, loglevel=LOGLEVEL, nodename='sys2' }
+   local p_tstats = ubx.port_clone_conn(nd:b("trig"), "tstats", 4)
 
-   sys2:startup(ni)
+   sys2:startup(nd)
    ubx.clock_mono_sleep(3)
-   ni:b("trig"):do_stop()
+   nd:b("trig"):do_stop()
 
    while true do
       local cnt, res = p_tstats:read()
@@ -155,7 +155,7 @@ function test_tstats()
 
    -- give ptrig some time to shutdown cleanly
    ubx.clock_mono_sleep(1)
-   sys2:pulldown(ni)
+   sys2:pulldown(nd)
 end
 
 

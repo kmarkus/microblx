@@ -256,14 +256,14 @@ ubx_proto_block_t fifo_comp = {
 	.read = fifo_read,
 };
 
-static int fifo_mod_init(ubx_node_info_t *ni)
+static int fifo_mod_init(ubx_node_t *nd)
 {
-	return ubx_block_register(ni, &fifo_comp);
+	return ubx_block_register(nd, &fifo_comp);
 }
 
-static void fifo_mod_cleanup(ubx_node_info_t *ni)
+static void fifo_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(ni, "examples/simple_fifo");
+	ubx_block_unregister(nd, "examples/simple_fifo");
 }
 
 UBX_MODULE_INIT(fifo_mod_init)

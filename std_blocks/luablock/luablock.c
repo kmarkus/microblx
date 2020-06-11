@@ -33,7 +33,7 @@ char luablock_meta[] =
 	"}";
 
 struct luablock_info {
-	struct ubx_node_info *ni;
+	struct ubx_node *ni;
 	struct lua_State *L;
 	ubx_data_t *exec_str_buff;
 };
@@ -171,7 +171,7 @@ int luablock_init(ubx_block_t *b)
 
 	lua_str = (len > 0) ? lua_str : NULL;
 
-	inf->exec_str_buff = ubx_data_alloc(b->ni, "char", EXEC_STR_BUFF_SIZE);
+	inf->exec_str_buff = ubx_data_alloc(b->nd, "char", EXEC_STR_BUFF_SIZE);
 	if (inf->exec_str_buff == NULL) {
 		ubx_err(b, "failed to allocate exec_str buffer");
 		goto out_free1;
@@ -263,14 +263,14 @@ ubx_proto_block_t lua_comp = {
 	.cleanup = luablock_cleanup,
 };
 
-int lua_init(ubx_node_info_t *ni)
+int lua_init(ubx_node_t *nd)
 {
-	return ubx_block_register(ni, &lua_comp);
+	return ubx_block_register(nd, &lua_comp);
 }
 
-void lua_cleanup(ubx_node_info_t *ni)
+void lua_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(ni, "lua/luablock");
+	ubx_block_unregister(nd, "lua/luablock");
 }
 
 UBX_MODULE_INIT(lua_init)

@@ -125,14 +125,14 @@ ubx_proto_block_t rand_block = {
 };
 
 
-int rand_mod_init(ubx_node_info_t *ni)
+int rand_mod_init(ubx_node_t *nd)
 {
-	return ubx_block_register(ni, &rand_block);
+	return ubx_block_register(nd, &rand_block);
 }
 
-void rand_mod_cleanup(ubx_node_info_t *ni)
+void rand_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(ni, BLOCK_NAME);
+	ubx_block_unregister(nd, BLOCK_NAME);
 }
 
 UBX_MODULE_INIT(rand_mod_init)

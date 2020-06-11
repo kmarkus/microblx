@@ -8,7 +8,7 @@
 int main(int argc, char **argv)
 {
 	int len, ret=EXIT_FAILURE;
-	ubx_node_info_t ni;
+	ubx_node_t ni;
 	ubx_block_t *webif;
 	ubx_data_t *d;
 

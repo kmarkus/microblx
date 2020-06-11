@@ -15,28 +15,28 @@ local assert_nil = lu.assert_nil
 
 local code_str_len = 16*1024*1024
 
-local ni = ubx.node_create("test_dyn_block_if")
+local nd = ubx.node_create("test_dyn_block_if")
 
 
 
-ubx.load_module(ni, "stdtypes")
-ubx.load_module(ni, "testtypes")
-ubx.load_module(ni, "luablock")
-ubx.load_module(ni, "lfds_cyclic")
-ubx.load_module(ni, "random")
+ubx.load_module(nd, "stdtypes")
+ubx.load_module(nd, "testtypes")
+ubx.load_module(nd, "luablock")
+ubx.load_module(nd, "lfds_cyclic")
+ubx.load_module(nd, "random")
 
 TestDynIF = {}
 
 local exec_str, lb
 
 function TestDynIF:setup()
-   lb = ubx.block_create(ni, "lua/luablock", "lb1",
+   lb = ubx.block_create(nd, "lua/luablock", "lb1",
 			 { lua_str = "ubx = require('ubx'); this=nil; function start(b) this=b; return true end" })
    assert_not_nil(lb)
 
    local p_exec_str = ubx.port_clone_conn(lb, "exec_str", 4, 4)
-   local d1=ubx.data_alloc(ni, "char")
-   local d2=ubx.data_alloc(ni, "int")
+   local d1=ubx.data_alloc(nd, "char")
+   local d2=ubx.data_alloc(nd, "int")
 
    assert_equals(ubx.block_init(lb), 0)
    assert_equals(ubx.block_start(lb), 0)
@@ -53,7 +53,7 @@ end
 
 function TestDynIF:teardown()
    exec_str = nil
-   ubx.node_clear(ni)
+   ubx.node_clear(nd)
 end
 
 function TestDynIF:TestExecStr()

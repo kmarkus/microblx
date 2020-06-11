@@ -7,20 +7,20 @@
 #define UBX_CORE_H
 
 /* node API */
-int ubx_node_init(ubx_node_info_t *ni, const char *name, uint32_t attrs);
-void ubx_node_clear(ubx_node_info_t *ni);
-void ubx_node_cleanup(ubx_node_info_t *ni);
-void ubx_node_rm(ubx_node_info_t *ni);
+int ubx_node_init(ubx_node_t *nd, const char *name, uint32_t attrs);
+void ubx_node_clear(ubx_node_t *nd);
+void ubx_node_cleanup(ubx_node_t *nd);
+void ubx_node_rm(ubx_node_t *nd);
 
-int ubx_num_blocks(ubx_node_info_t *ni);
-int ubx_num_types(ubx_node_info_t *ni);
-int ubx_num_modules(ubx_node_info_t *ni);
+int ubx_num_blocks(ubx_node_t *nd);
+int ubx_num_types(ubx_node_t *nd);
+int ubx_num_modules(ubx_node_t *nd);
 
 /* blocks */
-ubx_block_t *ubx_block_get(ubx_node_info_t *ni, const char *name);
-ubx_block_t *ubx_block_create(ubx_node_info_t *ni, const char *type, const char *name);
+ubx_block_t *ubx_block_get(ubx_node_t *nd, const char *name);
+ubx_block_t *ubx_block_create(ubx_node_t *nd, const char *type, const char *name);
 void ubx_block_free(ubx_block_t *b);
-int ubx_block_rm(ubx_node_info_t *ni, const char *name);
+int ubx_block_rm(ubx_node_t *nd, const char *name);
 
 /* lifecycle hooks */
 int ubx_block_init(ubx_block_t *b);
@@ -30,9 +30,9 @@ int ubx_block_cleanup(ubx_block_t *b);
 int ubx_cblock_step(ubx_block_t *b);
 
 /* modules and registration */
-int ubx_module_load(ubx_node_info_t *ni, const char *lib);
-ubx_module_t *ubx_module_get(ubx_node_info_t *ni, const char *lib);
-void ubx_module_unload(ubx_node_info_t *ni, const char *lib);
+int ubx_module_load(ubx_node_t *nd, const char *lib);
+ubx_module_t *ubx_module_get(ubx_node_t *nd, const char *lib);
+void ubx_module_unload(ubx_node_t *nd, const char *lib);
 
 /**
  * __ubx_initialize_module - module initialization hook
@@ -42,7 +42,7 @@ void ubx_module_unload(ubx_node_info_t *ni, const char *lib);
  * @ni: node handle for the module to register blocks and types
  * @return: 0 if OK, -1 otherwise
  */
-int __ubx_initialize_module(struct ubx_node_info *ni);
+int __ubx_initialize_module(struct ubx_node *ni);
 
 /**
  * __ubx_cleanup_module - module cleanuphook
@@ -51,23 +51,23 @@ int __ubx_initialize_module(struct ubx_node_info *ni);
  *
  * @ni: node handle for the module to unregister blocks and types
  */
-void __ubx_cleanup_module(struct ubx_node_info *ni);
+void __ubx_cleanup_module(struct ubx_node *ni);
 
-int ubx_block_register(ubx_node_info_t *ni, struct ubx_proto_block *prot);
-int ubx_block_unregister(ubx_node_info_t *ni, const char *name);
+int ubx_block_register(ubx_node_t *nd, struct ubx_proto_block *prot);
+int ubx_block_unregister(ubx_node_t *nd, const char *name);
 
-int ubx_type_register(ubx_node_info_t *ni, ubx_type_t *type);
-ubx_type_t *ubx_type_unregister(ubx_node_info_t *ni, const char *name);
+int ubx_type_register(ubx_node_t *nd, ubx_type_t *type);
+ubx_type_t *ubx_type_unregister(ubx_node_t *nd, const char *name);
 
 /* types (ubx_type_t) */
-ubx_type_t *ubx_type_get(ubx_node_info_t *ni, const char *name);
-ubx_type_t *ubx_type_get_by_hash(ubx_node_info_t *ni, const uint8_t *hash);
-ubx_type_t *ubx_type_get_by_hashstr(ubx_node_info_t *ni, const char *hashstr);
+ubx_type_t *ubx_type_get(ubx_node_t *nd, const char *name);
+ubx_type_t *ubx_type_get_by_hash(ubx_node_t *nd, const uint8_t *hash);
+ubx_type_t *ubx_type_get_by_hashstr(ubx_node_t *nd, const char *hashstr);
 void ubx_type_hashstr(const ubx_type_t *t, char *buf);
 
 /* data (ubx_data_t) */
 ubx_data_t *__ubx_data_alloc(const ubx_type_t *typ, const long array_len);
-ubx_data_t *ubx_data_alloc(ubx_node_info_t *ni, const char *typname, long array_len);
+ubx_data_t *ubx_data_alloc(ubx_node_t *nd, const char *typname, long array_len);
 int ubx_data_resize(ubx_data_t *d, long newlen);
 void ubx_data_free(ubx_data_t *d);
 long data_size(const ubx_data_t *d);
@@ -115,7 +115,7 @@ int ubx_ports_connect(ubx_port_t *out_port, ubx_port_t *in_port, const ubx_block
 int ubx_ports_disconnect(ubx_port_t *out_port, ubx_port_t *in_port, const ubx_block_t *iblock);
 
 /* rt logging */
-void __ubx_log(const int level, const ubx_node_info_t *ni, const char *src, const char *fmt, ...);
+void __ubx_log(const int level, const ubx_node_t *nd, const char *src, const char *fmt, ...);
 
 /* misc helpers */
 const char *block_state_tostr(unsigned int state);

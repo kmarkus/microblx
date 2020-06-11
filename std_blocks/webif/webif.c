@@ -81,7 +81,7 @@ int begin_request_handler(struct mg_connection *conn)
 #endif
 	/* call lua */
 	lua_getfield(inf->L, LUA_GLOBALSINDEX, "request_handler");
-	lua_pushlightuserdata(inf->L, (void *)inf->block->ni);
+	lua_pushlightuserdata(inf->L, (void *)inf->block->nd);
 	lua_pushlightuserdata(inf->L, (void *)request_info);
 
 	if (post_data_len > 0)
@@ -244,14 +244,14 @@ ubx_proto_block_t webif_comp = {
 	.cleanup = wi_cleanup,
 };
 
-int webif_init(ubx_node_info_t *ni)
+int webif_init(ubx_node_t *nd)
 {
-	return ubx_block_register(ni, &webif_comp);
+	return ubx_block_register(nd, &webif_comp);
 }
 
-void webif_cleanup(ubx_node_info_t *ni)
+void webif_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(ni, "webif/webif");
+	ubx_block_unregister(nd, "webif/webif");
 }
 
 UBX_MODULE_INIT(webif_init)

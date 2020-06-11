@@ -63,15 +63,15 @@ end
 -- @return never returns
 local function read(mqtab, preloads)
 
-   local ni = ubx.node_create("ubx-mq")
-   ubx.load_module(ni, "stdtypes")
-   ubx.load_module(ni, "mqueue")
+   local nd = ubx.node_create("ubx-mq")
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "mqueue")
 
    for _,m in ipairs(preloads) do
-      ubx.load_module(ni, m)
+      ubx.load_module(nd, m)
    end
 
-   local typ = ubx.type_get_by_hashstr(ni, mqtab.hashstr)
+   local typ = ubx.type_get_by_hashstr(nd, mqtab.hashstr)
 
    if typ == nil then
       print(fmt("no type found for %s, use -p option to preload types", mqtab.hashstr))
@@ -80,14 +80,14 @@ local function read(mqtab, preloads)
 
    local sample = ubx.__data_alloc(typ, mqtab.data_len)
 
-   ubx.block_create(ni, "mqueue", "mq", {
+   ubx.block_create(nd, "mqueue", "mq", {
 		       mq_id = mqtab.mq_id,
 		       type_name = ubx.safe_tostr(typ.name),
 		       data_len = mqtab.data_len,
 		       buffer_len = 32,
 		       blocking = 1 } )
 
-   local mq = ni:b("mq")
+   local mq = nd:b("mq")
 
    if ubx.block_tostate(mq, 'active') ~= 0 then
       print("failed to activate mq")

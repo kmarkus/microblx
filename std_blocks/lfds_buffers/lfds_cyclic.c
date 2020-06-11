@@ -123,7 +123,7 @@ int cyclic_init(ubx_block_t *i)
 
 	len = cfg_getptr_char(i, "type_name", &type_name);
 
-	bbi->type = ubx_type_get(i->ni, type_name);
+	bbi->type = ubx_type_get(i->nd, type_name);
 
 	if (bbi->type == NULL) {
 		ubx_err(i, "EINVALID_CONFIG: unkown type %s", type_name);
@@ -270,14 +270,14 @@ ubx_proto_block_t cyclic_comp = {
 	.read = cyclic_read,
 };
 
-int cyclic_mod_init(ubx_node_info_t *ni)
+int cyclic_mod_init(ubx_node_t *nd)
 {
-	return ubx_block_register(ni, &cyclic_comp);
+	return ubx_block_register(nd, &cyclic_comp);
 }
 
-void cyclic_mod_cleanup(ubx_node_info_t *ni)
+void cyclic_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(ni, "lfds_buffers/cyclic");
+	ubx_block_unregister(nd, "lfds_buffers/cyclic");
 }
 
 UBX_MODULE_INIT(cyclic_mod_init)

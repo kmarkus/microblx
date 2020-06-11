@@ -104,7 +104,7 @@ int mqueue_init(ubx_block_t *i)
 		goto out_free_info;
 	}
 
-	inf->type = ubx_type_get(i->ni, chrptr);
+	inf->type = ubx_type_get(i->nd, chrptr);
 
 	if (inf->type == NULL) {
 		ubx_err(i, "failed to lookup type %s", chrptr);
@@ -254,14 +254,14 @@ ubx_proto_block_t mqueue_comp = {
 
 };
 
-int mqueue_mod_init(ubx_node_info_t *ni)
+int mqueue_mod_init(ubx_node_t *nd)
 {
-	return ubx_block_register(ni, &mqueue_comp);
+	return ubx_block_register(nd, &mqueue_comp);
 }
 
-void mqueue_mod_cleanup(ubx_node_info_t *ni)
+void mqueue_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(ni, "mqueue");
+	ubx_block_unregister(nd, "mqueue");
 }
 
 UBX_MODULE_INIT(mqueue_mod_init)

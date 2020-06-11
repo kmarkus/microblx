@@ -75,7 +75,7 @@ enum {
 struct ubx_type;
 struct ubx_data;
 struct ubx_block;
-struct ubx_node_info;
+struct ubx_node;
 struct ubx_log_msg;
 
 /**
@@ -93,7 +93,7 @@ enum {
 
 /**
  * struct ubx_type
- * @ni: ubx_node
+ * @nd: ubx_node
  * @sequid: sequential id
  * @type_class: type class of this type
  * @size: size in bytes
@@ -108,7 +108,7 @@ typedef struct ubx_type {
 	uint32_t type_class;
 	long size;
 	const void *private_data;
-	struct ubx_node_info *ni;
+	struct ubx_node *nd;
 	unsigned long seqid;
 	UT_hash_handle hh;
 	const char *doc;
@@ -285,7 +285,7 @@ enum {
  * @configs: head ptr to double linked list of configurations
  * @block_state: current state in block life cycle FSM
  * @prototype: pointer to prototype block (if any)
- * @ni: parent ubx_node
+ * @nd: parent ubx_node
  * @loglevel: ptr to loglevel config (if it exists)
  * @init: init hook
  * @start: start hook
@@ -312,7 +312,7 @@ typedef struct ubx_block {
 	ubx_config_t *configs;
 
 	const struct ubx_block *prototype;
-	struct ubx_node_info *ni;
+	struct ubx_node *nd;
 
 	const int *loglevel;
 
@@ -357,8 +357,8 @@ typedef struct ubx_block {
 typedef struct ubx_module {
 	const char *id; /* name or path/name */
 	void *handle;
-	int (*init)(struct ubx_node_info *ni);
-	void (*cleanup)(struct ubx_node_info *ni);
+	int (*init)(struct ubx_node *nd);
+	void (*cleanup)(struct ubx_node *nd);
 	const char *spdx_license_id;
 	UT_hash_handle hh;
 } ubx_module_t;
@@ -371,7 +371,7 @@ enum {
 };
 
 /**
- * struct ubx_node_info - node information
+ * struct ubx_node - node information
  * holds references to all known blocks and types
  * @name: name of node
  * @blocks: UT_hash hash table of all blocks
@@ -385,7 +385,7 @@ enum {
  * @log: pointer to log function
  * @log_data: private state of log function
  */
-typedef struct ubx_node_info {
+typedef struct ubx_node {
 	const char name[UBX_NODE_NAME_MAXLEN + 1];
 	ubx_block_t *blocks; /* instances, only one list */
 	ubx_type_t *types; /* known types */
@@ -394,9 +394,9 @@ typedef struct ubx_node_info {
 
 	uint32_t attrs;
 	int loglevel;
-	void (*log)(const struct ubx_node_info *inf, const struct ubx_log_msg *msg);
+	void (*log)(const struct ubx_node *inf, const struct ubx_log_msg *msg);
 	void *log_data;
-} ubx_node_info_t;
+} ubx_node_t;
 
 
 /**

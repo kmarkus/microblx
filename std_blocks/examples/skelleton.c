@@ -120,22 +120,22 @@ ubx_proto_block_t skel_comp = {
 	.step = skel_step,
 };
 
-int skel_module_init(ubx_node_info_t *ni)
+int skel_module_init(ubx_node_t *nd)
 {
 	for (long unsigned int i=0; i<ARRAY_SIZE(skel_types); i++) {
-		if (ubx_type_register(ni, &skel_types[i]))
+		if (ubx_type_register(nd, &skel_types[i]))
 			return -1;
 	}
 
-	return ubx_block_register(ni, &skel_comp);
+	return ubx_block_register(nd, &skel_comp);
 }
 
-void skel_module_cleanup(ubx_node_info_t *ni)
+void skel_module_cleanup(ubx_node_t *nd)
 {
 	for (long unsigned int i=0; i<ARRAY_SIZE(skel_types);	i++)
-		ubx_type_unregister(ni, skel_types[i].name);
+		ubx_type_unregister(nd, skel_types[i].name);
 
-	ubx_block_unregister(ni, "threshold");
+	ubx_block_unregister(nd, "threshold");
 }
 
 UBX_MODULE_INIT(skel_module_init)

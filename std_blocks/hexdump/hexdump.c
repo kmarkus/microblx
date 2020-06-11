@@ -56,14 +56,14 @@ ubx_proto_block_t hexdump_comp = {
 	.write = hexdump_write,
 };
 
-int hexdump_mod_init(ubx_node_info_t *ni)
+int hexdump_mod_init(ubx_node_t *nd)
 {
-	return ubx_block_register(ni, &hexdump_comp);
+	return ubx_block_register(nd, &hexdump_comp);
 }
 
-void hexdump_mod_cleanup(ubx_node_info_t *ni)
+void hexdump_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(ni, "hexdump/hexdump");
+	ubx_block_unregister(nd, "hexdump/hexdump");
 }
 
 UBX_MODULE_INIT(hexdump_mod_init)

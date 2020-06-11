@@ -100,14 +100,14 @@ ubx_proto_block_t trig_comp = {
 	.step = trig_step
 };
 
-int trig_mod_init(ubx_node_info_t *ni)
+int trig_mod_init(ubx_node_t *nd)
 {
-	return ubx_block_register(ni, &trig_comp);
+	return ubx_block_register(nd, &trig_comp);
 }
 
-void trig_mod_cleanup(ubx_node_info_t *ni)
+void trig_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(ni, "std_triggers/trig");
+	ubx_block_unregister(nd, "std_triggers/trig");
 }
 
 UBX_MODULE_INIT(trig_mod_init)

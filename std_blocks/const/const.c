@@ -65,7 +65,7 @@ static int const_init(ubx_block_t *b)
 		goto out_free;
 	}
 
-	inf->type = ubx_type_get(b->ni, type_name);
+	inf->type = ubx_type_get(b->nd, type_name);
 
 	if (inf->type == NULL) {
 		ubx_err(b, "unkown type %s", type_name);
@@ -178,17 +178,17 @@ ubx_proto_block_t const_comp = {
 	.cleanup = const_cleanup,
 };
 
-static int const_mod_init(ubx_node_info_t *ni)
+static int const_mod_init(ubx_node_t *nd)
 {
-	return ubx_block_register(ni, &const_comp);
+	return ubx_block_register(nd, &const_comp);
 }
 
-static void const_mod_cleanup(ubx_node_info_t *ni)
+static void const_mod_cleanup(ubx_node_t *nd)
 {
 #ifdef BUILD_IBLOCK
-	ubx_block_unregister(ni, "consts/iconst");
+	ubx_block_unregister(nd, "consts/iconst");
 #else
-	ubx_block_unregister(ni, "consts/cconst");
+	ubx_block_unregister(nd, "consts/cconst");
 #endif
 }
 

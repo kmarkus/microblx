@@ -195,7 +195,7 @@ function M.safe_tostr(charptr)
 end
 
 -- basic predicates
-function M.is_node_info(x) return ffi.istype("ubx_node_info_t", x) end
+function M.is_node(x) return ffi.istype("ubx_node_t", x) end
 function M.is_block(x) return ffi.istype("ubx_block_t", x) end
 function M.is_config(x) return ffi.istype("ubx_config_t", x) end
 function M.is_port(x) return ffi.istype("ubx_port_t", x) end
@@ -297,22 +297,22 @@ ffi.metatype("struct ubx_timespec", ubx_timespec_mt)
 -- @param name name of node
 -- @param loglevel desired default loglevel
 -- @param attrs node attributes
--- @return ubx_node_info_t
+-- @return ubx_node_t
 function M.node_create(name, params)
-   local ni=ffi.new("ubx_node_info_t")
+   local nd = ffi.new("ubx_node_t")
    params = params or {}
    local attrs=0
    if params.mlockall then attrs = bit.bor(attrs, ffi.C.ND_MLOCK_ALL) end
    if params.dumpable then attrs = bit.bor(attrs, ffi.C.ND_DUMPABLE) end
-   if params.loglevel then ni.loglevel = params.loglevel end
-   assert(ubx.ubx_node_init(ni, name, attrs)==0, "node_create failed")
-   return ni
+   if params.loglevel then nd.loglevel = params.loglevel end
+   assert(ubx.ubx_node_init(nd, name, attrs)==0, "node_create failed")
+   return nd
 end
 
 --- Load and initialize a ubx module.
--- @param ni node_info pointer into which to load module
+-- @param nd node_info pointer into which to load module
 -- @param libfile module file to load
-function M.load_module(ni, libfile)
+function M.load_module(nd, libfile)
    local ver = string.sub(M.safe_tostr(ubx.ubx_version()), 1, 3)
    local modfile = "/lib/ubx/"..ver.."/"..libfile
 
@@ -321,12 +321,12 @@ function M.load_module(ni, libfile)
       if string.sub(modpath, -3) ~= '.so' then modpath = modpath .. ".so" end
 
       if utils.file_exists(modpath) then
-	 local res = ubx.ubx_module_load(ni, modpath)
+	 local res = ubx.ubx_module_load(nd, modpath)
 	 if res ~= 0 then
 	    error(red("loading module ", true)..magenta(modpath)..red(" failed", true))
 	 end
-	 info(ni, "lua", "loaded module "..modpath)
-	 M.ffi_load_types(ni)
+	 info(nd, "lua", "loaded module "..modpath)
+	 M.ffi_load_types(nd)
 	 return modpath
       end
    end
@@ -335,18 +335,18 @@ function M.load_module(ni, libfile)
 end
 
 --- Node to tab
--- @param ni
+-- @param nd
 -- @return table with node information
-function M.node_totab(ni)
+function M.node_totab(nd)
    local types = {}
    local blocks = {}
 
-   M.types_foreach(ni,
+   M.types_foreach(nd,
 		   function (_t)
 		      local t = M.ubx_type_totab(_t)
 		      types[t.name] = t end)
 
-   M.blocks_map(ni,
+   M.blocks_map(nd,
 		function (_b)
 		   local b = M.block_totab(_b)
 		   blocks[b.name] = b end)
@@ -356,19 +356,19 @@ end
 
 
 --- Cleanup a node: cleanup and remove instances and unload modules.
--- @param ni node info
-function M.node_cleanup(ni)
-   ubx.ubx_node_cleanup(ni)
+-- @param nd node info
+function M.node_cleanup(nd)
+   ubx.ubx_node_cleanup(nd)
    collectgarbage("collect")
 end
 
 --- Create a new computational block.
--- @param ni node_info ptr
+-- @param nd node_info ptr
 -- @param type of block to create
 -- @param name name of block
 -- @return new computational block
-function M.block_create(ni, type, name, conf)
-   local b=ubx.ubx_block_create(ni, type, name)
+function M.block_create(nd, type, name, conf)
+   local b=ubx.ubx_block_create(nd, type, name)
    if b==nil then error("failed to create block "..ts(name).." of type "..ts(type)) end
    if conf then M.set_config_tab(b, conf) end
    return b
@@ -382,8 +382,8 @@ function M.clock_mono_sleep(sec, nsec)
    M.clock_mono_nanosleep(0, ts)
 end
 
-function M.block_get(ni, bname)
-   local b = ubx.ubx_block_get(ni, bname)
+function M.block_get(nd, bname)
+   local b = ubx.ubx_block_get(nd, bname)
    if b==nil then error("block_get: no block with name '"..ts(bname).."'") end
    return b
 end
@@ -425,16 +425,16 @@ function M.block_tostate(b, tgtstate)
 end
 
 --- Unload a block: bring it to state preinit and call ubx_block_rm
-function M.block_unload(ni, name)
-   local b = M.block_get(ni, name)
+function M.block_unload(nd, name)
+   local b = M.block_get(nd, name)
    M.block_tostate(b, 'preinit')
-   if M.block_rm(ni, name) ~= 0 then error("block_unload: ubx_block_rm failed for '"..name.."'") end
+   if M.block_rm(nd, name) ~= 0 then error("block_unload: ubx_block_rm failed for '"..name.."'") end
 end
 
 --- Determine the number of blocks
-function M.num_blocks(ni)
+function M.num_blocks(nd)
    local num_cb, num_ib, inv = 0,0,0
-   M.blocks_map(ni,
+   M.blocks_map(nd,
 		function (b)
 		   if b.type==ffi.C.BLOCK_TYPE_COMPUTATION then num_cb=num_cb+1
 		   elseif b.type==ffi.C.BLOCK_TYPE_INTERACTION then num_ib=num_ib+1
@@ -443,15 +443,15 @@ function M.num_blocks(ni)
    return num_cb, num_ib, inv
 end
 
-function M.num_types(ni) return ubx.ubx_num_types(ni) end
+function M.num_types(nd) return ubx.ubx_num_types(nd) end
 
 --- Pretty print a node
--- @param ni node_info
-function M.node_pp(ni)
-   print(green(M.safe_tostr(ni.name), true))
+-- @param nd node_info
+function M.node_pp(nd)
+   print(green(M.safe_tostr(nd.name), true))
 
    print("  modules:", true)
-   M.modules_foreach(ni,
+   M.modules_foreach(nd,
 		     function (m)
 			print("    "..magenta(M.safe_tostr(m.id))..
 				 " ["..red(M.safe_tostr(m.spdx_license_id)).."]")
@@ -459,7 +459,7 @@ function M.node_pp(ni)
    )
 
    print("  types:")
-   M.types_foreach(ni,
+   M.types_foreach(nd,
 		   function (t)
 		      print("    "..magenta(M.safe_tostr(t.name))..
 			       " ["..yellow("size: "..tonumber(t.size))..", "..
@@ -469,19 +469,19 @@ function M.node_pp(ni)
    )
 
    print("  prototypes:")
-   M.blocks_map(ni,
+   M.blocks_map(nd,
 		function (b)
 		   print("    "..M.block_tostr(b))
 		end, M.is_proto)
 
    print("  iblocks:")
-   M.blocks_map(ni,
+   M.blocks_map(nd,
 		function (b)
 		   print("    "..M.block_tostr(b))
 		end, M.is_iblock_instance)
 
    print("  cblocks:")
-   M.blocks_map(ni,
+   M.blocks_map(nd,
 		function (b)
 		   print("    "..M.block_tostr(b))
 		end, M.is_cblock_instance)
@@ -489,16 +489,16 @@ function M.node_pp(ni)
 end
 
 -- add Lua OO methods
-local ubx_node_info_mt = {
-   __tostring = function(ni)
-      local num_cb, num_ib, inv = M.num_blocks(ni)
-      local num_types = M.num_types(ni)
+local ubx_node_mt = {
+   __tostring = function(nd)
+      local num_cb, num_ib, inv = M.num_blocks(nd)
+      local num_types = M.num_types(nd)
 
       return fmt("%s <node>: #blocks: %d (#cb: %d, #ib: %d), #types: %d",
-		 green(M.safe_tostr(ni.name)), num_cb + num_ib, num_cb, num_ib, num_types)
+		 green(M.safe_tostr(nd.name)), num_cb + num_ib, num_cb, num_ib, num_types)
    end,
    __index = {
-      get_name = function (ni) return M.safe_tostr(ni.name) end,
+      get_name = function (nd) return M.safe_tostr(nd.name) end,
       load_module = M.load_module,
       block_create = M.block_create,
       block_unload = M.block_unload,
@@ -508,7 +508,7 @@ local ubx_node_info_mt = {
       pp = M.node_pp,
    },
 }
-ffi.metatype("struct ubx_node_info", ubx_node_info_mt)
+ffi.metatype("struct ubx_node", ubx_node_mt)
 
 
 ------------------------------------------------------------------------------
@@ -688,8 +688,8 @@ end
 --- Get size of an instance of the given type.
 -- @param type_name string name of type
 -- @return size in bytes
-function M.type_size(ni, type_name)
-   local t = M.type_get(ni, type_name)
+function M.type_size(nd, type_name)
+   local t = M.type_get(nd, type_name)
    if t==nil then error("unknown type "..tostring(type_name)) end
    return tonumber(t.size)
 end
@@ -711,21 +711,21 @@ end
 
 --- Allocate a new ubx_data with a given dimensionality.
 -- This data will be automatically garbage collected.
--- @param ni node_info
+-- @param nd node_info
 -- @param name type of data to allocate
 -- @param num dimensionality
 -- @return ubx_data_t
-function M.data_alloc(ni, type_name, num)
-   local t = M.type_get(ni, type_name)
+function M.data_alloc(nd, type_name, num)
+   local t = M.type_get(nd, type_name)
    if t==nil then
-      error(M.safe_tostr(ni.name)..": data_alloc: unkown type '"..M.safe_tostr(type_name).."'")
+      error(M.safe_tostr(nd.name)..": data_alloc: unkown type '"..M.safe_tostr(type_name).."'")
    end
    return M.__data_alloc(t, num)
 end
 
 --- Load the registered C types into the luajit ffi.
--- @param ni node_info_t*
-function M.ffi_load_types(ni)
+-- @param nd node_info_t*
+function M.ffi_load_types(nd)
 
    local function ffi_struct_type_is_loaded(t)
       return pcall(ffi.typeof, ffi.string(t.name))
@@ -742,7 +742,7 @@ function M.ffi_load_types(ni)
    end
 
    local typ_list = {}
-   M.types_foreach(ni,
+   M.types_foreach(nd,
 		   function (typ) typ_list[#typ_list+1] = typ end,
 		   function(t) return
 			 t.type_class==ffi.C.TYPE_CLASS_STRUCT and
@@ -1338,14 +1338,14 @@ ffi.metatype("struct ubx_port", ubx_port_mt)
 ------------------------------------------------------------------------------
 
 --- Call a function on every known type.
--- @param ni ubx_node_info_t*
+-- @param nd ubx_node_t*
 -- @param fun function to call on type.
-function M.types_foreach(ni, fun, pred)
+function M.types_foreach(nd, fun, pred)
    if not fun then error("types_foreach: missing/invalid fun argument") end
-   if ni.types==nil then return end
+   if nd.types==nil then return end
    pred = pred or function() return true end
    local ubx_type_t_ptr = ffi.typeof("ubx_type_t*")
-   local typ=ni.types
+   local typ=nd.types
    while typ ~= nil do
       if pred(typ) then fun(typ) end
       typ=ffi.cast(ubx_type_t_ptr, typ.hh.next)
@@ -1400,16 +1400,16 @@ function M.configs_map(b, fun, pred)
 end
 
 --- Call a function on every block of the given list.
--- @param ni node info
+-- @param nd node info
 -- @param fun function
 -- @param pred predicate function to filter
 -- @param result table
-function M.blocks_map(ni, fun, pred)
+function M.blocks_map(nd, fun, pred)
    local res = {}
-   if ni==nil then return end
+   if nd==nil then return end
    pred = pred or function() return true end
    local ubx_block_t_ptr = ffi.typeof("ubx_block_t*")
-   local b=ni.blocks
+   local b=nd.blocks
    while b ~= nil do
       if pred(b) then res[#res+1]=fun(b) end
       b=ffi.cast(ubx_block_t_ptr, b.hh.next)
@@ -1418,32 +1418,32 @@ function M.blocks_map(ni, fun, pred)
 end
 
 --- Apply a function to each module of a node.
--- @param ni node
+-- @param nd node
 -- @param fun function to apply to each module
 -- @param pred predicate filter
-function M.modules_foreach(ni, fun, pred)
-   if ni==nil then return end
+function M.modules_foreach(nd, fun, pred)
+   if nd==nil then return end
    pred = pred or function() return true end
    local ubx_module_t_ptr = ffi.typeof("ubx_module_t*")
-   local m=ni.modules
+   local m=nd.modules
    while m ~= nil do
       if pred(m) then fun(m) end
       m=ffi.cast(ubx_module_t_ptr, m.hh.next)
    end
 end
 
-function M.modules_map(ni, fun, pred)
+function M.modules_map(nd, fun, pred)
    local res = {}
    local function mod_apply(m) res[#res+1] = fun(m) end
-   M.modules_foreach(ni, mod_apply, pred)
+   M.modules_foreach(nd, mod_apply, pred)
    return res
 end
 
 
 --- Convert the current system to a dot-file
--- @param ni
+-- @param nd
 -- @return graphviz dot string
-function M.node_todot(ni)
+function M.node_todot(nd)
 
    --- Generate a list of block nodes in graphviz dot syntax
    local function gen_dot_nodes(blocks)
@@ -1503,7 +1503,7 @@ function M.node_todot(ni)
       return table.concat(res, '\n')
    end
 
-   local btab = M.blocks_map(ni, M.block_totab, function(b) return not M.is_proto(b) end)
+   local btab = M.blocks_map(nd, M.block_totab, function(b) return not M.is_proto(b) end)
    return utils.expand(
       [[
 digraph "$node" {
@@ -1517,7 +1517,7 @@ $blocks
 $conns
 }
 ]], {
-   node=M.safe_tostr(ni.name),
+   node=M.safe_tostr(nd.name),
    blocks=gen_dot_nodes(btab),
    conns=gen_dot_edges(btab),
     })
@@ -1576,7 +1576,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
    if p.out_type~=nil then
       local iname = fmt("PCC%d->%s.%s", pcc_cnt(), M.safe_tostr(block.name), pname)
 
-      i_p_to_prot = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
+      i_p_to_prot = M.block_create(block.nd, "lfds_buffers/cyclic", iname,
 				   {
 				      buffer_len = buff_len1,
 				      type_name = ffi.string(p.out_type.name),
@@ -1591,7 +1591,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 	 error("failed to connect port "..M.safe_tostr(p.name))
       end
       M.block_start(i_p_to_prot)
-      info(block.ni, "lua", fmt("port_clone_conn: %s, buffer_len: %d, data_len: %d",
+      info(block.nd, "lua", fmt("port_clone_conn: %s, buffer_len: %d, data_len: %d",
 				iname, buff_len1, tonumber(p.out_data_len)))
    end
 
@@ -1600,7 +1600,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
    if p.in_type ~= nil then -- new port is an in-port?
       local iname = fmt("PCC%d<-%s.%s", pcc_cnt(), M.safe_tostr(block.name), pname)
 
-      i_prot_to_p = M.block_create(block.ni, "lfds_buffers/cyclic", iname,
+      i_prot_to_p = M.block_create(block.nd, "lfds_buffers/cyclic", iname,
 				   { buffer_len = buff_len2,
 				     type_name = ffi.string(p.in_type.name),
 				     data_len = tonumber(p.in_data_len),
@@ -1613,7 +1613,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 	 error("failed to connect port"..M.safe_tostr(p.name))
       end
       M.block_start(i_prot_to_p)
-      info(block.ni, "lua", fmt("port_clone_conn: %s, buffer_len: %d, data_len: %d",
+      info(block.nd, "lua", fmt("port_clone_conn: %s, buffer_len: %d, data_len: %d",
 				iname, buff_len2, tonumber(p.in_data_len)))
    end
 
@@ -1635,15 +1635,14 @@ end
 -- @param configuration for interaction.
 -- @param dont_start if true, then don't start the interaction (stays stopped)
 function M.conn_uni(b1, pname1, b2, pname2, iblock_type, iblock_config, dont_start)
-   local p1, p2, ni, bname1, bname2
-   local ts = ffi.new("struct ubx_timespec")
+   local p1, p2, nd, bname1, bname2
 
    if b1==nil or b2==nil then error("parameter 1 or 3 (ubx_block_t) is nil") end
 
    bname1 = M.safe_tostr(b1.name)
    bname2 = M.safe_tostr(b2.name)
 
-   ni = b1.ni
+   local nd = b1.nd
 
    p1 = M.port_get(b1, pname1)
    p2 = M.port_get(b2, pname2)
@@ -1657,7 +1656,7 @@ function M.conn_uni(b1, pname1, b2, pname2, iblock_type, iblock_config, dont_sta
    local iblock_name = gen_block_uid()
 
    -- create iblock, configure
-   local ib=M.block_create(ni, iblock_type, iblock_name, iblock_config)
+   local ib = M.block_create(nd, iblock_type, iblock_name, iblock_config)
 
    M.block_init(ib)
 
@@ -1736,9 +1735,9 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
 end
 
 --- Build a table of connections
--- @param ni node info
+-- @param nd node info
 -- @return connection table
-function M.build_conntab(ni)
+function M.build_conntab(nd)
    local res = {}
 
    local function block_conns_totab(b)
@@ -1748,7 +1747,7 @@ function M.build_conntab(ni)
       res[M.safe_tostr(b.name)] = M.ports_map(b, port_conns_totab)
    end
 
-   M.blocks_map(ni, block_conns_totab, M.is_cblock_instance)
+   M.blocks_map(nd, block_conns_totab, M.is_cblock_instance)
    return res
 end
 

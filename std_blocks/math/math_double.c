@@ -208,14 +208,14 @@ ubx_proto_block_t math_block = {
 };
 
 
-int math_mod_init(ubx_node_info_t *ni)
+int math_mod_init(ubx_node_t *nd)
 {
-	return ubx_block_register(ni, &math_block);
+	return ubx_block_register(nd, &math_block);
 }
 
-void math_mod_cleanup(ubx_node_info_t *ni)
+void math_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(ni, "math_double");
+	ubx_block_unregister(nd, "math_double");
 }
 
 UBX_MODULE_INIT(math_mod_init)

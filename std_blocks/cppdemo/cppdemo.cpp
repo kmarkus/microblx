@@ -71,16 +71,16 @@ ubx_proto_block_t cppdemo_comp =
     .step = cppdemo_step,
 };
 
-static int cppdemo_init(ubx_node_info_t* ni)
+static int cppdemo_init(ubx_node_t* nd)
 {
-    ubx_type_register(ni, &cpp_demo_type);
-    return ubx_block_register(ni, &cppdemo_comp);
+    ubx_type_register(nd, &cpp_demo_type);
+    return ubx_block_register(nd, &cppdemo_comp);
 }
 
-static void cppdemo_cleanup(ubx_node_info_t *ni)
+static void cppdemo_cleanup(ubx_node_t *nd)
 {
-    ubx_type_unregister(ni, "cpp_demo_type");
-    ubx_block_unregister(ni, "cppdemo/cppdemo");
+    ubx_type_unregister(nd, "cpp_demo_type");
+    ubx_block_unregister(nd, "cppdemo/cppdemo");
 }
 
 UBX_MODULE_INIT(cppdemo_init)

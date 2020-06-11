@@ -130,17 +130,17 @@ ubx_proto_block_t random_comp = {
 	.step = rnd_step,
 };
 
-int rnd_module_init(ubx_node_info_t *ni)
+int rnd_module_init(ubx_node_t *nd)
 {
-	if (ubx_type_register(ni, &random_config_type))
+	if (ubx_type_register(nd, &random_config_type))
 		return -1;
-	return ubx_block_register(ni, &random_comp);
+	return ubx_block_register(nd, &random_comp);
 }
 
-void rnd_module_cleanup(ubx_node_info_t *ni)
+void rnd_module_cleanup(ubx_node_t *nd)
 {
-	ubx_type_unregister(ni, "struct random_config");
-	ubx_block_unregister(ni, "random/random");
+	ubx_type_unregister(nd, "struct random_config");
+	ubx_block_unregister(nd, "random/random");
 }
 
 UBX_MODULE_INIT(rnd_module_init)

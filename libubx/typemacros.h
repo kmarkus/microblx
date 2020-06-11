@@ -39,7 +39,7 @@ long FUNCNAME ## _array(const ubx_port_t* p, TYPENAME* val, const int len) \
 	/* lookup port in_type on first call or when different
 	 * (could be due to type module reload */			\
 	if (p->in_type != type) {					\
-		type = ubx_type_get(p->block->ni, QUOTE(TYPENAME));	\
+		type = ubx_type_get(p->block->nd, QUOTE(TYPENAME));	\
 									\
 		if (type == NULL) {					\
 			ubx_err(p->block, "%s: unregistered type " QUOTE(TYPENAME), __func__); \
@@ -85,7 +85,7 @@ int FUNCNAME ## _array(const ubx_port_t *p, const TYPENAME *val, const int len) 
 	/* lookup port in_type on first call or when different
 	 * (could be due to type module reload */			\
 	if (p->out_type != type) {					\
-		type = ubx_type_get(p->block->ni, QUOTE(TYPENAME));	\
+		type = ubx_type_get(p->block->nd, QUOTE(TYPENAME));	\
 									\
 		if (type == NULL) {					\
 			ubx_err(p->block, "%s: unregistered type " QUOTE(TYPENAME), __func__); \
@@ -131,7 +131,7 @@ long FUNCNAME(const ubx_block_t *b,					\
 	/* lookup config type on first call or when different
 	 * (could be due to type module reload */			\
 	if (c->type != type) {						\
-		type = ubx_type_get(b->ni, QUOTE(TYPENAME));		\
+		type = ubx_type_get(b->nd, QUOTE(TYPENAME));		\
 									\
 		if (type == NULL) {					\
 			ubx_err(b, "%s: unregistered type " QUOTE(TYPENAME), __func__); \
