@@ -24,7 +24,8 @@ Main features:
   - *computations*: PID controller, ramps, constants, random ...
   - *triggers*: periodic, passive incl. built in latency profiling
   - real-time safe logging
-- **minimal**: no arbitrary abstractions, just "configurable" POSIX
+- **no HAL**: no arbitrary abstractions, just "configurable" POSIX
+- **minimal**: tiny memory footprint, very few dependencies, embedded friendly
 
 Documentation
 -------------
