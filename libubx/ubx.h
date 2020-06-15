@@ -102,6 +102,8 @@ struct ubx_proto_config;
 #define _QUOTE(x) #x
 #define QUOTE(x) _QUOTE(x)
 
+#define __packed __attribute__((packed))
+
 #define UBX_MODULE_LICENSE_SPDX(l) \
 __attribute__ ((visibility("default"))) char __ubx_module_license_spdx[] = QUOTE(l);
 
