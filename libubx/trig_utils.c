@@ -66,8 +66,9 @@ void tstat_update(struct ubx_tstat *stats,
 }
 
 /**
- * write timing statistics to file
- * @param trig_inf struct trig_info's content to write
+ * tstat_write - write timing statistics to file
+ *
+ * @trig_inf struct trig_info's content to write
  * @return 0 if OK, -1 if opening or writing file failed.
  */
 int tstat_write(FILE *fp, struct ubx_tstat *stats)
@@ -90,7 +91,10 @@ int tstat_write(FILE *fp, struct ubx_tstat *stats)
 }
 
 /**
- * log timing statistics
+ * tstat_log - log timing statistics
+ *
+ * @b: block
+ * @stats: ubx_tstat to log
  */
 void tstat_log(const ubx_block_t *b, const struct ubx_tstat *stats)
 {
@@ -133,7 +137,12 @@ static void tstats_output_throttled(struct trig_info *trig_inf, uint64_t now)
 	trig_inf->tstats_output_last_msg = now;
 }
 
-/* output all tstats on the tstats_port */
+/**
+ * trig_info_tstats_output - output all tstats on the tstats_port
+ *
+ * @b: block, only for logging errors
+ * @trig_inf: trig_info to output
+ */
 void trig_info_tstats_output(ubx_block_t *b, struct trig_info *trig_inf)
 {
 	switch (trig_inf->tstats_mode) {
