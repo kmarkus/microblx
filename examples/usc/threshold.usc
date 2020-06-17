@@ -58,7 +58,7 @@ return bd.system
 	 name="trigger",
 	 config = {
 	   period = {sec=0, usec=10000 }, -- 100 Hz
-	    trig_blocks = {
+	    chain0 = {
 	       { b="#ramp" },
 	       { b="#sin" },
 	       { b="#thres"} }

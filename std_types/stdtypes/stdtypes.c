@@ -9,8 +9,8 @@
 #include "types/tstat.h"
 #include "types/tstat.h.hexarr"
 
-#include "types/trig_spec.h"
-#include "types/trig_spec.h.hexarr"
+#include "types/triggee.h"
+#include "types/triggee.h.hexarr"
 
 /* declare types */
 ubx_type_t basic_types[] = {
@@ -32,7 +32,7 @@ ubx_type_t basic_types[] = {
 
 	/* std struct types */
 	def_struct_type(struct ubx_tstat, &tstat_h),
-	def_struct_type(struct ubx_trig_spec, &trig_spec_h),
+	def_struct_type(struct ubx_triggee, &triggee_h),
 };
 
 static int stdtypes_init(ubx_node_t* nd)

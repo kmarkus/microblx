@@ -395,7 +395,7 @@ The code is the following.
          { name="ptrig1", config = { period = {sec=1, usec=0 },
                                       sched_policy="SCHED_OTHER",
                                       sched_priority=0,
-                                      trig_blocks={ { b="#plat1", num_steps=1, measure=1 },
+                                      chain0={ { b="#plat1", num_steps=1, measure=1 },
                             { b="#control1", num_steps=1, measure=1 },
                             { b="#logger_time", num_steps=1, measure=0 }  } } }
       }
@@ -404,7 +404,7 @@ The code is the following.
 
 It is worth noticing that configuration types can be arrays (*e.g.*
 ``target_pos``), strings (``file_name`` and ``report_conf``) and
-structures (``period``) and vector of structures (``trig_blocks``).
+structures (``period``) and vector of structures (``chain0``).
 Types for each property should be checked in source files.
 Alternatively, the web server can provide insight of the types.
 
@@ -546,7 +546,7 @@ the libraries
 
    #define WEBIF_PORT "8810"
    #define DOUBLE_STR "double"
-   #include "trig_spec.h"
+   #include <ubx/triggee.h>
    #include "ptrig_period.h"
    #define LEN_VEC(a) (sizeof(a)/sizeof(a[0]))
    int main()
@@ -658,19 +658,13 @@ trigger block, we have to configure the order of blocks,
 
 .. code:: c
 
-   d=ubx_config_get_data(ptrig1, "trig_blocks");
+   d=ubx_config_get_data(ptrig1, "chain0");
    len= 3;
    ubx_data_resize(d, len);
    printf("data size trig blocks: %li\n",d->type->size);
-   ((struct trig_spec*)d->data)[0].b = plat1;//ubx_block_get(&ni, "plat1")
-   ((struct trig_spec*)d->data)[0].num_steps = 1;
-   ((struct trig_spec*)d->data)[0].measure = 0;
-   ((struct trig_spec*)d->data)[1].b = control1;
-   ((struct trig_spec*)d->data)[1].num_steps = 1;
-   ((struct trig_spec*)d->data)[1].measure = 0;
-   ((struct trig_spec*)d->data)[2].b = logger1;
-   ((struct trig_spec*)d->data)[2].num_steps = 1;
-   ((struct trig_spec*)d->data)[2].measure = 0;
+   ((struct ubx_triggee*)d->data)[0].b = plat1;//ubx_block_get(&ni, "plat1")
+   ((struct ubx_triggee*)d->data)[1].b = control1;
+   ((struct ubx_triggee*)d->data)[2].b = logger1;
 
 Port connection
 ~~~~~~~~~~~~~~~

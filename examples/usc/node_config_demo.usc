@@ -33,7 +33,7 @@ return bd.system
       { name="ptrig1",
 	config = {
 	   period = {sec=1, usec=0 },
-	   trig_blocks={
+	   chain0={
 	      { b="#b1", num_steps=1, measure=0 },
 	      { b="#b2", num_steps=1, measure=0 } } } }
    },

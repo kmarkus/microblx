@@ -22,8 +22,8 @@ Configs
    sched_policy, ``char``, "pthread scheduling policy"
    affinity, ``int``, "list of CPUs to set the pthread CPU affinity to"
    thread_name, ``char``, "thread name (for dbg), default is block name"
-   trig_blocks, ``struct ubx_trig_spec``, "specification of blocks to trigger"
    autostop_steps, ``int64_t``, "if set and > 0, block stops itself after X steps"
+   num_chains, ``int``, "number of trigger chains (def: 1)"
    tstats_mode, ``int``, "enable timing statistics over all blocks"
    tstats_profile_path, ``char``, "directory to write the timing stats file to"
    tstats_output_rate, ``double``, "throttle output on tstats port"
@@ -38,7 +38,8 @@ Ports
 .. csv-table::
    :header: "name", "out type", "out len", "in type", "in len", "doc"
 
-   tstats, ``struct ubx_tstat``, 1, , , "out port for totals and per block timing statistics"
+   active_chain, , , ``int``, 1, "switch the active trigger chain"
+   tstats, ``struct ubx_tstat``, 1, , , "out port for timing statistics"
    shutdown, , , ``int``, 1, "input port for stopping ptrig"
 
 Types

@@ -11,7 +11,7 @@
 #define TRIG_UTILS_H
 
 #include "ubx.h"
-#include "trig_spec.h"
+#include "triggee.h"
 #include "tstat.h"
 
 enum tstats_mode {
@@ -21,9 +21,9 @@ enum tstats_mode {
 };
 
 /* helper to retrieve config */
-long cfg_getptr_trig_spec(const ubx_block_t *b,
+long cfg_getptr_ubx_triggee(const ubx_block_t *b,
 			  const char *cfg_name,
-			  const struct ubx_trig_spec **valptr);
+			  const struct ubx_triggee **valptr);
 
 /* tstats port read/write helpers */
 long read_tstat(const ubx_port_t* p, struct ubx_tstat* val);
@@ -32,14 +32,14 @@ long read_tstat_array(const ubx_port_t* p, struct ubx_tstat* val, const long len
 int write_tstat_array(const ubx_port_t* p, const struct ubx_tstat* val, const long len);
 
 /**
- * struct trigger_info - basic trigger information
+ * struct ubx_chain
  *
  * This data-structure holds all information require to trigger a
- * sequence of blocks and to perform timing statistics. It must be
- * initialized and cleaned up with trig_info_init and _cleanup (s.b).
+ * sequential list of blocks and aquire timing statistics. It must be
+ * initialized and cleaned up with ubx_chain_init and _cleanup (s.b).
  *
- * @trig_list: pointer to trig_spec array, i.e. the array of blocks to trigger
- * @trig_list_len: length of above array
+ * @triggees: pointer to an ubx_triggee array, i.e. the array of blocks to trigger
+ * @triggees_len: length of the above array
  * @tstats_mode: desired enum tstats_mode
  * @tstats_skip_first skip this many steps before starting to acquire stats
  * @p_tstats: tstats output port (optional)
@@ -49,15 +49,15 @@ int write_tstat_array(const ubx_port_t* p, const struct ubx_tstat* val, const lo
  * @tstats_output_last_msg: timestamp of last message
  * @tstats_output_idx: index of last output sample
  */
-struct trig_info {
-	const struct ubx_trig_spec *trig_list;
-	long trig_list_len;
+struct ubx_chain {
+	/* public fields to be configured directly */
+	const struct ubx_triggee *triggees;
+	long triggees_len;
 	int tstats_mode;
 	unsigned int tstats_skip_first;
-
 	ubx_port_t *p_tstats;
 
-	/* internal, initialized via trig_info_init */
+	/* internal, initialized via ubx_chain_init */
 	struct ubx_tstat global_tstats;
 	struct ubx_tstat *blk_tstats;
 
@@ -67,91 +67,67 @@ struct trig_info {
 };
 
 /**
- * trig_info_init - initialize a trig_info structure
+ * ubx_chain_init - initialize a ubx_chain structure
  *
- * initialize the given trig_info and allocate tstat buffers according
- * to the mode. It is OK to re-run this function multiple times
- * (e.g. in start), as it will resize existing buffers appropriately.
+ * initialize the given chain and allocate tstat buffers according to
+ * the mode. It is OK to re-run this function multiple times (e.g. in
+ * start), as it will resize existing buffers appropriately.
  *
- * Before initializing, make sure to set the @trig_list,
- * @trig_list_len @tstats_mode and optionally the tstats output port
- * @p_tstats.
+ * Before initializing, make sure to set the @triggees, @triggees_len
+ * @tstats_mode and optionally the tstats output port @p_tstats.
  *
- * @trig_inf: trig_inf to initialized
- * @list_id: id for this trigger list (used in as name filed in
- *           global tstats. Can be NULL, then default is used.
- * @tstats_output_rate: tstats output rate [sec] (0 to disable port tstats output)
+ * @chain: chain to initialized
+ * @chain_id: id for this chain (used as id of global stats and
+ *            as a file name for statistics files. Can be NULL, then default is used.
+ * @tstats_output_rate: tstats output rate [sec] (0 to disable tstats output on port)
  * @return 0 if OK, < 0 otherwise
  */
-int trig_info_init(struct trig_info* trig_inf,
-		   const char *list_id,
+int ubx_chain_init(struct ubx_chain* chain,
+		   const char *chain_id,
 		   double tstats_output_rate);
 
 /**
- * trig_inf_cleanup - release allocated resources
+ * chain_cleanup - release allocated resources
  *
- * this free resouces allocated by trig_info_init such as tstat
+ * this free resouces allocated by ubx_chain_init such as tstat
  * buffers.
  *
- * @trig_inf: trig_info to cleanup
+ * @chain: ubx_chain to cleanup
  */
-void trig_info_cleanup(struct trig_info* trig_inf);
+void ubx_chain_cleanup(struct ubx_chain* chain);
 
 /**
- * ubx_do_trigger - trigger blocks described by a trig_spec list
+ * ubx_do_trigger - trigger blocks described by a ubx_triggee list
  *
  * @spec: trigger specification
  * @return 0 if successfull, <0 otherwise
  */
-int do_trigger(struct trig_info* trig_inf);
+int ubx_chain_trigger(struct ubx_chain* chain);
 
 /**
- * trig_info_tstats_log - log all tstats
+ * ubx_chain_tstats_log - log all tstats
  *
  * @b ubx_block in whose context to log
- * @trig_inf trigger info to log
+ * @chain trigger info to log
  */
-void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf);
+void ubx_chain_tstats_log(ubx_block_t *b, struct ubx_chain *chain);
 
 /**
- * trig_info_tstats_output - write all current stats to the tstats port
+ * ubx_chain_output_tstats - write _all_ current stats to the tstats port
  *
  * @b: block
- * @trig_inf trigger info to log
+ * @chain trigger info to log
  */
-void trig_info_tstats_output(ubx_block_t *b, struct trig_info *trig_inf);
+void ubx_chain_output_tstats(ubx_block_t *b, struct ubx_chain *chain);
 
-/**
- * tstats_build_filename - construct the tstats log file name
- *
- * @blockname of trigger block
- * @profile path
- * @return filename (must be freed by called!)
- */
 char* tstats_build_filename(const char *blockname,
 			    const char *profile_path);
 
-/**
- * trig_info_tstats_write - write all tstats to file named "block.tstats"
- *
- * @b parent block for logging
- * @trig_inf trigger info struct
- * @profile_path directory into which to write stats files
- * @return 0 if success, <0 otherwise
- */
-int trig_info_tstats_write(ubx_block_t *b,
-			   struct trig_info *trig_inf,
+int ubx_chain_tstats_write(ubx_block_t *b,
+			   struct ubx_chain *chain,
 			   const char *profile_path);
 
 
-/**
- * tstat_write_file - write a single tstat to a file
- *
- * @b block for logging
- * @tstats
- * @profile_path
- * @return - if sucess, <0 otherwise
- */
 int tstat_write_file(ubx_block_t *b,
 		     struct ubx_tstat *tstats,
 		     const char *profile_path);

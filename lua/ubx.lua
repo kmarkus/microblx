@@ -1471,14 +1471,14 @@ function M.node_todot(nd)
 		 (b.prototype.name == "std_triggers/ptrig" or
 		  b.prototype.name == "std_triggers/trig")) then return end
 
-      local trig_blocks_cfg
+      local chain0_cfg
 
       for i,c in ipairs(b.configs) do
-	 if c.name=='trig_blocks' then trig_blocks_cfg=c.value end
+	 if c.name=='chain0' then chain0_cfg=c.value end
       end
-      assert(trig_blocks_cfg~=nil, "gen_dot_trigger_edges: failed to find trig_blocks config")
+      assert(chain0_cfg~=nil, "gen_dot_trigger_edges: failed to find chain0 config")
 
-      for i,trig in ipairs(trig_blocks_cfg or {}) do
+      for i,trig in ipairs(chain0_cfg or {}) do
 	 res[#res+1]=utils.expand('    "$from" -> "$to" [label="$label",style=dashed,color=orange1 ];',
 				  {from=b.name, to=trig.b, label=ts(i)})
       end

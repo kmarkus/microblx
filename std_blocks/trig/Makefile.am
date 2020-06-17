@@ -15,10 +15,10 @@ BUILT_SOURCES = types/ptrig_period.h.hexarr \
 
 CLEANFILES = $(BUILT_SOURCES)
 
-trig_la_SOURCES = trig.c trig_common.c
+trig_la_SOURCES = trig.c common.c
 trig_la_LIBADD = $(top_builddir)/libubx/libubx.la
 
-ptrig_la_SOURCES = ptrig.c trig_common.c
+ptrig_la_SOURCES = ptrig.c common.c
 ptrig_la_LIBADD = $(top_builddir)/libubx/libubx.la
 
 %.h.hexarr: %.h

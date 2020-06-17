@@ -40,7 +40,7 @@ return bd.system
       { name="ramp_des", config = { data_len="&data_len", slope=slope_des, start=start_des } },
       { name="trig_1", config = {
 	   tstats_mode = 0,
-	   trig_blocks = {
+	   chain0 = {
 	      { b="#ramp_des", num_steps=1 },
 	      { b="#pid_1", num_steps=1 } } }
       }

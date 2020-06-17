@@ -24,7 +24,7 @@
 
 #include "ubx.h"
 #include "trig_utils.h"
-#include "trig_common.h"
+#include "common.h"
 
 #include "types/ptrig_period.h"
 #include "types/ptrig_period.h.hexarr"
@@ -39,7 +39,8 @@ char ptrig_meta[] =
 	"}";
 
 ubx_proto_port_t ptrig_ports[] = {
-	{ .name = "tstats", .out_type_name = "struct ubx_tstat", .doc = "out port for totals and per block timing statistics" },
+	{ .name = "active_chain", .in_type_name = "int", .doc = "switch the active trigger chain" },
+	{ .name = "tstats", .out_type_name = "struct ubx_tstat", .doc = "out port for timing statistics" },
 	{ .name = "shutdown", .in_type_name = "int", .doc = "input port for stopping ptrig" },
 	{ 0 },
 };
@@ -50,7 +51,7 @@ ubx_type_t ptrig_types[] = {
 
 def_cfg_getptr_fun(cfg_getptr_ptrig_period, struct ptrig_period);
 
-static void ptrig_stop(ubx_block_t *b);
+static void __ptrig_stop(ubx_block_t *b);
 
 ubx_proto_config_t ptrig_config[] = {
 	{ .name = "period", .type_name = "struct ptrig_period", .doc = "trigger period in { sec, ns }", },
@@ -61,8 +62,8 @@ ubx_proto_config_t ptrig_config[] = {
 	{ .name = "affinity", .type_name = "int", .doc = "list of CPUs to set the pthread CPU affinity to" },
 #endif
 	{ .name = "thread_name", .type_name = "char", .doc = "thread name (for dbg), default is block name" },
-	{ .name = "trig_blocks", .type_name = "struct ubx_trig_spec", .doc = "specification of blocks to trigger" },
 	{ .name = "autostop_steps", .type_name = "int64_t", .doc = "if set and > 0, block stops itself after X steps", .max=1 },
+	{ .name = "num_chains", .type_name = "int", .max = 1, .doc = "number of trigger chains (def: 1)" },
 
 	{ .name = "tstats_mode", .type_name = "int", .doc = "enable timing statistics over all blocks", },
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "directory to write the timing stats file to" },
@@ -108,9 +109,13 @@ struct ptrig_inf {
 
 	const struct ptrig_period *period;
 
-	struct trig_info trig_inf;
+	struct ubx_chain *chains;
+	int num_chains;
+	int actchain;
 
 	int64_t autostop_steps;
+
+	ubx_port_t *p_actchain;
 };
 
 
@@ -143,10 +148,10 @@ void *thread_startup(void *arg)
 
 		while (inf->state != BLOCK_STATE_ACTIVE) {
 
-			trig_info_tstats_log(b, &inf->trig_inf);
-			trig_info_tstats_output(b, &inf->trig_inf);
+			common_output_stats(b, inf->chains, inf->num_chains);
+			common_log_stats(b, inf->chains, inf->num_chains);
 
-			ret = write_tstats_to_profile_path(b, &inf->trig_inf);
+			ret = common_write_stats(b, inf->chains, inf->num_chains);
 
 			if (ret)
 				ubx_err(b, "failed to write tstats to profile_path: %d", ret);
@@ -164,7 +169,10 @@ void *thread_startup(void *arg)
 			goto out;
 		}
 
-		do_trigger(&inf->trig_inf);
+		common_read_actchain(b, inf->p_actchain, inf->num_chains, &inf->actchain);
+
+		if (ubx_chain_trigger(&inf->chains[inf->actchain]) != 0)
+			ubx_err(b, "ubx_chain_trigger failed for chain%i", inf->actchain);
 
 		ubx_ts_add(&next, &period, &next);
 
@@ -172,7 +180,13 @@ void *thread_startup(void *arg)
 		if (inf->autostop_steps > 0) {
 			if (--inf->autostop_steps == 0) {
 				ubx_info(b, "autostop_steps reached 0, stopping block");
-				ubx_block_stop(b);
+
+				/* normally one should call
+				 * ubx_block_stop, but since we don't
+				 * want to wait for the timeout, we
+				 * replicate it here: */
+				__ptrig_stop(b);
+				b->block_state = BLOCK_STATE_INACTIVE;
 				continue;
 			}
 		}
@@ -314,12 +328,22 @@ int ptrig_init(ubx_block_t *b)
 	struct ptrig_inf *inf;
 
 	b->private_data = calloc(1, sizeof(struct ptrig_inf));
+
 	if (b->private_data == NULL) {
 		ubx_err(b, "failed to alloc");
 		goto out;
 	}
 
 	inf = (struct ptrig_inf *)b->private_data;
+
+	inf->p_actchain = ubx_port_get(b, "active_chain");
+	assert(inf->p_actchain != NULL);
+
+	/* initialize chains and add configs */
+	inf->num_chains = common_init_chains(b, &inf->chains);
+
+	if (inf->num_chains <= 0)
+		goto out_err;
 
 	inf->thread_state = THREAD_INACTIVE;
 	inf->state = BLOCK_STATE_INACTIVE;
@@ -334,7 +358,9 @@ int ptrig_init(ubx_block_t *b)
 		goto out_err;
 	}
 
+	/* create thread */
 	ret = pthread_create(&inf->tid, &inf->attr, thread_startup, b);
+
 	if (ret != 0) {
 		ubx_err(b, "pthread_create failed: %s", strerror(ret));
 		goto out_err;
@@ -392,12 +418,10 @@ int ptrig_start(ubx_block_t *b)
 {
 	int ret;
 	struct ptrig_inf *inf;
-	struct trig_info *trig_inf;
 
 	inf = (struct ptrig_inf *)b->private_data;
-	trig_inf = &inf->trig_inf;
 
-	ret = trig_info_config(b, trig_inf);
+	ret = common_config_chains(b, inf->chains, inf->num_chains);
 
 	if (ret != 0)
 		goto out;
@@ -412,13 +436,31 @@ out:
 	return ret;
 }
 
-void ptrig_stop(ubx_block_t *b)
+void __ptrig_stop(ubx_block_t *b)
 {
 	struct ptrig_inf *inf = (struct ptrig_inf *)b->private_data;
 
 	pthread_mutex_lock(&inf->mutex);
 	inf->state = BLOCK_STATE_INACTIVE;
 	pthread_mutex_unlock(&inf->mutex);
+}
+
+
+void ptrig_stop(ubx_block_t *b)
+{
+	struct ptrig_inf *inf = (struct ptrig_inf *)b->private_data;
+
+	__ptrig_stop(b);
+
+	/* wait some time for thread to shutdown cleanly */
+	for (int i=THREAD_STOP_RETRIES; i>=0; i--) {
+		if (inf->thread_state == THREAD_INACTIVE)
+			return;
+		usleep(THREAD_STOP_TIMEOUT_US);
+	}
+	ubx_warn(b, "timeout waiting for pthread to stop");
+
+	common_unconfig(inf->chains, inf->num_chains);
 }
 
 void ptrig_cleanup(ubx_block_t *b)
@@ -429,16 +471,8 @@ void ptrig_cleanup(ubx_block_t *b)
 
 	inf->state = BLOCK_STATE_PREINIT;
 
-	/* wait some time for thread to shutdown cleanly */
-	for (int i=THREAD_STOP_RETRIES; i>=0; i--) {
-		if (inf->thread_state == THREAD_INACTIVE)
-			goto cancel;
-		usleep(THREAD_STOP_TIMEOUT_US);
-	}
-	ubx_warn(b, "timeout waiting for pthread to stop");
-
-cancel:
 	ret = pthread_cancel(inf->tid);
+
 	if (ret != 0)
 		ubx_err(b, "pthread_cancel failed: %s", strerror(ret));
 
@@ -449,10 +483,10 @@ cancel:
 
 	pthread_attr_destroy(&inf->attr);
 
-	/* even though we call trig_info_init in start, it is OK to do
+	/* even though we call ubx_chain_init in start, it is OK to do
 	 * this in cleanup only since start calls realloc which will
 	 * just resize to the current size */
-	trig_info_cleanup(&inf->trig_inf);
+	common_cleanup(b, &inf->chains);
 	free(b->private_data);
 }
 

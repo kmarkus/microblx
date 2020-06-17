@@ -43,7 +43,7 @@ return bd.system
       { name="ptrig1", config = { period = {sec=1, usec=0 },
                                    sched_policy="SCHED_OTHER",
                                    sched_priority=0,
-                                   trig_blocks={ { b="#plat1", num_steps=1, measure=1 },
+                                   chain0={ { b="#plat1", num_steps=1, measure=1 },
 						 { b="#control1", num_steps=1, measure=1 },
 						 { b="#logger1", num_steps=1, measure=0 }  } } }
    }

@@ -49,7 +49,7 @@ minimal example:
 	      { name="trig1", config = { period = {sec=0, usec=100000 },
 					 sched_policy="SCHED_OTHER",
 					 sched_priority=0,
-					 trig_blocks={
+					 chain0={
 					    -- the #<blockname> directive will
 					    -- be resolved to an actual
 					    -- reference to the respective

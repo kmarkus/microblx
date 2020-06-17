@@ -58,7 +58,7 @@ local sys1 = bd.system {
       { name="ramp", config = { start=0, slope=1 } },
       { name="tester", config = { lua_str=count_num_trigs } },
       { name="trig", config = { period = {sec=0, usec=100000 },
-				trig_blocks={
+				chain0={
 				   { b="#ramp" },
 				   { b="#tester" } } } },
    },
@@ -96,7 +96,7 @@ local block_dur_us = {
    tb1 = 10*1000,
    tb2 = 50*1000,
    tb3 = 100*1000,
-   ['##total##'] = 160*1000
+   ['chain0'] = 160*1000
 }
 
 
@@ -114,7 +114,8 @@ local sys2 = bd.system {
       { name="tb3", config = { lua_str=gen_dur_test_block(0, block_dur_us.tb3*1000) } },
       { name="trig", config = { period = {sec=0, usec=100000 },
 				tstats_mode=2,
-				trig_blocks={
+				tstats_profile_path="./",
+				chain0={
 				   { b="#tb1" },
 				   { b="#tb2" },
 				   { b="#tb3" } } } },

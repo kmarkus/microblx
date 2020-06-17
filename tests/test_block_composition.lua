@@ -28,7 +28,7 @@ local leaf = bd.system {
 	   loglevel=4,
 	   min_max_config = { min=3, max=4 } }
       },
-      { name="trig", config = { trig_blocks={
+      { name="trig", config = { chain0={
 				   { b="#rnd1", num_steps=1, measure=0 },
 				   { b="#rnd2", num_steps=1, measure=0 } } } }
    },
@@ -55,7 +55,7 @@ local comp1 = bd.system {
 	   loglevel=5,
 	   min_max_config = { min=14, max=15 } }
       },
-      { name="trig", config = { trig_blocks={
+      { name="trig", config = { chain0={
 				   { b="#rnd1", num_steps=1, measure=0 },
 				   { b="#rnd2", num_steps=1, measure=0 },
 				   { b="#leaf/trig", num_steps=1, measure=0 }} } }
@@ -86,7 +86,7 @@ local comp2 = bd.system {
 	   loglevel=7,
 	   min_max_config = { min=106, max=107 } }
       },
-      { name="trig", config = { trig_blocks={
+      { name="trig", config = { chain0={
 				   { b="#rnd1", num_steps=1, measure=0 },
 				   { b="#rnd2", num_steps=1, measure=0 },
 				   { b="#mid/trig", num_steps=1, measure=0 }} } }
@@ -134,7 +134,10 @@ function TestComp:test_leaf()
 	 {seed={incoming={"i_0000000d"}, outgoing={}}},
 	 {rnd={incoming={}, outgoing={}}}
       },
-      trig={{tstats={incoming={}, outgoing={}}}}
+      trig={
+	 {active_chain={incoming={}, outgoing={}}},
+	 {tstats={incoming={}, outgoing={}}}
+      }
    }
    lu.assert_equals(conntab_act, conntab_exp)
 end
@@ -166,7 +169,10 @@ function TestComp:test_comp1()
 	 {seed={incoming={"i_00000004"}, outgoing={}}},
 	 {rnd={incoming={}, outgoing={"i_00000003"}}}
       },
-      ["leaf/trig"] = {{tstats={incoming={}, outgoing={}}}},
+      ["leaf/trig"] = {
+	 {active_chain={incoming={}, outgoing={}}},
+	 {tstats={incoming={}, outgoing={}}}
+      },
       rnd1={
 	 {seed={incoming={"i_00000003"}, outgoing={}}},
 	 {rnd={incoming={}, outgoing={"i_00000001"}}}
@@ -175,7 +181,10 @@ function TestComp:test_comp1()
 	 {seed={incoming={"i_00000001"}, outgoing={}}},
 	 {rnd={incoming={}, outgoing={"i_00000002"}}}
       },
-      trig={{tstats={incoming={}, outgoing={}}}}
+      trig={
+	 {active_chain={incoming={}, outgoing={}}},
+	 {tstats={incoming={}, outgoing={}}}
+      }
    }
 
    lu.assert_equals(conntab_act, conntab_exp)

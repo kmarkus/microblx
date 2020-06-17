@@ -18,7 +18,7 @@ static const char *LOG_FMT = "TSTAT: %s: cnt %" PRIu64 ", min %" PRIu64 " us, ma
 static const char *tstat_global_id = "#total#";
 
 def_port_accessors(tstat, struct ubx_tstat)
-def_cfg_getptr_fun(cfg_getptr_trig_spec, struct ubx_trig_spec)
+def_cfg_getptr_fun(cfg_getptr_ubx_triggee, struct ubx_triggee)
 
 /*
  * timinig statistics helpers
@@ -66,10 +66,12 @@ void tstat_update(struct ubx_tstat *stats,
 }
 
 /**
- * tstat_write - write timing statistics to file
+ * tstat_write_file - write a single tstat to a file
  *
- * @trig_inf struct trig_info's content to write
- * @return 0 if OK, -1 if opening or writing file failed.
+ * @b block for logging
+ * @tstats
+ * @profile_path
+ * @return - if sucess, <0 otherwise
  */
 int tstat_write(FILE *fp, struct ubx_tstat *stats)
 {
@@ -116,55 +118,57 @@ void tstat_log(const ubx_block_t *b, const struct ubx_tstat *stats)
 }
 
 /* helpers for throttled port output or logging */
-static void tstats_output_throttled(struct trig_info *trig_inf, uint64_t now)
+static void tstats_output_throttled(struct ubx_chain *chain, uint64_t now)
 {
-	if (now <= trig_inf->tstats_output_last_msg + trig_inf->tstats_output_rate)
+	if (now <= chain->tstats_output_last_msg + chain->tstats_output_rate)
 		return;
 
-	if (trig_inf->tstats_mode == TSTATS_GLOBAL) {
-		write_tstat(trig_inf->p_tstats, &trig_inf->global_tstats);
+	if (chain->tstats_mode == TSTATS_GLOBAL) {
+		write_tstat(chain->p_tstats, &chain->global_tstats);
 	} else { /* mode == TSTATS_PERBLOCK */
-		if (trig_inf->tstats_output_idx < trig_inf->trig_list_len) {
-			write_tstat(trig_inf->p_tstats,
-				    &trig_inf->blk_tstats[trig_inf->tstats_output_idx]);
+		if (chain->tstats_output_idx < chain->triggees_len) {
+			write_tstat(chain->p_tstats,
+				    &chain->blk_tstats[chain->tstats_output_idx]);
 		} else {
-			write_tstat(trig_inf->p_tstats, &trig_inf->global_tstats);
+			write_tstat(chain->p_tstats, &chain->global_tstats);
 		}
 
-		trig_inf->tstats_output_idx =
-			(trig_inf->tstats_output_idx+1) % (trig_inf->trig_list_len+1);
+		chain->tstats_output_idx =
+			(chain->tstats_output_idx+1) % (chain->triggees_len+1);
 	}
-	trig_inf->tstats_output_last_msg = now;
+	chain->tstats_output_last_msg = now;
 }
 
 /**
- * trig_info_tstats_output - output all tstats on the tstats_port
+ * ubx_chain_output_tstats - output *all* tstats on the tstats_port
  *
  * @b: block, only for logging errors
- * @trig_inf: trig_info to output
+ * @chain: ubx_chain to output
  */
-void trig_info_tstats_output(ubx_block_t *b, struct trig_info *trig_inf)
+void ubx_chain_output_tstats(ubx_block_t *b, struct ubx_chain *chain)
 {
-	switch (trig_inf->tstats_mode) {
+	switch (chain->tstats_mode) {
 	case TSTATS_DISABLED:
 		return;
 	case TSTATS_PERBLOCK:
-		for(int i=0; i<trig_inf->trig_list_len; i++)
-			write_tstat(trig_inf->p_tstats, &trig_inf->blk_tstats[i]);
+		for(int i=0; i<chain->triggees_len; i++)
+			write_tstat(chain->p_tstats, &chain->blk_tstats[i]);
 		/* fall through */
 	case TSTATS_GLOBAL:
-		write_tstat(trig_inf->p_tstats, &trig_inf->global_tstats);
+		write_tstat(chain->p_tstats, &chain->global_tstats);
 		break;
 	default:
-		ubx_err(b, "invalid TSTATS_MODE %i", trig_inf->tstats_mode);
+		ubx_err(b, "invalid TSTATS_MODE %i", chain->tstats_mode);
 		return;
 	}
 }
 
-/*
- * basic triggering and tstats management
+/**
+ * trig_stats_perblock
+ *
+ * trigger the given chain and aquire per-block statistics
  */
-static int trig_stats_perblock(struct trig_info *trig_inf)
+static int trig_stats_perblock(struct ubx_chain *chain)
 {
 	int ret = 0;
 	uint64_t ts_end_ns;
@@ -173,9 +177,9 @@ static int trig_stats_perblock(struct trig_info *trig_inf)
 	ubx_gettime(&ts_start);
 
 	/* trigger all blocks */
-	for (int i = 0; i < trig_inf->trig_list_len; i++) {
+	for (int i = 0; i < chain->triggees_len; i++) {
 
-		const struct ubx_trig_spec *trig = &trig_inf->trig_list[i];
+		const struct ubx_triggee *trig = &chain->triggees[i];
 
 		ubx_gettime(&blk_ts_start);
 
@@ -188,21 +192,26 @@ static int trig_stats_perblock(struct trig_info *trig_inf)
 		}
 
 		ubx_gettime(&blk_ts_end);
-		tstat_update(&trig_inf->blk_tstats[i], &blk_ts_start, &blk_ts_end);
+		tstat_update(&chain->blk_tstats[i], &blk_ts_start, &blk_ts_end);
 	}
 
 	/* finalize global measurement,	output stats */
 	ubx_gettime(&ts_end);
-	tstat_update(&trig_inf->global_tstats, &ts_start, &ts_end);
+	tstat_update(&chain->global_tstats, &ts_start, &ts_end);
 	ts_end_ns = ubx_ts_to_ns(&ts_end);
 
-	if (trig_inf->tstats_output_rate > 0 && trig_inf->p_tstats != NULL)
-		tstats_output_throttled(trig_inf, ts_end_ns);
+	if (chain->tstats_output_rate > 0 && chain->p_tstats != NULL)
+		tstats_output_throttled(chain, ts_end_ns);
 
 	return ret;
 }
 
-static int trig_stats_global(struct trig_info *trig_inf)
+/**
+ * trig_stats_global
+ *
+ * trigger the given chain and aquire (only) global statistics
+ */
+static int trig_stats_global(struct ubx_chain *chain)
 {
 	int ret = 0;
 	uint64_t ts_end_ns;
@@ -211,9 +220,9 @@ static int trig_stats_global(struct trig_info *trig_inf)
 	ubx_gettime(&ts_start);
 
 	/* trigger all blocks */
-	for (int i = 0; i < trig_inf->trig_list_len; i++) {
+	for (int i = 0; i < chain->triggees_len; i++) {
 
-		const struct ubx_trig_spec *trig = &trig_inf->trig_list[i];
+		const struct ubx_triggee *trig = &chain->triggees[i];
 
 		/* step block */
 		for (int steps = 0; steps < trig->num_steps; steps++) {
@@ -226,11 +235,11 @@ static int trig_stats_global(struct trig_info *trig_inf)
 
 	/* finalize global measurement,	output stats */
 	ubx_gettime(&ts_end);
-	tstat_update(&trig_inf->global_tstats, &ts_start, &ts_end);
+	tstat_update(&chain->global_tstats, &ts_start, &ts_end);
 	ts_end_ns = ubx_ts_to_ns(&ts_end);
 
-	if (trig_inf->tstats_output_rate > 0 && trig_inf->p_tstats != NULL)
-		tstats_output_throttled(trig_inf, ts_end_ns);
+	if (chain->tstats_output_rate > 0 && chain->p_tstats != NULL)
+		tstats_output_throttled(chain, ts_end_ns);
 
 	return ret;
 }
@@ -238,13 +247,13 @@ static int trig_stats_global(struct trig_info *trig_inf)
 /*
  * basic triggering and tstats management
  */
-static int trig_stats_disabled(struct trig_info *trig_inf)
+static int trig_stats_disabled(struct ubx_chain *chain)
 {
 	int ret = 0;
 	/* trigger all blocks */
-	for (int i = 0; i < trig_inf->trig_list_len; i++) {
+	for (int i = 0; i < chain->triggees_len; i++) {
 
-		const struct ubx_trig_spec *trig = &trig_inf->trig_list[i];
+		const struct ubx_triggee *trig = &chain->triggees[i];
 
 		/* step block */
 		for (int steps = 0; steps < trig->num_steps; steps++) {
@@ -258,99 +267,115 @@ static int trig_stats_disabled(struct trig_info *trig_inf)
 	return ret;
 }
 
-int do_trigger(struct trig_info *trig_inf)
+/**
+ * ubx_chain_trigger - trigger a ubx_chain
+ *
+ * trigger the given chain according to the configured tstats_mode.
+ *
+ * @chain: chain to trigger
+ */
+int ubx_chain_trigger(struct ubx_chain *chain)
 {
-	if (trig_inf->tstats_skip_first > 0) {
-		trig_inf->tstats_skip_first--;
-		return trig_stats_disabled(trig_inf);
+	if (chain->tstats_skip_first > 0) {
+		chain->tstats_skip_first--;
+		return trig_stats_disabled(chain);
 	}
 
-	switch(trig_inf->tstats_mode) {
+	switch(chain->tstats_mode) {
 	case TSTATS_DISABLED:
-		return trig_stats_disabled(trig_inf);
+		return trig_stats_disabled(chain);
 	case TSTATS_GLOBAL:
-		return trig_stats_global(trig_inf);
+		return trig_stats_global(chain);
 	case TSTATS_PERBLOCK:
-		return trig_stats_perblock(trig_inf);
+		return trig_stats_perblock(chain);
 	default:
-		ERR("invalid TSTATS_MODE %i", trig_inf->tstats_mode);
+		ERR("invalid TSTATS_MODE %i", chain->tstats_mode);
 		return -1;
 	}
 }
 
-int trig_info_init(struct trig_info *trig_inf,
+int ubx_chain_init(struct ubx_chain *chain,
 		   const char *list_id,
 		   double tstats_output_rate)
 {
-	trig_inf->tstats_output_rate = tstats_output_rate * NSEC_PER_SEC;
-	trig_inf->tstats_output_last_msg = 0;
-	trig_inf->tstats_output_idx = 0;
+	chain->tstats_output_rate = tstats_output_rate * NSEC_PER_SEC;
+	chain->tstats_output_last_msg = 0;
+	chain->tstats_output_idx = 0;
 
 	list_id = (list_id != NULL) ? list_id : tstat_global_id;
-	tstat_init(&trig_inf->global_tstats, list_id);
+	tstat_init(&chain->global_tstats, list_id);
 
-	if (trig_inf->tstats_mode >= 2) {
-		trig_inf->blk_tstats = realloc(
-			trig_inf->blk_tstats,
-			trig_inf->trig_list_len * sizeof(struct ubx_tstat));
+	if (chain->tstats_mode >= 2) {
+		chain->blk_tstats = realloc(
+			chain->blk_tstats,
+			chain->triggees_len * sizeof(struct ubx_tstat));
 
-		if (!trig_inf->blk_tstats)
+		if (!chain->blk_tstats)
 			return EOUTOFMEM;
 
-		for (int i = 0; i < trig_inf->trig_list_len; i++)
-			tstat_init(&trig_inf->blk_tstats[i], trig_inf->trig_list[i].b->name);
+		for (int i = 0; i < chain->triggees_len; i++)
+			tstat_init(&chain->blk_tstats[i], chain->triggees[i].b->name);
 	}
 
 	/* let num_steps default to 1 */
-	for (int i = 0; i < trig_inf->trig_list_len; i++) {
-		if (trig_inf->trig_list[i].num_steps == 0)
-			((struct ubx_trig_spec*) &trig_inf->trig_list[i])->num_steps = 1;
+	for (int i = 0; i < chain->triggees_len; i++) {
+		if (chain->triggees[i].num_steps == 0)
+			((struct ubx_triggee*) &chain->triggees[i])->num_steps = 1;
 	}
 
 	return 0;
 }
 
-void trig_info_cleanup(struct trig_info *trig_inf)
+void ubx_chain_cleanup(struct ubx_chain *chain)
 {
-	free(trig_inf->blk_tstats);
+	free(chain->blk_tstats);
 }
 
 /**
- * log all tstats
+ * log all tstats of the given chain
  */
-void trig_info_tstats_log(ubx_block_t *b, struct trig_info *trig_inf)
+void ubx_chain_tstats_log(ubx_block_t *b, struct ubx_chain *chain)
 {
-	switch (trig_inf->tstats_mode) {
+	switch (chain->tstats_mode) {
 	case TSTATS_DISABLED:
 		break;
 	case TSTATS_PERBLOCK:
-		for (int i = 0; i < trig_inf->trig_list_len; i++)
-			tstat_log(b, &trig_inf->blk_tstats[i]);
+		for (int i = 0; i < chain->triggees_len; i++)
+			tstat_log(b, &chain->blk_tstats[i]);
 		/* fall through */
 	case TSTATS_GLOBAL:
-		tstat_log(b, &trig_inf->global_tstats);
+		tstat_log(b, &chain->global_tstats);
 		break;
 	default:
-		ubx_err(b, "unknown tstats_mode %d", trig_inf->tstats_mode);
+		ubx_err(b, "unknown tstats_mode %d", chain->tstats_mode);
 	}
 }
 
-char* tstats_build_filename(const char *blockname, const char *profile_path)
+/**
+ * tstats_build_filename - construct the tstats log file name
+ *
+ * sanitze name, append .tstats and append to profile path.
+ *
+ * @name base file name
+ * @profile path
+ * @return filename, must be freed by caller!
+ */
+char* tstats_build_filename(const char *name, const char *profile_path)
 {
 	int len, ret;
-	char *bn;
+	char *n;
 	char *filename = NULL;
 
-	bn = strdup(blockname);
+	n = strdup(name);
 
-	if (!bn)
+	if (!n)
 		goto out;
 
 	/* sanitize filename */
-	char_replace(bn, '/', '-');
+	char_replace(n, '/', '-');
 
 	/* the + 1 is for the '/' */
-	len = strlen(profile_path) + 1 + strlen(bn) + strlen(".tstats");
+	len = strlen(profile_path) + 1 + strlen(n) + strlen(".tstats");
 
 	filename = malloc(len+1);
 
@@ -358,7 +383,7 @@ char* tstats_build_filename(const char *blockname, const char *profile_path)
 		goto out_free;
 	}
 
-	ret = snprintf(filename, len, "%s/%s.tstats", profile_path, bn);
+	ret = snprintf(filename, len, "%s/%s.tstats", profile_path, n);
 
 	if (ret < 0)
 		goto out_err;
@@ -370,11 +395,17 @@ out_err:
 	free(filename);
 	filename = NULL;
 out_free:
-	free(bn);
+	free(n);
 out:
 	return filename;
 }
 
+/**
+ * tstat_write_file
+ *
+ * write a single tstats entry to a tstats file using the base name
+ * tstats->block_name
+ */
 int tstat_write_file(ubx_block_t *b,
 		     struct ubx_tstat *tstats,
 		     const char *profile_path)
@@ -419,14 +450,22 @@ out:
 }
 
 /**
- * write all stats to file
+ * ubx_chain_tstats_write
+ *
+ * write all tstats of the given chain to a file called
+ * "<profile_path>/<chain_id>.tsats"
+ *
+ * @b parent block for logging
+ * @chain ubx_chain to write
+ * @profile_path directory into which to write stats files
+ * @return 0 if success, <0 otherwise
  */
-int trig_info_tstats_write(ubx_block_t *b,
-			   struct trig_info *trig_inf,
+int ubx_chain_tstats_write(ubx_block_t *b,
+			   struct ubx_chain *chain,
 			   const char *profile_path)
 {
-	int ret=-1;
-	char *filename=NULL;
+	int ret = -1;
+	char *filename = NULL;
 	FILE *fp;
 
 	if (profile_path == NULL) {
@@ -434,16 +473,16 @@ int trig_info_tstats_write(ubx_block_t *b,
 		goto out;
 	}
 
-	if (trig_inf->tstats_mode == TSTATS_DISABLED) {
+	if (chain->tstats_mode == TSTATS_DISABLED) {
 		ret = 0;
 		goto out;
 	}
 
-	filename = tstats_build_filename(trig_inf->global_tstats.block_name, profile_path);
+	filename = tstats_build_filename(chain->global_tstats.block_name, profile_path);
 
 	if (filename == NULL) {
 		ubx_err(b, "%s: failed to build filename for %s",
-			__func__, trig_inf->global_tstats.block_name);
+			__func__, chain->global_tstats.block_name);
 		goto out;
 	}
 
@@ -456,17 +495,17 @@ int trig_info_tstats_write(ubx_block_t *b,
 
 	fprintf(fp, "%s", FILE_HDR);
 
-	switch (trig_inf->tstats_mode) {
+	switch (chain->tstats_mode) {
 	case TSTATS_PERBLOCK:
-		for (int i = 0; i < trig_inf->trig_list_len; i++)
-			tstat_write(fp, &trig_inf->blk_tstats[i]);
+		for (int i = 0; i < chain->triggees_len; i++)
+			tstat_write(fp, &chain->blk_tstats[i]);
 		/* fall through */
 	case TSTATS_GLOBAL:
-		tstat_write(fp, &trig_inf->global_tstats);
+		tstat_write(fp, &chain->global_tstats);
 		break;
 	default:
 		ubx_err(b, "%s: unknown tstats_mode %d",
-			__func__, trig_inf->tstats_mode);
+			__func__, chain->tstats_mode);
 	}
 
 	fclose(fp);

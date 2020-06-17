@@ -118,7 +118,7 @@ function test_resolve_block_hash()
 	 { name = "r1", config = { start=0, slope=1 } },
 	 { name="t1",
 	    config = {
-	       trig_blocks = {
+	       chain0 = {
 		  { b="#r1", num_steps=1, measure=0 } } } } } }
 
    assert_not_nil(sys:launch{ nodename="test_resolve_block_hash", nostart=true })
@@ -138,7 +138,7 @@ function test_resolve_block_hash_invalid()
 	 { name = "r1", config = { start=0, slope=1 } },
 	 { name="t1",
 	    config = {
-	       trig_blocks = {
+	       chain0 = {
 		  { b="#g1", num_steps=1, measure=0 } } } } } }
 
    local numerr, res = bd.system.validate(sys, false)

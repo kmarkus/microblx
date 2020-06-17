@@ -19,6 +19,7 @@ Configs
    type_name, ``char``, "name of registered microblx type to transport"
    data_len, ``uint32_t``, "array length (multiplier) of data (default: 1)"
    buffer_len, ``uint32_t``, "max number of data elements the buffer shall hold"
+   allow_partial, ``int``, "allow msgs with len<data_len. def: 0 (no)"
    loglevel_overruns, ``int``, "loglevel for reporting overflows (default: NOTICE, -1 to disable)"
 
 

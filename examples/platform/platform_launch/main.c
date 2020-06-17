@@ -116,7 +116,7 @@ int main()
   d=ubx_config_get_data(ptrig1, "sched_priority");
   *((int*)d->data)=0;
 
-  d=ubx_config_get_data(ptrig1, "trig_blocks");
+  d=ubx_config_get_data(ptrig1, "chain0");
   len= 3;
   ubx_data_resize(d, len);
   ((struct ubx_trig_spec*)d->data)[0].b= plat1;

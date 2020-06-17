@@ -12,7 +12,7 @@ return bd.system {
 	   period = {sec=0, usec=1000 },
 	   tstats_mode=1,
 	   tstats_profile_path="/tmp",
-	   trig_blocks={
+	   chain0={
 	      { b="#controller/trig_1" } } }
       },
    }

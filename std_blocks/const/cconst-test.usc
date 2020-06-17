@@ -25,7 +25,7 @@ return bd.system
       },
       {
 	 name="ptrig1",
-	 config = { period = { sec=0, usec=10000}, trig_blocks = { b = "#cconst1" } }
+	 config = { period = { sec=0, usec=10000}, chain0 = { b = "#cconst1" } }
       },
       {
 	 name="mq1",
