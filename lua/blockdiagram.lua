@@ -591,19 +591,7 @@ end
 -- Pulldown a blockdiagram system
 -- @param self system specification to load
 -- @param nd configuration table
-function system.pulldown(self, nd)
-
-   local function block_stop (b)
-      info("stopping active block %s", safets((b.name)))
-      ubx.block_tostate(b, 'inactive')
-   end
-
-   -- stop all active blocks first
-   ubx.blocks_map(nd, block_stop, is_active_inst)
-
-   info("unloading all blocks")
-   ubx.node_rm(nd)
-end
+function system.pulldown(self, nd) ubx.node_rm(nd) end
 
 --- Find and return ubx_block ptr
 -- @param nd node_info
