@@ -3,7 +3,7 @@
 
 struct ubx_tstat
 {
-	char block_name[UBX_BLOCK_NAME_MAXLEN + 1];
+	char id[UBX_TSTAT_ID_MAXLEN + 1];
 	struct ubx_timespec min;
 	struct ubx_timespec max;
 	struct ubx_timespec total;
