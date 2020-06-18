@@ -93,10 +93,10 @@ local function gen_dur_test_block(sec, nsec)
 end
 
 local block_dur_us = {
-   tb1 = 10*1000,
-   tb2 = 50*1000,
-   tb3 = 100*1000,
-   ['chain0'] = 160*1000
+   ['chain0,tb1'] = 10*1000,
+   ['chain0,tb2'] = 50*1000,
+   ['chain0,tb3'] = 100*1000,
+   ['chain0,#total#'] = 160*1000
 }
 
 
@@ -109,9 +109,9 @@ local sys2 = bd.system {
       { name="trig", type="std_triggers/ptrig" },
    },
    configurations = {
-      { name="tb1", config = { lua_str=gen_dur_test_block(0, block_dur_us.tb1*1000) } },
-      { name="tb2", config = { lua_str=gen_dur_test_block(0, block_dur_us.tb2*1000) } },
-      { name="tb3", config = { lua_str=gen_dur_test_block(0, block_dur_us.tb3*1000) } },
+      { name="tb1", config = { lua_str=gen_dur_test_block(0, block_dur_us['chain0,tb1']*1000) } },
+      { name="tb2", config = { lua_str=gen_dur_test_block(0, block_dur_us['chain0,tb2']*1000) } },
+      { name="tb3", config = { lua_str=gen_dur_test_block(0, block_dur_us['chain0,tb3']*1000) } },
       { name="trig", config = { period = {sec=0, usec=100000 },
 				tstats_mode=2,
 				tstats_profile_path="./",
@@ -131,14 +131,14 @@ function test_tstats()
       local min_us = time.ts2us(res.min)
       local max_us = time.ts2us(res.max)
 
-      assert_true(min_us > block_dur_us[res.block_name],
-		  res.block_name..
+      assert_true(min_us > block_dur_us[res.id],
+		  res.id..
 		     ": tstat.min ("..min_us.. " lower than allowed minimal dur ("..
-		     block_dur_us[res.block_name]..")")
-      assert_true(max_us < block_dur_us[res.block_name]*(1+eps),
-		  res.block_name..
+		     block_dur_us[res.id]..")")
+      assert_true(max_us < block_dur_us[res.id]*(1+eps),
+		  res.id..
 		     ": tstat.max ("..max_us..") larger than allowed max dur ("..
-		     block_dur_us[res.block_name]*(1+eps)..")")
+		     block_dur_us[res.id]*(1+eps)..")")
    end
 
    local nd = sys2:launch{ nostart=true, loglevel=LOGLEVEL, nodename='sys2' }

@@ -21,15 +21,57 @@ enum tstats_mode {
 };
 
 /* helper to retrieve config */
-long cfg_getptr_ubx_triggee(const ubx_block_t *b,
-			  const char *cfg_name,
-			  const struct ubx_triggee **valptr);
+long cfg_getptr_triggee(const ubx_block_t *b,
+			const char *cfg_name,
+			const struct ubx_triggee **valptr);
 
 /* tstats port read/write helpers */
 long read_tstat(const ubx_port_t* p, struct ubx_tstat* val);
 int write_tstat(const ubx_port_t *p, const struct ubx_tstat *val);
 long read_tstat_array(const ubx_port_t* p, struct ubx_tstat* val, const long len);
 int write_tstat_array(const ubx_port_t* p, const struct ubx_tstat* val, const long len);
+
+/**
+ * tstat_init - initialize a tstats structure
+ * @ts tstat to initialize
+ * @id name for this tstats (e.g. block name)
+ */
+void tstat_init(struct ubx_tstat *ts, const char *id);
+
+/**
+ * tstat_init2 - init with block_name and chain_id
+ *
+ * This variant will construct the id as "chain_id,block_name"
+ *
+ * @ts tstat to init
+ * @block_name name of benchmarked block
+ * @chain_id chain id this block is part of (if NULL will be omitted)
+ */
+void tstat_init2(struct ubx_tstat *ts, const char *block_name, const char *chain_id);
+
+/**
+ * tstat_update - update statistics
+ * @stats stats to update
+ * @start start time of measurement
+ * @end end time of measurement
+ */
+void tstat_update(struct ubx_tstat *stats,
+		  struct ubx_timespec *start,
+		  struct ubx_timespec *end);
+
+/**
+ * tstat_log - log a tstats
+ */
+void tstat_log(const ubx_block_t *b, const struct ubx_tstat *stats);
+
+/**
+ * tstat_fwrite - write a ubx_stat to the give FILE
+ * @fp FILE to write to
+ * @stats ubx_tstat to write
+ * @return 0 if OK, !=0 otherwise
+ */
+int tstat_fwrite(FILE *fp, struct ubx_tstat *stats);
+
 
 /**
  * struct ubx_chain
@@ -97,9 +139,11 @@ int ubx_chain_init(struct ubx_chain* chain,
 void ubx_chain_cleanup(struct ubx_chain* chain);
 
 /**
- * ubx_do_trigger - trigger blocks described by a ubx_triggee list
+ * ubx_chain_trigger - trigger a ubx_chain
  *
- * @spec: trigger specification
+ * trigger the given chain according to the configured tstats_mode.
+ *
+ * @chain: chain to trigger
  * @return 0 if successfull, <0 otherwise
  */
 int ubx_chain_trigger(struct ubx_chain* chain);
@@ -113,35 +157,33 @@ int ubx_chain_trigger(struct ubx_chain* chain);
 void ubx_chain_tstats_log(ubx_block_t *b, struct ubx_chain *chain);
 
 /**
- * ubx_chain_output_tstats - write _all_ current stats to the tstats port
+ * ubx_chain_tstats_output - write _all_ current stats to the tstats port
  *
  * @b: block
- * @chain trigger info to log
+ * @chain trigger info output on port
  */
-void ubx_chain_output_tstats(ubx_block_t *b, struct ubx_chain *chain);
+void ubx_chain_tstats_output(ubx_block_t *b, struct ubx_chain *chain);
 
-char* tstats_build_filename(const char *blockname,
-			    const char *profile_path);
-
-int ubx_chain_tstats_write(ubx_block_t *b,
-			   struct ubx_chain *chain,
-			   const char *profile_path);
-
-
-int tstat_write_file(ubx_block_t *b,
-		     struct ubx_tstat *tstats,
-		     const char *profile_path);
-
-/*
- * helpers to manager timing statistics
+/**
+ * ubx_tstats_fopen - open and prepare tstats file
+ *
+ * open+truncate the file <profile_path>/<blockname>.tstats, write a
+ * CSV header and return the opened FILE. Must be closed by the
+ * caller.
  */
-void tstat_init(struct ubx_tstat *ts, const char *block_name);
-void tstat_update(struct ubx_tstat *stats,
-		  struct ubx_timespec *start,
-		  struct ubx_timespec *end);
-void tstat_print(const char *profile_path, struct ubx_tstat *stats);
+FILE* ubx_tstats_fopen(ubx_block_t *b, const char *profile_path);
 
-void tstat_log(const ubx_block_t *b, const struct ubx_tstat *stats);
-
+/**
+ * ubx_chain_tstats_write
+ *
+ * write all tstats of the given chain to a file called
+ * "<profile_path>/<chain_id>.tsats"
+ *
+ * @b parent block for logging
+ * @fp FILE to write chain to
+ * @chain ubx_chain to write
+ * @return 0 if success, <0 otherwise
+ */
+int ubx_chain_tstats_fwrite(ubx_block_t *b, FILE *fp, struct ubx_chain *chain);
 
 #endif /* TRIG_UTILS_H */

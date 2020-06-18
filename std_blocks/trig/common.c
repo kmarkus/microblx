@@ -11,6 +11,7 @@ int common_write_stats(ubx_block_t *b, struct ubx_chain *chains, int num_chains)
 {
 	int len;
 	const char *profile_path;
+	FILE* fp;
 
 	len = cfg_getptr_char(b, "tstats_profile_path", &profile_path);
 
@@ -19,15 +20,21 @@ int common_write_stats(ubx_block_t *b, struct ubx_chain *chains, int num_chains)
 		return -1;
 	}
 
-	if (len == 0) {
-		/* no path, no stat files */
-		return 0;
-	}
+	if (len == 0)
+		return 0; 		/* no path, no stat files */
+
+
+	fp = ubx_tstats_fopen(b, profile_path);
+
+	if (fp == NULL)
+		return -1;
 
 	for (int i = 0; i < num_chains; i++) {
-		if (ubx_chain_tstats_write(b, chains, profile_path) != 0)
+		if (ubx_chain_tstats_fwrite(b, fp, chains) != 0)
 			return -1;
 	}
+
+	fclose(fp);
 	return 0;
 }
 
@@ -46,7 +53,7 @@ void common_log_stats(ubx_block_t *b, struct ubx_chain *chains, int num_chains)
 void common_output_stats(ubx_block_t *b, struct ubx_chain *chains, int num_chains)
 {
 	for (int i = 0; i < num_chains; i++)
-		ubx_chain_output_tstats(b, &chains[i]);
+		ubx_chain_tstats_output(b, &chains[i]);
 }
 
 /**
@@ -115,7 +122,7 @@ out_err:
 int common_config_chains(const ubx_block_t *b, struct ubx_chain *chain, int num_chains)
 
 {
-	int len, ret = -1;
+	int i, len;
 	const int *tint;
 	const double *tdbl;
 
@@ -145,7 +152,7 @@ int common_config_chains(const ubx_block_t *b, struct ubx_chain *chain, int num_
 	assert(p_tstats);
 
 	/* initialize all chains */
-	for (int i = 0; i < num_chains; i++) {
+	for (i = 0; i < num_chains; i++) {
 		chain[i].tstats_mode = tstats_mode;
 		chain[i].tstats_skip_first = tstats_skip_first;
 		chain[i].p_tstats = p_tstats;
@@ -153,16 +160,20 @@ int common_config_chains(const ubx_block_t *b, struct ubx_chain *chain, int num_
 		snprintf(chain_id, UBX_BLOCK_NAME_MAXLEN, CHAIN_NAME_FMT, i);
 
 		chain[i].triggees_len =
-			cfg_getptr_ubx_triggee(b, chain_id, &chain[i].triggees);
+			cfg_getptr_triggee(b, chain_id, &chain[i].triggees);
 
 		assert(chain[i].triggees_len >= 0);
 
-		ret = ubx_chain_init(&chain[i], chain_id, output_rate);
-
-		if (ret)
-			return ret;
+		if (ubx_chain_init(&chain[i], chain_id, output_rate) != 0)
+			goto out_fail;
 	}
 	return 0;
+out_fail:
+	ubx_err(b, "failed to configure chain%i", i);
+
+	while (--i >= 0)
+		ubx_chain_cleanup(&chain[i]);
+	return -1;
 }
 
 /**
