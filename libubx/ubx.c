@@ -40,6 +40,20 @@
 # define logf_debug(nd, fmt, ...)	do {} while (0)
 #endif
 
+/* predicates */
+int blk_is_proto(const ubx_block_t *b) { return b->prototype == NULL; }
+int blk_is_instance(const ubx_block_t *b) { return !blk_is_proto(b); }
+
+int port_is_out(const ubx_port_t *p) { return p->out_type != NULL; }
+int port_is_in(const ubx_port_t *p) { return p->in_type != NULL; }
+int port_is_inout(const ubx_port_t *p) { return port_is_out(p) && port_is_in(p); }
+int port_is_cloned(const ubx_port_t *p) { return p->attrs & PORT_ATTR_CLONED; }
+int port_is_dyn(const ubx_port_t *p) { return !port_is_cloned(p); }
+
+int cfg_is_cloned(const ubx_config_t *c) { return c->attrs & CONFIG_ATTR_CLONED; }
+int cfg_is_dyn(const ubx_config_t *c) { return !cfg_is_cloned(c); }
+
+
 
 /* for pretty printing */
 const char *block_states[] = {	"preinit", "inactive", "active" };
@@ -1085,7 +1099,7 @@ ubx_block_t *ubx_block_create(ubx_node_t *nd, const char *type, const char *name
 		goto out;
 	}
 
-	if (IS_INSTANCE(prot))
+	if (blk_is_instance(prot))
 		logf_warn(nd, "cloning from non-prototype block %s", type);
 
 	/* check if name is already used */
@@ -1240,7 +1254,7 @@ int ubx_port_connect_out(ubx_port_t *p, const ubx_block_t *iblock)
 {
 	int ret = -1;
 
-	if (IS_OUTPORT(p)) {
+	if (port_is_out(p)) {
 		ret = array_block_add(&p->out_interaction, iblock);
 		if (ret != 0)
 			goto out;
@@ -1267,7 +1281,7 @@ int ubx_port_connect_in(ubx_port_t *p, const ubx_block_t *iblock)
 {
 	int ret;
 
-	if (IS_INPORT(p)) {
+	if (port_is_in(p)) {
 		ret = array_block_add(&p->in_interaction, iblock);
 		if (ret != 0)
 			goto out;
@@ -1340,7 +1354,7 @@ int ubx_port_disconnect_out(ubx_port_t *out_port, const ubx_block_t *iblock)
 {
 	int ret = -1;
 
-	if (IS_OUTPORT(out_port)) {
+	if (port_is_out(out_port)) {
 		ret = array_block_rm(&out_port->out_interaction, iblock);
 		if (ret != 0)
 			goto out;
@@ -1369,7 +1383,7 @@ int ubx_port_disconnect_in(ubx_port_t *in_port, const ubx_block_t *iblock)
 {
 	int ret = -1;
 
-	if (IS_INPORT(in_port)) {
+	if (port_is_in(in_port)) {
 		ret = array_block_rm(&in_port->in_interaction, iblock);
 		if (ret != 0)
 			goto out;
@@ -2253,7 +2267,7 @@ long __port_read(const ubx_port_t *port, ubx_data_t *data)
 		goto out;
 	}
 
-	if (!IS_INPORT(port)) {
+	if (!port_is_in(port)) {
 		ret = EINVALID_PORT_DIR;
 		goto out;
 	};
@@ -2303,7 +2317,7 @@ void __port_write(const ubx_port_t *port, const ubx_data_t *data)
 		goto out;
 	}
 
-	if (!IS_OUTPORT(port)) {
+	if (!port_is_out(port)) {
 		ubx_err(port->block, "not an OUT-port");
 		goto out;
 	};

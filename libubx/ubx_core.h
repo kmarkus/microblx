@@ -6,6 +6,19 @@
 #ifndef UBX_CORE_H
 #define UBX_CORE_H
 
+/* predicates */
+int blk_is_proto(const ubx_block_t *b);
+int blk_is_instance(const ubx_block_t *b);
+
+int port_is_out(const ubx_port_t *p);
+int port_is_in(const ubx_port_t *p);
+int port_is_inout(const ubx_port_t *p);
+int port_is_cloned(const ubx_port_t *p);
+int port_is_dyn(const ubx_port_t *p);
+
+int cfg_is_cloned(const ubx_config_t *c);
+int cfg_is_dyn(const ubx_config_t *c);
+
 /* node API */
 int ubx_node_init(ubx_node_t *nd, const char *name, uint32_t attrs);
 void ubx_node_clear(ubx_node_t *nd);

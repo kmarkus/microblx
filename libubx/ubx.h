@@ -62,27 +62,6 @@ struct ubx_proto_config;
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
-/* predicates */
-#define IS_PROTO(b) (b->prototype == NULL)
-#define IS_INSTANCE(b) (!IS_PROTO(b))
-
-#define IS_OUTPORT(p) (p->out_type != NULL)
-#define IS_INPORT(p)  (p->in_type != NULL)
-#define IS_INOUTPORT(p) (IS_INPORT(p) && IS_OUTPORT(b))
-
-inline int blk_is_proto(const ubx_block_t *b) { return b->prototype == NULL; }
-inline int blk_is_instance(const ubx_block_t *b) { return !blk_is_proto(b); }
-
-inline int port_is_out(const ubx_port_t *p) { return p->out_type != NULL; }
-inline int port_is_in(const ubx_port_t *p) { return p->in_type != NULL; }
-inline int port_is_inout(const ubx_port_t *p) { return port_is_out(p) && port_is_in(p); }
-inline int port_is_cloned(const ubx_port_t *p) { return p->attrs & PORT_ATTR_CLONED; }
-inline int port_is_dyn(const ubx_port_t *p) { return !port_is_cloned(p); }
-
-inline int cfg_is_cloned(const ubx_config_t *c) { return c->attrs & CONFIG_ATTR_CLONED; }
-inline int cfg_is_dyn(const ubx_config_t *c) { return !cfg_is_cloned(c); }
-
-
 /*
  * Debug stuff
  */
