@@ -1,14 +1,17 @@
-local luaunit=require("luaunit")
-local ubx=require("ubx")
-local utils=require("utils")
+local luaunit = require("luaunit")
+local ubx = require("ubx")
+local utils = require("utils")
 local bd = require("blockdiagram")
 local time = require("time")
 local ffi = require("ffi")
 
 local LOGLEVEL = ffi.C.UBX_LOGLEVEL_INFO
 
+local assert_true = luaunit.assert_true
 local assert_equals = luaunit.assert_equals
 local assert_true = luaunit.assert_true
+
+TestPtrig = {}
 
 local count_num_trigs = [[
 local ubx=require "ubx"
@@ -64,7 +67,7 @@ local sys1 = bd.system {
    },
 }
 
-function test_count_num_trigs()
+function TestPtrig:TestCountNumTrigs()
    local nd = sys1:launch{ nostart=true, loglevel=LOGLEVEL, nodename='sys1' }
    local p_result = ubx.port_clone_conn(nd:b("tester"), "test_result")
    sys1:startup(nd)
@@ -125,7 +128,7 @@ local sys2 = bd.system {
 
 local eps = 0.15 -- 15%
 
-function test_tstats()
+function TestPtrig:TestTstats()
 
    local function check_tstat(res)
       local min_us = time.ts2us(res.min)
@@ -154,10 +157,203 @@ function test_tstats()
       check_tstat(res:tolua())
    end
 
-   -- give ptrig some time to shutdown cleanly
-   ubx.clock_mono_sleep(1)
-   sys2:pulldown(nd)
+   ubx.node_rm(nd)
 end
+
+
+--
+-- trig multichain
+--
+
+local sys3 = bd.system {
+   imports = { "stdtypes", "trig", "lfds_cyclic", "cconst" },
+   blocks = {
+      { name="const0", type="consts/cconst" },
+      { name="const1", type="consts/cconst" },
+      { name="const2", type="consts/cconst" },
+      { name="const3", type="consts/cconst" },
+      { name="trig0", type="std_triggers/trig" },
+   },
+
+   configurations = {
+      { name="const0", config = { type_name="int", value=1000 } },
+      { name="const1", config = { type_name="int", value=1001 } },
+      { name="const2", config = { type_name="int", value=1002 } },
+      { name="const3", config = { type_name="int", value=1003 } },
+      {
+	 name="trig0", config = {
+	    tstats_mode = 2,
+	    tstats_profile_path = "./",
+	    num_chains = 4,
+	    chain0 = { { b="#const0" } },
+	    chain1 = { { b="#const1" } },
+	    chain2 = { { b="#const2" } },
+	    chain3 = { { b="#const3" } }
+	 }
+      }
+   },
+}
+
+function TestPtrig:TestMultichainTrig()
+   local nd = sys3:launch{ loglevel=LOGLEVEL, nodename='TestTrigMultichain' }
+
+   local p_actchain = ubx.port_clone_conn(nd:b("trig0"), "active_chain")
+   local p_const0 = ubx.port_clone_conn(nd:b("const0"), "out")
+   local p_const1 = ubx.port_clone_conn(nd:b("const1"), "out")
+   local p_const2 = ubx.port_clone_conn(nd:b("const2"), "out")
+   local p_const3 = ubx.port_clone_conn(nd:b("const3"), "out")
+   local b_trig0 = nd:b("trig0")
+
+   local function rdports()
+      local function rd(p)
+	 local c, v = p:read()
+	 assert_true(c >= 0)
+	 if c == 0 then return false end
+	 return v:tolua()
+      end
+      return { rd(p_const0), rd(p_const1), rd(p_const2), rd(p_const3) }
+   end
+
+   for _=1,10 do
+      b_trig0:do_step();
+      assert_equals(rdports(), { 1000, false, false ,false })
+   end
+
+   p_actchain:write(1)
+
+   for _=1,10 do
+      b_trig0:do_step();
+      assert_equals(rdports(), { false, 1001, false ,false })
+   end
+
+   p_actchain:write(2)
+
+   for _=1,10 do
+      b_trig0:do_step();
+      assert_equals(rdports(), { false, false, 1002 ,false })
+   end
+
+   p_actchain:write(3)
+
+   for _=1,10 do
+      b_trig0:do_step();
+      assert_equals(rdports(), { false, false, false , 1003 })
+   end
+
+   -- invalid chain
+   p_actchain:write(99)
+
+   for _=1,10 do
+      b_trig0:do_step();
+      assert_equals(rdports(), { false, false, false , 1003 })
+   end
+
+   -- invalid chain
+   p_actchain:write(-1)
+
+   for _=1,10 do
+      b_trig0:do_step();
+      assert_equals(rdports(), { false, false, false , 1003 })
+   end
+
+   -- back to 0
+   p_actchain:write(0)
+   for _=1,10 do
+      b_trig0:do_step();
+      assert_equals(rdports(), { 1000, false, false ,false })
+   end
+
+   ubx.node_rm(nd)
+end
+
+--
+-- ptrig multichain
+--
+local sys4 = bd.system {
+   imports = { "stdtypes", "ptrig", "lfds_cyclic", "cconst" },
+   blocks = {
+      { name="const0", type="consts/cconst" },
+      { name="const1", type="consts/cconst" },
+      { name="const2", type="consts/cconst" },
+      { name="const3", type="consts/cconst" },
+      { name="ptrig0", type="std_triggers/ptrig" },
+   },
+
+   configurations = {
+      { name="const0", config = { type_name="int", value=1000 } },
+      { name="const1", config = { type_name="int", value=1001 } },
+      { name="const2", config = { type_name="int", value=1002 } },
+      { name="const3", config = { type_name="int", value=1003 } },
+      {
+	 name="ptrig0", config = {
+	    period = {sec=0, usec=10000 },
+	    tstats_mode = 2,
+	    tstats_profile_path = "./",
+	    num_chains = 4,
+	    chain0 = { { b="#const0" } },
+	    chain1 = { { b="#const1" } },
+	    chain2 = { { b="#const2" } },
+	    chain3 = { { b="#const3" } }
+	 }
+      }
+   },
+}
+
+function TestPtrig:TestMultichainPtrig()
+   local nd = sys4:launch{ loglevel=LOGLEVEL, nodename='TestPtrigMultichain' }
+
+   local p_actchain = ubx.port_clone_conn(nd:b("ptrig0"), "active_chain")
+   local p_const0 = ubx.port_clone_conn(nd:b("const0"), "out")
+   local p_const1 = ubx.port_clone_conn(nd:b("const1"), "out")
+   local p_const2 = ubx.port_clone_conn(nd:b("const2"), "out")
+   local p_const3 = ubx.port_clone_conn(nd:b("const3"), "out")
+   local b_ptrig0 = nd:b("ptrig0")
+
+   local function rdports()
+      local function rd(p)
+	 local c, v = p:read()
+	 assert_true(c >= 0)
+	 if c == 0 then return false end
+	 return v:tolua()
+      end
+      return { rd(p_const0), rd(p_const1), rd(p_const2), rd(p_const3) }
+   end
+
+   ubx.clock_mono_sleep(0, 10*1000^2)
+   assert_equals(rdports(), { 1000, false, false ,false })
+
+   p_actchain:write(1)
+   ubx.clock_mono_sleep(0, 10*1000^2)
+   assert_equals(rdports(), { false, 1001, false ,false })
+
+   p_actchain:write(2)
+   ubx.clock_mono_sleep(0, 10*1000^2)
+   assert_equals(rdports(), { false, false, 1002 ,false })
+
+   p_actchain:write(3)
+   ubx.clock_mono_sleep(0, 10*1000^2)
+   assert_equals(rdports(), { false, false, false , 1003 })
+
+   -- invalid chain
+   p_actchain:write(99)
+   ubx.clock_mono_sleep(0, 10*1000^2)
+   assert_equals(rdports(), { false, false, false , 1003 })
+
+   -- invalid chain
+   p_actchain:write(-1)
+   ubx.clock_mono_sleep(0, 10*1000^2)
+   assert_equals(rdports(), { false, false, false , 1003 })
+
+   -- back to 0
+   p_actchain:write(0)
+   ubx.clock_mono_sleep(0, 10*1000^2)
+   assert_equals(rdports(), { 1000, false, false ,false })
+
+   b_ptrig0:do_stop()
+
+   ubx.node_rm(nd)
+end
+
 
 
 os.exit( luaunit.LuaUnit.run() )

@@ -201,6 +201,9 @@ void common_read_actchain(const ubx_block_t *b,
 		return;
 	}
 
+	if (*actchain != tmp)
+		ubx_info(b, "active_chain switched to chain%i", tmp);
+
 	*actchain = tmp;
 }
 

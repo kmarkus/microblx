@@ -17,8 +17,6 @@ local code_str_len = 16*1024*1024
 
 local nd = ubx.node_create("test_dyn_block_if")
 
-
-
 ubx.load_module(nd, "stdtypes")
 ubx.load_module(nd, "testtypes")
 ubx.load_module(nd, "luablock")
