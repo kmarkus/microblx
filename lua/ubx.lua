@@ -1211,7 +1211,7 @@ function M.port_read_timed(p, timeout, data)
       M.clock_mono_sleep(0, 10*1000^2)
       M.clock_mono_gettime(ts_cur)
    end
-   return 0
+   return -1
 end
 
 function M.port_write(p, wval)
