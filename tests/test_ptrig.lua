@@ -184,11 +184,12 @@ local sys3 = bd.system {
 	 name="trig0", config = {
 	    tstats_mode = 2,
 	    tstats_profile_path = "./",
-	    num_chains = 4,
+	    num_chains = 5,
 	    chain0 = { { b="#const0" } },
 	    chain1 = { { b="#const1" } },
 	    chain2 = { { b="#const2" } },
-	    chain3 = { { b="#const3" } }
+	    chain3 = { { b="#const3" } },
+	    chain4 = { }
 	 }
       }
    },
@@ -231,6 +232,14 @@ function TestPtrig:TestMultichainTrig()
    for _=1,10 do
       b_trig0:do_step();
       assert_equals(rdports(), { false, false, 1002 ,false })
+   end
+
+   -- test the empty chain
+   p_actchain:write(4)
+
+   for _=1,10 do
+      b_trig0:do_step();
+      assert_equals(rdports(), { false, false, false , false })
    end
 
    p_actchain:write(3)
