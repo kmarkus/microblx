@@ -189,7 +189,7 @@ local sys3 = bd.system {
 	    chain1 = { { b="#const1" } },
 	    chain2 = { { b="#const2" } },
 	    chain3 = { { b="#const3" } },
-	    chain4 = { }
+	    -- empty: chain4 = { }
 	 }
       }
    },
