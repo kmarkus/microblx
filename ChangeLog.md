@@ -3,6 +3,24 @@ ChangeLog
 
 This file tracks user visible API changes
 
+## next
+
+- trig, ptrig: added multi-chain (i.e. formerly called `trig_blocks`
+  lists). The desired number of chains can now be configured using
+  `num_chains` and it can be switched among these via the
+  `active_chain` port. To make this feasible, a number of cleanups and
+  renames was done in trig_utils:
+
+   - the previous `trig_blocks` config was renamed to
+	 `chain0`. Additional chains are called `chain1`, `chain2` etc.
+   - `struct trig_info` was renamed to `struct ubx_chain`
+   - `trig_info_*` API was renamed to `trig_chain_*`
+   - `stuct ubx_trig_spec` was renamed to `struct ubx_triggee`
+   - `tstat.block_name` renamed to `tstat.id`
+
+- add function based predicates `blk_is_*`, `port_is_*` and `cfg_is_*`
+  to replace the old `IS_` macros .
+
 ## 0.9.0
 
 - `lfds_cyclic`: added `allow_partial` config to allow transporting
