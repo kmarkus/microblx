@@ -328,6 +328,7 @@ int check_new_shm(struct ubx_log_info *inf, int show_old, int color)
 
 		if (ret != 0) {
 			fprintf(stderr, "logc_init failed reinitialize\n");
+			break;
 		}
 
 		if(show_old)
@@ -414,7 +415,7 @@ int main(int argc, char **argv)
 		/* check for create shm event */
 		ret = check_new_shm(inf, show_old, color);
 		if (ret != 0)
-			break;
+			goto out_free;
 
 		ret = logc_has_data(inf->lcinf);
 		switch (ret) {
