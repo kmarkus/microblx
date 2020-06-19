@@ -217,7 +217,7 @@ void common_unconfig(struct ubx_chain *chains, int num_chains)
 /* undo common_init (for cleanup hook) */
 void common_cleanup(ubx_block_t *b, struct ubx_chain **chains)
 {
-	ubx_config_t *c;
+	ubx_config_t *c = NULL;
 
 	/* remove all dynamically added configs */
 	DL_FOREACH(b->configs, c) {
