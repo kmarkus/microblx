@@ -3,7 +3,7 @@ ChangeLog
 
 This file tracks user visible API changes
 
-## next
+## 0.9.0
 
 - trig, ptrig: added multi-chain (i.e. formerly called `trig_blocks`
   lists). The desired number of chains can now be configured using
@@ -20,8 +20,6 @@ This file tracks user visible API changes
 
 - add function based predicates `blk_is_*`, `port_is_*` and `cfg_is_*`
   to replace the old `IS_` macros .
-
-## 0.9.0
 
 - `lfds_cyclic`: added `allow_partial` config to allow transporting
   messags that are < `data_len`. If unset, the new default is to
