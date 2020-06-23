@@ -384,8 +384,8 @@ void ubx_node_cleanup(ubx_node_t *nd)
 /**
  * ubx_node_rm - cleanup an destroy a node
  *
- * calls ubx_node_cleanup and frees node member memory. Must not be
- * used afterwards.
+ * calls ubx_node_cleanup and frees node member memory. Must be
+ * reinitialized with ubx_node_init before reusing.
  *
  * @param ni
  */

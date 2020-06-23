@@ -1529,12 +1529,18 @@ local function pcc_cnt()
    return __pcc_cnt
 end
 
---- Create a new port connected to an existing port via an interaction.
+--
+-- port_clone_conn - create a new port connected to an existing port
+-- via an lfds_cyclic interaction. The returned port is garbage
+-- collected.
+--
 -- @param bname block
 -- @param pname name of port
--- @param buff_len1 desired buffer length (if port is in/out: length of out->in buffer)
--- @param buff_len2 only if port is in/out port: length of in->out buffer
--- @return the new port
+-- @param buff_len1 buffer length in in->out direction (default 1)
+-- @param buff_len2 buffer length in out->in direction (default buff_len1)
+-- @param loglevel_overruns loglevel for buffer overruns
+-- @param allow_partial allow partial flag (see lfds_cyclic)
+-- @return the new, inverse, connected port
 function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns, allow_partial)
 
    local prot = M.port_get(block, pname)
