@@ -42,8 +42,8 @@ ubx_proto_config_t sat_config[] = {
 };
 
 ubx_proto_port_t sat_ports[] = {
-	{ .name = PIN, .in_type_name = QUOTE(SAT_T), .doc = "sat generator output"  },
-	{ .name = POUT, .out_type_name = QUOTE(SAT_T), .doc = "sat generator output"  },
+	{ .name = PIN, .in_type_name = QUOTE(SAT_T), .doc = "input signal to saturate"  },
+	{ .name = POUT, .out_type_name = QUOTE(SAT_T), .doc = "saturated output signal"  },
 	{ 0 },
 };
 
