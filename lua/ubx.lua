@@ -604,14 +604,14 @@ function M.block_pp(b)
       error("unknown block type "..bt.block_type)
    end
 
-   if #bt.ports > 0 then
-      res[#res+1] = ("  ports:")
-      utils.foreach(function(p) res[#res+1] = "    "..M.port_tabtostr(p) end, bt.ports)
-   end
-
    if #bt.configs > 0 then
       res[#res+1] = ("  configs:")
       utils.foreach(function(c) res[#res+1] = "    "..M.config_tabtostr(c) end, bt.configs)
+   end
+
+   if #bt.ports > 0 then
+      res[#res+1] = ("  ports:")
+      utils.foreach(function(p) res[#res+1] = "    "..M.port_tabtostr(p) end, bt.ports)
    end
 
    return table.concat(res, '\n')
