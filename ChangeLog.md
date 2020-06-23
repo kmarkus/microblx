@@ -5,6 +5,9 @@ This file tracks user visible API changes
 
 ## 0.9.0
 
+- std_blocks: added saturation block. This multi-length block will
+  limit the given signal to the configured minima and maxima.
+
 - trig, ptrig: added multi-chain (i.e. formerly called `trig_blocks`
   lists). The desired number of chains can now be configured using
   `num_chains` and it can be switched among these via the

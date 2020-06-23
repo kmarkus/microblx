@@ -10,5 +10,6 @@ SUBDIRS = const \
           pid \
           ramp \
           rand \
+	  saturation \
           trig \
           webif
