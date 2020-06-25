@@ -146,7 +146,7 @@ blocks behavior. All are optional.
 These functions will be called according to the microblx block
 life-cycle finite state machine:
 
-.. figure:: _static/life_cycle.png
+.. figure:: _static/life_cycle.svg
    :alt: Block lifecycle FSM
 
    Block lifecycle FSM
