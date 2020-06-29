@@ -101,7 +101,7 @@ int sat_init(ubx_block_t *b)
 	}
 
 	/* allocate memory for out value */
-	inf->val = calloc(1, inf->data_len);
+	inf->val = calloc(inf->data_len, sizeof(SAT_T));
 
 	if (inf->val == NULL) {
 		ubx_err(b, "EOUTOFMEM: allocating 'value' failed");
