@@ -110,12 +110,14 @@ int ubx_module_load(ubx_node_t *nd, const char *lib)
 
 	/* allocate data */
 	mod = calloc(sizeof(ubx_module_t), 1);
+
 	if (mod == NULL) {
 		logf_err(nd, "failed to alloc module data");
 		goto out;
 	}
 
 	mod->id = strdup(lib);
+
 	if (mod->id == NULL) {
 		logf_err(nd, "cloning mod name failed");
 		goto out_err_free_mod;
@@ -196,6 +198,8 @@ static void ubx_module_cleanup(ubx_node_t *nd, const char *lib)
 {
 	ubx_module_t *mod;
 
+	logf_debug(nd, "calling module cleanup %s", lib);
+
 	HASH_FIND_STR(nd->modules, lib, mod);
 
 	if (mod == NULL) {
@@ -209,6 +213,8 @@ static void ubx_module_cleanup(ubx_node_t *nd, const char *lib)
 static void ubx_module_close(ubx_node_t *nd, const char *lib)
 {
 	ubx_module_t *mod;
+
+	logf_debug(nd, "closing module %s", lib);
 
 	HASH_FIND_STR(nd->modules, lib, mod);
 
@@ -299,7 +305,7 @@ int ubx_node_init(ubx_node_t *nd, const char *name, uint32_t attrs)
 /**
  * ubx_node_clear
  *
- * Stop, cleanup and remove all blocks of the given node.
+ * Stop, cleanup and remove all block instances of the given node.
  *
  * @param ni
  */
@@ -329,7 +335,7 @@ void ubx_node_clear(ubx_node_t *nd)
 
 	/* rm all non prototype blocks */
 	HASH_ITER(hh, nd->blocks, b, btmp) {
-		if (b->block_state == BLOCK_STATE_PREINIT && b->prototype != NULL) {
+		if (b->block_state == BLOCK_STATE_PREINIT && blk_is_instance(b)) {
 			logf_debug(nd, "removing block %s", b->name);
 			if (ubx_block_rm(nd, b->name) != 0)
 				logf_err(nd, "ubx_block_rm failed for %s", b->name);
@@ -354,11 +360,9 @@ void ubx_node_cleanup(ubx_node_t *nd)
 
 	ubx_node_clear(nd);
 
-	/* cleanup all modules. */
-	HASH_ITER(hh, nd->modules, m, mtmp) {
-		logf_debug(nd, "unloading module %s", m->id);
+	/* cleanup all modules */
+	HASH_ITER(hh, nd->modules, m, mtmp)
 		ubx_module_cleanup(nd, m->id);
-	}
 
 	cnt = ubx_num_types(nd);
 	if (cnt > 0)
@@ -368,11 +372,9 @@ void ubx_node_cleanup(ubx_node_t *nd)
 	if (cnt > 0)
 		logf_warn(nd, "%d blocks after cleanup", cnt);
 
-	/* close all modules. */
-	HASH_ITER(hh, nd->modules, m, mtmp) {
-		logf_debug(nd, "unloading module %s", m->id);
+	/* close all modules */
+	HASH_ITER(hh, nd->modules, m, mtmp)
 		ubx_module_close(nd, m->id);
-	}
 
 	cnt = ubx_num_modules(nd);
 	if (cnt > 0)
@@ -576,6 +578,9 @@ int ubx_block_unregister(ubx_node_t *nd, const char *name)
 		logf_err(nd, "block %s not registered", name);
 		return -1;
 	}
+
+	logf_debug(nd, "unregistering %s block %s",
+		   (blk_is_proto(tmpc) ? "prototype" : "instance"), name);
 
 	HASH_DEL(nd->blocks, tmpc);
 	ubx_block_free(tmpc);
