@@ -293,13 +293,23 @@ ffi.metatype("struct ubx_timespec", ubx_timespec_mt)
 --                           Node API
 ------------------------------------------------------------------------------
 
+--- node_rm wrapper for manually removing node
+-- Remove the gc finalizer and call ubx_node_rm
+-- the ffi.new allocate ubx_node_t will still be automatically gc'ed
+-- @param nd
+function M.node_rm(nd)
+   ffi.gc(nd, nil)
+   ubx.ubx_node_rm(nd)
+end
+
 --- Create and initalize a new node_info struct
+-- gc via ubx_node_rm and ffi.new set finalizer
 -- @param name name of node
 -- @param loglevel desired default loglevel
 -- @param attrs node attributes
 -- @return ubx_node_t
 function M.node_create(name, params)
-   local nd = ffi.new("ubx_node_t")
+   local nd = ffi.gc(ffi.new("ubx_node_t"), ubx.ubx_node_rm)
    params = params or {}
    local attrs=0
    if params.mlockall then attrs = bit.bor(attrs, ffi.C.ND_MLOCK_ALL) end
