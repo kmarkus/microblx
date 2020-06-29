@@ -143,8 +143,8 @@ typedef struct ubx_proto_block {
 	uint32_t attrs;
 	uint16_t type;
 
-	struct ubx_proto_port *ports;
 	struct ubx_proto_config *configs;
+	struct ubx_proto_port *ports;
 
 	int (*init)(struct ubx_block *b);
 	int (*start)(struct ubx_block *b);
