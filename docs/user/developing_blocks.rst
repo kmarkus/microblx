@@ -9,7 +9,7 @@ Generally, building a block entails the following:
 1. declaring configuration: what is the static configuration of a block
 2. declaring ports: what is the input/output of a block
 3. declaring types: which data types are communicated / used as configuration
-4. declaring block meta-data: providing further information about a block
+4. declaring block meta-data: providing further oinformation about a block
 5. declaring and implementing hook functions: how is the block
    initialized, started, run, stopped and cleaned up?
 
@@ -449,6 +449,7 @@ blocks registered in init:
    }
    UBX_MODULE_CLEANUP(rnd_module_cleanup)
 
+.. _real-time-logging:
 
 Real-time logging
 -----------------

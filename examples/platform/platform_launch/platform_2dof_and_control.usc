@@ -1,10 +1,9 @@
 -- -*- mode: lua; -*-
 
 plat_report_conf = [[{
-{ blockname='plat1', portname="pos"},
-{ blockname='control1', portname="commanded_vel"}
-}]]
-
+	{ blockname='plat1', portname="pos"},
+	{ blockname='control1', portname="commanded_vel"}
+	}]]
 
 return bd.system
 {
@@ -26,10 +25,10 @@ return bd.system
       { name="ptrig1", type="std_triggers/ptrig" },
    },
    connections = {
-     { src="plat1.pos", tgt="fifo_pos" }, 
-     { src="fifo_pos",tgt="control1.measured_pos" },
-     { src="control1.commanded_vel",tgt="fifo_vel" },
-     { src="fifo_vel",  tgt="plat1.desired_vel" },
+      { src="plat1.pos", tgt="fifo_pos" },
+      { src="fifo_pos",tgt="control1.measured_pos" },
+      { src="control1.commanded_vel",tgt="fifo_vel" },
+      { src="fifo_vel",  tgt="plat1.desired_vel" },
 
    },
    configurations = {
@@ -38,15 +37,14 @@ return bd.system
       { name="fifo_pos", config = { type_name="double", data_len=2, buffer_len=1 } },
       { name="fifo_vel", config = { type_name="double", data_len=2, buffer_len=1 } },
       { name="logger1", config = { filename="/tmp/platform.log",
-                                          separator=",",
-                                          report_conf = plat_report_conf, } },
+				   separator=",",
+				   report_conf = plat_report_conf, } },
       { name="ptrig1", config = { period = {sec=1, usec=0 },
-                                   sched_policy="SCHED_OTHER",
-                                   sched_priority=0,
-                                   chain0={ { b="#plat1", num_steps=1, measure=1 },
-						 { b="#control1", num_steps=1, measure=1 },
-						 { b="#logger1", num_steps=1, measure=0 }  } } }
+				  sched_policy="SCHED_OTHER",
+				  sched_priority=0,
+				  chain0={ { b="#plat1", num_steps=1, measure=1 },
+				     { b="#control1", num_steps=1, measure=1 },
+				     { b="#logger1", num_steps=1, measure=0 }  } } }
    }
 
 }
-
