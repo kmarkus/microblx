@@ -295,7 +295,7 @@ local sys4 = bd.system {
       { name="const3", config = { type_name="int", value=1003 } },
       {
 	 name="ptrig0", config = {
-	    period = {sec=0, usec=10000 },
+	    period = {sec=0, usec=1000 },
 	    tstats_mode = 2,
 	    tstats_profile_path = "./",
 	    num_chains = 4,
