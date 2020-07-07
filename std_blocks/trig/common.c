@@ -219,13 +219,10 @@ void common_cleanup(ubx_block_t *b, struct ubx_chain **chains)
 {
 	ubx_config_t *c = NULL, *ctmp = NULL;
 
-	ubx_alert(b, "%s", __func__);
 	/* remove all dynamically added configs */
 	DL_FOREACH_SAFE(b->configs, c, ctmp) {
-		if (cfg_is_dyn(c)) {
-			ubx_alert(b, "%s: removing config %s", __func__, c->name);
+		if (cfg_is_dyn(c))
 			ubx_config_rm(b, c->name);
-		}
 	}
 
 	free(*chains);
