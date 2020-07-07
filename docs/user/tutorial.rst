@@ -304,8 +304,11 @@ Final listings of the block
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The plant is, *mutatis mutandis*, built following the same rationale,
-and will be not detailed here. the final code of the plant and the
-controller can be retrieved here **TODO add link to the code**
+and will be not detailed here. The final code of the plant and the
+controller can be retrieved here:
+
+- :download:`platform_2dof.c <../../examples/platform/platform_2dof.c>`
+- :download:`platform_2dof_control.c <../../examples/platform/platform_2dof_control.c>`
 
 Compiling the blocks
 ~~~~~~~~~~~~~~~~~~~~
@@ -333,14 +336,16 @@ Deployment via the usc (microblx system composition) file
 independently. We want to run and compose them together and save the
 results in a logger file.  The composition file
 **platform_2dof_and_control.usc** is quite self explanatory: It
-indicates
+contains
 
-- which libraries are imported,
-- which blocks (name, type) are created,
-- the configuration values of properties.
+- the libraries to be imported,
+- which blocks (name, type) to create,
+- the configuration values of blocks.
 - the connections among ports
 
-The code is the following
+The file :download:`platform_2dof_and_control.usc
+<../../examples/platform/platform_launch/platform_2dof_and_control.usc>`
+is shown below:
 
 .. literalinclude:: ../../examples/platform/platform_launch/platform_2dof_and_control.usc
    :language: lua
@@ -431,7 +436,7 @@ Setup the build system starting from the build part
 
 *configure.am*
 
-:: code::
+.. code::
 
    m4_define([package_version_major],[0])
    m4_define([package_version_minor],[0])

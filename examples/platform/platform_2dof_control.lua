@@ -15,5 +15,5 @@ return block
       { name="commanded_vel", out_type_name="double", out_data_len=2, doc="desired velocity [m/s]" },
    },
 
-   operations = { start=true, stop=true, step=true }
+   operations = { step=true }
 }

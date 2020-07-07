@@ -1,17 +1,11 @@
 -- -*- mode: lua; -*-
 
-plat_report_conf = [[{
-	{ blockname='plat1', portname="pos"},
-	{ blockname='control1', portname="commanded_vel"}
-	}]]
-
 return bd.system
 {
    imports = {
       "stdtypes",
       "ptrig",
       "lfds_cyclic",
-      "logger",
       "platform_2dof",
       "platform_2dof_control",
    },
@@ -19,7 +13,6 @@ return bd.system
    blocks = {
       { name="plat1", type="platform_2dof" },
       { name="control1", type="platform_2dof_control" },
-      { name="logger1", type="logging/file_logger" },
       { name="fifo_pos", type="lfds_buffers/cyclic" },
       { name="fifo_vel", type="lfds_buffers/cyclic" },
       { name="ptrig1", type="std_triggers/ptrig" },
@@ -33,18 +26,14 @@ return bd.system
    },
    configurations = {
       { name="plat1", config = {  initial_position={1.1,1}, joint_velocity_limits={0.5,0.5} } },
-      { name="control1", config = {  gain=0.1, target_pos={4.5,4.5} } },
+      { name="control1", config = {  gain={0.1, 0.1}, target_pos={4.5,4.5} } },
       { name="fifo_pos", config = { type_name="double", data_len=2, buffer_len=1 } },
       { name="fifo_vel", config = { type_name="double", data_len=2, buffer_len=1 } },
-      { name="logger1", config = { filename="/tmp/platform.log",
-				   separator=",",
-				   report_conf = plat_report_conf, } },
       { name="ptrig1", config = { period = {sec=1, usec=0 },
 				  sched_policy="SCHED_OTHER",
 				  sched_priority=0,
 				  chain0={ { b="#plat1", num_steps=1, measure=1 },
-				     { b="#control1", num_steps=1, measure=1 },
-				     { b="#logger1", num_steps=1, measure=0 }  } } }
+				     { b="#control1", num_steps=1, measure=1 } } } }
    }
 
 }
