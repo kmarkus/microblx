@@ -328,34 +328,35 @@ function TestPtrig:TestMultichainPtrig()
       return { rd(p_const0), rd(p_const1), rd(p_const2), rd(p_const3) }
    end
 
-   ubx.clock_mono_sleep(0, 10*1000^2)
+   local function switch_chain(id)
+      p_actchain:write(id)
+      ubx.clock_mono_sleep(0, 30*1000^2)
+      rdports()
+      ubx.clock_mono_sleep(0, 30*1000^2)
+   end
+
+   ubx.clock_mono_sleep(0, 50*1000^2)
    assert_equals(rdports(), { 1000, false, false ,false })
 
-   p_actchain:write(1)
-   ubx.clock_mono_sleep(0, 10*1000^2)
+   switch_chain(1)
    assert_equals(rdports(), { false, 1001, false ,false })
 
-   p_actchain:write(2)
-   ubx.clock_mono_sleep(0, 10*1000^2)
+   switch_chain(2)
    assert_equals(rdports(), { false, false, 1002 ,false })
 
-   p_actchain:write(3)
-   ubx.clock_mono_sleep(0, 10*1000^2)
+   switch_chain(3)
    assert_equals(rdports(), { false, false, false , 1003 })
 
    -- invalid chain
-   p_actchain:write(99)
-   ubx.clock_mono_sleep(0, 10*1000^2)
+   switch_chain(99)
    assert_equals(rdports(), { false, false, false , 1003 })
 
    -- invalid chain
-   p_actchain:write(-1)
-   ubx.clock_mono_sleep(0, 10*1000^2)
+   switch_chain(-1)
    assert_equals(rdports(), { false, false, false , 1003 })
 
    -- back to 0
-   p_actchain:write(0)
-   ubx.clock_mono_sleep(0, 10*1000^2)
+   switch_chain(0)
    assert_equals(rdports(), { 1000, false, false ,false })
 
    b_ptrig0:do_stop()
