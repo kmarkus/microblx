@@ -193,10 +193,10 @@ commanded velocity, integrate to position, and then write position.
    :lines: 84-118
 
 
-In case there is no value in the port ,an error is signaled, and
-nominal velocity is set to zero. This will always happens in the first
-interaction, since the controller did step yet, thus no velocity
-command is available.
+In case there is no value on the port, a notice is logged and the
+nominal velocity is set to zero. This will always happen for the first
+trigger, since the controller did step yet and thus has not produced a
+velocity command yet.
 
 Step 4: Stop and clean-up functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
