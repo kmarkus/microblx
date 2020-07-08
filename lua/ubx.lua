@@ -309,7 +309,7 @@ end
 -- @param attrs node attributes
 -- @return ubx_node_t
 function M.node_create(name, params)
-   local nd = ffi.gc(ffi.new("ubx_node_t"), ubx.ubx_node_rm)
+   local nd = ffi.gc(ffi.new("ubx_node_t"), ubx.ubx_node_cleanup)
    params = params or {}
    local attrs=0
    if params.mlockall then attrs = bit.bor(attrs, ffi.C.ND_MLOCK_ALL) end

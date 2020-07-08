@@ -22,6 +22,7 @@ ubx_proto_config_t mqueue_config[] = {
 	{ .name = "data_len", .type_name = "long", .max = 1, .doc = "array length (multiplier) of data (default: 1)" },
 	{ .name = "buffer_len", .type_name = "long", .min = 1, .max = 1, .doc = "max number of data elements the buffer shall hold" },
 	{ .name = "blocking", .type_name = "uint32_t", .min = 0, .max = 1, .doc = "enable blocking mode (def: 0)" },
+	{ .name = "unlink", .type_name = "uint32_t", .min = 0, .max = 1, .doc = "call mq_unlink in cleanup (def: 1 (yes)" },
 	{ 0 }
 };
 
@@ -35,6 +36,7 @@ struct mqueue_info {
 	const ubx_type_t *type;		/* type of contained elements */
 	long data_len;			/* buffer size of each element */
 	long buffer_len;		/* number of elements */
+	uint32_t unlink;
 
 	unsigned long cnt_send_err;
 	unsigned long cnt_recv_err;
@@ -112,6 +114,11 @@ int mqueue_init(ubx_block_t *i)
 		goto out_free_info;
 	}
 
+	/* unlink */
+	len = cfg_getptr_uint32(i, "unlink", &val);
+	assert(len >= 0);
+	inf->unlink = (len>0) ? *val : 1;
+
 	/* configure max message size */
 	mqa.mq_msgsize = inf->data_len * inf->type->size;
 
@@ -169,10 +176,13 @@ void mqueue_cleanup(ubx_block_t *i)
 	if (mq_close(inf->mqd) != 0)
 		ubx_err(i, "mq_close %s failed: %s", inf->mq_name, strerror(errno));
 
-	ret = mq_unlink(inf->mq_name);
+	if (inf->unlink) {
+		ubx_info(i, "%s: removing mq %s", __func__, inf->mq_name);
+		ret = mq_unlink(inf->mq_name);
 
-	if (ret < 0 && errno != ENOENT)
-		ubx_err(i, "mq_unlink %s failed: %s", inf->mq_name, strerror(errno));
+		if (ret < 0 && errno != ENOENT)
+			ubx_err(i, "mq_unlink %s failed: %s", inf->mq_name, strerror(errno));
+	}
 
 	free(inf);
 }

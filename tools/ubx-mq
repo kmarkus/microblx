@@ -85,6 +85,7 @@ local function read(mqtab, preloads)
 		       type_name = ubx.safe_tostr(typ.name),
 		       data_len = mqtab.data_len,
 		       buffer_len = 32,
+		       unlink=0,
 		       blocking = 1 } )
 
    local mq = nd:b("mq")
