@@ -32,7 +32,7 @@ int platform_2dof_control_init(ubx_block_t *b)
 	update_port_cache(b, &inf->ports);
 
 	len = cfg_getptr_double(b, "gain", &gain);
-	assert(len==2);
+	assert(len==1);
 	inf->gain = *gain;
 
 	len = cfg_getptr_double(b, "target_pos", &target);

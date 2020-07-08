@@ -25,7 +25,7 @@ return bd.system
 	   joint_velocity_limits={0.5,0.5} }
       },
 
-      { name="control1", config = {  gain={0.1, 0.1}, target_pos={4.5,4.5} } },
+      { name="control1", config = {  gain=0.1, target_pos={4.5,4.5} } },
 
       { name="ptrig1", config = { period = {sec=0, usec=100000 },
 				  sched_policy="SCHED_OTHER",

@@ -74,13 +74,16 @@ int main()
 	ubx_data_resize(d, 2);
 	((double*)d->data)[0]=1.1;
 	((double*)d->data)[1]=0.1;
+
 	d = ubx_config_get_data(plat1, "joint_velocity_limits");
 	ubx_data_resize(d, 2);
 	((double*)d->data)[0]=0.5;
 	((double*)d->data)[1]=0.5;
+
 	d = ubx_config_get_data(control1, "gain");
-	ubx_data_resize(d, 2);
+	ubx_data_resize(d, 1);
 	*((double*)d->data)=0.12;
+
 	d = ubx_config_get_data(control1, "target_pos");
 	ubx_data_resize(d, 2);
 	((double*)d->data)[0]=4.5;
@@ -111,13 +114,10 @@ int main()
 		goto out;
 	}
 
-	d=ubx_config_get_data(ptrig1, "chain0");
+	d = ubx_config_get_data(ptrig1, "chain0");
 	len = 2;
 	ubx_data_resize(d, len);
 	((struct ubx_triggee*)d->data)[0].b = plat1;
-	/*As alternative: the block can be retieved by name:
-	 *(struct ubx_triggee*)d->data)[0].b= ubx_block_get(&nd, "plat1")*/
-
 	((struct ubx_triggee*)d->data)[0].num_steps = 1;
 	((struct ubx_triggee*)d->data)[1].b= control1;
 	((struct ubx_triggee*)d->data)[1].num_steps = 1;
@@ -160,10 +160,12 @@ int main()
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to init webif");
 		goto out;
 	}
+
 	if(ubx_block_init(plat1) != 0) {
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to init plat1");
 		goto out;
 	}
+
 	if(ubx_block_init(control1) != 0) {
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to init control1");
 		goto out;
@@ -178,26 +180,32 @@ int main()
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to init fifo_vel");
 		goto out;
 	}
+
 	if(ubx_block_start(fifo_pos) != 0) {
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to start fifo_pos");
 		goto out;
 	}
+
 	if(ubx_block_start(fifo_vel) != 0) {
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to start fifo_vel");
 		goto out;
 	}
+
 	if(ubx_block_start(webif) != 0) {
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to start webif");
 		goto out;
 	}
+
 	if(ubx_block_start(plat1) != 0) {
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to start plat1");
 		goto out;
 	}
+
 	if(ubx_block_start(control1) != 0) {
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to start control1");
 		goto out;
 	}
+
 	if(ubx_block_start(ptrig1) != 0) {
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to start ptrig1");
 		goto out;
@@ -211,7 +219,6 @@ int main()
 	sigaddset(&set, SIGINT);
 	pthread_sigmask(SIG_BLOCK, &set, NULL);
 	sigwait(&set, &sig);
-
 
 	ret=EXIT_SUCCESS;
 out:

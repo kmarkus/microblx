@@ -27,7 +27,6 @@ struct platform_2dof_info
 	struct platform_2dof_port_cache ports;
 };
 
-/* init */
 int platform_2dof_init(ubx_block_t *b)
 {
 	long len;
@@ -61,7 +60,8 @@ int platform_2dof_init(ubx_block_t *b)
 
 	inf->r_state.vel_limit[0] = pos_vec[0];
 	inf->r_state.vel_limit[1] = pos_vec[1];
-	inf->r_state.vel[0] = inf->r_state.vel[1] = 0.0;
+	inf->r_state.vel[0] = 0.0;
+	inf->r_state.vel[1] = 0.0;
 
 	return 0;
 }

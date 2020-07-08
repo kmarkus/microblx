@@ -6,7 +6,7 @@ return block
    port_cache=true,
 
    configurations= {
-      { name="gain", type_name="double", min=2, max=2 },
+      { name="gain", type_name="double", min=1, max=1 },
       { name="target_pos", type_name="double", min=2, max=2 },
    },
 
