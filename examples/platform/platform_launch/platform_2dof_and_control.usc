@@ -8,32 +8,44 @@ return bd.system
       "lfds_cyclic",
       "platform_2dof",
       "platform_2dof_control",
+      "mqueue"
    },
 
    blocks = {
       { name="plat1", type="platform_2dof" },
       { name="control1", type="platform_2dof_control" },
-      { name="fifo_pos", type="lfds_buffers/cyclic" },
-      { name="fifo_vel", type="lfds_buffers/cyclic" },
       { name="ptrig1", type="std_triggers/ptrig" },
+      { name="mq1", type="mqueue" },
+      { name="mq2", type="mqueue" },
    },
-   connections = {
-      { src="plat1.pos", tgt="fifo_pos" },
-      { src="fifo_pos",tgt="control1.measured_pos" },
-      { src="control1.commanded_vel",tgt="fifo_vel" },
-      { src="fifo_vel",  tgt="plat1.desired_vel" },
 
-   },
    configurations = {
-      { name="plat1", config = {  initial_position={1.1,1}, joint_velocity_limits={0.5,0.5} } },
+      { name="plat1", config = {
+	   initial_position={1.1,1},
+	   joint_velocity_limits={0.5,0.5} }
+      },
+
       { name="control1", config = {  gain={0.1, 0.1}, target_pos={4.5,4.5} } },
-      { name="fifo_pos", config = { type_name="double", data_len=2, buffer_len=1 } },
-      { name="fifo_vel", config = { type_name="double", data_len=2, buffer_len=1 } },
+
       { name="ptrig1", config = { period = {sec=0, usec=100000 },
 				  sched_policy="SCHED_OTHER",
 				  sched_priority=0,
-				  chain0={ { b="#plat1", num_steps=1, measure=1 },
-				     { b="#control1", num_steps=1, measure=1 } } } }
-   }
+				  chain0={
+				     { b="#plat1" },
+				     { b="#control1" } } } },
 
+      { name="mq1", config = {
+	   mq_id = "pos_msr", type_name = 'double', data_len = 2, buffer_len = 8 }
+      },
+      { name="mq2", config = {
+	   mq_id = "vel_cmd", type_name = 'double', data_len = 2, buffer_len = 8 }
+      },
+   },
+
+   connections = {
+      { src="plat1.pos", tgt="control1.measured_pos" },
+      { src="control1.commanded_vel",tgt="plat1.desired_vel" },
+      { src="plat1.pos", tgt="mq1" },
+      { src="control1.commanded_vel",tgt="mq2" },
+   },
 }

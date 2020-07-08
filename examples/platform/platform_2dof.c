@@ -1,3 +1,5 @@
+#undef UBX_DEBUG /* ubx_debug is compiled out if undefined */
+
 #include "platform_2dof.h"
 #include <math.h>
 
@@ -68,14 +70,13 @@ int platform_2dof_start(ubx_block_t *b)
 {
 	struct platform_2dof_info *inf = (struct platform_2dof_info*) b->private_data;
 	ubx_info(b, "platform_2dof start");
-	ubx_gettime(&(inf->last_time));
+	ubx_gettime(&inf->last_time);
 	return 0;
 }
 
 /* cleanup */
 void platform_2dof_cleanup(ubx_block_t *b)
 {
-	/* struct platform_2dof_info *inf = (struct platform_2dof_info*) b->private_data; */
         ubx_info(b, "%s", __func__);
 	free(b->private_data);
 }
@@ -89,16 +90,17 @@ void platform_2dof_step(ubx_block_t *b)
 
 	/* compute time from last call */
 	ubx_gettime(&current_time);
-	ubx_ts_sub(&current_time,&(inf->last_time),&difference);
-	inf->last_time=current_time;
+	ubx_ts_sub(&current_time, &inf->last_time, &difference);
+	inf->last_time = current_time;
 	double time_passed = ubx_ts_to_double(&difference);
 
 	/* read velocity from port */
 	ret = read_double_array(inf->ports.desired_vel, velocity, 2);
+	assert(ret>=0);
 
-	if (ret <= 0) { /* nodata */
+	if (ret == 0) { /* nodata */
+		ubx_notice(b,"no velocity setpoint");
 		velocity[0] = velocity[1] = 0.0;
-		ubx_err(b,"no velocity data");
 	}
 
 	for (int i=0; i<2; i++) {
@@ -110,5 +112,7 @@ void platform_2dof_step(ubx_block_t *b)
 		inf->r_state.pos[i] += velocity[i] * time_passed;
 	}
 	/* write position in the port */
+	ubx_debug(b, "writing pos [%f, %f]",
+		  inf->r_state.pos[0], inf->r_state.pos[1]);
 	write_double_array(inf->ports.pos, inf->r_state.pos, 2);
 }
