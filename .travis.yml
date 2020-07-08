@@ -63,6 +63,23 @@ script:
   - sudo make install
   - ubx-launch -t 1 -webif -c myblock.usc
   - popd
+  # run the threshold example
   - ubx-launch -t 3 -s -check unconn_inports,unconn_outports -c examples/usc/threshold.usc
+  # run the pid example
   - pushd /usr/share/ubx/examples/usc/pid/
   - ubx-launch -t 3 -s -check unconn_inports,unconn_outports -c pid_test.usc,ptrig_nrt.usc
+  # build and run tutorial
+  # platform_2dof
+  - ubx-genblock -c examples/platform/platform_2dof.lua -d /tmp/platform_2dof/
+  - cp examples/platform/platform_2dof.c /tmp/platform_2dof/
+  - pushd /tmp/platform_2dof/
+  - ./bootstrap && ./configure && make && sudo make install
+  - popd
+  # platform_2dof_control
+  - ubx-genblock -c examples/platform/platform_2dof_control.lua -d /tmp/platform_2dof_control/
+  - cp examples/platform/platform_2dof_control.c /tmp/platform_2dof_control/
+  - pushd /tmp/platform_2dof_control/
+  - ./bootstrap && ./configure && make && sudo make install
+  - popd
+  # run the tutorial usc
+  - ubx-launch -t 2 -c examples/platform/platform_launch/platform_2dof_and_control.usc
