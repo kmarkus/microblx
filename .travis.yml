@@ -57,10 +57,7 @@ script:
   # test generating an out-of-tree block
   - ubx-genblock -d /tmp/testblock/ -c examples/blockmodels/block_model_example.lua
   - pushd /tmp/testblock/
-  - ./bootstrap
-  - ./configure
-  - make
-  - sudo make install
+  - ./bootstrap && ./configure && make && sudo make install
   - ubx-launch -t 1 -webif -c myblock.usc
   - popd
   # run the threshold example
@@ -68,6 +65,7 @@ script:
   # run the pid example
   - pushd /usr/share/ubx/examples/usc/pid/
   - ubx-launch -t 3 -s -check unconn_inports,unconn_outports -c pid_test.usc,ptrig_nrt.usc
+  - popd
   # build and run tutorial
   # platform_2dof
   - ubx-genblock -c examples/platform/platform_2dof.lua -d /tmp/platform_2dof/
