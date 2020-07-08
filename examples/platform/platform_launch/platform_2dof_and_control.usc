@@ -29,7 +29,7 @@ return bd.system
       { name="control1", config = {  gain={0.1, 0.1}, target_pos={4.5,4.5} } },
       { name="fifo_pos", config = { type_name="double", data_len=2, buffer_len=1 } },
       { name="fifo_vel", config = { type_name="double", data_len=2, buffer_len=1 } },
-      { name="ptrig1", config = { period = {sec=1, usec=0 },
+      { name="ptrig1", config = { period = {sec=0, usec=100000 },
 				  sched_policy="SCHED_OTHER",
 				  sched_priority=0,
 				  chain0={ { b="#plat1", num_steps=1, measure=1 },
