@@ -333,9 +333,9 @@ Deployment via the usc (microblx system composition) file
 ----------------------------------------------------------
 
 ``ubx-genblock`` generated sample `.usc` files to run each block
-independently. We want to run and compose them together and save the
-results in a logger file.  The composition file
-**platform_2dof_and_control.usc** is quite self explanatory: It
+independently. We want to run and compose them together and make the
+resulting signals available using message queues.  The composition
+file **platform_2dof_and_control.usc** is quite self explanatory: It
 contains
 
 - the libraries to be imported,
@@ -384,9 +384,20 @@ or
    ubx-ilaunch -webif -c platform_2dof_and_control.usc
 
 to enable the *web interface* at `localhost:8888 <localhost:8888>`__ .
-In order to visualize the data saved by the logger in the ``/tmp/``
-directory, consider using `kst <https://kst-plot.kde.org/>`__ or any
-other program that can visualize a comma-separated-value file.
+
+To show the position and velocity signal, use the ``ubx-mq`` tool:
+
+.. code:: bash
+	  $ ubx-mq list
+	  e8cd7da078a86726031ad64f35f5a6c0  2    vel_cmd
+	  e8cd7da078a86726031ad64f35f5a6c0  2    pos_msr
+
+	  ubx-mq read pos_msr
+	  {1.1,1}
+	  {1.13403850806,1.03503964065}
+	  {1.1679003576875,1.0698974270313}
+	  {1.2012522276799,1.1042302343764}
+	  {1.2342907518755,1.1382404798718}
 
 Some considerations about the fifos
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
