@@ -158,14 +158,14 @@ request method: %s, uri: %s, http_version: %s, query_string: %s, remote_user: %s
 end
 
 --- Generate html tables of the known ubx types.
--- @param ni node_info
+-- @param nd node_info
 -- @return string containing html
-function typelist_tohtml(ni)
+function typelist_tohtml(nd)
    local table_header, table_footer, elem_per_tab
    local entries={}
    local output={}
 
-   if ubx.num_types(ni) <= 0 then return "" end
+   if ubx.num_types(nd) <= 0 then return "" end
 
    output[#output+1]="<h2>Registered Types</h2>"
 
@@ -212,9 +212,9 @@ end
 
 
 --- Generate html tables of the module+license
--- @param ni node_info
+-- @param nd node_info
 -- @return string containing html
-function modlist_tohtml(ni)
+function modlist_tohtml(nd)
    local output={}
 
    local mods =  {}
@@ -442,10 +442,10 @@ end
 
 --- Show information on a single block.
 -- @param ri request info
--- @param ni node infp
-function show_block(ri, ni)
+-- @param nd node infp
+function show_block(ri, nd)
 
-   local nodename = safe_ts(ni.name)
+   local nodename = safe_ts(nd.name)
    local query_string = safe_ts(ri.query_string)
    local qstab = query_string_to_tab(query_string)
    local blockname = qstab.name or " "
@@ -549,9 +549,9 @@ local iblock_table_fields = { 'name', 'state', 'prototype', 'stat_num_reads', 's
 --- master dispatch table.
 dispatch_table = {
    -- Root node overview
-   ["/"] = function(ri, ni, postdata)
+   ["/"] = function(ri, nd, postdata)
 	      if postdata then handle_post(nd, postdata) end
-	      local nodename = safe_ts(ni.name)
+	      local nodename = safe_ts(nd.name)
 	      local protoblocks = ubx.blocks_map(nd, ubx.block_totab, ubx.is_proto)
 	      local cinst = ubx.blocks_map(nd, ubx.block_totab, ubx.is_cblock_instance)
 	      local iinst = ubx.blocks_map(nd, ubx.block_totab, ubx.is_iblock_instance)
@@ -567,13 +567,13 @@ dispatch_table = {
 		 blocklist_tohtml(cinst, "Computational Blocks", cblock_table_fields),
 		 blocklist_tohtml(iinst, "Interaction Blocks", iblock_table_fields),
 		 blocklist_tohtml(protoblocks, "Prototype Blocks", protoblocks_table_fields),
-		 typelist_tohtml(ni), "<br>",
-		 modlist_tohtml(ni), "<br>",
+		 typelist_tohtml(nd), "<br>",
+		 modlist_tohtml(nd), "<br>",
 		 sysinfo(), "<br><br>",
 		 reqinf_tostr(ri))
 	   end,
    -- Block overview
-   ["/block"] = function(ri, ni, postdata)
+   ["/block"] = function(ri, nd, postdata)
       if postdata then
 	 local t = query_string_to_tab(postdata)
 
@@ -585,12 +585,12 @@ dispatch_table = {
 			"Failed to apply config "..t.confname..", value: "..t.confval.."<br>"..msg)
 	 end
       end
-      return show_block(ri, ni)
+      return show_block(ri, nd)
    end,
 
-   ["/node"] = function(ri, ni, postdata)
-      local nodename = safe_ts(ni.name)
-      local dotstr=ubx.node_todot(ni)
+   ["/node"] = function(ri, nd, postdata)
+      local nodename = safe_ts(nd.name)
+      local dotstr=ubx.node_todot(nd)
       local scrpt = [[
 function src(id) {
    return document.getElementById(id).innerHTML;
@@ -616,16 +616,16 @@ document.body.innerHTML += Viz(src("dotstr"), "svg")
 
 function request_handler(node_info, request_info_lud, postdata)
    local reqinf = ffi.cast("struct mg_request_info*", request_info_lud)
-   local ni = ffi.cast("struct ubx_node*", node_info)
+   local nd = ffi.cast("struct ubx_node*", node_info)
 
    local uri = safe_ts(reqinf.uri)
    local handler = dispatch_table[uri]
 
-   ubx.ffi_load_types(ni)
+   ubx.ffi_load_types(nd)
 
    -- print("requesting uri", uri)
 
-   if handler then return handler(reqinf, ni, postdata) end
+   if handler then return handler(reqinf, nd, postdata) end
 
    print("no handler found for uri", uri)
    return "<h1>no handler found</h1>"..reqinf_tostr(reqinf)
