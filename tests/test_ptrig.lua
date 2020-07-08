@@ -75,7 +75,7 @@ function TestPtrig:TestCountNumTrigs()
    nd:b("trig"):do_stop()
    local _, res = p_result:read()
    assert_equals(res:tolua(), 999)
-   sys1:pulldown(nd)
+   ubx.node_rm(nd)
 end
 
 
@@ -115,7 +115,7 @@ local sys2 = bd.system {
       { name="tb1", config = { lua_str=gen_dur_test_block(0, block_dur_us['chain0,tb1']*1000) } },
       { name="tb2", config = { lua_str=gen_dur_test_block(0, block_dur_us['chain0,tb2']*1000) } },
       { name="tb3", config = { lua_str=gen_dur_test_block(0, block_dur_us['chain0,tb3']*1000) } },
-      { name="trig", config = { period = {sec=0, usec=100000 },
+      { name="trig", config = { period = {sec=0, usec=20000 },
 				tstats_mode=2,
 				tstats_profile_path="./",
 				chain0={
@@ -148,7 +148,7 @@ function TestPtrig:TestTstats()
    local p_tstats = ubx.port_clone_conn(nd:b("trig"), "tstats", 4)
 
    sys2:startup(nd)
-   ubx.clock_mono_sleep(3)
+   ubx.clock_mono_sleep(1)
    nd:b("trig"):do_stop()
 
    while true do
@@ -295,7 +295,7 @@ local sys4 = bd.system {
       { name="const3", config = { type_name="int", value=1003 } },
       {
 	 name="ptrig0", config = {
-	    period = {sec=0, usec=1000 },
+	    period = {sec=0, usec=100 },
 	    tstats_mode = 2,
 	    tstats_profile_path = "./",
 	    num_chains = 4,
@@ -325,17 +325,20 @@ function TestPtrig:TestMultichainPtrig()
 	 if c == 0 then return false end
 	 return v:tolua()
       end
-      return { rd(p_const0), rd(p_const1), rd(p_const2), rd(p_const3) }
+      while true do
+	 local res = { rd(p_const0), rd(p_const1), rd(p_const2), rd(p_const3) }
+	 if ( res[1] or res[2] or res[3] or res[4] ) then return res end
+      end
    end
 
    local function switch_chain(id)
       p_actchain:write(id)
-      ubx.clock_mono_sleep(0, 30*1000^2)
+      -- clear out old values and ensure that new data is there for
+      -- the assert rdports call:
       rdports()
-      ubx.clock_mono_sleep(0, 30*1000^2)
    end
 
-   ubx.clock_mono_sleep(0, 50*1000^2)
+   -- allow ptrig to startup
    assert_equals(rdports(), { 1000, false, false ,false })
 
    switch_chain(1)
