@@ -3,6 +3,12 @@ ChangeLog
 
 This file tracks user visible API changes
 
+## next
+
+- typemacros: added `def_cfg_set_fun` to define type safe
+  configuration setters akin akin to `def_cfg_getptr_fun`. See
+  `examples/platform/platform_launch/main.c` for a usage example.
+  
 ## 0.9.0
 
 - std_blocks: added saturation block. This multi-length block will

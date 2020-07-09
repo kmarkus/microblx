@@ -160,6 +160,49 @@ long FUNCNAME(const ubx_block_t *b,					\
 	return ubx_config_get_data_ptr(b, cfg_name, (void **) valptr);	\
 }
 
+#define def_cfg_set_fun(FUNCNAME, TYPENAME)				\
+int FUNCNAME(const ubx_block_t *b,					\
+		     const char *cfg_name,				\
+		     const TYPENAME *valptr,				\
+		     const long len)					\
+{									\
+	int ret;							\
+	const ubx_config_t *c;						\
+	static ubx_type_t *type = NULL;					\
+									\
+	c = ubx_config_get(b, cfg_name);				\
+									\
+	if (c == NULL) {						\
+		ubx_err(b, "EINVALID_CONFIG: %s", cfg_name);		\
+		return EINVALID_CONFIG;					\
+	}								\
+									\
+	if (c->type != type) {						\
+		type = ubx_type_get(b->nd, QUOTE(TYPENAME));		\
+									\
+		if (type == NULL) {					\
+			ubx_err(b, "%s: unregistered type " QUOTE(TYPENAME), __func__); \
+			return EINVALID_TYPE;				\
+		}							\
+									\
+		if (c->type != type) {					\
+			ubx_err(b, "%s: ETYPE_MISMATCH: expected %s but config %s is %s", \
+				__func__, QUOTE(TYPENAME), cfg_name, c->type->name); \
+			return ETYPE_MISMATCH;				\
+		}							\
+	}								\
+									\
+	ret = ubx_data_resize(c->value, len);				\
+									\
+	if (ret) {							\
+		ubx_err(b, "%s: error resizing cfg %s to %lu", __func__, cfg_name, len); \
+		return ret;						\
+	}								\
+									\
+	memcpy(c->value->data, valptr, len * sizeof(TYPENAME));		\
+	return 0;							\
+}									\
+
 
 /* generate both port readers and writers */
 #define def_port_accessors(SUFFIX, TYPENAME) \
@@ -169,7 +212,17 @@ def_port_readers(read_ ## SUFFIX, TYPENAME)
 /* generate port and config accessors */
 #define def_type_accessors(SUFFIX, TYPENAME) \
 def_port_accessors(SUFFIX, TYPENAME) \
-def_cfg_getptr_fun(cfg_getptr_ ## SUFFIX, TYPENAME)
+def_cfg_getptr_fun(cfg_getptr_ ## SUFFIX, TYPENAME) \
+def_cfg_set_fun(cfg_set_ ## SUFFIX, TYPENAME)
+
+/* define the prototypes for the generated accessors */
+#define def_type_accessors_proto(SUFFIX, TYPENAME)			\
+int write_ ## SUFFIX(const ubx_port_t *p, const TYPENAME *val);		\
+int write_ ## SUFFIX ## _array(const ubx_port_t *p, const TYPENAME *val, const long len); \
+long read_ ## SUFFIX(const ubx_port_t *p, TYPENAME *val);		\
+long read_ ## SUFFIX ##_array(const ubx_port_t *p, TYPENAME *val, const long len); \
+long cfg_getptr_ ## SUFFIX(const ubx_block_t *b, const char *cfg_name, const TYPENAME **valptr); \
+int cfg_set_ ## SUFFIX(const ubx_block_t *b, const char *cfg_name, const TYPENAME *valptr, const long len);
 
 /* C++ helpers */
 #ifdef __cplusplus
