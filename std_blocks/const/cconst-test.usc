@@ -13,8 +13,8 @@ return bd.system
    imports = { "stdtypes", "cconst", 'mqueue', 'ptrig' },
 
    blocks = {
-      { name="cconst1", type="consts/cconst" },
-      { name="ptrig1", type="std_triggers/ptrig" },
+      { name="cconst1", type="ubx/cconst" },
+      { name="ptrig1", type="ubx/ptrig" },
       { name="mq1", type="mqueue" },
    },
 

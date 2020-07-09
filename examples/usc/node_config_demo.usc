@@ -12,9 +12,9 @@ return bd.system
    },
 
    blocks = {
-      { name="b1", type="random/random" },
-      { name="b2", type="random/random" },
-      { name="ptrig1", type="std_triggers/ptrig" },
+      { name="b1", type="ubx/random" },
+      { name="b2", type="ubx/random" },
+      { name="ptrig1", type="ubx/ptrig" },
    },
 
    -- node config

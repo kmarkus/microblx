@@ -206,7 +206,7 @@ Defining type safe configuration accessors for custom types can be
 achieved using the macros described in section
 :ref:`type-safe-accessors`.
 
-The following example from the random (``std_blocks/random/random.c``)
+The following example from the random (``std_blocks/ubx/random.c``)
 block shows how this is done for ``struct min_max_config``:
 
 .. code:: c
@@ -323,7 +323,7 @@ data-structure that can then be registered in a microblx module:
 .. code:: c
 
    ubx_proto_block_t random_comp = {
-       .name = "random/random",
+       .name = "myblocks/random",
        .type = BLOCK_TYPE_COMPUTATION,
        .meta_data = rnd_meta,
        .configs = rnd_config,
@@ -445,7 +445,7 @@ blocks registered in init:
    static void rnd_module_cleanup(ubx_node_t *nd)
    {
        ubx_type_unregister(nd, "struct random_config");
-       ubx_block_unregister(nd, "random/random");
+       ubx_block_unregister(nd, "ubx/random");
    }
    UBX_MODULE_CLEANUP(rnd_module_cleanup)
 

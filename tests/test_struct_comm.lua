@@ -66,7 +66,7 @@ end
 ]]
 
 
-lb1=ubx.block_create(nd, "lua/luablock", "lb1", { lua_str=lua_testcomp } )
+lb1=ubx.block_create(nd, "ubx/luablock", "lb1", { lua_str=lua_testcomp } )
 assert_equals(ubx.block_init(lb1), 0)
 
 local p_pos_out = ubx.port_clone_conn(lb1, "pos_in", 4)

@@ -26,13 +26,13 @@ return bd.system {
 
    blocks = {
       -- simulated input
-      { name="ramp_msr", type="ramp_double" },
+      { name="ramp_msr", type="ubx/ramp_double" },
 
       -- message queues for debugging
-      { name="mq_1", type="mqueue" },
-      { name="mq_2", type="mqueue" },
-      { name="mq_3", type="mqueue" },
-      { name="mq_4", type="mqueue" },
+      { name="mq_1", type="ubx/mqueue" },
+      { name="mq_2", type="ubx/mqueue" },
+      { name="mq_3", type="ubx/mqueue" },
+      { name="mq_4", type="ubx/mqueue" },
    },
 
    configurations = {

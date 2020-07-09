@@ -15,7 +15,7 @@ ubx.load_module(nd, "random")
 
 ubx.ffi_load_types(nd)
 
-local b = ubx.block_create(nd, "random/random",
+local b = ubx.block_create(nd, "ubx/random",
 			   "b", {min_max_config={min=32, max=127}})
 
 function test_switch_block_inactive()

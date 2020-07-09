@@ -1478,8 +1478,8 @@ function M.node_todot(nd)
    local function gen_dot_trigger_edges(b, res)
 
       if not (b.prototype ~= nil and
-		 (b.prototype.name == "std_triggers/ptrig" or
-		  b.prototype.name == "std_triggers/trig")) then return end
+		 (b.prototype.name == "ubx/ptrig" or
+		  b.prototype.name == "ubx/trig")) then return end
 
       local chain0_cfg
 
@@ -1592,7 +1592,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
    if p.out_type~=nil then
       local iname = fmt("PCC%d->%s.%s", pcc_cnt(), M.safe_tostr(block.name), pname)
 
-      i_p_to_prot = M.block_create(block.nd, "lfds_buffers/cyclic", iname,
+      i_p_to_prot = M.block_create(block.nd, "ubx/lfds_cyclic", iname,
 				   {
 				      buffer_len = buff_len1,
 				      type_name = ffi.string(p.out_type.name),
@@ -1617,7 +1617,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
    if p.in_type ~= nil then -- new port is an in-port?
       local iname = fmt("PCC%d<-%s.%s", pcc_cnt(), M.safe_tostr(block.name), pname)
 
-      i_prot_to_p = M.block_create(block.nd, "lfds_buffers/cyclic", iname,
+      i_prot_to_p = M.block_create(block.nd, "ubx/lfds_cyclic", iname,
 				   { buffer_len = buff_len2,
 				     type_name = ffi.string(p.in_type.name),
 				     data_len = tonumber(p.in_data_len),
@@ -1748,7 +1748,7 @@ function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
       error("conn_lfds_cyclic: invalid element_num array length param "..ts(element_num))
    end
 
-   return M.conn_uni(b1, pname1, b2, pname2, "lfds_buffers/cyclic",
+   return M.conn_uni(b1, pname1, b2, pname2, "ubx/lfds_cyclic",
 		     { buffer_len=element_num,
 		       type_name=M.safe_tostr(p1.out_type.name),
 		       data_len=utils.min(len1, len2) }, dont_start)

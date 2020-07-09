@@ -14,9 +14,9 @@ return bd.system
    blocks = {
       { name="plat1", type="platform_2dof" },
       { name="control1", type="platform_2dof_control" },
-      { name="ptrig1", type="std_triggers/ptrig" },
-      { name="mq1", type="mqueue" },
-      { name="mq2", type="mqueue" },
+      { name="ptrig1", type="ubx/ptrig" },
+      { name="mq1", type="ubx/mqueue" },
+      { name="mq2", type="ubx/mqueue" },
    },
 
    configurations = {

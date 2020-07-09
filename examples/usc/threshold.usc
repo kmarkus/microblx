@@ -34,11 +34,11 @@ return bd.system
    },
 
    blocks = {
-      { name="thres", type="threshold" },
-      { name="ramp", type="ramp_double" },
-      { name="sin", type="math_double" },
-      { name="trigger", type="std_triggers/ptrig" },
-      { name="mq", type="mqueue" },
+      { name="thres", type="ubx/threshold" },
+      { name="ramp", type="ubx/ramp_double" },
+      { name="sin", type="ubx/math_double" },
+      { name="trigger", type="ubx/ptrig" },
+      { name="mq", type="ubx/mqueue" },
    },
 
    configurations = {

@@ -55,7 +55,7 @@ return bd.system {
    imports = { "stdtypes", "luablock" },
 
    blocks = {
-      { name = "lb1", type="lua/luablock" }
+      { name = "lb1", type="ubx/luablock" }
    },
 
    connections = {},

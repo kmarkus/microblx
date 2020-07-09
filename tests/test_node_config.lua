@@ -9,13 +9,13 @@ local sys1 = bd.system {
 	       "random",
 	       "ramp_uint64" },
    blocks = {
-      { name="ramp1", type="ramp_uint64" },
-      { name="ramp2", type="ramp_uint64" },
-      { name="ramp3", type="ramp_uint64" },
+      { name="ramp1", type="ubx/ramp_uint64" },
+      { name="ramp2", type="ubx/ramp_uint64" },
+      { name="ramp3", type="ubx/ramp_uint64" },
 
-      { name="rand1", type="random/random" },
-      { name="rand2", type="random/random" },
-      { name="rand3", type="random/random" },
+      { name="rand1", type="ubx/random" },
+      { name="rand2", type="ubx/random" },
+      { name="rand3", type="ubx/random" },
    },
 
    node_configurations={

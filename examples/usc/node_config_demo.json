@@ -20,15 +20,15 @@
   "blocks": [
     {
       "name": "b1",
-      "type": "random/random"
+      "type": "ubx/random"
     },
     {
       "name": "b2",
-      "type": "random/random"
+      "type": "ubx/random"
     },
     {
       "name": "ptrig1",
-      "type": "std_triggers/ptrig"
+      "type": "ubx/ptrig"
     }
   ],
   "configurations": [

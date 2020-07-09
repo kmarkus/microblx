@@ -23,8 +23,8 @@ return bd.system
    },
 
    blocks = {
-      { name='ptrig', type="std_triggers/ptrig" },
-      { name="rnd0", type="random/random" },
+      { name='ptrig', type="ubx/ptrig" },
+      { name="rnd0", type="ubx/random" },
       { name="logger", type="logging/file_logger" },
    },
 

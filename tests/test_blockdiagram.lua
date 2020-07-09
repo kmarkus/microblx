@@ -31,12 +31,12 @@ local function sys1_gen_blocks()
    local res = {}
    for i=1,NUM_BLOCKS do
       res[#res+1] = { name="uint32_ramp"..tostring(i),
-		      type="ramp_uint32" }
+		      type="ubx/ramp_uint32" }
    end
 
    for i=1,NUM_BLOCKS do
       res[#res+1] = { name="sink"..tostring(i),
-		      type = "lua/luablock" }
+		      type = "ubx/luablock" }
    end
    return res
 end
@@ -80,7 +80,7 @@ end
 --- Test resolving a node config
 local sys_ndcfg_res = bd.system {
    imports = { "stdtypes", "ramp_int32" },
-   blocks = { { name = "r1", type = "ramp_int32" } },
+   blocks = { { name = "r1", type = "ubx/ramp_int32" } },
    node_configurations = { foo = { type="int32_t", config = 33 } },
    configurations = { { name = "r1", config = { start = 0, slope="&foo" } } }
 }
@@ -92,7 +92,7 @@ end
 --- Test that an invalid node config is caught
 local sys_invalid_ndcfg = bd.system {
    imports = { "stdtypes", "ramp_int32" },
-   blocks = { { name = "r1", type = "ramp_int32" } },
+   blocks = { { name = "r1", type = "ubx/ramp_int32" } },
    node_configurations = { foo = { type="int32_t", config = 33 } },
    configurations = { { name = "r1", config = { start = 0, slope="&fooX" } } }
 }
@@ -110,8 +110,8 @@ function test_resolve_block_hash()
    local sys = bd.system {
       imports = { "stdtypes", "ramp_int32", "trig" },
       blocks = {
-	 { name = "r1", type = "ramp_int32" },
-	 { name = "t1", type = "std_triggers/trig" }
+	 { name = "r1", type = "ubx/ramp_int32" },
+	 { name = "t1", type = "ubx/trig" }
       },
 
       configurations = {
@@ -130,8 +130,8 @@ function test_resolve_block_hash_invalid()
    local sys = bd.system {
       imports = { "stdtypes", "ramp_int32", "trig" },
       blocks = {
-	 { name = "r1", type = "ramp_int32" },
-	 { name = "t1", type = "std_triggers/trig" }
+	 { name = "r1", type = "ubx/ramp_int32" },
+	 { name = "t1", type = "ubx/trig" }
       },
 
       configurations = {

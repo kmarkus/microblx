@@ -28,7 +28,7 @@ TestDynIF = {}
 local exec_str, lb
 
 function TestDynIF:setup()
-   lb = ubx.block_create(nd, "lua/luablock", "lb1",
+   lb = ubx.block_create(nd, "ubx/luablock", "lb1",
 			 { lua_str = "ubx = require('ubx'); this=nil; function start(b) this=b; return true end" })
    assert_not_nil(lb)
 

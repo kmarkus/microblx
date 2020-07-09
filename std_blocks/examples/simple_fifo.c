@@ -6,7 +6,7 @@
  * approach to develop an iblock. The preferred way is to define the
  * configs 'type_name', 'data_len' and optionally 'buffer_len' and
  * carry out type checking in the iblock. Please refer to the
- * lfds_buffers/cyclic as a good example.
+ * ubx/lfds_cyclic as a good example.
  */
 
 #undef UBX_DEBUG

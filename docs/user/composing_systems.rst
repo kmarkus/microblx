@@ -30,7 +30,7 @@ minimal example:
 	   blocks = {
 	      { name="x1", type="myblocks/x" },
 	      { name="y1", type="myblocks/y" },
-	      { name="ptrig1", type="std_triggers/ptrig" },
+	      { name="ptrig1", type="ubx/ptrig" },
 	      ...
 	   },
 

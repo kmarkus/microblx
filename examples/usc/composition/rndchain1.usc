@@ -7,8 +7,8 @@ return bd.system
    },
 
    blocks = {
-      { name="rnd1", type="random/random" },
-      { name="trig", type="std_triggers/trig" },
+      { name="rnd1", type="ubx/random" },
+      { name="trig", type="ubx/trig" },
    },
 
    configurations = {

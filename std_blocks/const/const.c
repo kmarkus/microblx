@@ -186,9 +186,9 @@ static int const_mod_init(ubx_node_t *nd)
 static void const_mod_cleanup(ubx_node_t *nd)
 {
 #ifdef BUILD_IBLOCK
-	ubx_block_unregister(nd, "consts/iconst");
+	ubx_block_unregister(nd, "ubx/iconst");
 #else
-	ubx_block_unregister(nd, "consts/cconst");
+	ubx_block_unregister(nd, "ubx/cconst");
 #endif
 }
 

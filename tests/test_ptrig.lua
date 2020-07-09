@@ -49,9 +49,9 @@ end
 local sys1 = bd.system {
    imports = { "stdtypes", "ptrig", "ramp_uint64", "lfds_cyclic", "luablock" },
    blocks = {
-      { name="ramp", type="ramp_uint64" },
-      { name="tester", type="lua/luablock" },
-      { name="trig", type="std_triggers/ptrig" },
+      { name="ramp", type="ubx/ramp_uint64" },
+      { name="tester", type="ubx/luablock" },
+      { name="trig", type="ubx/ptrig" },
    },
    connections = {
       { src="ramp.out", tgt="tester.ramp_cnt" },
@@ -106,10 +106,10 @@ local block_dur_us = {
 local sys2 = bd.system {
    imports = { "stdtypes", "ptrig", "lfds_cyclic", "luablock" },
    blocks = {
-      { name="tb1", type="lua/luablock" },
-      { name="tb2", type="lua/luablock" },
-      { name="tb3", type="lua/luablock" },
-      { name="trig", type="std_triggers/ptrig" },
+      { name="tb1", type="ubx/luablock" },
+      { name="tb2", type="ubx/luablock" },
+      { name="tb3", type="ubx/luablock" },
+      { name="trig", type="ubx/ptrig" },
    },
    configurations = {
       { name="tb1", config = { lua_str=gen_dur_test_block(0, block_dur_us['chain0,tb1']*1000) } },
@@ -168,11 +168,11 @@ end
 local sys3 = bd.system {
    imports = { "stdtypes", "trig", "lfds_cyclic", "cconst" },
    blocks = {
-      { name="const0", type="consts/cconst" },
-      { name="const1", type="consts/cconst" },
-      { name="const2", type="consts/cconst" },
-      { name="const3", type="consts/cconst" },
-      { name="trig0", type="std_triggers/trig" },
+      { name="const0", type="ubx/cconst" },
+      { name="const1", type="ubx/cconst" },
+      { name="const2", type="ubx/cconst" },
+      { name="const3", type="ubx/cconst" },
+      { name="trig0", type="ubx/trig" },
    },
 
    configurations = {
@@ -281,11 +281,11 @@ end
 local sys4 = bd.system {
    imports = { "stdtypes", "ptrig", "lfds_cyclic", "cconst" },
    blocks = {
-      { name="const0", type="consts/cconst" },
-      { name="const1", type="consts/cconst" },
-      { name="const2", type="consts/cconst" },
-      { name="const3", type="consts/cconst" },
-      { name="ptrig0", type="std_triggers/ptrig" },
+      { name="const0", type="ubx/cconst" },
+      { name="const1", type="ubx/cconst" },
+      { name="const2", type="ubx/cconst" },
+      { name="const3", type="ubx/cconst" },
+      { name="ptrig0", type="ubx/ptrig" },
    },
 
    configurations = {

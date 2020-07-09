@@ -15,9 +15,9 @@ local loglevel = 7
 local leaf = bd.system {
    imports = { "stdtypes", "random", "lfds_cyclic", "trig" },
    blocks = {
-      { name = "rnd1", type="random/random" },
-      { name = "rnd2", type="random/random" },
-      { name = "trig", type="std_triggers/trig" },
+      { name = "rnd1", type="ubx/random" },
+      { name = "rnd2", type="ubx/random" },
+      { name = "trig", type="ubx/trig" },
    },
    configurations = {
       {	name="rnd1", config = {
@@ -44,9 +44,9 @@ local comp1 = bd.system {
       leaf = utils.deepcopy(leaf),
    },
    blocks = {
-      { name = "rnd1", type="random/random" },
-      { name = "rnd2", type="random/random" },
-      { name = "trig", type="std_triggers/trig" },
+      { name = "rnd1", type="ubx/random" },
+      { name = "rnd2", type="ubx/random" },
+      { name = "trig", type="ubx/trig" },
    },
    configurations = {
       {	name="rnd1", config = { min_max_config = { min=10, max=11 } } },
@@ -74,9 +74,9 @@ local comp2 = bd.system {
       mid = utils.deepcopy(comp1),
    },
    blocks = {
-      { name = "rnd1", type="random/random" },
-      { name = "rnd2", type="random/random" },
-      { name = "trig", type="std_triggers/trig" },
+      { name = "rnd1", type="ubx/random" },
+      { name = "rnd2", type="ubx/random" },
+      { name = "trig", type="ubx/trig" },
    },
    configurations = {
       {	name="rnd1", config = { min_max_config = { min=100, max=101 } } },
@@ -220,9 +220,9 @@ local ndcfg1 = bd.system {
    },
 
    blocks = {
-      { name = "rnd1", type="random/random" },
-      { name = "rnd2", type="random/random" },
-      { name = "rnd3", type="random/random" },
+      { name = "rnd1", type="ubx/random" },
+      { name = "rnd2", type="ubx/random" },
+      { name = "rnd3", type="ubx/random" },
    },
    configurations = {
       {	name="rnd1", config = { min_max_config = "&rnd_conf" } },
@@ -254,8 +254,8 @@ local ndcfg2 = bd.system {
    subsystems = { sub1 = utils.deepcopy(ndcfg1)  },
 
    blocks = {
-      { name = "rnd1", type="random/random" },
-      { name = "rnd2", type="random/random" },
+      { name = "rnd1", type="ubx/random" },
+      { name = "rnd2", type="ubx/random" },
    },
 
    configurations = {
@@ -289,8 +289,8 @@ local ndcfg3 = bd.system {
    subsystems = { sub2 = utils.deepcopy(ndcfg2)  },
 
    blocks = {
-      { name = "rnd1", type="random/random" },
-      { name = "rnd2", type="random/random" },
+      { name = "rnd1", type="ubx/random" },
+      { name = "rnd2", type="ubx/random" },
    },
 
    configurations = {
@@ -323,7 +323,7 @@ function TestComp:test_late_config()
 
    NI = bd.system {
       imports = { 'stdtypes', 'cconst', 'testtypes', 'lfds_cyclic' },
-      blocks = { { name="cconst1", type="consts/cconst" } },
+      blocks = { { name="cconst1", type="ubx/cconst" } },
       configurations = {
 	 { name="cconst1",
 	   config = {
@@ -358,7 +358,7 @@ function TestComp:test_late_config2()
 
    NI = bd.system {
       imports = { 'stdtypes', 'cconst', 'testtypes', 'lfds_cyclic' },
-      blocks = { { name="cconst1", type="consts/cconst" } },
+      blocks = { { name="cconst1", type="ubx/cconst" } },
       configurations = {
 	 { name="cconst1",
 	   config = {

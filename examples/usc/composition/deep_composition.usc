@@ -12,7 +12,7 @@ local rnd2 = bd.system {
    },
 
    blocks = {
-      { name="rnd", type="random/random" },
+      { name="rnd", type="ubx/random" },
    },
 
    configurations = {
@@ -28,8 +28,8 @@ local rnd1 = bd.system {
    },
 
    blocks = {
-      { name='trig', type="std_triggers/trig" },
-      { name="rnd", type="random/random" },
+      { name='trig', type="ubx/trig" },
+      { name="rnd", type="ubx/random" },
    },
 
    configurations = {
@@ -53,8 +53,8 @@ return bd.system
    },
 
    blocks = {
-      { name='trig', type="std_triggers/trig" },
-      { name="rnd", type="random/random" },
+      { name='trig', type="ubx/trig" },
+      { name="rnd", type="ubx/random" },
    },
 
    configurations = {

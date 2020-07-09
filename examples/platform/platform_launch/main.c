@@ -45,7 +45,7 @@ int main()
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "fail to create control1");
 		goto out;
 	}
- 	if((ptrig1 = ubx_block_create(&nd, "std_triggers/ptrig", "ptrig1"))==NULL){
+ 	if((ptrig1 = ubx_block_create(&nd, "ubx/ptrig", "ptrig1"))==NULL){
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "fail to create ptrig1");
 		goto out;
 	}
@@ -54,11 +54,11 @@ int main()
 		goto out;
 	}
 	/* create iblocks */
-	if((fifo_pos = ubx_block_create(&nd, "lfds_buffers/cyclic", "fifo_pos"))==NULL){
+	if((fifo_pos = ubx_block_create(&nd, "ubx/lfds_cyclic", "fifo_pos"))==NULL){
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "fail to create fifo_pos");
 		goto out;
 	}
-	if((fifo_vel = ubx_block_create(&nd, "lfds_buffers/cyclic", "fifo_vel"))==NULL){
+	if((fifo_vel = ubx_block_create(&nd, "ubx/lfds_cyclic", "fifo_vel"))==NULL){
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "fail to create fifo_vel");
 		goto out;
 	}

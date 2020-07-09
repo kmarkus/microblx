@@ -23,9 +23,9 @@ return bd.system
    },
 
    blocks = {
-      { name="pid_1", type="pid" },
-      { name="ramp_des", type="ramp_double" },
-      { name="trig_1", type="std_triggers/trig" },
+      { name="pid_1", type="ubx/pid" },
+      { name="ramp_des", type="ubx/ramp_double" },
+      { name="trig_1", type="ubx/trig" },
    },
 
    -- define data_len as a global configuration value that can be
