@@ -837,7 +837,7 @@ ubx_data_t *ubx_data_alloc(ubx_node_t *nd,
 
 int ubx_data_resize(ubx_data_t *d, long newlen)
 {
-	int ret = -1;
+	int ret = EOUTOFMEM;
 	void *ptr;
 	unsigned int newsz = newlen * d->type->size;
 
