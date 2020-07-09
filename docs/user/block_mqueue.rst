@@ -1,8 +1,8 @@
 Module mqueue
 -------------
 
-Block mqueue
-^^^^^^^^^^^^
+Block ubx/mqueue
+^^^^^^^^^^^^^^^^
 
 | **Type**:       iblock
 | **Attributes**: 
@@ -21,6 +21,7 @@ Configs
    data_len, ``long``, "array length (multiplier) of data (default: 1)"
    buffer_len, ``long``, "max number of data elements the buffer shall hold"
    blocking, ``uint32_t``, "enable blocking mode (def: 0)"
+   unlink, ``uint32_t``, "call mq_unlink in cleanup (def: 1 (yes)"
 
 
 

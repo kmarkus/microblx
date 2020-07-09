@@ -1,8 +1,8 @@
 Module ramp_double
 ------------------
 
-Block ramp_double
-^^^^^^^^^^^^^^^^^
+Block ubx/ramp_double
+^^^^^^^^^^^^^^^^^^^^^
 
 | **Type**:       cblock
 | **Attributes**: 

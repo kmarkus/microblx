@@ -1,8 +1,8 @@
 Module cconst
 -------------
 
-Block consts/cconst
-^^^^^^^^^^^^^^^^^^^
+Block ubx/cconst
+^^^^^^^^^^^^^^^^
 
 | **Type**:       cblock
 | **Attributes**: 

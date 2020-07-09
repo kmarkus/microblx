@@ -1,8 +1,8 @@
 Module math_double
 ------------------
 
-Block math_double
-^^^^^^^^^^^^^^^^^
+Block ubx/math_double
+^^^^^^^^^^^^^^^^^^^^^
 
 | **Type**:       cblock
 | **Attributes**: 

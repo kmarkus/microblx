@@ -1,8 +1,8 @@
 Module hexdump
 --------------
 
-Block hexdump/hexdump
-^^^^^^^^^^^^^^^^^^^^^
+Block ubx/hexdump
+^^^^^^^^^^^^^^^^^
 
 | **Type**:       iblock
 | **Attributes**: 

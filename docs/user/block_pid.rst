@@ -1,8 +1,8 @@
 Module pid
 ----------
 
-Block pid
-^^^^^^^^^
+Block ubx/pid
+^^^^^^^^^^^^^
 
 | **Type**:       cblock
 | **Attributes**: 

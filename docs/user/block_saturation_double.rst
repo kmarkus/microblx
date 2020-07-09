@@ -1,8 +1,8 @@
 Module saturation_double
 ------------------------
 
-Block saturation_double
-^^^^^^^^^^^^^^^^^^^^^^^
+Block ubx/saturation_double
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 | **Type**:       cblock
 | **Attributes**: 
@@ -28,8 +28,8 @@ Ports
 .. csv-table::
    :header: "name", "out type", "out len", "in type", "in len", "doc"
 
-   in, , , ``double``, 1, "sat generator output"
-   out, ``double``, 1, , , "sat generator output"
+   in, , , ``double``, 1, "input signal to saturate"
+   out, ``double``, 1, , , "saturated output signal"
 
 
 

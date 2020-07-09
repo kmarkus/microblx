@@ -1,7 +1,7 @@
 Module luablock
 ---------------
 
-Block lua/luablock
+Block ubx/luablock
 ^^^^^^^^^^^^^^^^^^
 
 | **Type**:       cblock

@@ -1,8 +1,8 @@
 Module lfds_cyclic
 ------------------
 
-Block lfds_buffers/cyclic
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Block ubx/lfds_cyclic
+^^^^^^^^^^^^^^^^^^^^^
 
 | **Type**:       iblock
 | **Attributes**: 

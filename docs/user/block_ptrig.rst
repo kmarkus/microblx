@@ -1,8 +1,8 @@
 Module ptrig
 ------------
 
-Block std_triggers/ptrig
-^^^^^^^^^^^^^^^^^^^^^^^^
+Block ubx/ptrig
+^^^^^^^^^^^^^^^
 
 | **Type**:       cblock
 | **Attributes**: trigger, active

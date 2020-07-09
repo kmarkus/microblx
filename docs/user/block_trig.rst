@@ -1,8 +1,8 @@
 Module trig
 -----------
 
-Block std_triggers/trig
-^^^^^^^^^^^^^^^^^^^^^^^
+Block ubx/trig
+^^^^^^^^^^^^^^
 
 | **Type**:       cblock
 | **Attributes**: trigger

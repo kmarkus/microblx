@@ -1,8 +1,8 @@
 Module iconst
 -------------
 
-Block consts/iconst
-^^^^^^^^^^^^^^^^^^^
+Block ubx/iconst
+^^^^^^^^^^^^^^^^
 
 | **Type**:       iblock
 | **Attributes**: 

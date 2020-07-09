@@ -1,8 +1,8 @@
 Module rand_double
 ------------------
 
-Block rand_double
-^^^^^^^^^^^^^^^^^
+Block ubx/rand_double
+^^^^^^^^^^^^^^^^^^^^^
 
 | **Type**:       cblock
 | **Attributes**: 
