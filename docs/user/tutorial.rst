@@ -407,7 +407,7 @@ configuration) and loading of the libraries
 
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 1-36	      
+   :lines: 1-37
 
 
 Block instantiation
@@ -417,31 +417,41 @@ Then we instantiate blocks (code for only one, for sake of brevity):
 
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 39-42	      
+   :lines: 40-43
 
 Property configuration
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Now we have the more tedious part, that is the configuration. It is
-necessary to allocate memory with the function ``ubx_data_resize``,
-that takes as argument the data pointer, and the new length.
+Now we have the more tedious part, that is the configuration. We use
+the type safe helper functions, for example
 
+.. code:: c
+
+   int cfg_set_double(const ubx_block_t *b, const char *cfg_name, const double *valptr, const long len);
+
+where
+
+- ``b`` is the block
+- ``cfg_name``  the name of the config to set
+- ``valptr`` is a pointer to the value to assign to the config
+- ``len`` is the array size of ``valptr``
+ 
 String property
 ^^^^^^^^^^^^^^^
 
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 66-71
+   :lines: 66-70
 
-The string can be defined literally, as a ``static const char[]`` or
-using a ``#define``.
+The string can be passed as a ``static const char[]`` or using a
+``#define``.
 
 Double property
 ^^^^^^^^^^^^^^^
 
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 83-85
+   :lines: 88-94
 
 In this case, memory allocation is done for a scalar (i.e. size 1)
 . The second line says: consider ``d->data`` as a pointer to double,
@@ -452,42 +462,33 @@ Fixed size array of double
 
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 87-90
+   :lines: 80-86
 
-Same as before, but being a vector, of two elements, the memory
-allocation is changed accordingly, and data writings needs the index.
+Almost the same as before, but being an array of two elements, we
+don't need to take the reference ``&`` here.
 
 Structure property
 ^^^^^^^^^^^^^^^^^^
 
-To assign the values to the structure, one option is to make/allocate
-a local instance of the structure, and then copy it.
+Same thing for ``struct`` types:
 
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 93-97
+   :lines: 104-110
 
-Alternatively, you could create and assing a structure:
+Note that for custom types, it is necessary to define the accessor
+using a typemacro, e.g:
 
-.. code:: c
+.. code:: C
 
-   struct ptrig_period p;
-   p.sec=1;
-   p.usec=14;
-   d=ubx_config_get_data(ptrig1, "period");
-   ubx_data_resize(d, 1);
-   *((struct ptrig_period*)d->data)=p;
-
+   def_cfg_set_fun(cfg_set_ptrig_period, struct ptrig_period);	  
 
 Array of structures:
 ^^^^^^^^^^^^^^^^^^^^
 
-It combines what we saw for arrays and structures. In the case of the
-trigger block, we have to configure the order of blocks,
-
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 117-123
+   :lines: 138-147
 
 
 Port connection
@@ -499,7 +500,7 @@ output ports, that are connected via two fifos:
 
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 148-156
+   :lines: 168-177
 
 	   
 Init and Start the blocks
@@ -510,24 +511,18 @@ Lastly, we need to init and start all the blocks. For example, for the
 
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 169-172,204-207
+   :lines: 190-194,225-228
 
 The same applies to all other blocks.
 
-Once all the block are running, the ``trigger`` block will call all
-the blocks in the given order, so long the main does not terminate. To
-prevent the main process to terminate, we can insert either a blocking
-call to terminal input:
-
-.. code:: c
-
-   getchar();
-
-or using the *signal.h* library, wait until *CTRL+C* is pressed:
+Once all the blocks are running, the ``ptrig1`` block will ``step``
+all the blocks in the configured order. To prevent the main process to
+terminate, we can use ``ubx_wait_sigint`` to wait for the user to type
+``ctrl-c``:
 
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 204,221
+   :lines: 238,239
 
 Note that we have to link against pthread library, so the
 *Makefile.am* has to be modified accordingly:

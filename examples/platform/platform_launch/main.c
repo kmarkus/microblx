@@ -2,10 +2,12 @@
 #include <ubx/trig_utils.h>
 
 #define WEBIF_PORT "8810"
-#define DOUBLE_STR "double"
 
 #include "ptrig_period.h"
 #include "signal.h"
+
+def_cfg_set_fun(cfg_set_ptrig_period, struct ptrig_period);
+def_cfg_set_fun(cfg_set_ubx_triggee, struct ubx_triggee);
 
 static const char* modules[] = {
 	"/usr/local/lib/ubx/0.9/stdtypes.so",
@@ -18,10 +20,9 @@ static const char* modules[] = {
 
 int main()
 {
-	int len, ret=EXIT_FAILURE;
+	int ret = EXIT_FAILURE;
 	ubx_node_t nd;
 	ubx_block_t *plat1, *control1, *ptrig1, *webif, *fifo_vel, *fifo_pos;
-	ubx_data_t *d;
 
 	/* initalize the node */
 	nd.loglevel = 7;
@@ -62,87 +63,107 @@ int main()
 		goto out;
 	}
 
-	/* configuration of blocks configuration of web interface */
-	d = ubx_config_get_data(webif, "port");
-	len = strlen(WEBIF_PORT)+1;
-
-	/* resize the char array as necessary and copy the port string */
-	ubx_data_resize(d, len);
-	strncpy((char *)d->data, WEBIF_PORT, len);
-
-	d = ubx_config_get_data(plat1, "initial_position");
-	ubx_data_resize(d, 2);
-	((double*)d->data)[0]=1.1;
-	((double*)d->data)[1]=0.1;
-
-	d = ubx_config_get_data(plat1, "joint_velocity_limits");
-	ubx_data_resize(d, 2);
-	((double*)d->data)[0]=0.5;
-	((double*)d->data)[1]=0.5;
-
-	d = ubx_config_get_data(control1, "gain");
-	ubx_data_resize(d, 1);
-	*((double*)d->data)=0.12;
-
-	d = ubx_config_get_data(control1, "target_pos");
-	ubx_data_resize(d, 2);
-	((double*)d->data)[0]=4.5;
-	((double*)d->data)[1]=4.52;
-
-	/* ptrig config */
-	d=ubx_config_get_data(ptrig1, "period");
-	ubx_data_resize(d, 1);
-
-	((struct ptrig_period*)d->data)->sec=1;
-	((struct ptrig_period*)d->data)->usec=14;
-
-	d=ubx_config_get_data(ptrig1, "sched_policy");
-	char policy[]="SCHED_OTHER";
-	ubx_data_resize(d, strlen(policy)+1);
-	strcpy((char *)d->data, policy);
-
-	d=ubx_config_get_data(ptrig1, "sched_priority");
-	ubx_data_resize(d, 1);
-	*((int*)d->data)=0;
-
-	d=ubx_config_get_data(ptrig1, "num_chains");
-	ubx_data_resize(d, 1);
-	*((int*)d->data)=1;
-
-	if(ubx_block_init(ptrig1) != 0) {
-		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "HERE failed to init ptrig1");
+	/* webif port config */
+	if (cfg_set_char(webif, "port", WEBIF_PORT, strlen(WEBIF_PORT))) {
+		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to configure port_vel");
 		goto out;
 	}
 
-	d = ubx_config_get_data(ptrig1, "chain0");
-	len = 2;
-	ubx_data_resize(d, len);
-	((struct ubx_triggee*)d->data)[0].b = plat1;
-	((struct ubx_triggee*)d->data)[0].num_steps = 1;
-	((struct ubx_triggee*)d->data)[1].b= control1;
-	((struct ubx_triggee*)d->data)[1].num_steps = 1;
+	/* plat1 initial_position */
+	const double initial_position[2] = { 1.1, 0.1 };
+
+	if (cfg_set_double(plat1, "initial_position", initial_position, 2)) {
+		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to configure initial_position");
+		goto out;
+	}
+
+	/* joint_velocity_limits */
+	const double joint_velocity_limits[2] = { 0.5, 0.5 };
+
+	if (cfg_set_double(plat1, "joint_velocity_limits", joint_velocity_limits, 2)) {
+		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to configure joint_velocity_limits");
+		goto out;
+	}
+
+	/* gain */
+	double gain = 0.12;
+
+	if (cfg_set_double(control1, "gain", &gain, 1)) {
+		ubx_log(UBX_LOGLEVEL_ERR, &nd, __func__,  "failed to configure gain");
+		goto out;
+	}
+
+	/* target_pos */
+	const double target_pos[2] = { 4.5, 4.52 };
+
+	if (cfg_set_double(control1, "target_pos", target_pos, 2)) {
+		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to configure target_pos");
+		goto out;
+	}
+
+	/* ptrig config */
+	const struct ptrig_period period = { .sec=1, .usec=14 };
+
+	if (cfg_set_ptrig_period(ptrig1, "period", &period, 1)) {
+		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to configure ptrig_period");
+		goto out;
+	}
+
+	/* sched_policy */
+	const char sched_policy [] = "SCHED_OTHER";
+
+	if (cfg_set_char(ptrig1, "sched_policy", sched_policy, strlen(sched_policy))) {
+		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to configure sched_policy");
+		goto out;
+	}
+
+	/* sched_priority */
+	const int sched_priority = 0;
+
+	if (cfg_set_int(ptrig1, "sched_priority", &sched_priority, 1)) {
+		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to configure sched_priority");
+		goto out;
+	}
+
+	/* ptrig needs to be initialized before configuring the
+	 * chain0, since the chainX configs are dynamically added
+	 * based on the `num_chains` configuration (unset it defaults
+	 * to 1,. i.e. chain0) */
+
+	if(ubx_block_init(ptrig1) != 0) {
+		ubx_log(UBX_LOGLEVEL_ERR, &nd, __func__,  "failed to init ptrig1");
+		goto out;
+	}
+
+	/* chain0 */
+	const struct ubx_triggee chain0[] = {
+		{ .b = plat1, .num_steps = 1 },
+		{ .b = control1, .num_steps = 1 },
+	};
+
+	if (cfg_set_ubx_triggee(ptrig1, "chain0", chain0, ARRAY_SIZE(chain0))) {
+		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to configure chain0");
+		goto out;
+	}
 
 	/* i-block configuration */
-	len = strlen(DOUBLE_STR)+1;
-	d = ubx_config_get_data(fifo_pos, "type_name");
-	ubx_data_resize(d, len);
-	strncpy(d->data, DOUBLE_STR, len);
-	d = ubx_config_get_data(fifo_pos, "data_len");
-	ubx_data_resize(d, 1);
-	*((uint32_t*)d->data)=2;
-	d = ubx_config_get_data(fifo_pos, "buffer_len");
-	ubx_data_resize(d, 1);
-	*((uint32_t*)d->data)=1;
+	const char type_name[] = "double";
+	const uint32_t data_len = 2;
+	const uint32_t buffer_len = 1;
 
-	d = ubx_config_get_data(fifo_vel, "type_name");
-	ubx_data_resize(d, len);
-	strncpy(d->data, DOUBLE_STR, len);
-	d = ubx_config_get_data(fifo_vel, "data_len");
-	ubx_data_resize(d, 1);
-	*((uint32_t*)d->data)=2;
-	d = ubx_config_get_data(fifo_vel, "buffer_len");
-	ubx_data_resize(d, 1);
-	*((uint32_t*)d->data)=1;
+	/* fifo_pos */
+	if (cfg_set_char(fifo_pos, "type_name",	type_name, strlen(type_name)) ||
+	    cfg_set_uint32(fifo_pos, "data_len", &data_len, 1) ||
+	    cfg_set_uint32(fifo_pos, "buffer_len", &buffer_len, 1)) {
+		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to configure fifo_pos iblock");
+	}
+
+	/* fifo_vel */
+	if (cfg_set_char(fifo_vel, "type_name",	type_name, strlen(type_name)) ||
+	    cfg_set_uint32(fifo_vel, "data_len", &data_len, 1) ||
+	    cfg_set_uint32(fifo_vel, "buffer_len", &buffer_len, 1)) {
+		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to configure fifo_pos iblock");
+	}
 
 	/* connections setup - first ports must be retrived and then connected */
 	ubx_port_t* plat1_pos = ubx_port_get(plat1,"pos");
@@ -211,18 +232,13 @@ int main()
 		goto out;
 	}
 
-	sigset_t set;
-	int sig;
+	printf("started system,	webif @ http://localhost:%s\n", WEBIF_PORT);
 
 	/* stop on SIGINT (ctrl + c) */
-	sigemptyset(&set);
-	sigaddset(&set, SIGINT);
-	pthread_sigmask(SIG_BLOCK, &set, NULL);
-	sigwait(&set, &sig);
-
-	ret=EXIT_SUCCESS;
+	ubx_wait_sigint(UINT_MAX);
+	printf("shutting down\n");
+	ret = EXIT_SUCCESS;
 out:
-	printf("EXIT\n");
 	/* this cleans up all blocks and unloads all modules */
 	ubx_node_rm(&nd);
 	exit(ret);
