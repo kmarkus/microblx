@@ -111,7 +111,7 @@ void trig_cleanup(ubx_block_t *b)
 
 
 ubx_proto_block_t trig_comp = {
-	.name = "std_triggers/trig",
+	.name = "ubx/trig",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.attrs = BLOCK_ATTR_TRIGGER,
 	.meta_data = trig_meta,
@@ -132,7 +132,7 @@ int trig_mod_init(ubx_node_t *nd)
 
 void trig_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(nd, "std_triggers/trig");
+	ubx_block_unregister(nd, "ubx/trig");
 }
 
 UBX_MODULE_INIT(trig_mod_init)

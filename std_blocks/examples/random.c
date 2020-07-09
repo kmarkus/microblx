@@ -117,7 +117,7 @@ void rnd_step(ubx_block_t *b)
 
 
 ubx_proto_block_t random_comp = {
-	.name = "random/random",
+	.name = "ubx/random",
 	.meta_data = rnd_meta,
 	.type = BLOCK_TYPE_COMPUTATION,
 
@@ -140,7 +140,7 @@ int rnd_module_init(ubx_node_t *nd)
 void rnd_module_cleanup(ubx_node_t *nd)
 {
 	ubx_type_unregister(nd, "struct random_config");
-	ubx_block_unregister(nd, "random/random");
+	ubx_block_unregister(nd, "ubx/random");
 }
 
 UBX_MODULE_INIT(rnd_module_init)

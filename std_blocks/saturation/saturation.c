@@ -10,16 +10,16 @@
 # define SAT_T double
 #elif SAT_INT32_T == 1
 # define SAT_T int32_t
-# define BLOCK_NAME "sat_int32"
+# define BLOCK_NAME "ubx/sat_int32"
 #elif SAT_INT64_T == 1
 # define SAT_T int64_t
-# define BLOCK_NAME "sat_int64"
+# define BLOCK_NAME "ubx/sat_int64"
 #else
 # error "unknown or missing type"
 #endif
 
 #ifndef BLOCK_NAME
-# define BLOCK_NAME "saturation_" QUOTE(SAT_T)
+# define BLOCK_NAME "ubx/saturation_" QUOTE(SAT_T)
 #endif
 
 #include <stdlib.h>

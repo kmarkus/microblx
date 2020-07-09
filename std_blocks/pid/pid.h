@@ -57,7 +57,7 @@ void pid_step(ubx_block_t *b);
 
 /* put everything together */
 ubx_proto_block_t pid_block = {
-	.name = "pid",
+	.name = "ubx/pid",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = pid_meta,
 	.configs = pid_config,
@@ -81,7 +81,7 @@ int pid_mod_init(ubx_node_t* nd)
 
 void pid_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(nd, "pid");
+	ubx_block_unregister(nd, "ubx/pid");
 }
 
 /* declare module init and cleanup functions, so that the ubx core can

@@ -249,7 +249,7 @@ void luablock_cleanup(ubx_block_t *b)
 
 /* put everything together */
 ubx_proto_block_t lua_comp = {
-	.name = "lua/luablock",
+	.name = "ubx/luablock",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = luablock_meta,
 	.configs = lua_conf,
@@ -270,7 +270,7 @@ int lua_init(ubx_node_t *nd)
 
 void lua_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(nd, "lua/luablock");
+	ubx_block_unregister(nd, "ubx/luablock");
 }
 
 UBX_MODULE_INIT(lua_init)

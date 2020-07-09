@@ -196,7 +196,7 @@ void math_step(ubx_block_t *b)
 
 /* put everything together */
 ubx_proto_block_t math_block = {
-	.name = "math_double",
+	.name = "ubx/math_double",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = math_meta,
 	.configs = math_config,
@@ -215,7 +215,7 @@ int math_mod_init(ubx_node_t *nd)
 
 void math_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(nd, "math_double");
+	ubx_block_unregister(nd, "ubx/math_double");
 }
 
 UBX_MODULE_INIT(math_mod_init)

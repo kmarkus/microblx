@@ -60,7 +60,7 @@ void ramp_step(ubx_block_t *b);
 
 
 ubx_proto_block_t ramp_block = {
-	.name = "ramp_" QUOTE(BLOCK_NAME),
+	.name = "ubx/ramp_" QUOTE(BLOCK_NAME),
 	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = ramp_meta,
 	.configs = ramp_config,
@@ -83,7 +83,7 @@ int ramp_mod_init(ubx_node_t *nd)
 
 void ramp_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(nd, "ramp_" QUOTE(BLOCK_NAME));
+	ubx_block_unregister(nd, "ubx/ramp_" QUOTE(BLOCK_NAME));
 }
 
 /*

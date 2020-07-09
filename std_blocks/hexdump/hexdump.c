@@ -48,7 +48,7 @@ void hexdump_write(ubx_block_t *i, const ubx_data_t *data)
 
 /* put everything together */
 ubx_proto_block_t hexdump_comp = {
-	.name = "hexdump/hexdump",
+	.name = "ubx/hexdump",
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = hexdumpmeta,
 
@@ -63,7 +63,7 @@ int hexdump_mod_init(ubx_node_t *nd)
 
 void hexdump_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(nd, "hexdump/hexdump");
+	ubx_block_unregister(nd, "ubx/hexdump");
 }
 
 UBX_MODULE_INIT(hexdump_mod_init)

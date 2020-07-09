@@ -8,16 +8,16 @@
 # define RAND_T double
 #elif RAND_UINT32_T == 1
 # define RAND_T uint32_t
-# define BLOCK_NAME "rand_uint32"
+# define BLOCK_NAME "ubx/rand_uint32"
 #elif RAND_INT32_T == 1
 # define RAND_T int32_t
-# define BLOCK_NAME "rand_int32"
+# define BLOCK_NAME "ubx/rand_int32"
 #else
 # error "no type defined"
 #endif
 
 #ifndef BLOCK_NAME
-# define BLOCK_NAME "rand_" QUOTE(RAND_T)
+# define BLOCK_NAME "ubx/rand_" QUOTE(RAND_T)
 #endif
 
 #include <stdlib.h>

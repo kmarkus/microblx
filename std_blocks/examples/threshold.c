@@ -129,7 +129,7 @@ void thres_step(ubx_block_t *b)
 
 /* put everything together */
 ubx_proto_block_t thres_comp = {
-	.name = "threshold",
+	.name = "ubx/threshold",
 	.meta_data = thres_meta,
 	.type = BLOCK_TYPE_COMPUTATION,
 
@@ -155,7 +155,7 @@ int thres_module_init(ubx_node_t *nd)
 void thres_module_cleanup(ubx_node_t *nd)
 {
 	ubx_type_unregister(nd, thres_event_type.name);
-	ubx_block_unregister(nd, "threshold");
+	ubx_block_unregister(nd, "ubx/threshold");
 }
 
 /* declare the module init and cleanup function */

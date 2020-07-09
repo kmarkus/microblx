@@ -252,7 +252,7 @@ void mqueue_write(ubx_block_t *i, const ubx_data_t *data)
 }
 
 ubx_proto_block_t mqueue_comp = {
-	.name = "mqueue",
+	.name = "ubx/mqueue",
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = mqueue_meta,
 	.configs = mqueue_config,
@@ -271,7 +271,7 @@ int mqueue_mod_init(ubx_node_t *nd)
 
 void mqueue_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(nd, "mqueue");
+	ubx_block_unregister(nd, "ubx/mqueue");
 }
 
 UBX_MODULE_INIT(mqueue_mod_init)

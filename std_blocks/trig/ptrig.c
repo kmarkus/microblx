@@ -492,7 +492,7 @@ void ptrig_cleanup(ubx_block_t *b)
 
 /* put everything together */
 ubx_proto_block_t ptrig_comp = {
-	.name = "std_triggers/ptrig",
+	.name = "ubx/ptrig",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.attrs = BLOCK_ATTR_TRIGGER | BLOCK_ATTR_ACTIVE,
 	.meta_data = ptrig_meta,
@@ -535,7 +535,7 @@ void ptrig_mod_cleanup(ubx_node_t *nd)
 	for (unsigned int i=0; i<ARRAY_SIZE(ptrig_types); i++)
 		ubx_type_unregister(nd, ptrig_types[i].name);
 
-	ubx_block_unregister(nd, "std_triggers/ptrig");
+	ubx_block_unregister(nd, "ubx/ptrig");
 }
 
 UBX_MODULE_INIT(ptrig_mod_init)

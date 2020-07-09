@@ -243,7 +243,7 @@ static long fifo_read(ubx_block_t *i, ubx_data_t *msg)
 
 /* put everything together */
 ubx_proto_block_t fifo_comp = {
-	.name = "examples/simple_fifo",
+	.name = "ubx/simple_fifo",
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = fifometa,
 	.configs = fifo_config,
@@ -263,7 +263,7 @@ static int fifo_mod_init(ubx_node_t *nd)
 
 static void fifo_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(nd, "examples/simple_fifo");
+	ubx_block_unregister(nd, "ubx/simple_fifo");
 }
 
 UBX_MODULE_INIT(fifo_mod_init)

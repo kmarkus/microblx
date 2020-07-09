@@ -60,7 +60,7 @@ static void cppdemo_step(ubx_block_t *c) {
 
 ubx_proto_block_t cppdemo_comp =
 {
-    .name = "cppdemo",
+    .name = "ubx/cppdemo",
     .meta_data = cppdemo_meta,
     .type = BLOCK_TYPE_COMPUTATION,
     .configs = cppdemo_config,
@@ -80,7 +80,7 @@ static int cppdemo_init(ubx_node_t* nd)
 static void cppdemo_cleanup(ubx_node_t *nd)
 {
     ubx_type_unregister(nd, "cpp_demo_type");
-    ubx_block_unregister(nd, "cppdemo/cppdemo");
+    ubx_block_unregister(nd, "ubx/cppdemo");
 }
 
 UBX_MODULE_INIT(cppdemo_init)

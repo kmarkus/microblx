@@ -271,7 +271,7 @@ long cyclic_read(ubx_block_t *i, ubx_data_t *msg)
 
 /* put everything together */
 ubx_proto_block_t cyclic_comp = {
-	.name = "lfds_buffers/cyclic",
+	.name = "ubx/lfds_cyclic",
 	.type = BLOCK_TYPE_INTERACTION,
 	.meta_data = cyclic_meta,
 	.configs = cyclic_config,
@@ -292,7 +292,7 @@ int cyclic_mod_init(ubx_node_t *nd)
 
 void cyclic_mod_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(nd, "lfds_buffers/cyclic");
+	ubx_block_unregister(nd, "ubx/lfds_cyclic");
 }
 
 UBX_MODULE_INIT(cyclic_mod_init)

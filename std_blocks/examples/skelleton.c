@@ -106,7 +106,7 @@ void skel_step(ubx_block_t *b)
 }
 
 ubx_proto_block_t skel_comp = {
-	.name = "skelleton",
+	.name = "ubx/skelleton",
 	.meta_data = skel_meta,
 	.type = BLOCK_TYPE_COMPUTATION,
 
@@ -135,7 +135,7 @@ void skel_module_cleanup(ubx_node_t *nd)
 	for (long unsigned int i=0; i<ARRAY_SIZE(skel_types);	i++)
 		ubx_type_unregister(nd, skel_types[i].name);
 
-	ubx_block_unregister(nd, "threshold");
+	ubx_block_unregister(nd, "ubx/threshold");
 }
 
 UBX_MODULE_INIT(skel_module_init)

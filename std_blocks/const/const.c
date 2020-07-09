@@ -160,12 +160,12 @@ void const_cleanup(ubx_block_t *b)
 /* put everything together */
 ubx_proto_block_t const_comp = {
 #ifdef BUILD_IBLOCK
-	.name = "consts/iconst",
+	.name = "ubx/iconst",
 	.type = BLOCK_TYPE_INTERACTION,
 	.read = const_read,
 	.meta_data = iconst_meta,
 #else
-	.name = "consts/cconst",
+	.name = "ubx/cconst",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.step = const_step,
 	.meta_data = cconst_meta,
