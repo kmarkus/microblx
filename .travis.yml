@@ -83,5 +83,5 @@ script:
   - ubx-launch -t 2 -c examples/platform/platform_launch/platform_2dof_and_control.usc
   # build the c-launch example
   - pushd examples/platform/platform_launch
-  - ./bootstrap && ./configure && make
+  - autoreconf -i && ./configure && make
   - popd
