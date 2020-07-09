@@ -3,7 +3,10 @@ ChangeLog
 
 This file tracks user visible API changes
 
-## next
+## 0.9.1
+
+- `std_blocks`: cleanup block naming. all blocks under `std_blocks/`
+  are now called `ubx/BLOCKNAME`.
 
 ## 0.9.0
 
