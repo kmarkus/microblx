@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 		goto out;
 
 	/* create a webserver block */
-	if((webif = ubx_block_create(&nd, "webif/webif", "webif"))==NULL)
+	if((webif = ubx_block_create(&nd, "ubx/webif", "webif"))==NULL)
 		goto out;
 
 	/* webif port config */

@@ -49,7 +49,7 @@ int main()
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "fail to create ptrig1");
 		goto out;
 	}
-	if((webif = ubx_block_create(&nd, "webif/webif", "webif1"))==NULL){
+	if((webif = ubx_block_create(&nd, "ubx/webif", "webif1"))==NULL){
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "fail to create webif1");
 		goto out;
 	}

@@ -231,7 +231,7 @@ void wi_stop(ubx_block_t *c)
 
 /* put everything together */
 ubx_proto_block_t webif_comp = {
-	.name = "webif/webif",
+	.name = "ubx/webif",
 	.type = BLOCK_TYPE_COMPUTATION,
 	.attrs = BLOCK_ATTR_ACTIVE,
 	.meta_data = wi_meta,
@@ -251,7 +251,7 @@ int webif_init(ubx_node_t *nd)
 
 void webif_cleanup(ubx_node_t *nd)
 {
-	ubx_block_unregister(nd, "webif/webif");
+	ubx_block_unregister(nd, "ubx/webif");
 }
 
 UBX_MODULE_INIT(webif_init)
