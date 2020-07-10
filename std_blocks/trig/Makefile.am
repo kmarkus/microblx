@@ -21,5 +21,7 @@ trig_la_LIBADD = $(top_builddir)/libubx/libubx.la
 ptrig_la_SOURCES = ptrig.c common.c
 ptrig_la_LIBADD = $(top_builddir)/libubx/libubx.la
 
+pkginclude_HEADERS = types/ptrig_period.h
+
 %.h.hexarr: %.h
 	$(top_srcdir)/tools/ubx-tocarr -s $< -d $<.hexarr
