@@ -5,6 +5,10 @@ This file tracks user visible API changes
 
 ## 0.9.1
 
+- removed the deprecated `file_logger` block. This was messy and hard to
+  maintain. The preferred approach to log is now by using `ubx/mqueue`
+  blocks and `ubx-mq(1)`.
+
 - `std_blocks`: cleanup block naming. all blocks under `std_blocks/`
   are now called `ubx/BLOCKNAME`.
 

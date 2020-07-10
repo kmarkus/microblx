@@ -65,7 +65,6 @@ std_blocks/const/Makefile
 std_blocks/cppdemo/Makefile
 std_blocks/hexdump/Makefile
 std_blocks/lfds_buffers/Makefile
-std_blocks/logging/Makefile
 std_blocks/luablock/Makefile
 std_blocks/math/Makefile
 std_blocks/mqueue/Makefile

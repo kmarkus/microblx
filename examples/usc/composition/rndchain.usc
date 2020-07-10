@@ -4,13 +4,6 @@
 -- of block N is connected to the seed of random block N+1.  The
 -- system is constructed by hierarchically composing these blocks.
 
-logger_report_conf = [[
-{ { blockname='rnd0', portname="rnd" },
-  { blockname='rnd1', portname="rnd" },
-}
-]]
-
-
 return bd.system
 {
    -- include subsystems
@@ -19,13 +12,12 @@ return bd.system
    },
 
    imports = {
-      "stdtypes", "random", "ptrig", "lfds_cyclic", "logger",
+      "stdtypes", "random", "ptrig", "lfds_cyclic"
    },
 
    blocks = {
       { name='ptrig', type="ubx/ptrig" },
       { name="rnd0", type="ubx/random" },
-      { name="logger", type="logging/file_logger" },
    },
 
    configurations = {
@@ -33,15 +25,11 @@ return bd.system
       { name="ptrig", config = { period = {sec=1, usec=0 },
 				 chain0={ { b="#rnd0", num_steps=1, measure=0 },
 					       -- trigger the included subsystems trigger:
-					       { b="#trig", num_steps=1, measure=0 },
-					       { b="#logger", num_steps=1, measure=0 } } } },
+					       { b="#rnd1/trig", num_steps=1, measure=0 } } } },
 
-      { name="logger", config = { filename="rndchain.log",
-				  separator=",",
-				  report_conf = logger_report_conf, } },
    },
 
    connections = {
-      { src="rnd0.rnd", tgt="rnd1.seed" },
+      { src="rnd0.rnd", tgt="rnd1/rnd1.seed" },
    },
 }
