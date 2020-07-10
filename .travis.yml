@@ -85,3 +85,7 @@ script:
   - pushd examples/platform/platform_launch
   - autoreconf -i && ./configure && make
   - popd
+  # build the minimal c-launch example and run it
+  - pushd examples/C/
+  - gcc -Wall -Werror c-launch.c -o c-launch -lubx
+  - ./c-launch 1
