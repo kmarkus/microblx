@@ -6,6 +6,7 @@
  */
 
 #include <ubx/ubx.h>
+#include <stdlib.h>
 
 #define WEBIF_PORT	"8810"
 
@@ -13,7 +14,9 @@ int main(int argc, char **argv)
 {
 	ubx_node_t nd;
 	ubx_block_t *webif;
-	int ret = EXIT_FAILURE;
+	int timeout, ret = EXIT_FAILURE;
+
+	timeout = (argc > 1) ? atoi(argv[1]) : UINT_MAX;
 
 	/* initalize the node */
 	ubx_node_init(&nd, "c-launch", 0);
@@ -50,7 +53,7 @@ int main(int argc, char **argv)
 	printf("started system,	webif @ http://localhost:%s\n", WEBIF_PORT);
 
 	/* wait for SIGINT (ctrl + c) */
-	ubx_wait_sigint(UINT_MAX);
+	ubx_wait_sigint(timeout);
 	printf("shutting down\n");
 	ret = EXIT_SUCCESS;
  out:
