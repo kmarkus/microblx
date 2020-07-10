@@ -49,7 +49,7 @@ install:
 script:
   - cd kmarkus/microblx
   - ./bootstrap
-  - ./configure --prefix=/usr/
+  - ./configure
   - make cppcheck
   - make -j3
   - sudo make install
@@ -63,7 +63,7 @@ script:
   # run the threshold example
   - ubx-launch -t 3 -s -check unconn_inports,unconn_outports -c examples/usc/threshold.usc
   # run the pid example
-  - pushd /usr/share/ubx/examples/usc/pid/
+  - pushd /usr/local/share/ubx/examples/usc/pid/
   - ubx-launch -t 3 -s -check unconn_inports,unconn_outports -c pid_test.usc,ptrig_nrt.usc
   - popd
   # build and run tutorial
