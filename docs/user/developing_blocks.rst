@@ -609,17 +609,10 @@ Using C++
 
 See the example ``std_blocks/cppdemo``.
 
-.. note:: Please note that /designated initializers/ which are used to
+.. note:: Please note that *designated initializers* used to
 	  initialize ``ubx_proto_`` structures are only supported by
 	  g++ versions 8 and newer!
 
-
-Avoiding Lua scripting
-~~~~~~~~~~~~~~~~~~~~~~
-
-It is possible to avoid the Lua scripting layer entirely. A small
-example can be found in ``examples/c-only.c``. See also the
-`tutorial <tutorial.md>`__ for a more complete example.
 
 Speeding up port writing
 ~~~~~~~~~~~~~~~~~~~~~~~~

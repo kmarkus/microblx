@@ -183,10 +183,10 @@ Model mixins
 To obtain a reusable composition, it is important to avoid introducing
 platform specifics such as ``ptrig`` blocks and their
 configurations. Instead, passive ``trig`` blocks can be used to
-encapsulate the trigger schedule. `ptrig` or similar active blocks can
-then be added at *launch time* by merging them (encapsulated in an usc
-file) into the primary model by specifying both on the ``ubx-launch``
-command line.
+encapsulate the trigger schedule. ``ptrig`` or similar active blocks
+can then be added at *launch time* by merging them (encapsulated in an
+usc file) into the primary model by specifying both on the
+``ubx-launch`` command line.
 
 For example, consider the example in
 ``examples/systemmodels/composition``:
@@ -202,16 +202,26 @@ Alternatives
 Although using ``usc`` model is the preferred approach, there are
 others way to launch a microblx application:
 
-1. by writing a Lua "deployment script" (e.g. see
-   ``examples/trig_rnd_to_hexdump.lua``). This is not recommended
-   under normal circumstances, but can be useful in specific cases
-   such as for building dedicated test tools.
+Launching in C
+~~~~~~~~~~~~~~
 
-2. by assembling everything in C/C++. This can be useful for deploying
-   a self-contained application. Writing this by hand is somewhat
-   cumbersome (see for instance ``examples/C-examples/``) and should
-   be solved by a *usc-to-c* compiler. There have been efforts to
-   build this. Please inquire on the mailing list.
+It is possible to avoid the Lua scripting layer entirely and launch an
+application in C/C++. A small self-contained example
+:download:`c-launch.c <../../examples/C/c-launch.c>` is available under
+``examples/C/`` (see the ``README`` for further details).
+
+For a more complete example, checkout the respective tutorial section
+:ref:`c-deployment`. Please note that such launching code is a likely
+candidate for code generation and there are plans for a *usc-to-C*
+compiler. Please ask on the mailing if you are interested.
+
+Lua scripts
+~~~~~~~~~~~
+
+One can write a Lua "deployment script" similar to the
+``ubx-launch``. Checkout the scripts in the ``tools`` section. This
+approach not recommended under normally, but can be useful in specific
+cases such as for building dedicated test tools.
 
 .. rubric:: Footnotes
 

@@ -323,6 +323,8 @@ logger**.
 
 .. **TODO insert picture**
 
+.. _c-deployment:
+
 Deployment via C program
 ------------------------
 
@@ -332,10 +334,11 @@ Deployment via C program
 	     automatically and safely generate the code below is
 	     planned. If interested, please ask on the mailing list.
 
-This example is an extension of the example ``c-only.c``. It will be
-clear that using the above DSL based method is far easier, but if for
-some reason we want to eliminate the dependency from *lua*, this
-example show that is possible, even if a little burdensome.
+This example is an extension of the example
+``examples/C/c-launch.c``. It will be clear that using the above DSL
+based method is somewhat easier, but if for some reason we want to
+eliminate the dependency from *Lua*, this example show that is
+possible.
 
 First of all, we need to make a package to enable the building. This can
 be done looking at the structure of the rest of packages.
