@@ -98,7 +98,7 @@ void thres_step(ubx_block_t *b)
 	long len;
 	int state;
 	double inval;
-	struct thres_event ev;
+	struct thres_event ev = { 0 };
 
 	struct thres_info *inf = (struct thres_info *)b->private_data;
 
