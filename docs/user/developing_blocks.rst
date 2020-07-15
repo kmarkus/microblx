@@ -593,6 +593,7 @@ Run ``ubx-launch -h`` for full options.
 
 Browse to http://localhost:8888
 
+
 Block Interface Guidelines
 --------------------------
 
@@ -600,47 +601,6 @@ Block Interface Guidelines
   is sufficently large and errors can be returned as negative values
   (example: ``cfg_getptr_uint32``).
 
-
-Tips and Tricks
----------------
-
-Using C++
-~~~~~~~~~
-
-See the example ``std_blocks/cppdemo``.
-
-.. note:: Please note that *designated initializers* used to
-	  initialize ``ubx_proto_`` structures are only supported by
-	  g++ versions 8 and newer!
-
-
-Speeding up port writing
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-To speed up port writing, the pointers to ports can be cached in the
-block info structure. The ``ubx-genblock`` script automatically takes
-care of this.
-
-What the difference between block types and instances?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-There are very few differences. A prototype block is added by module
-init functions using ``ubx_block_register`` and must also be removed
-by the corresponding module cleanup hook using
-``ubx_block_unregister``. A prototype blocks ``prototype`` ptr is
-NULL.
-
-Block instances are cloned from existing blocks using
-``ubx_block_create`` and the instances ``block->prototype`` pointer is
-set to the block is was cloned from. Normally blocks are cloned from
-prototype blocks, but it is possible to clone any block (a warning is
-issued currently).
-
-
-Module visibility
-~~~~~~~~~~~~~~~~~
-
-It is suggested to add ``-fvisibility=hidden`` to CFLAGS. This way,
-there’s no need to clutter functions and global variables with
-``static``.
-
+- (i)blocks that allow configuring *type* and *length* of data to be
+  handled should use the canonical config names ``type_name`` and
+  ``data_len``.
