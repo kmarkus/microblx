@@ -503,7 +503,7 @@ output ports, that are connected via two fifos:
 
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 168-177
+   :lines: 168-175
 
 	   
 Init and Start the blocks
@@ -514,7 +514,7 @@ Lastly, we need to init and start all the blocks. For example, for the
 
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 190-194,225-228
+   :lines: 188-192,223-226
 
 The same applies to all other blocks.
 
@@ -525,7 +525,7 @@ terminate, we can use ``ubx_wait_sigint`` to wait for the user to type
 
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 238,239
+   :lines: 236,237
 
 Note that we have to link against pthread library, so the
 *Makefile.am* has to be modified accordingly:

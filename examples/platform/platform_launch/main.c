@@ -171,10 +171,8 @@ int main()
 	ubx_port_t* control1_commanded_vel = ubx_port_get(control1,"commanded_vel");
 	ubx_port_t* plat1_desired_vel = ubx_port_get(plat1,"desired_vel");
 
-	ubx_port_connect_out(plat1_pos,fifo_pos);
-	ubx_port_connect_in(control1_measured_pos,fifo_pos);
-	ubx_port_connect_out(control1_commanded_vel,fifo_vel);
-	ubx_port_connect_in(plat1_desired_vel,fifo_vel);
+	ubx_ports_connect(plat1_pos, control1_measured_pos, fifo_pos);
+	ubx_ports_connect(control1_commanded_vel, plat1_desired_vel, fifo_vel);
 
 	/* init and start blocks */
 	if(ubx_block_init(webif) != 0) {
