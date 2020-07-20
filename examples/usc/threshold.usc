@@ -38,7 +38,6 @@ return bd.system
       { name="ramp", type="ubx/ramp_double" },
       { name="sin", type="ubx/math_double" },
       { name="trigger", type="ubx/ptrig" },
-      { name="mq", type="ubx/mqueue" },
    },
 
    configurations = {
@@ -64,18 +63,11 @@ return bd.system
 	       { b="#thres"} }
 	 }
       },
-      {
-	 name="mq",
-	 config = {
-	    mq_id="threshold_events",
-	    type_name = 'struct thres_event', buffer_len = 8
-	 }
-      },
    },
 
    connections = {
       { src="ramp.out", tgt="sin.x" },
       { src="sin.y", tgt="thres.in" },
-      { src="thres.event", tgt="mq" },
+      { src="thres.event", tgt="mq", type="ubx/mqueue" },
    },
 }
