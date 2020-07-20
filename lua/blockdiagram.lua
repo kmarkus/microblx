@@ -176,11 +176,11 @@ local blocks_spec = TableSpec
 -- connections
 local function conn_check_srctgt(class, conn, vres)
    local res = true
-   if not conn._src then
+   if not conn._src and not conn.type then
       umf.add_msg(vres, "err", "invalid src block ".. conn.src)
       res = false
    end
-   if not conn._tgt then
+   if not conn._tgt and not conn.type then
       umf.add_msg(vres, "err", "invalid tgt block ".. conn.tgt)
       res = false
    end
@@ -358,11 +358,14 @@ end
 --- Resolve config and connection references to blocks
 -- checking will be done in the check function
 -- @param root_sys
+-- @return btab
+-- @return block name
+-- @return port name
 local function resolve_refs(root_sys)
    local function connref_resolve(sys, connref)
       local bref, portname = unpack(utils.split(connref, "%."))
       local btab = blocktab_get(sys, bref)
-      return btab, portname
+      return btab, bref, portname
    end
 
    mapconfigs(
@@ -372,8 +375,8 @@ local function resolve_refs(root_sys)
 
    mapconns(
       function(c,_,p)
-	 c._src, c._srcport = connref_resolve(p, c.src)
-	 c._tgt, c._tgtport = connref_resolve(p, c.tgt)
+	 c._src, c._srcbn, c._srcpn = connref_resolve(p, c.src)
+	 c._tgt, c._tgtbn, c._tgtpn = connref_resolve(p, c.tgt)
       end, root_sys)
 end
 
@@ -876,13 +879,13 @@ end
 -- @param root_sys root system
 local function connect_blocks(nd, root_sys)
    local function do_connect(c, i, p)
-      local srcblk = c._src._fqn
-      local srcport = c._srcport
-      local tgtblk = c._tgt._fqn
-      local tgtport = c._tgtport
+      local srcbn = c._srcbn
+      local srcpn = c._srcpn
+      local tgtbn = c._tgtbn
+      local tgtpn = c._tgtpn
       c.config = c.config or {}
 
-      local ret, msg = ubx.connect(nd, srcblk, srcport, tgtblk, tgtport, c.type, c.config)
+      local ret, msg = ubx.connect(nd, srcbn, srcpn, tgtbn, tgtpn, c.type, c.config)
       if not ret then
 	 err_exit(1, "error: %s", msg)
       end
