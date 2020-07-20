@@ -117,6 +117,7 @@ local function setup_enums()
    M.block_attrs_tostr={
       [ffi.C.BLOCK_ATTR_TRIGGER]='trigger',
       [ffi.C.BLOCK_ATTR_ACTIVE]='active',
+      [ffi.C.BLOCK_ATTR_REALTIME]='realtime',
    }
 end
 
@@ -539,14 +540,21 @@ local function block_state_color(sstr)
    end
 end
 
-function M.block_isactive(b)
-   if bit.band(b.attrs, ffi.C.BLOCK_ATTR_ACTIVE) ~= 0 then return true end
+function M.block_hasattr(b, attr)
+   if bit.band(b.attrs, attr) ~= 0 then return true end
    return false
 end
 
+function M.block_isactive(b)
+   return M.block_hasattr(b, ffi.C.BLOCK_ATTR_ACTIVE)
+end
+
 function M.block_istrigger(b)
-   if bit.band(b.attrs, ffi.C.BLOCK_ATTR_TRIGGER) ~= 0 then return true end
-   return false
+   return M.block_hasattr(b, ffi.C.BLOCK_ATTR_TRIGGER)
+end
+
+function M.block_isrealtime(b)
+   return M.block_hasattr(b, ffi.C.BLOCK_ATTR_REALTIME)
 end
 
 local function block_attr_totab(b)

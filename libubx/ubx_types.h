@@ -262,10 +262,12 @@ enum {
  *
  * @BLOCK_ATTR_TRIGGER: block is a trigger
  * @BLOCK_ATTR_ACTIVE:  block is active (spawns one or more threads)
+ * @BLOCK_ATTR_REALTIME: block is hard real-time safe
  */
 enum {
-	BLOCK_ATTR_TRIGGER =	1<<0,
-	BLOCK_ATTR_ACTIVE =	1<<1,
+	BLOCK_ATTR_TRIGGER =		1<<0,
+	BLOCK_ATTR_ACTIVE =		1<<1,
+	BLOCK_ATTR_REALTIME = 		1<<2,
 };
 
 /**
