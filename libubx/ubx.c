@@ -1329,6 +1329,17 @@ int ubx_ports_connect(ubx_port_t *out_port, ubx_port_t *in_port, const ubx_block
 		return EINVALID_PORT;
 	}
 
+	if (in_port->in_type != out_port->out_type) {
+		logf_err(iblock->nd, "ETYPE_MISMATCH: in: %s, out: %s",
+			 in_port->in_type->name, in_port->out_type->name);
+		return ETYPE_MISMATCH;
+	}
+
+	if (in_port->in_data_len != out_port->out_data_len) {
+		logf_err(iblock->nd, "EINVALID_PORT_LEN: in: %lu, out: %lu",
+			 in_port->in_data_len, in_port->out_data_len);
+	}
+
 	if (iblock->type != BLOCK_TYPE_INTERACTION) {
 		logf_err(iblock->nd, "block not of type interaction");
 		return EINVALID_BLOCK_TYPE;
@@ -2199,7 +2210,6 @@ int ubx_block_cleanup(ubx_block_t *b)
  out:
 	return ret;
 }
-
 
 /**
  * Step a cblock

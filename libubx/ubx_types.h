@@ -48,6 +48,7 @@ enum {
 	EINVALID_DATA_LEN,		  /* invalid data length */
 
 	EINVALID_PORT_DIR,		  /* invalid port direction */
+	EINVALID_PORT_LEN,		  /* invalid port dimension */
 
 	EINVALID_ARG,			  /* UBX EINVAL */
 	EWRONG_STATE,			  /* invalid FSM state */

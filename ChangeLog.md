@@ -5,6 +5,9 @@ This file tracks user visible API changes
 
 ## 0.9.1
 
+- `ubx_ports_connect`: check and enforce that types and data length
+  match.
+
 - `lfds_cyclic`: make `buffer_len` config optional and let it default
   to 1 if unset.
 
