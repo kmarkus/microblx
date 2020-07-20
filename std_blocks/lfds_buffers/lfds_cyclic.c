@@ -25,7 +25,7 @@ char cyclic_meta[] =
 ubx_proto_config_t cyclic_config[] = {
 	{ .name = "type_name", .type_name = "char", .min = 1, .doc = "name of registered microblx type to transport" },
 	{ .name = "data_len", .type_name = "uint32_t", .max = 1, .doc = "array length (multiplier) of data (default: 1)" },
-	{ .name = "buffer_len", .type_name = "uint32_t", .min = 1, .max = 1, .doc = "max number of data elements the buffer shall hold" },
+	{ .name = "buffer_len", .type_name = "uint32_t", .min = 0, .max = 1, .doc = "max number of data elements the buffer shall hold" },
 	{ .name = "allow_partial", .type_name = "int", .min = 0, .max = 1, .doc = "allow msgs with len<data_len. def: 0 (no)" },
 	{ .name = "loglevel_overruns", .type_name = "int", .min = 0, .max = 1, .doc = "loglevel for reporting overflows (default: NOTICE, -1 to disable)" },
 	{ 0 },
@@ -107,14 +107,15 @@ int cyclic_init(ubx_block_t *i)
 
 	/* read and check buffer_len config */
 	len = cfg_getptr_uint32(i, "buffer_len", &val);
+	assert(len>=0);
 
-	if (*val == 0) {
+	inf->buffer_len = (len > 0) ? *val : 1;
+
+	if (inf->buffer_len == 0) {
 		ubx_err(i, "EINVALID_CONFIG: buffer_len=0");
 		ret = EINVALID_CONFIG;
 		goto out_free_priv_data;
 	}
-
-	inf->buffer_len = *val;
 
 	/* read and check data_len config */
 	len = cfg_getptr_uint32(i, "data_len", &val);

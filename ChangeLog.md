@@ -5,6 +5,9 @@ This file tracks user visible API changes
 
 ## 0.9.1
 
+- `lfds_cyclic`: make `buffer_len` config optional and let it default
+  to 1 if unset.
+
 - removed the deprecated `file_logger` block. This was messy and hard to
   maintain. The preferred approach to log is now by using `ubx/mqueue`
   blocks and `ubx-mq(1)`.
