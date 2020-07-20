@@ -198,10 +198,11 @@ local connections_spec = TableSpec
 	 dict = {
 	    src=StringSpec{},
 	    tgt=StringSpec{},
-	    buffer_length=NumberSpec{ min=0 },
+	    type=StringSpec{},
+	    config=TableSpec{},
 	 },
 	 sealed='both',
-	 optional={'buffer_length' },
+	 optional={'type', 'config'},
       }
    },
    sealed='both',
@@ -879,66 +880,11 @@ local function connect_blocks(nd, root_sys)
       local srcport = c._srcport
       local tgtblk = c._tgt._fqn
       local tgtport = c._tgtport
+      c.config = c.config or {}
 
-      -- are we connecting to an interaction?
-      if srcport==nil then
-	 -- src is interaction, target a port
-	 local ib = ubx.block_get(nd, srcblk)
-
-	 if ib==nil then
-	    err_exit(1, "do_connect: unknown src block %s", srcblk)
-	 end
-
-	 if not ubx.is_iblock_instance(ib) then
-	    err_exit(1, "%s is not a valid iblock instance", srcblk)
-	 end
-
-	 local btgt = ubx.block_get(nd, tgtblk)
-	 local ptgt = ubx.port_get(btgt, tgtport)
-
-	 if ubx.port_connect_in(ptgt, ib) ~= 0 then
-	    err_exit(1, "failed to connect interaction %s to port %s.%s",
-			srcblk, tgtblk, tgtport)
-	 end
-	 info("connecting %s (iblock) ->  %s.%s", srcblk, tgtblk, tgtport)
-      elseif tgtport==nil then
-	 -- src is a port, target is an interaction
-	 local ib = ubx.block_get(nd, tgtblk)
-
-	 if ib==nil then
-	    err_exit(1, "do_connect: unknown tgt block %s", tgtblk)
-	 end
-
-	 if not ubx.is_iblock_instance(ib) then
-	    err_exit(1, "%s not a valid iblock instance", tgtblk)
-	 end
-
-	 local bsrc = ubx.block_get(nd, srcblk)
-	 local psrc = ubx.port_get(bsrc, srcport)
-
-	 if ubx.port_connect_out(psrc, ib) ~= 0 then
-	    err_exit(1, "failed to connect %s.%s to %s (iblock)",
-		     srcblk, srcport, tgtblk)
-	 end
-	 info("connecting %s.%s -> %s (iblock)", srcblk, srcport, tgtblk)
-      else
-	 -- both src and target are ports
-	 local bufflen = c.buffer_length or 1
-
-	 info("connecting %s.%s -[%d]-> %s.%s",
-	      srcblk, srcport, bufflen, tgtblk, tgtport)
-
-	 local bsrc = ubx.block_get(nd, srcblk)
-	 local btgt = ubx.block_get(nd, tgtblk)
-
-	 if bsrc==nil then
-	    err_exit(1, "ERR: src block %s not found", srcblk)
-	 end
-
-	 if btgt==nil then
-	    err_exit(1, "ERR: tgt block %s not found", tgtblk)
-	 end
-	 ubx.conn_lfds_cyclic(bsrc, srcport, btgt, tgtport, bufflen)
+      local ret, msg = ubx.connect(nd, srcblk, srcport, tgtblk, tgtport, c.type, c.config)
+      if not ret then
+	 err_exit(1, "error: %s", msg)
       end
    end
    mapconns(do_connect, root_sys)

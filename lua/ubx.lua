@@ -398,6 +398,11 @@ function M.block_get(nd, bname)
    return b
 end
 
+function M.block_prototype(b)
+   if b.prototype == nil then return false end
+   return M.safe_tostr(b.prototype.name)
+end
+
 --- Bring a block to the given state
 -- @param b block
 -- @param tgtstate desired state ('active', 'inactive', 'preinit')
@@ -1646,48 +1651,186 @@ local function gen_block_uid()
    return fmt("i_%08x", block_uid_cnt)
 end
 
---- Connect two blocks' ports via a unidirectional connection.
--- @param b1 block1
--- @param pname1 name of a block1's out port to connect from.
--- @param b2 block2
--- @param pname2 name of a block2's in port to connect to
--- @param iblock_type type of interaction to use
--- @param configuration for interaction.
--- @param dont_start if true, then don't start the interaction (stays stopped)
-function M.conn_uni(b1, pname1, b2, pname2, iblock_type, iblock_config, dont_start)
-   local p1, p2, nd, bname1, bname2
+--- connect - universal connect function
+--
+-- create connections in different ways. The following cases are supported:
+--
+-- 1. cblock-cblock: src and tgt are existing cblocks: they will be
+-- connected using a new iblock of ibtype configured with config.
+--
+-- 2. cblock-iblock: if one of src and tgt is a cblock and the other
+-- an iblock, then these are connected. config must be nil (as the
+-- iblock was created elsewhere, it must be configured elsewhere too).
+--
+-- 3. cblock-iblock: if one of src and tgt is a cblock, and the other
+-- is nil, then a new iblock will be created and configured with
+-- `config` and src or tgt is connected to it.
+--
+-- Special cases:
+--     - for 1: if ibtype is unset, the it defaults to lfds_cyclic
+--       with `buffer_len` = 1.
+--     - in 3. if ibtype is "mqueue" and config.mq_id is nil,
+--       then the connected cblocks name and port will be used.
+--
+-- @param nd node
+-- @param srcbn source block name
+-- @param srcpn source (out-) port name
+-- @param tgtbn target block name
+-- @param tgtpn target (in-) port name
+-- @param ibtype iblock type to use for connection
+-- @param ibconfig iblock configuration table
+-- @return true if OK, false otherwise
+-- @return msg in case of error, error message.
+--
+function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 
-   if b1==nil or b2==nil then error("parameter 1 or 3 (ubx_block_t) is nil") end
+   local srcb =	ubx.ubx_block_get(nd, srcbn or "")
+   local tgtb = ubx.ubx_block_get(nd, tgtbn or "")
+   local ibproto = ubx.ubx_block_get(nd, ibtype or "")
+   ibconfig = ibconfig or {}
+   local tgtp, srcp
 
-   bname1 = M.safe_tostr(b1.name)
-   bname2 = M.safe_tostr(b2.name)
-
-   local nd = b1.nd
-
-   p1 = M.port_get(b1, pname1)
-   p2 = M.port_get(b2, pname2)
-
-   if p1==nil then error("block "..bname1.." has no port '"..M.safe_tostr(pname1).."'") end
-   if p2==nil then error("block "..bname2.." has no port '"..M.safe_tostr(pname2).."'") end
-
-   if not M.is_outport(p1) then error("conn_uni: block "..bname1.."'s port "..pname1.." is not an outport") end
-   if not M.is_inport(p2) then error("conn_uni: block "..bname2.."'s port "..pname2.." is not an inport") end
-
-   local iblock_name = gen_block_uid()
-
-   -- create iblock, configure
-   local ib = M.block_create(nd, iblock_type, iblock_name, iblock_config)
-
-   M.block_init(ib)
-
-   if M.ports_connect(p1, p2, ib) ~= 0 then
-      error("failed to connect "..bname1.."."..pname1.."->"..bname2.."."..pname2)
+   -- check: one of src and target must exist
+   if srcb == nil and tgtb == nil then
+      return false, "both src and target block don't exist"
    end
 
-   if not dont_start then M.block_start(ib) end
+   -- check: invalid if block name is nil but port isn't
+   if srcbn == nil and srcpn ~= nil then
+      return false, "src block is nil but src port is not"
+   end
 
-   return ib
+   if tgtbn == nil and tgtpn ~= nil then
+      return false, "tgt block is nil but tgt port is not"
+   end
+
+   -- check: if port name is set, then block must be a cblock
+   if srcpn and not M.is_cblock_instance(srcb) then
+      return false, "src port name set but src block not a cblock"
+   end
+
+   if tgtpn and not M.is_cblock_instance(tgtb) then
+      return false, "tgt port name set but tgt block not a cblock"
+   end
+
+   -- check: ibtype must be a prototype
+   if ibproto ~= nil and not M.is_iblock_proto(ibproto) then
+      return false, fmt("iblock %s is not a prototype",	ibtype)
+   end
+
+   -- check: if src or tgt is nil, and iblock type must be given
+   if (srcb == nil or tgtb == nil) and not ibproto then
+      return false, "src or tgt nil and missing iblock type"
+   end
+
+   -- check: src port must exist and be an outport
+   if srcb~=nil and srcpn then
+      srcp = ubx.ubx_port_get(srcb, srcpn)
+      if srcp == nil then
+	 return false, fmt("block %s has no port %s", srcbn, srcpn)
+      end
+      if not M.is_outport(srcp) then
+	 return false, fmt("block %s port %s is not an output port", srcbn, srcpn)
+      end
+   end
+
+   -- check: tgt port must exist and be an inport
+   if tgtb~=nil and tgtpn then
+      tgtp = ubx.ubx_port_get(tgtb, tgtpn)
+      if tgtp == nil then
+	 return false, fmt("block %s has no port %s", tgtbn, tgtpn)
+      end
+      if not M.is_inport(tgtp) then
+	 return false, fmt("block %s port %s is not an output port", tgtbn, tgtpn)
+      end
+   end
+
+   -- check: for port-port connections, types and dimensions must match
+   if tgtp~=nil and srcp~=nil then
+      if srcp.out_type ~= tgtp.in_type then
+	 return false, fmt("port type mismatch:	%s.%s is %s, %s.%s is %s",
+			   srcbn, srcpn, M.safe_tostr(srcp.out_type.name),
+			   tgtbn, tgtpn, M.safe_tostr(tgtp.in_type.name))
+      end
+
+      if srcp.out_data_len ~= tgtp.in_data_len then
+	 return false, fmt("port length mismatch: %s.%s is %lu, %s.%s is %lu",
+			   srcbn, srcpn, srcp.out_data_len,
+			   tgtbn, tgtpn, tgtp.out_data.len)
+      end
+   end
+
+   -- creating src iblock
+   if srcb == nil or tgtb == nil then
+
+      if srcb == nil then
+	 srcbn = srcbn or gen_block_uid()
+	 if ibtype == 'mqueue' then
+	    ibconfig.data_len = ibconfig.data_len or tonumber(tgtp.out_data_len)
+	    ibconfig.type_name = ibconfig.type_name or M.safe_tostr(tgtp.type.name)
+	 end
+	 srcb = M.block_create(nd, ibtype, srcbn, ibconfig)
+	 M.block_init(srcb)
+      end
+
+      -- create tgt iblock
+      if tgtb == nil then
+	 tgtbn = tgtbn or gen_block_uid()
+	 if ibtype == 'mqueue' then
+	    ibconfig.data_len = ibconfig.data_len or tonumber(srcp.out_data_len)
+	    ibconfig.type_name = ibconfig.type_name or M.safe_tostr(srcp.type.name)
+	 end
+	 tgtb = M.block_create(nd, ibtype, tgtbn, ibconfig)
+	 M.block_init(tgtb)
+      end
+   end
+
+   -- connect!
+   if M.is_cblock_instance(srcb) and M.is_cblock_instance(tgtb) then
+      -- cblock -> cblock
+      ibtype = ibtype or "ubx/lfds_cyclic"
+      ibconfig.data_len = ibconfig.data_len or tonumber(srcp.out_data_len)
+      ibconfig.type_name = ibconfig.type_name or M.safe_tostr(srcp.out_type.name)
+
+      local ib = M.block_create(nd, ibtype, gen_block_uid(), ibconfig)
+      M.block_init(ib)
+
+      if ubx.ubx_ports_connect(srcp, tgtp, ib) ~= 0 then
+	 return false, fmt("failed to connect %s.%s -> %s.%s",
+			   srcbn, srcpn, tgtbn, tgtpn)
+      end
+
+      M.block_tostate(ib, 'active')
+
+      info(nd, "connect", fmt("%s.%s -[%s,%s,%d]-> %s.%s",
+			      srcbn, srcpn,
+			      ibtype, ibconfig.type_name, ibconfig.data_len,
+			      tgtbn, tgtpn))
+
+   elseif M.is_cblock_instance(srcb) and M.is_iblock_instance(tgtb) then
+      -- cblock -> iblock
+      if ubx.ubx_port_connect_out(srcp, tgtb) ~= 0 then
+	 return false, fmt("failed to connect %s.p to iblock %s", srcbn, srcpn, tgtbn)
+      end
+      M.block_tostate(tgtb, 'active')
+      info(nd, "connect", fmt("%s.%s -> %s [%s]",
+			      srcbn, srcpn, tgtbn, M.block_prototype(tgtb)))
+   elseif M.is_iblock_instance(srcb) and M.is_cblock_instance(tgtb) then
+      -- iblock -> cblock
+      if ubx.ubx_port_connect_in(tgtp, srcb) ~= 0 then
+	 return false, fmt("failed to connect iblock %s to %s.%s", srcbn, tgtbn, tgtpn)
+      end
+      M.block_tostate(srcb, 'active')
+      info(nd, "connect", fmt("%s [%s] -> %s.%s",
+			      srcbn, M.block_prototype(srcb), tgtbn, tgtpn))
+   else
+      return false, fmt("connect: invalid args: %s.%s -> %s.%s, ibtype %s, config %s",
+			srcbn, srcpn, tgtbn, tgtpn, ibtype, utils.tab2str(ibconfig))
+   end
+
+   return true
 end
+
 
 function M.port_out_size(p)
    if p==nil then error("port_out_size: port is nil") end
@@ -1699,59 +1842,6 @@ function M.port_in_size(p)
    if p==nil then error("port_in_size: port is nil") end
    if not M.is_inport(p) then error("port_in_size: port "..M.safe_tostr(p.name).." is not an inport") end
    return tonumber(p.in_type.size * p.in_data_len)
-end
-
-
---- Connect two ports with an interaction.
--- @param b1 block owning port1
--- @param pname1 name of port1
--- @param b2 block owning port2
--- @param pname2 name of port2
--- @param element_num number of elements
--- @param dont_start if true, interaction will not be started
-function M.conn_lfds_cyclic(b1, pname1, b2, pname2, element_num, dont_start)
-   local p1, p2, len1, len2
-
-   if b1==nil then error("conn_lfds_cyclic: block (arg 1) is nil") end
-   if b2==nil then error("conn_lfds_cyclic: block (arg 3) is nil") end
-
-   local bname1, bname2 = M.safe_tostr(b1.name), M.safe_tostr(b2.name)
-
-   p1 = M.port_get(b1, pname1)
-   p2 = M.port_get(b2, pname2)
-
-   if p1==nil then error("block "..bname1.." has no port '"..M.safe_tostr(pname1).."'") end
-   if p2==nil then error("block "..bname2.." has no port '"..M.safe_tostr(pname2).."'") end
-
-   if not M.is_outport(p1) then
-      error("conn_lfds_cyclic: block "..bname1.."'s port "..pname1.." is not an outport")
-   end
-   if not M.is_inport(p2) then
-      error("conn_lfds_cyclic: block ".. bname2.."'s port "..pname2.." is not an inport")
-   end
-
-   if p1.out_type ~= p2.in_type then
-      error("conn_lfds_cyclic: port type mismatch:\n"..
-	       "\t"..bname1.."."..pname1.. " of type " ..M.safe_tostr(p1.out_type.name).."\n"..
-	       "\t"..bname2.."."..pname2.. " of type " ..M.safe_tostr(p2.in_type.name))
-   end
-
-   len1, len2 = tonumber(p1.out_data_len), tonumber(p2.in_data_len)
-
-   if len1 ~= len2 then print(yellow("WARNING: conn_lfds_cyclic "
-					..bname1.."."..pname1.. " and "
-					..bname2.."."..pname2.." have different array len ("
-					..tostring(len1).." vs "..tostring(len2).."). Using minimum!"), true)
-   end
-
-   if type(element_num) ~= 'number' or element_num < 1 then
-      error("conn_lfds_cyclic: invalid element_num array length param "..ts(element_num))
-   end
-
-   return M.conn_uni(b1, pname1, b2, pname2, "ubx/lfds_cyclic",
-		     { buffer_len=element_num,
-		       type_name=M.safe_tostr(p1.out_type.name),
-		       data_len=utils.min(len1, len2) }, dont_start)
 end
 
 --- Build a table of connections

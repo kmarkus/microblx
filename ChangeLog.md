@@ -5,6 +5,16 @@ This file tracks user visible API changes
 
 ## 0.9.1
 
+- `ubx.lua`: add generic `connect` function. This replaces
+  `conn_lfds_cyclic` and `conn_uni` and allows the following
+  connection types:
+  - cblock to cblock
+  - cblock to existing iblocks (and vice versa)
+  - cblock to non-existing iblock (and vice versa). In this case the
+	iblock block will be created.
+
+  See the user docs for more information.
+
 - `ubx_ports_connect`: check and enforce that types and data length
   match.
 
