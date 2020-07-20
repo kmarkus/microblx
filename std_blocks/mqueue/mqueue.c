@@ -155,9 +155,9 @@ int mqueue_init(ubx_block_t *i)
 		goto out_free_info;
 	}
 
-	ubx_info(i, "created %s %s[%lu] mq %s with %lu elem",
+	ubx_info(i, "created %s queue for %lu x %s[%lu] with id %s",
 		 (mq_flags & O_NONBLOCK) ? "non-blocking" : "blocking",
-		 inf->type->name, inf->data_len, inf->mq_id, inf->buffer_len);
+		 inf->buffer_len, inf->type->name, inf->data_len, inf->mq_id);
 
 	ret = 0;
 	goto out;
