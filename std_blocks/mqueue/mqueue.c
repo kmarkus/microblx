@@ -148,16 +148,16 @@ int mqueue_init(ubx_block_t *i)
 	if (len == 0 || (len > 0 && *val == 0))
 		mq_flags = O_NONBLOCK;
 
+	ubx_info(i, "creating %s queue for %lu x %s[%lu] with id %s",
+		 (mq_flags & O_NONBLOCK) ? "non-blocking" : "blocking",
+		 inf->buffer_len, inf->type->name, inf->data_len, inf->mq_id);
+
 	inf->mqd = mq_open(inf->mq_name, O_RDWR | O_CREAT | mq_flags, 0600, &mqa);
 
 	if (inf->mqd < 0) {
 		ubx_err(i, "mq_open for %s failed: %s", inf->mq_name, strerror(errno));
 		goto out_free_info;
 	}
-
-	ubx_info(i, "created %s queue for %lu x %s[%lu] with id %s",
-		 (mq_flags & O_NONBLOCK) ? "non-blocking" : "blocking",
-		 inf->buffer_len, inf->type->name, inf->data_len, inf->mq_id);
 
 	ret = 0;
 	goto out;
