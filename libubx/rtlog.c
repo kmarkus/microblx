@@ -147,7 +147,7 @@ int ubx_log_init(struct ubx_node *nd)
 {
 	int ret = -1;
 
-	pthread_spin_init(&inf.loglock, PTHREAD_PROCESS_PRIVATE);
+	pthread_spin_init(&inf.loglock, PTHREAD_PROCESS_SHARED);
 	nd->log = ubx_log_shm;
 	nd->log_data = NULL;
 

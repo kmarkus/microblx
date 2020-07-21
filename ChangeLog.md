@@ -5,6 +5,12 @@ This file tracks user visible API changes
 
 ## 0.9.1
 
+- rtlog: init spinlock with `PTHREAD_PROCESS_SHARED`: cmdline tools
+  such as `ubx-mq` create processes and nodes that log to the same
+  shm. Hence we set the default to shared. Users that really need to
+  squeeze performance can explicitely set this back to
+  `PTHREAD_PROCESS_PRIVATE`.
+
 - `ubx.lua`: add generic `connect` function. This replaces
   `conn_lfds_cyclic` and `conn_uni` and allows the following
   connection types:
