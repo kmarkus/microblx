@@ -22,6 +22,9 @@ local MQPATH="/dev/mqueue"
 local ts = tostring
 local fmt = string.format
 
+local nd
+local verbose=false
+
 if not res then
    print("error: ubx-mq requires LuaFileSystem")
    os.exit(1)
@@ -33,11 +36,13 @@ usage: ubx-mq <command> [<args>]
 commands:
    list	    	      list all ubx mqueues
    read QUEUE         read and output data of mq id QUEUE
+   write QUEUE VALUE  write VALUE to mq QUEUE
+      -r RATE            write at rate RATE instead of just once
 
 global parameters:
-
    -p m1,m2     list of modules to preload
                 (stdtypes is loaded by default)
+   -v           be verbose
    -h           show help
 ]])
 end
@@ -58,12 +63,14 @@ local function mqueues_get()
    return res
 end
 
---- read from the given mqueue and print the result
--- @param mqtab message queue id
--- @return never returns
-local function read(mqtab, preloads)
+--- Create an initialize a new mq
+-- @param mqtab table entry of mqueues_get result
+-- @param preloads modules to preload
+-- @return mq message queue
+-- @return sample a sampe value of the queue
+local function newmq(mqtab, preloads)
+   nd = ubx.node_create("ubx-mq", { loglevel=8})
 
-   local nd = ubx.node_create("ubx-mq")
    ubx.load_module(nd, "stdtypes")
    ubx.load_module(nd, "mqueue")
 
@@ -95,9 +102,65 @@ local function read(mqtab, preloads)
       os.exit(1)
    end
 
+   return mq, sample
+end
+
+--- read from the given mqueue and print the result
+-- @param mqtab message queue id
+-- @param preloads modules to preload
+-- @return never returns
+local function read(mqtab, preloads)
+   local mq, sample = newmq(mqtab, preloads)
+   local cnt=0
+
    while true do
-      local ret = mq.read(mq, sample)
-      if ret > 0 then print(sample) end
+      local ret = mq:read(sample)
+      if ret > 0 then
+	 if verbose then
+	    print(cnt, sample)
+	    cnt = cnt + 1
+	 else
+	    print(sample)
+	 end
+      elseif ret < 0 then
+	 print("reading mq failed")
+	 os.exit(1)
+      end
+   end
+end
+
+local function sec2ts(sec)
+   local ts_sec = math.floor(sec)
+   local ts_nsec = (sec-ts_sec) * 1000^3
+   return ts_sec, ts_nsec
+end
+
+--- write to the given mqueue
+-- @param mqtab
+-- @param preloads table of modules to preload
+-- @param rate rate in Hz to write
+local function write(mqtab, preloads, val, rate)
+
+   local mq, sample = newmq(mqtab, preloads)
+   local s,ns =	sec2ts(rate)
+   local cnt = 0
+
+   sample:set(val, false)
+
+   if not rate then
+      mq:write(sample)
+      os.exit(0)
+   else
+      while true do
+	 if verbose then
+	    mq:write(sample)
+	    print(cnt, sample)
+	    cnt = cnt + 1
+	 else
+	    mq:write(sample)
+	 end
+	 ubx.clock_mono_sleep(s,ns)
+      end
    end
 end
 
@@ -110,6 +173,10 @@ local opttab = utils.proc_args(arg)
 
 if opttab['-h'] then
    usage(); os.exit(0)
+end
+
+if opttab['-v'] then
+   verbose=true
 end
 
 local preloads = {}
@@ -128,8 +195,11 @@ if opttab[0][1] == "list" then
       print(fmt("%s  %s  %s", q.hashstr, utils.rpad(ts(q.data_len), 3), q.mq_id))
    end
    os.exit(0)
+
 elseif opttab[0][1] == "read" then
+
    local mq_id = opttab[0][2]
+
    if not mq_id then
       print("read expects an argument QUEUE")
       os.exit(1)
@@ -138,8 +208,38 @@ elseif opttab[0][1] == "read" then
    for _,m in ipairs(mqs) do
       if m.mq_id == mq_id then read(m, preloads) end
    end
+
    print(fmt("invalid ubx queue id %s", mq_id))
    os.exit(1)
+
+elseif opttab[0][1] == "write" then
+   local rate
+   local mq_id = opttab[0][2]
+
+   if not mq_id then
+      print("write expects an argument QUEUE")
+      os.exit(1)
+   end
+
+   local str = opttab[0][3]
+   local ok, val = utils.eval_sandbox("return "..str)
+
+   if not ok then
+      print(res)
+      os.exit(1)
+   end
+
+   if opttab['-r'] then
+      rate = opttab['-r'][1]
+   end
+
+   for _,m in ipairs(mqs) do
+      if m.mq_id == mq_id then write(m, preloads, val, rate) end
+   end
+
+   print(fmt("invalid ubx queue id %s", mq_id))
+   os.exit(1)
+
 else
    print(fmt("unknown command %s", opttab[0][1]))
    os.exit(1)
