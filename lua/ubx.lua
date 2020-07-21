@@ -1675,10 +1675,12 @@ end
 -- `config` and src or tgt is connected to it.
 --
 -- Special cases:
---     - for 1: if ibtype is unset, the it defaults to lfds_cyclic
---       with `buffer_len` = 1.
---     - in 3. if ibtype is "mqueue" and config.mq_id is nil,
---       then the connected cblocks name and port will be used.
+--  - for 1: if ibtype is unset, the it defaults to lfds_cyclic
+--  - for 3:
+--     - if ibtype is "mqueue" and config.mq_id is nil, then the
+--       connected cblocks name and port will be used.
+--     - type_name, data_len and buffer_len are set automatically
+--       unless overriden in config.
 --
 -- @param nd node
 -- @param srcbn source block name
@@ -1691,7 +1693,6 @@ end
 -- @return msg in case of error, error message.
 --
 function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
-
    local srcb =	ubx.ubx_block_get(nd, srcbn or "")
    local tgtb = ubx.ubx_block_get(nd, tgtbn or "")
    local ibproto = ubx.ubx_block_get(nd, ibtype or "")
@@ -1700,7 +1701,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 
    -- check: one of src and target must exist
    if srcb == nil and tgtb == nil then
-      return false, "both src and target block don't exist"
+      return false, fmt("both src %s and tgt %s blocks don't exist", srcbn, tgtbn)
    end
 
    -- check: invalid if block name is nil but port isn't
@@ -1773,13 +1774,24 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 
       if srcb == nil then
 	 srcbn = srcbn or gen_block_uid()
-	 if ibtype == 'ubx/mqueue' then
-	    ibconfig.data_len = ibconfig.data_len or tonumber(tgtp.in_data_len)
+
+	 if ubx.ubx_port_get(ibproto, "type_name") then
 	    ibconfig.type_name = ibconfig.type_name or M.safe_tostr(tgtp.in_type.name)
-	    ibconfig.mq_id = ibconfig.mq_id or fmt("%s.%s", tgtbn, tgtpn)
+	 end
+
+	 if ubx.ubx_port_get(ibproto, "data_len") then
+	    ibconfig.data_len = ibconfig.data_len or tonumber(tgtp.in_data_len)
+	 end
+
+	 if ubx.ubx_port_get(ibproto, "buffer_len") then
 	    ibconfig.buffer_len = ibconfig.buffer_len or 8
 	 end
-	 info(nd, "connect", fmt("creating non-existing connection src %s [%s]", tgtbn, ibtype))
+
+	 if ibtype == 'ubx/mqueue' then
+	    ibconfig.mq_id = ibconfig.mq_id or fmt("%s.%s", tgtbn, tgtpn)
+	 end
+
+	 info(nd, "connect", fmt("creating connection src %s [%s]", tgtbn, ibtype))
 	 srcb = M.block_create(nd, ibtype, srcbn, ibconfig)
 	 M.block_init(srcb)
       end
@@ -1787,12 +1799,23 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       -- create tgt iblock
       if tgtb == nil then
 	 tgtbn = tgtbn or gen_block_uid()
-	 if ibtype == 'ubx/mqueue' then
-	    ibconfig.data_len = ibconfig.data_len or tonumber(srcp.out_data_len)
+
+	 if ubx.ubx_port_get(ibproto, "type_name") then
 	    ibconfig.type_name = ibconfig.type_name or M.safe_tostr(srcp.out_type.name)
-	    ibconfig.mq_id = ibconfig.mq_id or fmt("%s.%s", srcbn, srcpn)
-	    ibconfig.buffer_len = ibconfig.buffer_len or 8
 	 end
+
+	 if ubx.ubx_port_get(ibproto, "data_len") then
+	    ibconfig.data_len = ibconfig.data_len or tonumber(srcp.out_data_len)
+	 end
+
+	 if ubx.ubx_port_get(ibproto, "buffer_len") then
+	    ibconfig.data_len = ibconfig.data_len or tonumber(tgtp.in_data_len)
+	 end
+
+	 if ibtype == 'ubx/mqueue' then
+	    ibconfig.mq_id = ibconfig.mq_id or fmt("%s.%s", srcbn, srcpn)
+	 end
+
 	 info(nd, "connect", fmt("creating non-existing connection tgt %s [%s]", tgtbn, ibtype))
 	 tgtb = M.block_create(nd, ibtype, tgtbn, ibconfig)
 	 M.block_init(tgtb)
