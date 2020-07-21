@@ -1671,20 +1671,20 @@ end
 -- connected using a new iblock of ibtype configured with config.
 --
 -- 2. cblock-iblock: if one of src and tgt is a cblock and the other
--- an iblock, then these are connected. config must be nil (as the
--- iblock was created elsewhere, it must be configured elsewhere too).
+-- an iblock, then these are connected. ibtype and config must be nil
+-- (as the iblock was created elsewhere, it must be configured
+-- elsewhere too).
 --
 -- 3. cblock-iblock: if one of src and tgt is a cblock, and the other
--- is nil, then a new iblock will be created and configured with
--- `config` and src or tgt is connected to it.
+-- is nil, then a new iblock of ibtype will be created and configured
+-- with `config` and src or tgt is connected to it.
 --
 -- Special cases:
---  - for 1: if ibtype is unset, the it defaults to lfds_cyclic
---  - for 3:
---     - if ibtype is "mqueue" and config.mq_id is nil, then the
---       connected cblocks name and port will be used.
---     - type_name, data_len and buffer_len are set automatically
---       unless overriden in config.
+--  - for 1:   if ibtype is unset, the it defaults to lfds_cyclic
+--  - for 1+3: type_name, data_len and buffer_len are set automatically
+--             unless overriden in config.
+--  - for 3: if config.mq_id is unset, a default name based on the
+--           peer port is chosen.
 --
 -- @param nd node
 -- @param srcbn source block name
@@ -1771,14 +1771,26 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    end
 
    -- check: warn about a config table when it's not used
-   if M.is_iblock_instance(srcb) and ibconfig then
-      warn(nd, "connect", fmt("%s -> %s.%s: ignoring config %s",
-			      srcbn, tgtbn, tgtpn, utils.tab2str(ibconfig)))
+   if M.is_iblock_instance(srcb) then
+      if ibconfig then
+	 warn(nd, "connect", fmt("%s -> %s.%s: ignoring config %s",
+				 srcbn, tgtbn, tgtpn, utils.tab2str(ibconfig)))
+      end
+      if ibtype then
+	 warn(nd, "connect", fmt("%s -> %s.%s: ignoring type %s",
+				 srcbn, tgtbn, tgtpn, ibtype))
+      end
    end
 
-   if M.is_iblock_instance(tgtb) and ibconfig then
-      warn(nd, "connect", fmt("%s.%s -> %s: ignoring config %s",
-			      srcbn, srcpn, tgtbn, utils.tab2str(ibconfig)))
+   if M.is_iblock_instance(tgtb) then
+      if ibconfig then
+	 warn(nd, "connect", fmt("%s.%s -> %s: ignoring config %s",
+				 srcbn, srcpn, tgtbn, utils.tab2str(ibconfig)))
+      end
+      if ibtype then
+	 warn(nd, "connect", fmt("%s -> %s.%s: ignoring type %s",
+				 srcbn, tgtpn, tgtbn, ibtype))
+      end
    end
 
    -- check: for port-port connections, types and dimensions must match
