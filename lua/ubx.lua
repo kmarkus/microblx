@@ -1695,8 +1695,7 @@ end
 function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    local tgtb, srcb
    local tgtp, srcp
-   local ibproto = ubx.ubx_block_get(nd, ibtype or "")
-   ibconfig = ibconfig or {}
+   local ibproto
 
    -- check: invalid if block name is nil but port isn't
    if srcbn == nil and srcpn ~= nil then
@@ -1707,7 +1706,20 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       return false, "tgt block is nil but tgt port is not"
    end
 
-   -- get block name
+   -- check case non-existing iblock src/tgt
+   if srcbn == nil or tgtbn == nil then
+      if not ibtype then
+	 return false, "empty src or tgt requires type"
+      end
+
+      -- check: ibtype must be a prototype
+      ibproto = ubx.ubx_block_get(nd, ibtype)
+      if ibproto ~= nil and not M.is_iblock_proto(ibproto) then
+	 return false, fmt("type %s is not an iblock prototype", ibtype)
+      end
+   end
+
+   -- get blocks and check they exist
    if srcbn then
       srcb = ubx.ubx_block_get(nd, srcbn)
       if srcb == nil then return false, fmt("no src block %s") end
@@ -1743,7 +1755,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       end
    end
 
-   -- get tgt port and check that tgt port exists and is an inort
+   -- get tgt port and check that tgt port exists and is an inport
    if tgtb ~= nil and tgtpn then
       tgtp = ubx.ubx_port_get(tgtb, tgtpn)
       if tgtp == nil then
@@ -1754,14 +1766,15 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       end
    end
 
-   -- check: ibtype must be a prototype
-   if ibproto ~= nil and not M.is_iblock_proto(ibproto) then
-      return false, fmt("iblock %s is not a prototype",	ibtype)
+   -- check: warn about a config table when it's not used
+   if M.is_iblock_instance(srcb) and ibconfig then
+      warn(nd, "connect", fmt("%s -> %s.%s: ignoring config %s",
+			      srcbn, tgtbn, tgtpn, utils.tab2str(ibconfig)))
    end
 
-   -- check: if src or tgt is nil, and iblock type must be given
-   if (srcb == nil or tgtb == nil) and not ibproto then
-      return false, "src or tgt nil and missing iblock type"
+   if M.is_iblock_instance(tgtb) and ibconfig then
+      warn(nd, "connect", fmt("%s.%s -> %s: ignoring config %s",
+			      srcbn, srcpn, tgtbn, utils.tab2str(ibconfig)))
    end
 
    -- check: for port-port connections, types and dimensions must match
@@ -1778,6 +1791,8 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 			   tgtbn, tgtpn, tgtp.out_data.len)
       end
    end
+
+   ibconfig = ibconfig or {}
 
    -- creating src iblock
    if srcb == nil or tgtb == nil then
