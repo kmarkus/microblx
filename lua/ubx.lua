@@ -1802,9 +1802,9 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       end
 
       if srcp.out_data_len ~= tgtp.in_data_len then
-	 return false, fmt("port length mismatch: %s.%s is %lu, %s.%s is %lu",
-			   srcbn, srcpn, srcp.out_data_len,
-			   tgtbn, tgtpn, tgtp.out_data.len)
+	 return false, fmt("port length mismatch: %s.%s is %u, %s.%s is %u",
+			   srcbn, srcpn, tonumber(srcp.out_data_len),
+			   tgtbn, tgtpn, tonumber(tgtp.in_data_len))
       end
    end
 
