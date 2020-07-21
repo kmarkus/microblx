@@ -14,9 +14,6 @@
 -- the timing statistics are made available via mqueue iblocks. These
 -- can be accessed using the ubx-mq tool.
 
--- number of buffer elements
-local MQ_BUF_LEN=5
-
 return bd.system {
    imports = { "stdtypes", "ramp_double", "mqueue" },
 
@@ -27,12 +24,6 @@ return bd.system {
    blocks = {
       -- simulated input
       { name="ramp_msr", type="ubx/ramp_double" },
-
-      -- message queues for debugging
-      { name="mq_1", type="ubx/mqueue" },
-      { name="mq_2", type="ubx/mqueue" },
-      { name="mq_3", type="ubx/mqueue" },
-      { name="mq_4", type="ubx/mqueue" },
    },
 
    configurations = {
@@ -59,24 +50,6 @@ return bd.system {
 	   }
 	}
       },
-
-      -- configure mqueues
-      { name="mq_1", config = {
-	   mq_id="controller_pid-out",
-	   type_name = 'double', data_len = "&data_len", buffer_len = MQ_BUF_LEN }
-      },
-      { name="mq_2", config = {
-	   mq_id="ramp_msr-out",
-	   type_name = 'double', data_len = "&data_len", buffer_len = MQ_BUF_LEN }
-      },
-      { name="mq_3", config = {
-	   mq_id="ramp_des-out",
-	   type_name = 'double', data_len = "&data_len", buffer_len = MQ_BUF_LEN }
-      },
-      { name="mq_4", config = {
-	   mq_id="trig_1-tstats",
-	   type_name = 'struct ubx_tstat', data_len = 1, buffer_len = MQ_BUF_LEN }
-      },
    },
 
    connections = {
@@ -84,9 +57,9 @@ return bd.system {
       { src = "ramp_msr.out", tgt = "controller/pid_1.msr" },
 
       -- export signals	for debugging
-      { src = "controller/pid_1.out", tgt = "mq_1" },
-      { src = "ramp_msr.out", tgt = "mq_2" },
-      { src = "controller/ramp_des.out", tgt = "mq_3" },
-      { src = "controller/trig_1.tstats", tgt = "mq_4" },
+      { src = "controller/pid_1.out", type="ubx/mqueue" },
+      { src = "ramp_msr.out", type="ubx/mqueue" },
+      { src = "controller/ramp_des.out", type="ubx/mqueue" },
+      { src = "controller/trig_1.tstats",  type="ubx/mqueue" },
    }
 }

@@ -1788,13 +1788,16 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 	    ibconfig[cfg] = ibconfig[cfg] or val
 	 end
       end
+      local function make_mqname(bn, pn)
+	 return string.gsub(fmt("%s.%s", bn, pn), "%/", "_")
+      end
 
       if srcb == nil then
 	 srcbn = gen_block_uid()
 	 append_ibconfig('type_name', M.safe_tostr(tgtp.in_type.name))
 	 append_ibconfig('data_len', tonumber(tgtp.in_data_len))
 	 append_ibconfig('buffer_len', 8)
-	 append_ibconfig('mq_id', fmt("%s.%s", tgtbn, tgtpn))
+	 append_ibconfig('mq_id', make_mqname(tgtbn, tgtpn))
 
 	 info(nd, "connect", fmt("creating connection src %s [%s]: %s",
 				 tgtbn, ibtype, utils.tab2str(ibconfig)))
@@ -1809,7 +1812,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 	 append_ibconfig('type_name', M.safe_tostr(srcp.out_type.name))
 	 append_ibconfig('data_len', tonumber(srcp.out_data_len))
 	 append_ibconfig('buffer_len', 8)
-	 append_ibconfig('mq_id', fmt("%s.%s", srcbn, srcpn))
+	 append_ibconfig('mq_id', make_mqname(srcbn, srcpn))
 
 	 info(nd, "connect", fmt("creating connection tgt %s [%s]: %s",
 				 tgtbn, ibtype, utils.tab2str(ibconfig)))

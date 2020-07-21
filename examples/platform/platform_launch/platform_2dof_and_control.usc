@@ -15,8 +15,6 @@ return bd.system
       { name="plat1", type="platform_2dof" },
       { name="control1", type="platform_2dof_control" },
       { name="ptrig1", type="ubx/ptrig" },
-      { name="mq1", type="ubx/mqueue" },
-      { name="mq2", type="ubx/mqueue" },
    },
 
    configurations = {
@@ -33,19 +31,12 @@ return bd.system
 				  chain0={
 				     { b="#plat1" },
 				     { b="#control1" } } } },
-
-      { name="mq1", config = {
-	   mq_id = "pos_msr", type_name = 'double', data_len = 2, buffer_len = 8 }
-      },
-      { name="mq2", config = {
-	   mq_id = "vel_cmd", type_name = 'double', data_len = 2, buffer_len = 8 }
-      },
    },
 
    connections = {
       { src="plat1.pos", tgt="control1.measured_pos" },
       { src="control1.commanded_vel",tgt="plat1.desired_vel" },
-      { src="plat1.pos", tgt="mq1" },
-      { src="control1.commanded_vel",tgt="mq2" },
+      { src="plat1.pos", type="ubx/mqueue" },
+      { src="control1.commanded_vel", type="ubx/mqueue" },
    },
 }

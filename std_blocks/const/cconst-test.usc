@@ -15,7 +15,6 @@ return bd.system
    blocks = {
       { name="cconst1", type="ubx/cconst" },
       { name="ptrig1", type="ubx/ptrig" },
-      { name="mq1", type="mqueue" },
    },
 
    configurations = {
@@ -27,16 +26,8 @@ return bd.system
 	 name="ptrig1",
 	 config = { period = { sec=0, usec=10000}, chain0 = { b = "#cconst1" } }
       },
-      {
-	 name="mq1",
-	 config = { mq_id = "const_value",
-	    type_name = TYPE_NAME,
-	    data_len = DATA_LEN,
-	    buffer_len = BUF_LEN
-	 }
-      },
    },
    connections = {
-      { src = "cconst1.out", tgt = "mq1" },
+      { src = "cconst1.out", type = "ubx/mqueue" },
    }
 }
