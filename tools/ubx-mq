@@ -34,10 +34,10 @@ local function usage()
    print([[
 usage: ubx-mq <command> [<args>]
 commands:
-   list	    	      list all ubx mqueues
-   read QUEUE         read and output data of mq id QUEUE
-   write QUEUE VALUE  write VALUE to mq QUEUE
-      -r RATE            write at rate RATE instead of just once
+   list               list all ubx mqueues
+   read  MQ-ID        read and output data of mqueue MQ-ID
+   write MQ-ID VALUE  write VALUE to mq MQ-ID
+      -r RATE             write at rate RATE instead of just once
 
 global parameters:
    -p m1,m2     list of modules to preload
@@ -191,9 +191,29 @@ end
 local mqs = mqueues_get()
 
 if opttab[0][1] == "list" then
-   for _,q in ipairs(mqs) do
-      print(fmt("%s  %s  %s", q.hashstr, utils.rpad(ts(q.data_len), 3), q.mq_id))
+   nd = ubx.node_create("ubx-mq", { loglevel=8})
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "mqueue")
+
+   for _,m in ipairs(preloads) do
+      ubx.load_module(nd, m)
    end
+
+   local outtab = utils.map(
+      function(t)
+	 local typename
+	 local typ = ubx.type_get_by_hashstr(nd, t.hashstr)
+	 if typ ~= nil then
+	    typename = ubx.safe_tostr(typ.name)
+	 else
+	    typename = "unknown"
+	 end
+
+	 return {t.mq_id, typename, ts(t.data_len), t.hashstr }
+      end, mqs)
+
+   utils.write_table(io.stdout, { "mq id", "type name", "array len", "type hash" }, outtab)
+
    os.exit(0)
 
 elseif opttab[0][1] == "read" then
