@@ -89,7 +89,6 @@ function TestConnection:Test_02_MQExisting()
    }
 
    lu.assert_equals(conntab_act, conntab_exp)
-
 end
 
 function TestConnection:Test_03_MQNonExisting()
@@ -121,7 +120,38 @@ function TestConnection:Test_03_MQNonExisting()
    }
 
    lu.assert_equals(conntab_act, conntab_exp)
+end
 
+function TestConnection:Test_04_MQNonExisting()
+   local DATA_LEN = 10
+   local sys = bd.system {
+      imports = { "stdtypes", "mqueue", "saturation_double" },
+      blocks = {
+	 { name = "sat1", type = "ubx/saturation_double" },
+      },
+      configurations = {
+	 { name = "sat1", config = {
+	      data_len=DATA_LEN,
+	      lower_limits = u.fill(-10, DATA_LEN),
+	      upper_limits = u.fill(3.4, DATA_LEN), } },
+      },
+      connections = {
+	 { tgt="sat1.in", type="ubx/mqueue", config={ buffer_len = 2 } }
+      },
+   }
+   local num_err = sys:validate(CHECK_VERBOSE)
+   lu.assert_equals(num_err, 0)
+   ni = sys:launch({nodename = "MQNonExisting2", loglevel=LOGLEVEL })
+   lu.assert_not_nil(ni);
+   lu.assert_equals( ni:b("i_00000001"):c("buffer_len"):tolua(), 2 )
+
+   local conntab_act = ubx.build_conntab(ni)
+   local conntab_exp = {
+      sat1={
+	 {['in']={incoming={"i_00000001"}, outgoing={}}}, {out={incoming={}, outgoing={}}}},
+   }
+
+   lu.assert_equals(conntab_act, conntab_exp)
 end
 
 os.exit( lu.LuaUnit.run() )
