@@ -1659,6 +1659,10 @@ local function gen_block_uid()
    return fmt("i_%08x", block_uid_cnt)
 end
 
+function M.reset_block_uid()
+   block_uid_cnt = 0
+end
+
 --- connect - universal connect function
 --
 -- create connections in different ways. The following cases are supported:
