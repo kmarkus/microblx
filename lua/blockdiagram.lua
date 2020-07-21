@@ -759,7 +759,7 @@ local function apply_config(cfg, b, NC, configured, nonexist)
       end
 
       if configured[cfgfqn] then
-	 notice("skipping config %s: already configured with %s", cfgfqn, utils.tab2str(val))
+	 notice("skipping config %s with %s, already configured", cfgfqn, utils.tab2str(val))
 	 goto continue
       end
 
