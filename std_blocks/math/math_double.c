@@ -119,8 +119,8 @@ int math_init(ubx_block_t *b)
 	inf->data_len = (len > 0) ? *data_len : 1;
 
 	/* resize ports */
-	if (ubx_outport_resize(inf->p_x, inf->data_len) ||
-	    ubx_inport_resize(inf->p_y, inf->data_len) != 0)
+	if (ubx_inport_resize(inf->p_x, inf->data_len) ||
+	    ubx_outport_resize(inf->p_y, inf->data_len))
 		return -1;
 
 	ret = parse_func(b, inf);
