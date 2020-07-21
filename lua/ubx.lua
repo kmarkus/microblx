@@ -204,8 +204,8 @@ function M.is_data(x) return ffi.istype("ubx_data_t", x) end
 
 function M.is_proto(b) assert(M.is_block(b)); return b.prototype == nil end
 function M.is_instance(b) return not M.is_proto(b) end
-function M.is_cblock(b) assert(M.is_block(b)); return b.type==ffi.C.BLOCK_TYPE_COMPUTATION end
-function M.is_iblock(b) assert(M.is_block(b)); return b.type==ffi.C.BLOCK_TYPE_INTERACTION end
+function M.is_cblock(b) return M.is_block(b) and b.type==ffi.C.BLOCK_TYPE_COMPUTATION end
+function M.is_iblock(b) return M.is_block(b) and b.type==ffi.C.BLOCK_TYPE_INTERACTION end
 function M.is_cblock_instance(b) return M.is_cblock(b) and not M.is_proto(b) end
 function M.is_iblock_instance(b) return M.is_iblock(b) and not M.is_proto(b) end
 function M.is_cblock_proto(b) return M.is_cblock(b) and M.is_proto(b) end
