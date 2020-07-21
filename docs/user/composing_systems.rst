@@ -116,6 +116,70 @@ These configurations can then be assigned to multiple blocks:
 Please refer to ``examples/systemmodels/node_config_demo.usc`` for a
 full example.
 
+Connections
+~~~~~~~~~~~
+
+The powerful ``connections`` keyword supports connecting blocks in
+multiple ways:
+
+- cblocks to cblocks
+- cblocks to existing iblocks
+- cblocks to non-existing iblocks (the latter are created on the fly)
+
+The syntax for these variants is discussed below:
+
+cblock to cblock connections
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code:: lua
+
+   { src="blkA.portX", tgt="blkB.portY", type="lfds_cyclic", config = { ... }
+
+- both ``blkA`` and ``blkB`` must exist and have the ports
+  ``portX`` and ``portY`` respectively.
+- ``type`` is the type of the iblock to use. It defaults to
+  ``ubx/lfds_cyclic`` if unset
+- ``config`` is the configuration to apply to the iblock. If unset,
+  the configs ``type_name`` and ``data_len`` are set automatically.
+
+cblock to existing iblock
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: lua
+
+   { src="blkX.portZ", tgt="myMQ" }
+
+   -- or
+
+   { src="myMQ", tgt="blkX.portZ" }
+
+The above statements will create connections to/from the existing
+block ``myMQ``:
+
+- ``myMQ`` must exist and be an iblock
+- a ``config`` table is ignored here (it is expected to have been
+  configured in ``configurations``)!
+- the cblock ``blkX`` must exist and have a port ``portZ``
+
+
+cblock  to non-existing iblock
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This is useful to create one-line connections via mqueues or similar.
+
+.. code:: lua
+
+   { src="blkX.portZ", type="ubx/mqueue", config={ buffer_len=32 } }
+
+
+The above will create a new mqueue with a automatic, unique name,
+configure it with ``config`` and connect ``blkX.portZ`` to it:
+
+- for this, leave ``src`` or ``tgt`` empty and set ``type``
+- ``type_name``, ``data_len`` and ``buffer_len`` are setup
+  automatically if not overridden in ``config``.
+- if type is ``ubx/mqueue`` and no ``mq_id`` is set in ``config``,
+  then ``mq_id`` is set to the matching "block.port", i.e. in the
+  above example ``blkX.portZ``.
 
 Hierarchical compositions
 -------------------------
