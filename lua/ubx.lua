@@ -1693,16 +1693,10 @@ end
 -- @return msg in case of error, error message.
 --
 function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
-   local srcb =	ubx.ubx_block_get(nd, srcbn or "")
-   local tgtb = ubx.ubx_block_get(nd, tgtbn or "")
+   local tgtb, srcb
+   local tgtp, srcp
    local ibproto = ubx.ubx_block_get(nd, ibtype or "")
    ibconfig = ibconfig or {}
-   local tgtp, srcp
-
-   -- check: one of src and target must exist
-   if srcb == nil and tgtb == nil then
-      return false, fmt("both src %s and tgt %s blocks don't exist", srcbn, tgtbn)
-   end
 
    -- check: invalid if block name is nil but port isn't
    if srcbn == nil and srcpn ~= nil then
@@ -1713,6 +1707,22 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       return false, "tgt block is nil but tgt port is not"
    end
 
+   -- get block name
+   if srcbn then
+      srcb = ubx.ubx_block_get(nd, srcbn)
+      if srcb == nil then return false, fmt("no src block %s") end
+   end
+
+   if tgtbn then
+      tgtb = ubx.ubx_block_get(nd, tgtbn)
+      if tgtb == nil then return false, fmt("no tgt block %s") end
+   end
+
+   -- check: one of src and target must exist
+   if srcb == nil and tgtb == nil then
+      return false, fmt("both src %s and tgt %s blocks don't exist", srcbn, tgtbn)
+   end
+
    -- check: if port name is set, then block must be a cblock
    if srcpn and not M.is_cblock_instance(srcb) then
       return false, "src port name set but src block not a cblock"
@@ -1720,6 +1730,28 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 
    if tgtpn and not M.is_cblock_instance(tgtb) then
       return false, "tgt port name set but tgt block not a cblock"
+   end
+
+   -- get src port and check that src port exists and is an outport
+   if srcb ~= nil and srcpn then
+      srcp = ubx.ubx_port_get(srcb, srcpn)
+      if srcp == nil then
+	 return false, fmt("block %s has no port %s", srcbn, srcpn)
+      end
+      if not M.is_outport(srcp) then
+	 return false, fmt("block %s port %s is not an output port", srcbn, srcpn)
+      end
+   end
+
+   -- get tgt port and check that tgt port exists and is an inort
+   if tgtb ~= nil and tgtpn then
+      tgtp = ubx.ubx_port_get(tgtb, tgtpn)
+      if tgtp == nil then
+	 return false, fmt("block %s has no port %s", tgtbn, tgtpn)
+      end
+      if not M.is_inport(tgtp) then
+	 return false, fmt("block %s port %s is not an output port", tgtbn, tgtpn)
+      end
    end
 
    -- check: ibtype must be a prototype
@@ -1732,30 +1764,8 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       return false, "src or tgt nil and missing iblock type"
    end
 
-   -- check: src port must exist and be an outport
-   if srcb~=nil and srcpn then
-      srcp = ubx.ubx_port_get(srcb, srcpn)
-      if srcp == nil then
-	 return false, fmt("block %s has no port %s", srcbn, srcpn)
-      end
-      if not M.is_outport(srcp) then
-	 return false, fmt("block %s port %s is not an output port", srcbn, srcpn)
-      end
-   end
-
-   -- check: tgt port must exist and be an inport
-   if tgtb~=nil and tgtpn then
-      tgtp = ubx.ubx_port_get(tgtb, tgtpn)
-      if tgtp == nil then
-	 return false, fmt("block %s has no port %s", tgtbn, tgtpn)
-      end
-      if not M.is_inport(tgtp) then
-	 return false, fmt("block %s port %s is not an output port", tgtbn, tgtpn)
-      end
-   end
-
    -- check: for port-port connections, types and dimensions must match
-   if tgtp~=nil and srcp~=nil then
+   if tgtp ~= nil and srcp ~= nil then
       if srcp.out_type ~= tgtp.in_type then
 	 return false, fmt("port type mismatch:	%s.%s is %s, %s.%s is %s",
 			   srcbn, srcpn, M.safe_tostr(srcp.out_type.name),
@@ -1780,7 +1790,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       end
 
       if srcb == nil then
-	 srcbn = srcbn or gen_block_uid()
+	 srcbn = gen_block_uid()
 	 append_ibconfig('type_name', M.safe_tostr(tgtp.in_type.name))
 	 append_ibconfig('data_len', tonumber(tgtp.in_data_len))
 	 append_ibconfig('buffer_len', 8)
@@ -1795,8 +1805,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 
       -- create tgt iblock
       if tgtb == nil then
-	 tgtbn = tgtbn or gen_block_uid()
-
+	 tgtbn = gen_block_uid()
 	 append_ibconfig('type_name', M.safe_tostr(srcp.out_type.name))
 	 append_ibconfig('data_len', tonumber(srcp.out_data_len))
 	 append_ibconfig('buffer_len', 8)

@@ -68,6 +68,6 @@ return bd.system
    connections = {
       { src="ramp.out", tgt="sin.x" },
       { src="sin.y", tgt="thres.in" },
-      { src="thres.event", tgt="mq", type="ubx/mqueue" },
+      { src="thres.event", type="ubx/mqueue" },
    },
 }

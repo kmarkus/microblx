@@ -176,13 +176,26 @@ local blocks_spec = TableSpec
 -- connections
 local function conn_check_srctgt(class, conn, vres)
    local res = true
-   if not conn._src and not conn.type then
-      umf.add_msg(vres, "err", "invalid src block ".. conn.src)
-      res = false
+   if not conn._src then
+      if conn.src ~= nil then
+	 umf.add_msg(vres, "err", "unknown src block ".. conn.src)
+	 res = false
+      end
+      if not conn.type then
+	 umf.add_msg(vres, "err", "non-existing src is missing type ".. conn.src)
+	 res = false
+      end
    end
-   if not conn._tgt and not conn.type then
-      umf.add_msg(vres, "err", "invalid tgt block ".. conn.tgt)
-      res = false
+   if not conn._tgt then
+      if conn.tgt ~= nil then
+	 umf.add_msg(vres, "err", "unknown tgt block ".. conn.tgt)
+	 res = false
+      end
+
+      if not conn.type then
+	 umf.add_msg(vres, "err", "non-existing tgt is missing type ".. conn.tgt)
+	 res = false
+      end
    end
    return res
 end
@@ -202,7 +215,7 @@ local connections_spec = TableSpec
 	    config=TableSpec{},
 	 },
 	 sealed='both',
-	 optional={'type', 'config'},
+	 optional={'src', 'tgt', 'type', 'config'},
       }
    },
    sealed='both',
@@ -363,9 +376,10 @@ end
 -- @return port name
 local function resolve_refs(root_sys)
    local function connref_resolve(sys, connref)
+      if not connref then return false end
       local bref, portname = unpack(utils.split(connref, "%."))
       local btab = blocktab_get(sys, bref)
-      return btab, bref, portname
+      return btab, portname
    end
 
    mapconfigs(
@@ -375,8 +389,8 @@ local function resolve_refs(root_sys)
 
    mapconns(
       function(c,_,p)
-	 c._src, c._srcbn, c._srcpn = connref_resolve(p, c.src)
-	 c._tgt, c._tgtbn, c._tgtpn = connref_resolve(p, c.tgt)
+	 c._src, c._srcpn = connref_resolve(p, c.src)
+	 c._tgt, c._tgtpn = connref_resolve(p, c.tgt)
       end, root_sys)
 end
 
@@ -879,13 +893,21 @@ end
 -- @param root_sys root system
 local function connect_blocks(nd, root_sys)
    local function do_connect(c, i, p)
-      local srcbn = c._srcbn
-      local srcpn = c._srcpn
-      local tgtbn = c._tgtbn
-      local tgtpn = c._tgtpn
-      c.config = c.config or {}
+
+      local srcbn, srcpn, tgtbn, tgtpn
+
+      if c._src then
+	 srcbn = c._src._fqn
+	 srcpn = c._srcpn
+      end
+
+      if c._tgt then
+	 tgtbn = c._tgt._fqn
+	 tgtpn = c._tgtpn
+      end
 
       local ret, msg = ubx.connect(nd, srcbn, srcpn, tgtbn, tgtpn, c.type, c.config)
+
       if not ret then
 	 err_exit(1, "error: %s", msg)
       end
