@@ -142,7 +142,6 @@ end
 local function write(mqtab, preloads, val, rate)
 
    local mq, sample = newmq(mqtab, preloads)
-   local s,ns =	sec2ts(rate)
    local cnt = 0
 
    sample:set(val, false)
@@ -151,6 +150,7 @@ local function write(mqtab, preloads, val, rate)
       mq:write(sample)
       os.exit(0)
    else
+      local s,ns = sec2ts(rate)
       while true do
 	 if verbose then
 	    mq:write(sample)
