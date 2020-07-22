@@ -1859,7 +1859,8 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       ibconfig.data_len = ibconfig.data_len or tonumber(srcp.out_data_len)
       ibconfig.type_name = ibconfig.type_name or M.safe_tostr(srcp.out_type.name)
 
-      local ib = M.block_create(nd, ibtype, gen_block_uid(), ibconfig)
+      local ibname = gen_block_uid()
+      local ib = M.block_create(nd, ibtype, ibname, ibconfig)
       M.block_init(ib)
 
       if ubx.ubx_ports_connect(srcp, tgtp, ib) ~= 0 then
@@ -1869,10 +1870,10 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 
       M.block_tostate(ib, 'active')
 
-      info(nd, "connect", fmt("%s.%s -[%s,%s,%d]-> %s.%s",
+      info(nd, "connect", fmt("%s.%s -[%s,%s,%d]-> %s.%s [%s]",
 			      srcbn, srcpn,
-			      ibtype, ibconfig.type_name, ibconfig.data_len,
-			      tgtbn, tgtpn))
+			      ibname, ibconfig.type_name, ibconfig.data_len,
+			      tgtbn, tgtpn, ibtype))
 
    elseif M.is_cblock_instance(srcb) and M.is_iblock_instance(tgtb) then
       -- cblock -> iblock
