@@ -170,7 +170,6 @@ int mqueue_init(ubx_block_t *i)
 
 void mqueue_cleanup(ubx_block_t *i)
 {
-	int ret;
 	struct mqueue_info *inf = (struct mqueue_info *)i->private_data;
 
 	if (mq_close(inf->mqd) != 0)
@@ -178,7 +177,7 @@ void mqueue_cleanup(ubx_block_t *i)
 
 	if (inf->unlink) {
 		ubx_info(i, "%s: removing mq %s", __func__, inf->mq_name);
-		ret = mq_unlink(inf->mq_name);
+		int ret = mq_unlink(inf->mq_name);
 
 		if (ret < 0 && errno != ENOENT)
 			ubx_err(i, "mq_unlink %s failed: %s", inf->mq_name, strerror(errno));
