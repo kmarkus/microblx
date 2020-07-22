@@ -191,6 +191,10 @@ end
 local mqs = mqueues_get()
 
 if opttab[0][1] == "list" then
+   if #mqs == 0 then
+      print("no microblx mqueues found")
+      os.exit(0)
+   end
    nd = ubx.node_create("ubx-mq", { loglevel=8})
    ubx.load_module(nd, "stdtypes")
    ubx.load_module(nd, "mqueue")
