@@ -240,6 +240,28 @@ to a non-hierarchical one, however:
   of multiple identically named node configs, the one at the highest
   level will be selected.
 
+.. _merging-subsystems:
+
+Merging subsystems
+~~~~~~~~~~~~~~~~~~
+
+It is possible to add a subsystem without a namespace, as shown by the
+following snippet:
+
+.. code:: lua
+
+	  return bd.system {
+	      subsystems = {
+		  bd.load("subsys1.usc"),
+	      }
+	  }
+
+In this case, the ``subsys1.usc`` system will be merged directly into
+the parent system. Note that entries of the parent system take
+precedence, so in case of conflicts elements of the subsystem will be
+skipped.
+
+This feature is useful to avoid an extra hierarchy level.
 
 Model mixins
 ------------
@@ -259,6 +281,10 @@ For example, consider the example in
 	  
 	  ubx-launch -webif -c deep_composition.usc,ptrig.usc
 
+
+**Note**: unlike merging from within the usc using an unnamed
+``subsystems`` entry (see :ref:`merging-subsystems`), models merged on
+the command line will *override* existing entries.
 
 Alternatives
 ------------

@@ -16,16 +16,20 @@ local strict = require "strict"
 
 local M={}
 
+-- module config
+M.LOG_STDERR = false
+M.VERBOSE = false
+
 -- shortcuts
 local foreach = utils.foreach
+local tab2str = utils.tab2str
 local ts = tostring
 local fmt = string.format
 local insert = table.insert
 local safets = ubx.safe_tostr
 
 -- node configuration
-_NC = nil
-USE_STDERR = false
+local _NC = nil
 
 local red=ubx.red
 local blue=ubx.blue
@@ -34,14 +38,26 @@ local green=ubx.green
 local yellow=ubx.yellow
 local magenta=ubx.magenta
 
-local crit, err, warn, notice, info = nil, nil, nil, nil, nil
-
-local function stderr(msg)
-   if USE_STDERR then utils.stderr(msg) end
+local function undef_log()
+   utils.stderr("logger undefined, call def_loggers before using")
+   os.exit(1)
 end
 
---- Create logging helper functions.
+local crit, err, warn, notice, info =
+   undef_log, undef_log, undef_log, undef_log, undef_log
+
+-- log function verbose messages
+local function log(format, ...)
+   if M.VERBOSE then utils.stderr(fmt(format, unpack{...})) end
+end
+
+--- Create logging helper functions
+-- These log to ubx-log and depending on LOG_STDERR to stderr
 local function def_loggers(nd, src)
+   local function stderr(msg)
+      if M.LOG_STDERR then utils.stderr(msg) end
+   end
+
    err = function(format, ...)
       local msg = fmt(format, unpack{...}); stderr(msg); ubx.err(nd, src, msg)
    end
@@ -456,6 +472,12 @@ end
 
 --- System constructor
 function system:init()
+   -- merge the subsystems without a namespace, i.e. those that are
+   -- in the array part of the table. weak merge, override = false.
+   for i,s in ipairs(self.subsystems or {}) do
+      system.merge(self, s, false)
+      self.subsystems[i] = nil
+   end
    system_populate_meta(self)
 end
 
@@ -916,40 +938,121 @@ local function connect_blocks(nd, root_sys)
 end
 
 --- Merge one system into another
--- No duplicate handling. Running the validation after a merge is strongly recommended.
+--
+-- The override flag allows to control how result will behave in case
+-- of conflicts of blocks configurations. If true, then the merged content
+-- will take precedence, if false not.
+--
 -- @param self targed of the merge
 -- @param sys system which to merge into self
-function system.merge(self, sys)
-   local function do_merge(dest, src)
-      foreach(function (imp) insert(dest.imports, imp) end, src.imports)
-      foreach(function (blk) insert(dest.blocks, blk) end, src.blocks)
-      foreach(function (cfg) insert(dest.configurations, cfg) end, src.configurations)
-      foreach(function (conn) insert(dest.connections, conn) end, src.connections)
+-- @param override if true (default) then merge so
+-- @param verbose log merge operations
+function system.merge(self, sys, override)
+   if override == nil then override = true end
 
-      foreach(
-	 function (ndcfg, name)
-	    if dest.node_configurations[name] then
-	       warn("merge: overriding existing destination system node_config %s", name)
+   local function merge_block(x)
+      for i,b in ipairs(self.blocks) do
+	 if b.name == x.name then
+	    if override then
+	       log("merge, block: replacing %s with %s", tab2str(b), tab2str(x))
+	       self.blocks[i] = x
+	    else
+	       log("merge, block: skipping %s with %s", tab2str(b), tab2str(x))
 	    end
-	    dest.node_configurations[name] = ndcfg
-	 end, src.node_configurations)
-
-      if src.subsystems and not dest.subsystems then dest.subsystems={} end
-
-      foreach(
-	 function (subsys, name)
-	    if dest.subsystems[name] then
-	       warn("merge: overriding existing destination subsystem %s", name)
-	    end
-	    dest.subsystems[name] = subsys
-	 end, src.subsystems)
-
-      if src.subsystems then
-	 do_merge(dest.subsystems, src.subsystems)
+	    return
+	 end
       end
+      -- not match found, append it
+      log("merge, block: appending %s", tab2str(x))
+      insert(self.blocks, x)
    end
 
-   do_merge(self, sys)
+   local function merge_config(x)
+      for _,c in ipairs(self.configurations) do
+
+	 -- if it exists, merge it config by config
+	 if c.name == x.name then
+	    local dest = c.config
+	    local src = x.config
+
+	    for k,v in pairs(src) do
+	       if dest[k] then
+		  if override then
+		     log("merge, config: replacing %s.%s with %s", c.name, k, tab2str(src[k]))
+		     dest[k] = src[k]
+		  else
+		     log("merge, config: skipping %s.%s with %s", c.name, k, tab2str(src[k]))
+		  end
+	       else
+		  log("merge, config: adding %s.%s with %s", c.name, k, tab2str(src[k]))
+		  dest[k] = src[k]
+	       end
+	    end
+	    return
+	 end
+      end
+      log("merge, config: appending %s", tab2str(x))
+      insert(self.configurations, x)
+   end
+
+   local function merge_conn(x)
+      for i,c in ipairs(self.connections) do
+	 if c.src == x.src and c.tgt == x.tgt then
+	    if override then
+	       log("merge, conn: replacing %s with %s", tab2str(c), tab2str(x))
+	       self.connections[i] = x
+	    else
+	       log("merge, conn: skipping %s with %s", tab2str(c), tab2str(x))
+	    end
+	    return
+	 end
+      end
+      log("merge, conn: appending %s", tab2str(x))
+      insert(self.connections, x)
+   end
+
+   local function merge_ndcfg(x, name)
+      if self.node_configurations[name] then
+	 if override then
+	    log("merge, ndcfg: replacing nodecfg %s (%s) with %s",
+		name, tab2str(self.node_configurations[name]), tab2str(x))
+	    self.node_configurations[name] = x
+	 else
+	    log("merge, ndcfg: skipping override of nodecfg %s (%s) with %s",
+		name, tab2str(self.node_configurations[name]), tab2str(x))
+	 end
+	 return
+      end
+      self.node_configurations[name] = x
+   end
+
+   local function merge_subsys(x, name)
+      if self.subsystems[name] then
+	 if override then
+	    log("merge, subsys: replacing subsys %s", name)
+	    self.subsystems[name] = x
+	 else
+	    log("merge, subsys: skipping override of subsys %s", name)
+	 end
+	 return
+      end
+      self.subsystems[name] = x
+   end
+
+   if sys.node_configurations and not self.node_configurations then
+      self.node_configurations = {}
+   end
+   if sys.subsystems and not self.subsystems then
+      self.subsystems={}
+   end
+
+   foreach(function (imp) insert(self.imports, imp) end, sys.imports)
+   foreach(merge_block, sys.blocks)
+   foreach(merge_config, sys.configurations)
+   foreach(merge_conn, sys.connections)
+   foreach(merge_ndcfg, sys.node_configurations)
+   foreach(merge_subsys, sys.subsystems)
+
 end
 
 --- Launch a blockdiagram system
@@ -963,7 +1066,7 @@ function system.launch(self, t)
    -- fire it up
    t = t or {}
    t.nodename = t.nodename or "n"
-   USE_STDERR = t.use_stderr or false
+   M.LOG_STDERR = t.use_stderr or false
 
    local nd = ubx.node_create(t.nodename,
 			      { loglevel=t.loglevel,

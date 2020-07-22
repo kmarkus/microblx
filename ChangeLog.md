@@ -5,6 +5,17 @@ This file tracks user visible API changes
 
 ## 0.9.1
 
+- `blockdiagram`, hierarchical composition: add support for adding
+  subsystems *without a namespace*, i.e. effectively merging them. If
+  a subsystem is added to the `subsystems` table *without* a name,
+  then it will me merged similar to when multiple models are provided
+  on the cmdline. However, in the latter case, the merged models
+  override existing entries, whereas when specified in `subsystems`,
+  the parent subsystem takes precedence. This feature is mainly useful
+  to avoid deep hierarchies.  In addition this cleans up the merge
+  function and adds a verbose `-v` option to `ubx-launch`, for
+  printing early messages (mainly merge actions for now).
+
 - `ubx-mq`
     - add support for writing to mqueues. Example:
       `ubx-mq write mymq  "{0,0.01,0,0.1,0}" -r 0.1`

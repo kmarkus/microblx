@@ -29,10 +29,11 @@ usage: ubx-launch [OPTION] -c <model file>
   -t SECONDS		run for SECONDS and then shutdown
   -loglevel N		set global loglevel [0..7]
   -s			log to stderr (in addition to ubx_log)
+  -v                    verbose (will log additional, early messages to stderr)
   -webif [PORT]		create and start webinterface block.
 			the optional port defaults to 8888.
 
-  -validate		don't run, just validate configuration file
+  -validate             don't run, just validate configuration file
 
   -check CHK1[,CHK2]    carry out additional validation
     available checks:
@@ -77,6 +78,8 @@ else
    conf_files = utils.split(opttab['-c'][1], ',')
 end
 
+if opttab['-v'] then bd.VERBOSE=true end
+
 if opttab['-ctype'] then
     if not opttab['-ctype'][1] then
         print("error: -ctype option requires a type argument")
@@ -106,7 +109,7 @@ end
 for i=2,#conf_files do
    local m = bd.load(conf_files[i], conf_types[i])
    print("merging "..conf_files[i].. " into ".. conf_files[1])
-   model:merge(m)
+   model:merge(m, true)
 end
 
 if opttab['-nodename'] then
