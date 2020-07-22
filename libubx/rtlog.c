@@ -89,7 +89,6 @@ void ubx_log_cleanup(struct ubx_node *nd)
 #include "internal/rtlog_common.h"
 
 struct log_shm_inf {
-	pthread_spinlock_t loglock;
 	int shm_fd;
 	uint32_t shm_size;
 	uint32_t frame_size;
@@ -135,20 +134,18 @@ static void ubx_log_shm(const struct ubx_node *nd, const struct ubx_log_msg *msg
 	struct ubx_log_msg *frame;
 	(void)(nd);
 
-	pthread_spin_lock(&inf.loglock);
+	pthread_spin_lock(&inf.buf_ptr->wlock);
 	frame = (struct ubx_log_msg *)&inf.buf_ptr->data[inf.buf_ptr->w.off];
 	memcpy((void *)frame, (void *)msg, sizeof(struct ubx_log_msg));
 
 	log_inc_woff(inf.frame_size);
-	pthread_spin_unlock(&inf.loglock);
+	pthread_spin_unlock(&inf.buf_ptr->wlock);
 }
 
 int ubx_log_init(struct ubx_node *nd)
 {
 	int ret = -1;
 
-	pthread_spin_init(&inf.loglock, PTHREAD_PROCESS_SHARED);
-	nd->log = ubx_log_shm;
 	nd->log_data = NULL;
 
 	inf.shm_size = sizeof(log_wrap_off_t) + sizeof(struct ubx_log_msg) *
@@ -180,7 +177,9 @@ int ubx_log_init(struct ubx_node *nd)
 		goto out_unlink;
 	}
 
+	pthread_spin_init(&inf.buf_ptr->wlock, PTHREAD_PROCESS_SHARED);
 	inf.frame_size = sizeof(struct ubx_log_msg);
+	nd->log = ubx_log_shm;
 
 	ret = 0;
 	goto out;
@@ -197,7 +196,7 @@ out:
 
 void ubx_log_cleanup(struct ubx_node *nd)
 {
-	pthread_spin_destroy(&inf.loglock);
+	pthread_spin_destroy(&inf.buf_ptr->wlock);
 	nd->log = NULL;
 
 	/* clean up shm */

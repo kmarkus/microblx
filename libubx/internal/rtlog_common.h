@@ -21,6 +21,8 @@
  *   of roff (and no erroneous conditions such as an overrun occured).
  */
 
+#include <pthread.h>
+
 #define LOG_BUFFER_DEPTH 10000
 #define LOG_SHM_FILENAME "rtlog.logshm"
 
@@ -41,7 +43,8 @@ typedef union {
 /* log buffer header */
 typedef struct log_buf
 {
-	log_wrap_off_t w;	/* wrap and offset */
+	pthread_spinlock_t wlock;	/* writer spinlock */
+	log_wrap_off_t w;		/* wrap and offset */
 	uint8_t data[];
 } log_buf_t;
 

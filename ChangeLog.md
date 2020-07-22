@@ -21,11 +21,11 @@ This file tracks user visible API changes
       `ubx-mq write mymq  "{0,0.01,0,0.1,0}" -r 0.1`
     - show types in mq listing (this requires latest `uutils` v1.1.0.
 
-- rtlog: init spinlock with `PTHREAD_PROCESS_SHARED`: cmdline tools
-  such as `ubx-mq` create processes and nodes that log to the same
-  shm. Hence we set the default to shared. Users that really need to
-  squeeze performance can explicitely set this back to
-  `PTHREAD_PROCESS_PRIVATE`.
+- rtlog: move spinlock into shm and initialize with
+  `PTHREAD_PROCESS_SHARED` cmdline tools such as `ubx-mq` create
+  processes and nodes that log to the same shm. Hence we set the
+  default to shared. Users that really need to squeeze performance can
+  explicitely set this back to `PTHREAD_PROCESS_PRIVATE`.
 
 - `ubx.lua`: add generic `connect` function. This replaces
   `conn_lfds_cyclic` and `conn_uni` and allows the following
