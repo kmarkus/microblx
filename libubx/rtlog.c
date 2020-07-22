@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <sys/shm.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <pthread.h>
 
 #include <config.h>
@@ -145,15 +148,16 @@ static void ubx_log_shm(const struct ubx_node *nd, const struct ubx_log_msg *msg
 int ubx_log_init(struct ubx_node *nd)
 {
 	int ret = -1;
+	struct stat sb;
 
 	nd->log_data = NULL;
 
 	inf.shm_size = sizeof(log_wrap_off_t) + sizeof(struct ubx_log_msg) *
 		       LOG_BUFFER_DEPTH;
+
 	inf.frame_size = sizeof(struct ubx_log_msg);
 
 	/* allocate shared mem */
-
 	inf.shm_fd = shm_open(LOG_SHM_FILENAME, O_CREAT | O_RDWR, 0640);
 
 	if (inf.shm_fd == -1) {
@@ -161,10 +165,19 @@ int ubx_log_init(struct ubx_node *nd)
 		goto out;
 	}
 
-	ret = ftruncate(inf.shm_fd, inf.shm_size);
-	if (ret != 0) {
-		fprintf(stderr, "%s: resizing shm failed: %m\n", __func__);
-		goto out_close;
+	/* check if we need to adjust size, otherwise leave it */
+	if (fstat(inf.shm_fd, &sb) != 0) {
+		fprintf(stderr, "%s: shm_open failed: %m\n", __func__);
+		goto out_unlink;
+	}
+
+	if (sb.st_size != inf.shm_size) {
+		ret = ftruncate(inf.shm_fd, inf.shm_size);
+
+		if (ret != 0) {
+			fprintf(stderr, "%s: resizing shm failed: %m\n", __func__);
+			goto out_unlink;
+		}
 	}
 
 	inf.buf_ptr = mmap(0, inf.shm_size,
@@ -186,24 +199,17 @@ int ubx_log_init(struct ubx_node *nd)
 
 out_unlink:
 	shm_unlink(LOG_SHM_FILENAME);
-
-out_close:
 	close(inf.shm_fd);
-
 out:
 	return ret;
 }
 
 void ubx_log_cleanup(struct ubx_node *nd)
 {
-	pthread_spin_destroy(&inf.buf_ptr->wlock);
+	/* we skip destroying the spinlock and shm, since there may be
+	 * other processes still using it */
 	nd->log = NULL;
-
-	/* clean up shm */
 	munmap((void *) inf.buf_ptr, inf.shm_size);
-
-	shm_unlink(LOG_SHM_FILENAME);
-
 	close(inf.shm_fd);
 }
 #endif
