@@ -225,7 +225,7 @@ elseif opttab[0][1] == "read" then
    local mq_id = opttab[0][2]
 
    if not mq_id then
-      print("read expects an argument QUEUE")
+      print("read expects an argument MQ-ID")
       os.exit(1)
    end
 
@@ -241,7 +241,7 @@ elseif opttab[0][1] == "write" then
    local mq_id = opttab[0][2]
 
    if not mq_id then
-      print("write expects an argument QUEUE")
+      print("write expects arguments MQ-ID and VALUE")
       os.exit(1)
    end
 
