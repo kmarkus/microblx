@@ -357,6 +357,7 @@ local system_spec = ObjectSpec
       _parent=AnySpec{},
       _name=AnySpec{},
       _fqn=AnySpec{},
+      _srcfile=StringSpec{},
    },
    optional={ 'subsystems', 'imports', 'blocks', 'connections',
 	      'node_configurations', 'configurations',
@@ -523,6 +524,8 @@ local function load(fn, file_type)
       print("failed to load "..ts(fn).."\n"..ts(mod))
       os.exit(1)
    end
+
+   mod._srcfile = fn
 
    return mod
 end
@@ -950,20 +953,22 @@ end
 function system.merge(self, sys, override)
    if override == nil then override = true end
 
+   log(fmt("merging %s into parent (override: %s)", sys._srcfile, override))
+
    local function merge_block(x)
       for i,b in ipairs(self.blocks) do
 	 if b.name == x.name then
 	    if override then
-	       log("merge, block: replacing %s with %s", tab2str(b), tab2str(x))
+	       log("  block: replacing %s with %s", tab2str(b), tab2str(x))
 	       self.blocks[i] = x
 	    else
-	       log("merge, block: skipping %s with %s", tab2str(b), tab2str(x))
+	       log("  block: skipping %s with %s", tab2str(b), tab2str(x))
 	    end
 	    return
 	 end
       end
       -- not match found, append it
-      log("merge, block: appending %s", tab2str(x))
+      log("  block: appending %s", tab2str(x))
       insert(self.blocks, x)
    end
 
@@ -978,20 +983,20 @@ function system.merge(self, sys, override)
 	    for k,v in pairs(src) do
 	       if dest[k] then
 		  if override then
-		     log("merge, config: replacing %s.%s with %s", c.name, k, tab2str(src[k]))
+		     log("  config: replacing %s.%s with %s", c.name, k, tab2str(src[k]))
 		     dest[k] = src[k]
 		  else
-		     log("merge, config: skipping %s.%s with %s", c.name, k, tab2str(src[k]))
+		     log("  config: skipping %s.%s with %s", c.name, k, tab2str(src[k]))
 		  end
 	       else
-		  log("merge, config: adding %s.%s with %s", c.name, k, tab2str(src[k]))
+		  log("  config: adding %s.%s with %s", c.name, k, tab2str(src[k]))
 		  dest[k] = src[k]
 	       end
 	    end
 	    return
 	 end
       end
-      log("merge, config: appending %s", tab2str(x))
+      log("  config: appending %s", tab2str(x))
       insert(self.configurations, x)
    end
 
@@ -999,26 +1004,26 @@ function system.merge(self, sys, override)
       for i,c in ipairs(self.connections) do
 	 if c.src == x.src and c.tgt == x.tgt then
 	    if override then
-	       log("merge, conn: replacing %s with %s", tab2str(c), tab2str(x))
+	       log("  conn: replacing %s with %s", tab2str(c), tab2str(x))
 	       self.connections[i] = x
 	    else
-	       log("merge, conn: skipping %s with %s", tab2str(c), tab2str(x))
+	       log("  conn: skipping %s with %s", tab2str(c), tab2str(x))
 	    end
 	    return
 	 end
       end
-      log("merge, conn: appending %s", tab2str(x))
+      log("  conn: appending %s", tab2str(x))
       insert(self.connections, x)
    end
 
    local function merge_ndcfg(x, name)
       if self.node_configurations[name] then
 	 if override then
-	    log("merge, ndcfg: replacing nodecfg %s (%s) with %s",
+	    log("  ndcfg: replacing nodecfg %s (%s) with %s",
 		name, tab2str(self.node_configurations[name]), tab2str(x))
 	    self.node_configurations[name] = x
 	 else
-	    log("merge, ndcfg: skipping override of nodecfg %s (%s) with %s",
+	    log("  ndcfg: skipping override of nodecfg %s (%s) with %s",
 		name, tab2str(self.node_configurations[name]), tab2str(x))
 	 end
 	 return
@@ -1029,10 +1034,10 @@ function system.merge(self, sys, override)
    local function merge_subsys(x, name)
       if self.subsystems[name] then
 	 if override then
-	    log("merge, subsys: replacing subsys %s", name)
+	    log("  subsys: replacing subsys %s", name)
 	    self.subsystems[name] = x
 	 else
-	    log("merge, subsys: skipping override of subsys %s", name)
+	    log("  subsys: skipping override of subsys %s", name)
 	 end
 	 return
       end

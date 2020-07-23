@@ -108,7 +108,7 @@ end
 
 for i=2,#conf_files do
    local m = bd.load(conf_files[i], conf_types[i])
-   print("merging "..conf_files[i].. " into ".. conf_files[1])
+   --   print("merging "..conf_files[i].. " into ".. conf_files[1])
    model:merge(m, true)
 end
 
