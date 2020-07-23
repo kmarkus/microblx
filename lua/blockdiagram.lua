@@ -415,12 +415,6 @@ end
 -- can be called multiple times
 -- @param system
 local function system_populate_meta(self)
-   self.imports = self.imports or {}
-   self.blocks = self.blocks or {}
-   self.node_configurations = self.node_configurations or {}
-   self.configurations = self.configurations or {}
-   self.connections = self.connections or {}
-
    mapsys(
       function(s,n,p)
 	 if p == nil then s._name='root' else s._name = n end
@@ -472,6 +466,12 @@ end
 
 --- System constructor
 function system:init()
+   self.imports = self.imports or {}
+   self.blocks = self.blocks or {}
+   self.node_configurations = self.node_configurations or {}
+   self.configurations = self.configurations or {}
+   self.connections = self.connections or {}
+
    -- merge the subsystems without a namespace, i.e. those that are
    -- in the array part of the table. weak merge, override = false.
    for i,s in ipairs(self.subsystems or {}) do
@@ -1037,13 +1037,6 @@ function system.merge(self, sys, override)
 	 return
       end
       self.subsystems[name] = x
-   end
-
-   if sys.node_configurations and not self.node_configurations then
-      self.node_configurations = {}
-   end
-   if sys.subsystems and not self.subsystems then
-      self.subsystems={}
    end
 
    foreach(function (imp) insert(self.imports, imp) end, sys.imports)
