@@ -361,7 +361,7 @@ local system_spec = ObjectSpec
    },
    optional={ 'subsystems', 'imports', 'blocks', 'connections',
 	      'node_configurations', 'configurations',
-	      '_name', '_parent', '_fqn' },
+	      '_name', '_parent', '_fqn', '_srcfile' },
 }
 
 -- add self references to subsystems dictionary
