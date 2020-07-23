@@ -1766,7 +1766,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 	 return false, fmt("block %s has no port %s", tgtbn, tgtpn)
       end
       if not M.is_inport(tgtp) then
-	 return false, fmt("block %s port %s is not an output port", tgtbn, tgtpn)
+	 return false, fmt("block %s port %s is not an input port", tgtbn, tgtpn)
       end
    end
 
