@@ -123,26 +123,33 @@ The powerful ``connections`` keyword supports connecting blocks in
 multiple ways:
 
 - cblocks to cblocks
-- cblocks to existing iblocks
+- cblocks to iblocks
 - cblocks to non-existing iblocks (the latter are created on the fly)
 
-The syntax for these variants is discussed below:
+The syntax for these variants is discussed below.
 
 cblock to cblock connections
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following example shows how to create ports among cblock ports:
+
 .. code:: lua
 
    { src="blkA.portX", tgt="blkB.portY", type="lfds_cyclic", config = { ... }
 
-- both ``blkA`` and ``blkB`` must exist and have the ports
-  ``portX`` and ``portY`` respectively.
-- ``type`` is the type of the iblock to use. It defaults to
-  ``ubx/lfds_cyclic`` if unset
-- ``config`` is the configuration to apply to the iblock. If unset,
-  the configs ``type_name`` and ``data_len`` are set automatically.
+- both ``src`` and ``tgt`` are of the form ``CBLOCK.PORT``. Both
+  blocks and ports must exist.
+- ``type`` specifies the type of iblock to create for the
+  connection. If unset it defaults to ``ubx/lfds_cyclic``
+- ``config`` is the optional configuration to apply to the newly
+  created iblock. The configs ``type_name`` and ``data_len`` are set
+  automatically unless specified.
 
-cblock to existing iblock
-^^^^^^^^^^^^^^^^^^^^^^^^^
+cblock to iblock
+^^^^^^^^^^^^^^^^
+
+The following examples illustrates creating connections to/from an
+*existing* iblock ``myMq``:
 
 .. code:: lua
 
@@ -152,35 +159,32 @@ cblock to existing iblock
 
    { src="myMQ", tgt="blkX.portZ" }
 
-The above statements will create connections to/from the existing
-block ``myMQ``:
 
-- ``myMQ`` must exist and be an iblock
-- a ``config`` table is ignored here (it is expected to have been
-  configured in ``configurations``)!
-- the cblock ``blkX`` must exist and have a port ``portZ``
+- the iblock must exist and be of the form ``IBLOCK`` (i.e. no port).
+- the cblock must exist and be of the form ``CBLOCK.PORT``
+- ``type`` and ``config`` must not be set (they will be ignored with a
+  warning).
 
 
 cblock  to non-existing iblock
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is useful to create one-line connections via mqueues or similar.
+The following example creates a new mqueue with an automatic, unique
+name, configures it with ``config`` and connect ``blkX.portZ`` to it:
 
 .. code:: lua
 
    { src="blkX.portZ", type="ubx/mqueue", config={ buffer_len=32 } }
 
+- ``type`` must be set to desired iblock type and one of ``src`` or ``tgt`` must be unset
+- ``type_name``, ``data_len`` and ``buffer_len`` are set automatically
+  unless defined in ``config``.
+- for type ``ubx/mqueue``: if no ``mq_id`` is set in ``config``, then
+  ``mq_id`` is set to the corresponding peer "BLOCK.PORT", e.g. to
+  ``blkX.portZ`` in the example above.
 
-The above will create a new mqueue with a automatic, unique name,
-configure it with ``config`` and connect ``blkX.portZ`` to it:
-
-- for this, leave ``src`` or ``tgt`` empty and set ``type``
-- ``type_name``, ``data_len`` and ``buffer_len`` are setup
-  automatically if not overridden in ``config``.
-- if type is ``ubx/mqueue`` and no ``mq_id`` is set in ``config``,
-  then ``mq_id`` is set to the matching "block.port", i.e. in the
-  above example ``blkX.portZ``.
-
+This form is useful to create one-line connections via mqueues or similar.
+  
 Hierarchical compositions
 -------------------------
 
