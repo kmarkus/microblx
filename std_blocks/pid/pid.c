@@ -169,10 +169,16 @@ void pid_step(ubx_block_t *b)
 		goto out;
 	}
 
-	/* compute error and proportional component */
+	/* compute error and reset output */
 	for (int i=0; i<inf->data_len; i++) {
+		inf->out[i] = 0;
 		inf->err[i] = inf->des[i] - inf->msr[i];
-		inf->out[i] = inf->kp[i] * inf->err[i];
+	}
+
+	/* compute proportional component */
+	if (inf->kp) {
+		for (int i=0; i<inf->data_len; i++)
+			inf->out[i] = inf->kp[i] * inf->err[i];
 	}
 
 	/* add integral component */
@@ -184,7 +190,7 @@ void pid_step(ubx_block_t *b)
 
 	}
 
-	/* add  */
+	/* add derivative component */
 	if (inf->kd && inf->has_err_prev) {
 		for (int i=0; i<inf->data_len; i++) {
 			inf->deriv[i] = inf->err[i] - inf->err_prev[i];
