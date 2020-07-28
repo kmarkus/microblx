@@ -69,6 +69,13 @@ Now build *microblx*:
 	  $ make
 	  $ sudo make install
 
+note: it might be necessary to build with
+
+.. code:: bash
+
+ 		$ make CXXFLAGS="-std=c++11"
+
+to compile the cppdemo.cpp 
 
 Using yocto
 -----------
