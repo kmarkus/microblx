@@ -18,13 +18,19 @@ char cppdemo_meta[] =
     "}";
 
 ubx_proto_config_t cppdemo_config[] = {
-    { .name="test_conf", .type_name="double", .doc="a test config value" },
+    { .name="test_conf", 
+			.type_name="double",  
+			.attrs=0,
+	 		.min=0,
+	 		.max=0, 
+			.doc="a test config value"
+ },
     { 0 },
 };
 
-ubx_proto_port_t cppdemo_ports[] = {
-    { .name="foo", .in_type_name="unsigned int", .doc="Out port writing foo unsigned ints" },
-    { .name="bar", .out_type_name="unsigned int", .doc="In port reading bar unsigned ints" },
+ubx_proto_port_t cppdemo_ports[] = {// filled in also unused fields to make compatible with g++
+    { name:"foo",attrs:0, out_type_name:"", out_data_len:0, in_type_name:"unsigned int",in_data_len:0, doc:"Out port writing foo unsigned ints" },
+    { name:"bar",attrs:0, out_type_name:"unsigned int", out_data_len:0,in_type_name:"",in_data_len:0,  doc:"In port reading bar unsigned ints" },
     { 0 },
 };
 
@@ -62,13 +68,15 @@ ubx_proto_block_t cppdemo_comp =
 {
     .name = "cppdemo",
     .meta_data = cppdemo_meta,
+		.attrs = 0,
     .type = BLOCK_TYPE_COMPUTATION,
     .configs = cppdemo_config,
+		.ports = NULL, // fill in to make compatible with g++
     .init = cppdemo_init,
     .start = cppdemo_start,
     .stop = cppdemo_stop,
-    .cleanup = cppdemo_cleanup,
-    .step = cppdemo_step,
+    .cleanup = cppdemo_cleanup,{
+    .step = cppdemo_step,}
 };
 
 static int cppdemo_init(ubx_node_t* nd)
