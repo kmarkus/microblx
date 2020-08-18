@@ -34,6 +34,11 @@ if test "x${enable_timesrc_tsc}" = xyes; then
   AC_DEFINE([TIMESRC_TSC], 1, [use TSC as timesource instead of POSIX time])
 fi
 
+# C++ demo block is optional
+AC_ARG_ENABLE([cpp-demo],
+  AS_HELP_STRING([--enable-cpp-demo],[build example C++ block]))
+AM_CONDITIONAL([CPP_DEMO], [test x$enable_cpp_demo = xyes])
+
 # required for TSC only
 AC_DEFINE([CPU_HZ], 1600000000, [cpu hz defined])
 

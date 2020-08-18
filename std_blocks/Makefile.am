@@ -1,5 +1,4 @@
 SUBDIRS = const \
-	  cppdemo \
 	  examples \
           hexdump \
           lfds_buffers \
@@ -13,3 +12,7 @@ SUBDIRS = const \
 	  saturation \
           trig \
           webif
+
+if CPP_DEMO
+SUBDIRS += cppdemo
+endif
