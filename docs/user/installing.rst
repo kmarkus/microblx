@@ -70,6 +70,12 @@ Now build *microblx*:
 	  $ sudo make install
 
 
+Note: it might be necessary to build with
+
+.. code:: bash
+
+	  $ make CXXFLAGS="-std=c++11"
+
 Using yocto
 -----------
 
