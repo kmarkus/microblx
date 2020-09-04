@@ -64,6 +64,8 @@ The following is a list of projects related to microblx:
 - [microblx types for the Kinematics and Dynamics (KDL) library](https://github.com/kmarkus/microblx-kdl-types)
 - [microblx connector blocks for ROS1](https://github.com/kmarkus/microblx-ros)
 - [microblx motion control blocks and usc models](https://github.com/kmarkus/microblx-motion-control)
+- hardware
+  - [Kinova Kortex](https://github.com/rosym-project/robif2b)
 
 Contributing
 ------------
