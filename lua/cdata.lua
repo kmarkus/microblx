@@ -229,7 +229,7 @@ function M.gen_logfun(ctype, prefix)
 		    if e.value == 'number' then e.serfun = "format_num"
 		    elseif e.value == 'string' then e.serfun = "ffi.string"
 		    else
-		       error("unkown value "..e.value.." for key "..e.key)
+		       error("unknown value "..e.value.." for key "..e.key)
 		    end
 		 end, flattab)
 

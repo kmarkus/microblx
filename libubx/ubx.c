@@ -1677,7 +1677,7 @@ int ubx_config_add2(ubx_block_t *b,
 	type = ubx_type_get(b->nd, type_name);
 
 	if (type == NULL) {
-		ubx_err(b, "config_add: unkown type %s", type_name);
+		ubx_err(b, "config_add: unknown type %s", type_name);
 		return EINVALID_TYPE;
 	}
 

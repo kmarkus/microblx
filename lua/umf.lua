@@ -346,7 +346,7 @@ function TableSpec.check(self, obj, vres)
 	 ret=false
       else
 	 log("check_array_entry: OUT #"..ts(i).." FAILED! (but unsealed)")
-	 add_msg(vres, "inf", "unkown entry '"..tostring(entry) .."' in array part")
+	 add_msg(vres, "inf", "unknown entry '"..tostring(entry) .."' in array part")
       end
       ind_dec()
       vres_pop_context(vres, depth)
@@ -369,14 +369,14 @@ function TableSpec.check(self, obj, vres)
 	    log("key '" .. ts(key) .. "' found and spec checking OK")
 	 end
       elseif not self.dict.__other and sealed then
-	 -- unkown key, no __other and sealed -> err!
+	 -- unknown key, no __other and sealed -> err!
 	 add_msg(vres, "err", "illegal field '"..key.."' in sealed dict (value: "..tostring(entry)..")")
 	 ret=false
       elseif not self.dict[key] and is_a_valid_spec(entry, self.dict.__other) then
 	 -- unknown key, but __other legitimizes entry
 	 log("found matching spec in __other table")
       elseif not self.dict[key] and not is_a_valid_spec(entry, self.dict.__other) then
-	 -- unkown key AND __other does not legitimze: if unsealed ->
+	 -- unknown key AND __other does not legitimze: if unsealed ->
 	 -- fine. If sealed, report the errors of all checks.
 	 if sealed then
 	    -- gadd_msg(vres, "err", "checking __other failed for undeclared key '".. key.."' in sealed dict. Error(s) follow:")
@@ -386,7 +386,7 @@ function TableSpec.check(self, obj, vres)
 	    log("checking __other for key "..key.. " failed")
 	    ret=false
 	 else
-	    add_msg(vres, "inf", "ignoring unkown field "..key.." in unsealed dict")
+	    add_msg(vres, "inf", "ignoring unknown field "..key.." in unsealed dict")
 	 end
       else error("should not get here") end
       vres_pop_context(vres, depth)

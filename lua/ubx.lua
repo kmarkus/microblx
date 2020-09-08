@@ -726,7 +726,7 @@ function M.__data_alloc(typ, num)
    num = num or 1
    local d = ubx.__ubx_data_alloc(typ, num)
    if d==nil then
-      error("data_alloc: unkown type '"..M.safe_tostr(typ.name).."'")
+      error("data_alloc: unknown type '"..M.safe_tostr(typ.name).."'")
    end
    ffi.gc(d, function(dat) ubx.ubx_data_free(dat) end)
    return d
@@ -741,7 +741,7 @@ end
 function M.data_alloc(nd, type_name, num)
    local t = M.type_get(nd, type_name)
    if t==nil then
-      error(M.safe_tostr(nd.name)..": data_alloc: unkown type '"..M.safe_tostr(type_name).."'")
+      error(M.safe_tostr(nd.name)..": data_alloc: unknown type '"..M.safe_tostr(type_name).."'")
    end
    return M.__data_alloc(t, num)
 end

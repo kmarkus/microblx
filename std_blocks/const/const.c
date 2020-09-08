@@ -68,7 +68,7 @@ static int const_init(ubx_block_t *b)
 	inf->type = ubx_type_get(b->nd, type_name);
 
 	if (inf->type == NULL) {
-		ubx_err(b, "unkown type %s", type_name);
+		ubx_err(b, "unknown type %s", type_name);
 		goto out_free;
 	}
 

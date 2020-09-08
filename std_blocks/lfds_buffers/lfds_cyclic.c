@@ -129,7 +129,7 @@ int cyclic_init(ubx_block_t *i)
 	inf->type = ubx_type_get(i->nd, type_name);
 
 	if (inf->type == NULL) {
-		ubx_err(i, "EINVALID_CONFIG: unkown type %s", type_name);
+		ubx_err(i, "EINVALID_CONFIG: unknown type %s", type_name);
 		ret = EINVALID_CONFIG;
 		goto out_free_priv_data;
 	}

@@ -89,7 +89,7 @@ const char* schedpol_tostr(unsigned int schedpol)
 	case SCHED_IDLE: return "SCHED_IDLE";
 	case SCHED_BATCH: return "SCHED_BATCH";
 	default:
-		return "unkown";
+		return "unknown";
 	}
 }
 
