@@ -5,6 +5,11 @@ This file tracks user visible API changes
 
 ## 0.9.1
 
+- `trig`, `ptrig`, `trig_utils`: add `every` member to configure
+  reduced frequency triggering. If set, the respective block will be
+  only triggered every `every` time with respect to the base
+  frequency.
+
 - `blockdiagram`, hierarchical composition: add support for adding
   subsystems *without a namespace*, i.e. effectively merging them. If
   a subsystem is added to the `subsystems` table *without* a name,

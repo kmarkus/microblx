@@ -85,6 +85,7 @@ int tstat_fwrite(FILE *fp, struct ubx_tstat *stats);
  * @tstats_mode: desired enum tstats_mode
  * @tstats_skip_first skip this many steps before starting to acquire stats
  * @p_tstats: tstats output port (optional)
+ * @every_cnt: counter for reducing trigger frequency via "every" triggee value
  * @global_tstats global tstats structure
  * @blk_tstats: pointer to array of size trig_list_len for per block stats
  * @tstats_output_rate:	output rate
@@ -100,6 +101,7 @@ struct ubx_chain {
 	ubx_port_t *p_tstats;
 
 	/* internal, initialized via ubx_chain_init */
+	unsigned int every_cnt;
 	struct ubx_tstat global_tstats;
 	struct ubx_tstat *blk_tstats;
 

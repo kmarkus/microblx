@@ -130,10 +130,13 @@ int ubx_chain_init(struct ubx_chain *chain,
 			tstat_init2(&chain->blk_tstats[i], chain->triggees[i].b->name, chain_id);
 	}
 
-	/* let num_steps default to 1 */
+	chain->every_cnt = 0;
+
+	/* let num_steps and every default to 1 */
 	for (int i = 0; i < chain->triggees_len; i++) {
-		if (chain->triggees[i].num_steps == 0)
-			((struct ubx_triggee*) &chain->triggees[i])->num_steps = 1;
+		struct ubx_triggee* t =	(struct ubx_triggee*) &chain->triggees[i];
+		t->num_steps = (t->num_steps == 0) ? 1 : t->num_steps;
+		t->every = (t->every == 0) ? 1 : t->every;
 	}
 
 	return 0;
@@ -176,6 +179,27 @@ static void tstats_output_throttled(struct ubx_chain *chain, uint64_t now)
 	chain->tstats_output_last_msg = now;
 }
 
+/**
+ * trig_single_block
+ *
+ * trigger a single block considering every and	num_steps
+ * @t ubx_triggee to trigger
+ * @return 0: OK, <0: error stepping
+ */
+static int trig_single_block(const struct ubx_triggee *t)
+{
+	int ret = 0;
+
+	for (int steps = 0; steps < t->num_steps; steps++) {
+		ret = ubx_cblock_step(t->b);
+
+		if (ret != 0)
+			goto out;
+	}
+out:
+	return ret;
+}
+
 
 /**
  * trig_stats_perblock
@@ -195,15 +219,15 @@ static int trig_stats_perblock(struct ubx_chain *chain)
 
 		const struct ubx_triggee *trig = &chain->triggees[i];
 
+		/* skip according to 'every' */
+		if (chain->every_cnt % trig->every != 0)
+			continue;
+
 		ubx_gettime(&blk_ts_start);
 
 		/* step block */
-		for (int steps = 0; steps < trig->num_steps; steps++) {
-			if (ubx_cblock_step(trig->b) != 0) {
-				ret = -1;
-				break; /* next block */
-			}
-		}
+		if(trig_single_block(trig) != 0)
+			ret = -1;
 
 		ubx_gettime(&blk_ts_end);
 		tstat_update(&chain->blk_tstats[i], &blk_ts_start, &blk_ts_end);
@@ -238,13 +262,13 @@ static int trig_stats_global(struct ubx_chain *chain)
 
 		const struct ubx_triggee *trig = &chain->triggees[i];
 
+		/* skip according to 'every' */
+		if (chain->every_cnt % trig->every != 0)
+			continue;
+
 		/* step block */
-		for (int steps = 0; steps < trig->num_steps; steps++) {
-			if (ubx_cblock_step(trig->b) != 0) {
-				ret = -1;
-				break; /* next block */
-			}
-		}
+		if(trig_single_block(trig) != 0)
+			ret = -1;
 	}
 
 	/* finalize global measurement,	output stats */
@@ -271,13 +295,13 @@ static int trig_stats_disabled(struct ubx_chain *chain)
 
 		const struct ubx_triggee *trig = &chain->triggees[i];
 
+		/* skip according to 'every' */
+		if (chain->every_cnt % trig->every != 0)
+			continue;
+
 		/* step block */
-		for (int steps = 0; steps < trig->num_steps; steps++) {
-			if (ubx_cblock_step(trig->b) != 0) {
-				ret = -1;
-				break; /* next block */
-			}
-		}
+		if(trig_single_block(trig) != 0)
+			ret = -1;
 	}
 
 	return ret;
@@ -285,22 +309,31 @@ static int trig_stats_disabled(struct ubx_chain *chain)
 
 int ubx_chain_trigger(struct ubx_chain *chain)
 {
+	int ret;
+
 	if (chain->tstats_skip_first > 0) {
 		chain->tstats_skip_first--;
-		return trig_stats_disabled(chain);
+		ret = trig_stats_disabled(chain);
+		goto out;
 	}
 
 	switch(chain->tstats_mode) {
 	case TSTATS_DISABLED:
-		return trig_stats_disabled(chain);
+		ret = trig_stats_disabled(chain);
+		break;
 	case TSTATS_GLOBAL:
-		return trig_stats_global(chain);
+		ret = trig_stats_global(chain);
+		break;
 	case TSTATS_PERBLOCK:
-		return trig_stats_perblock(chain);
+		ret = trig_stats_perblock(chain);
+		break;
 	default:
 		ERR("invalid TSTATS_MODE %i", chain->tstats_mode);
-		return -1;
+		ret = -1;
 	}
+out:
+	chain->every_cnt++;
+	return ret;
 }
 
 /*
