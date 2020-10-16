@@ -152,11 +152,7 @@ local function generate_type_accessors(bm)
    local res = {}
 
    for _,p in ipairs(bm.types or {}) do
-      if bm.cpp then
-	 res[#res+1] = utils.expand("def_class_accessors($name, struct $name);", { name=p.name })
-      else
 	 res[#res+1] = utils.expand("def_type_accessors($name, struct $name);", { name=p.name })
-      end
    end
 
    return table.concat(res, "\n")
@@ -258,7 +254,7 @@ $(bm.name)_la_SOURCES = $(bm.name).c
 @ end
 $(bm.name)_la_LDFLAGS = -module -avoid-version -shared -export-dynamic @UBX_LIBS@
 @ if bm.cpp then
-$(bm.name)_la_CPPFLAGS = -I${top_srcdir}/libubx @UBX_CFLAGS@ -fvisibility=hidden
+$(bm.name)_la_CPPFLAGS = -I${top_srcdir}/libubx @UBX_CFLAGS@ -fvisibility=hidden -Wno-missing-field-initializers
 @ else
 $(bm.name)_la_CFLAGS = -I${top_srcdir}/libubx @UBX_CFLAGS@ -fvisibility=hidden
 @ end
@@ -380,8 +376,8 @@ void $(bm.name)_step(ubx_block_t *b);
 
 ubx_proto_block_t $(bm.name)_block = {
 	.name = "$(bm.name)",
-	.type = BLOCK_TYPE_COMPUTATION,
 	.meta_data = $(bm.name)_meta,
+	.type = BLOCK_TYPE_COMPUTATION,
 	.configs = $(bm.name)_config,
 	.ports = $(bm.name)_ports,
 
@@ -476,7 +472,11 @@ int $(bm.name)_init(ubx_block_t *b)
 	struct $(bm.name)_info *inf;
 
 	/* allocate memory for the block local state */
+@ if bm.cpp then
+	if ((inf = (struct $(bm.name)_info*) calloc(1, sizeof(struct $(bm.name)_info)))==NULL) {
+@ else
 	if ((inf = calloc(1, sizeof(struct $(bm.name)_info)))==NULL) {
+@ end
 		ubx_err(b, "$(bm.name): failed to alloc memory");
 		ret=EOUTOFMEM;
 		goto out;
