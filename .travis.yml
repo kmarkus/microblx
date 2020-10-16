@@ -63,6 +63,12 @@ script:
   - ./bootstrap && ./configure && make && sudo make install
   - ubx-launch -t 1 -webif -c myblock.usc
   - popd
+  # test generating an out-of-tree cpp block
+  - ubx-genblock -cpp -d /tmp/testblock-cpp/ -c examples/blockmodels/block_model_example.lua
+  - pushd /tmp/testblock-cpp/
+  - ./bootstrap && ./configure && make && sudo make install
+  - ubx-launch -t 1 -webif -c myblock.usc
+  - popd
   # run the threshold example
   - ubx-launch -t 3 -s -check unconn_inports,unconn_outports -c examples/usc/threshold.usc
   # run the pid example
