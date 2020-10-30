@@ -171,7 +171,7 @@ int ubx_log_init(struct ubx_node *nd)
 		goto out_unlink;
 	}
 
-	if (sb.st_size != inf.shm_size) {
+	if (sb.st_size != (off_t) inf.shm_size) {
 		ret = ftruncate(inf.shm_fd, inf.shm_size);
 
 		if (ret != 0) {
