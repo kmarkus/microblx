@@ -1316,20 +1316,20 @@ function M.port_tabtostr(pt)
    local doc=""
 
    if pt.in_type_name then
-      in_str = "[in: "..magenta(pt.in_type_name)
+      in_str = "in: "..magenta(pt.in_type_name)
       if pt.in_data_len > 1 then in_str = in_str.."["..ts(pt.in_data_len).."]" end
-      in_str = in_str.." #conn: "..ts(#pt.connections.incoming).."]"
+      in_str = in_str.." #conn: "..ts(#pt.connections.incoming)
    end
 
    if pt.out_type_name then
-      out_str = "[out: "..magenta(pt.out_type_name)
+      out_str = "out: "..magenta(pt.out_type_name)
       if pt.out_data_len > 1 then out_str = out_str.."["..ts(pt.out_data_len).."]" end
-      out_str = out_str.." #conn: "..ts(#pt.connections.outgoing).."]"
+      out_str = out_str.." #conn: "..ts(#pt.connections.outgoing)
    end
 
    if pt.doc then doc = red(" // "..pt.doc) end
 
-   return cyan(pt.name, true).." "..in_str.." "..out_str..doc
+   return cyan(pt.name, true).." ["..(in_str or "")..(out_str or "").."] "..doc
 end
 
 function M.port_tostr(port)
