@@ -77,7 +77,7 @@ int ramp_init(ubx_block_t *b)
 
 
 	if(len > 0 && len != inf->data_len) {
-		ubx_err(b, "EINVALID_CONFIG_LEN: start: actual: %lu, expected %lu",
+		ubx_err(b, "EINVALID_CONFIG_LEN: slope: actual: %lu, expected %lu",
 			len, inf->data_len);
 		goto out_free;
 	}
