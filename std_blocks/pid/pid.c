@@ -135,7 +135,6 @@ void pid_cleanup(ubx_block_t *b)
 /* step */
 void pid_step(ubx_block_t *b)
 {
-	double *tmp;
 	long len_msr, len_des;
 	struct pid_info *inf = (struct pid_info*) b->private_data;
 
@@ -201,9 +200,7 @@ void pid_step(ubx_block_t *b)
 	write_double_array(inf->ports.out, inf->out, inf->data_len);
 
 	/* swap ptrs */
-	tmp = inf->err_prev;
-	inf->err_prev = inf->err;
-	inf->err = tmp;
+	SWAP(inf->err, inf->err_prev);
 	inf->has_err_prev = 1;
 out:
 	return;
