@@ -948,7 +948,7 @@ end
 --
 -- @param self targed of the merge
 -- @param sys system which to merge into self
--- @param override if true (default) then merge so
+-- @param override if true (default) then merge by overriding existing values
 -- @param verbose log merge operations
 function system.merge(self, sys, override)
    if override == nil then override = true end
