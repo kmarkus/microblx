@@ -152,7 +152,9 @@ void const_step(ubx_block_t *b)
 
 void const_cleanup(ubx_block_t *b)
 {
+#ifndef BUILD_IBLOCK
 	ubx_port_rm(b, OUT);
+#endif
 	ubx_config_rm(b, VALUE);
 	free(b->private_data);
 }
