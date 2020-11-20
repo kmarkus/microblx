@@ -91,6 +91,8 @@ struct ubx_proto_config;
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
+#define SWAP(x, y) do { typeof(x) __tmp__ = x; x = y; y = __tmp__; } while(0)
+
 #define _QUOTE(x) #x
 #define QUOTE(x) _QUOTE(x)
 
