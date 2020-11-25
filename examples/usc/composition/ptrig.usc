@@ -8,9 +8,12 @@ return bd.system {
    },
 
    configurations = {
-      { name="ptrig1", config = { period = {sec=1, usec=0 },
-				  chain0={
-				     { b="#trig", num_steps=1, measure=0 } } }
+      {
+	 name="ptrig1",
+	 config = {
+	    period = {sec=1, usec=0 },
+	    chain0={ { b="#trig" } }
+	 }
       },
    }
 }
