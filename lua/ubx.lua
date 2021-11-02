@@ -131,7 +131,8 @@ local ubx_ffi_headers = {
    "include/ubx/ubx_utils.h",
 }
 
-local ubx_ffi_lib = "lib/libubx.so"
+local ubx_ffi_lib = nil
+local ubx_ffi_libs = { "lib/libubx.so", "lib/libubx.so.0" }
 
 local ubx = nil
 local prefixes = { "/usr", "/usr/local" }
@@ -140,17 +141,22 @@ local core_prefix = nil
 
 --- Load ubx into the luajit ffi
 local function load_ubx_ffi()
-
    local function find_core_prefix(pfxs)
       for _,pf in ipairs(pfxs) do
 	 local match=true
 	 utils.foreach(
 	    function(f) match = match and utils.file_exists(pf.."/"..f) end, ubx_ffi_headers)
-	 match = match and utils.file_exists(pf.."/"..ubx_ffi_lib)
-	 if match == true then return pf end
+
+	 local libubx
+	 utils.foreach(
+	    function(l)
+	       if utils.file_exists(pf.."/"..l) then libubx = l end
+	    end, ubx_ffi_libs)
+
+	 if libubx and match == true then return pf, libubx end
       end
       utils.stderr("failed to load ubx core under the prefixes\n"..
-		      table.concat(prefixes, '\n'))
+		   table.concat(prefixes, '\n'))
       os.exit(1)
    end
 
@@ -158,7 +164,7 @@ local function load_ubx_ffi()
    local ubx_path = os.getenv("UBX_PATH")
    if ubx_path then prefixes = utils.split(ubx_path, ':') end
 
-   core_prefix = find_core_prefix(prefixes)
+   core_prefix, ubx_ffi_lib = find_core_prefix(prefixes)
 
    -- declare std functions
    ffi.cdef [[
