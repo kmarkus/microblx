@@ -1673,24 +1673,26 @@ end
 --
 -- create connections in different ways. The following cases are supported:
 --
--- 1. cblock-cblock: src and tgt are existing cblocks: they will be
--- connected using a new iblock of ibtype configured with config.
+-- 1. block.port-block.port: srcbn/pn and tgtbn/pn are existing blocks
+-- and ports: they will be connected using a new iblock of ibtype
+-- configured with config.
 --
--- 2. cblock-iblock: if one of src and tgt is a cblock and the other
--- an iblock, then these are connected. ibtype and config must be nil
--- (as the iblock was created elsewhere, it must be configured
--- elsewhere too).
+-- 2. block.port - iblock: if one of srcbn/pn and tgtbn/pn is a
+-- block.port and the other an existing iblock, then these are
+-- connected. ibtype and config must be nil (as the iblock was created
+-- elsewhere, it must be configured elsewhere too).
 --
--- 3. cblock-iblock: if one of src and tgt is a cblock, and the other
--- is nil, then a new iblock of ibtype will be created and configured
--- with `config` and src or tgt is connected to it.
+-- 3. block.port - iblock: if one of srcbn/pn and tgtbn/pn is a
+-- block.port, and the other is nil, then a new iblock of ibtype will
+-- be created and configured with `config` and src or tgt is connected
+-- to it.
 --
 -- Special cases:
 --  - for 1:   if ibtype is unset, the it defaults to lfds_cyclic
 --  - for 1+3: type_name, data_len and buffer_len are set automatically
 --             unless overriden in config.
---  - for 3: if config.mq_id is unset, a default name based on the
---           peer port is chosen.
+--  - for 3:   if config.mq_id is unset, a default name based on the
+--             peer port is chosen.
 --
 -- @param nd node
 -- @param srcbn source block name
@@ -1743,15 +1745,6 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    -- check: one of src and target must exist
    if srcb == nil and tgtb == nil then
       return false, fmt("both src %s and tgt %s blocks don't exist", srcbn, tgtbn)
-   end
-
-   -- check: if port name is set, then block must be a cblock
-   if srcpn and not M.is_cblock_instance(srcb) then
-      return false, "src port name set but src block not a cblock"
-   end
-
-   if tgtpn and not M.is_cblock_instance(tgtb) then
-      return false, "tgt port name set but tgt block not a cblock"
    end
 
    -- get src port and check that src port exists and is an outport
@@ -1859,8 +1852,8 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    end
 
    -- connect!
-   if M.is_cblock_instance(srcb) and M.is_cblock_instance(tgtb) then
-      -- cblock -> cblock
+   if srcp and tgtp then
+      -- block.port -> block.port
       ibtype = ibtype or "ubx/lfds_cyclic"
       ibconfig.data_len = ibconfig.data_len or tonumber(srcp.out_data_len)
       ibconfig.type_name = ibconfig.type_name or M.safe_tostr(srcp.out_type.name)
@@ -1881,16 +1874,16 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 			      ibname, ibconfig.type_name, ibconfig.data_len,
 			      tgtbn, tgtpn, ibtype))
 
-   elseif M.is_cblock_instance(srcb) and M.is_iblock_instance(tgtb) then
-      -- cblock -> iblock
+   elseif srcp and not tgtp then
+      -- block.port -> iblock
       if ubx.ubx_port_connect_out(srcp, tgtb) ~= 0 then
 	 return false, fmt("failed to connect %s.p to iblock %s", srcbn, srcpn, tgtbn)
       end
       M.block_tostate(tgtb, 'active')
       info(nd, "connect", fmt("%s.%s -> %s [%s]",
 			      srcbn, srcpn, tgtbn, M.block_prototype(tgtb)))
-   elseif M.is_iblock_instance(srcb) and M.is_cblock_instance(tgtb) then
-      -- iblock -> cblock
+   elseif not srcp and tgtp then
+      -- iblock -> block.port
       if ubx.ubx_port_connect_in(tgtp, srcb) ~= 0 then
 	 return false, fmt("failed to connect iblock %s to %s.%s", srcbn, tgtbn, tgtpn)
       end
