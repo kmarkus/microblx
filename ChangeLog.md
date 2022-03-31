@@ -3,6 +3,13 @@ ChangeLog
 
 This file tracks user visible API changes
 
+## 0.9.2
+
+bugfix release:
+
+- blockdiagram: don't reject connections among iblocks
+- ubx.lua: handle different libubx naming schemes
+
 ## 0.9.1
 
 - `trig`, `ptrig`, `trig_utils`: add `every` member to configure

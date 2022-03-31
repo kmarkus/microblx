@@ -16,8 +16,8 @@ configurable POSIX realtime properties.
 Main features:
 
 - **hard real-time safe**: no run-time allocations or non-deterministic system calls
-- **simple model**: computations, connections and triggers are all blocks themselves
-- **extensible**: it's very easy to add a new type, trigger block or connection
+- **simple model**: everything is a block
+- **extensible**: easy to add a new type, trigger block or connection
 - **composing applications**: applications are described using a simple textual lanugage
 - **standard blocks and tools** included:
   - *communication*: lock free buffers, POSIX message queues,
@@ -25,7 +25,7 @@ Main features:
   - *triggers*: periodic, passive incl. built in latency profiling
   - real-time safe logging
 - **no HAL**: no arbitrary abstractions, just "configurable" POSIX
-- **minimal**: tiny memory footprint, very few dependencies, embedded friendly
+- **minimal**: tiny memory footprint, few dependencies, embedded-friendly
 
 Documentation
 -------------
