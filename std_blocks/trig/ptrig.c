@@ -235,9 +235,9 @@ int ptrig_handle_config(ubx_block_t *b)
 	assert(len >= 0);
 
 	if (len > 0) {
-		if (*stacksize < PTHREAD_STACK_MIN) {
-			ubx_err(b, "stacksize (%zd) less than PTHREAD_STACK_MIN (%d)",
-				*stacksize, PTHREAD_STACK_MIN);
+		if (*stacksize < (size_t)PTHREAD_STACK_MIN) {
+			ubx_err(b, "stacksize (%zd) less than PTHREAD_STACK_MIN (%ld)",
+				*stacksize, (long)PTHREAD_STACK_MIN);
 			goto out;
 		}
 
