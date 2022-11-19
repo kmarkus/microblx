@@ -5,6 +5,7 @@ build:
   stage: build
   before_script:
     - apt update && apt -y install automake make libtool pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck lua-unit
+    - cd /builds/
     - git clone --depth=1 https://github.com/kmarkus/uutils.git
     - git clone --depth=1 https://github.com/liblfds/liblfds6.1.1.git
     - cd uutils/
@@ -12,7 +13,7 @@ build:
     - cd ..
     # install liblfds
     - cd liblfds6.1.1
-    - git -c user.name='gitlab' -c user.email='xxx' am microblx/liblfds/*.patch
+    - git -c user.name='gitlab' -c user.email='xxx' am /builds/kmarkus/microblx/liblfds/*.patch
     - ./bootstrap
     - ./configure --prefix=/usr/
     - make -j3
@@ -20,7 +21,7 @@ build:
     - cd ..
 
   script:
-    - cd microblx
+    - cd /builds/kmarkus/microblx/
     - ./bootstrap
     - ./configure
     - make cppcheck
