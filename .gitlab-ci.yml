@@ -1,0 +1,71 @@
+
+image: gcc:bullseye
+
+build:
+  stage: build
+  before_script:
+    - apt update && apt -y install automake make libtool pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck lua-unit
+    - cd /builds/
+    - git clone --depth=1 https://github.com/kmarkus/uutils.git
+    - git clone --depth=1 https://github.com/liblfds/liblfds6.1.1.git
+    - cd uutils/
+    - make install
+    - cd ..
+    # install liblfds
+    - cd liblfds6.1.1
+    - git -c user.name='gitlab' -c user.email='xxx' am /builds/kmarkus/microblx/liblfds/*.patch
+    - ./bootstrap
+    - ./configure --prefix=/usr/
+    - make -j3
+    - make install
+    - cd ..
+
+  script:
+    - cd /builds/kmarkus/microblx/
+    - ./bootstrap
+    - ./configure
+    - make cppcheck
+    - make -j3
+    - make install && ldconfig
+    - ./run_tests.sh
+    # test generating an out-of-tree block
+    - ubx-genblock -d /tmp/testblock/ -c examples/blockmodels/block_model_example.lua
+    - pushd /tmp/testblock/
+    - ./bootstrap && ./configure && make && make install
+    - ubx-launch -t 1 -webif -c myblock.usc
+    - popd
+    # test generating an out-of-tree cpp block
+    - ubx-genblock -cpp -d /tmp/testblock-cpp/ -c examples/blockmodels/block_model_example.lua
+    - pushd /tmp/testblock-cpp/
+    - ./bootstrap && ./configure && make && make install
+    - ubx-launch -t 1 -webif -c myblock.usc
+    - popd
+    # run the threshold example
+    - ubx-launch -t 3 -s -check unconn_inports,unconn_outports -c examples/usc/threshold.usc
+    # run the pid example
+    - pushd /usr/local/share/ubx/examples/usc/pid/
+    - ubx-launch -t 3 -s -check unconn_inports,unconn_outports -c pid_test.usc,ptrig_nrt.usc
+    - popd
+    # build and run tutorial
+    # platform_2dof
+    - ubx-genblock -c examples/platform/platform_2dof.lua -d /tmp/platform_2dof/
+    - cp examples/platform/platform_2dof.c /tmp/platform_2dof/
+    - pushd /tmp/platform_2dof/
+    - ./bootstrap && ./configure && make && make install
+    - popd
+    # platform_2dof_control
+    - ubx-genblock -c examples/platform/platform_2dof_control.lua -d /tmp/platform_2dof_control/
+    - cp examples/platform/platform_2dof_control.c /tmp/platform_2dof_control/
+    - pushd /tmp/platform_2dof_control/
+    - ./bootstrap && ./configure && make && make install
+    - popd
+    # run the tutorial usc
+    - ubx-launch -t 2 -c examples/platform/platform_launch/platform_2dof_and_control.usc
+    # build the c-launch example
+    - pushd examples/platform/platform_launch
+    - autoreconf -i && ./configure && make
+    - popd
+    # build the minimal c-launch example and run it
+    - pushd examples/C/
+    - gcc -Wall -Werror c-launch.c -o c-launch -lubx
+    - ./c-launch 1
