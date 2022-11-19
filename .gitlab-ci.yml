@@ -3,9 +3,6 @@ image: gcc:bullseye
 
 build:
   stage: build
-  variables:
-    - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
-
   before_script:
     - apt update && apt -y install automake make libtool pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck lua-unit
     - cd /builds/
