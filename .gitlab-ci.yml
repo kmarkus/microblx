@@ -8,7 +8,7 @@ build:
     - git clone --depth=1 https://github.com/kmarkus/uutils.git
     - git clone --depth=1 https://github.com/liblfds/liblfds6.1.1.git
     - cd uutils/
-    - sudo make install
+    - make install
     - cd ..
     # install liblfds
     - cd liblfds6.1.1
@@ -16,7 +16,7 @@ build:
     - ./bootstrap
     - ./configure --prefix=/usr/
     - make -j3
-    - sudo make install
+    - make install
     - cd ..
 
   script:
@@ -25,18 +25,18 @@ build:
     - ./configure
     - make cppcheck
     - make -j3
-    - sudo make install
+    - make install
     - ./run_tests.sh
     # test generating an out-of-tree block
     - ubx-genblock -d /tmp/testblock/ -c examples/blockmodels/block_model_example.lua
     - pushd /tmp/testblock/
-    - ./bootstrap && ./configure && make && sudo make install
+    - ./bootstrap && ./configure && make && make install
     - ubx-launch -t 1 -webif -c myblock.usc
     - popd
     # test generating an out-of-tree cpp block
     - ubx-genblock -cpp -d /tmp/testblock-cpp/ -c examples/blockmodels/block_model_example.lua
     - pushd /tmp/testblock-cpp/
-    - ./bootstrap && ./configure && make && sudo make install
+    - ./bootstrap && ./configure && make && make install
     - ubx-launch -t 1 -webif -c myblock.usc
     - popd
     # run the threshold example
@@ -50,13 +50,13 @@ build:
     - ubx-genblock -c examples/platform/platform_2dof.lua -d /tmp/platform_2dof/
     - cp examples/platform/platform_2dof.c /tmp/platform_2dof/
     - pushd /tmp/platform_2dof/
-    - ./bootstrap && ./configure && make && sudo make install
+    - ./bootstrap && ./configure && make && make install
     - popd
     # platform_2dof_control
     - ubx-genblock -c examples/platform/platform_2dof_control.lua -d /tmp/platform_2dof_control/
     - cp examples/platform/platform_2dof_control.c /tmp/platform_2dof_control/
     - pushd /tmp/platform_2dof_control/
-    - ./bootstrap && ./configure && make && sudo make install
+    - ./bootstrap && ./configure && make && make install
     - popd
     # run the tutorial usc
     - ubx-launch -t 2 -c examples/platform/platform_launch/platform_2dof_and_control.usc
