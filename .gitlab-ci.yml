@@ -26,7 +26,7 @@ build:
     - ./configure
     - make cppcheck
     - make -j3
-    - make install
+    - make install && ldconfig
     - ./run_tests.sh
     # test generating an out-of-tree block
     - ubx-genblock -d /tmp/testblock/ -c examples/blockmodels/block_model_example.lua
