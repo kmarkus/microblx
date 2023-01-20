@@ -7,7 +7,7 @@ build:
     - apt update && apt -y install automake make libtool pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck lua-unit
     - cd /builds/
     - git clone --depth=1 https://github.com/kmarkus/uutils.git
-    - git clone --depth=1 https://github.com/liblfds/liblfds6.1.1.git
+    - git clone --depth=1 https://liblfds.org/git/liblfds6.1.1
     - cd uutils/
     - make install
     - cd ..
