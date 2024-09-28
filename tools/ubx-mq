@@ -7,9 +7,7 @@
 --
 
 local ubx = require("ubx")
-local bd = require("blockdiagram")
 local utils = require("utils")
-local strict = require("strict")
 
 local res,lfs = _G.pcall(_G.require,'lfs')
 

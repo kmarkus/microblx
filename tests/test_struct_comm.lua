@@ -9,9 +9,6 @@ local cdata=require"cdata"
 assert_equals = lu.assert_equals
 assert_true = lu.assert_true
 
--- require"trace"
--- require"strict"
-
 local code_str_len = 16*1024*1024
 
 local nd = ubx.node_create("test_struct_comm")

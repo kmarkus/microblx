@@ -14,7 +14,6 @@ local cdata = require("cdata")
 local utils = require("utils")
 local ac = require("ansicolors")
 local time = require("time")
-require "strict"
 
 local ts = tostring
 local concat = table.concat

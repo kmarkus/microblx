@@ -12,7 +12,6 @@ local ubx = require "ubx"
 local umf = require "umf"
 local utils = require "utils"
 local has_json, json = pcall(require, "cjson")
-local strict = require "strict"
 
 local M={}
 
