@@ -7,7 +7,7 @@
 #endif
 
 #ifndef BLOCK_NAME
- #define BLOCK_NAME RAMP_T
+ #error "BLOCK_NAME undefined"
 #endif
 
 #include <string.h>

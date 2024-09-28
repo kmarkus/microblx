@@ -44,7 +44,7 @@ local rnd1 = bd.system {
 return bd.system
 {
    imports = {
-      "stdtypes", "random", "trig", "lfds_cyclic", "logger",
+      "stdtypes", "random", "trig", "lfds_cyclic"
    },
 
    subsystems = {

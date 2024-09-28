@@ -30,7 +30,7 @@ ubx_type_t types[] = {
 
 static int testtypes_init(ubx_node_t* nd)
 {
-	for (int i=0; i<ARRAY_SIZE(types); i++)
+	for (unsigned int i=0; i<ARRAY_SIZE(types); i++)
 		ubx_type_register(nd, &types[i]);
 
 	return 0;
@@ -38,7 +38,7 @@ static int testtypes_init(ubx_node_t* nd)
 
 static void testtypes_cleanup(ubx_node_t *nd)
 {
-	for (int i=0; i<ARRAY_SIZE(types); i++)
+	for (unsigned int i=0; i<ARRAY_SIZE(types); i++)
 		ubx_type_unregister(nd, types[i].name);
 }
 

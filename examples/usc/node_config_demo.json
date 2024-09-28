@@ -5,9 +5,6 @@
     "ptrig",
     "lfds_cyclic"
   ],
-  "start": [
-    "ptrig1"
-  ],
   "node_configurations": {
     "global_rnd_conf": {
       "type": "struct random_config",

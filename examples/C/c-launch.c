@@ -8,7 +8,7 @@
 #include <ubx/ubx.h>
 #include <stdlib.h>
 
-#define WEBIF_PORT	"8810"
+#define WEBIF_PORT	"55005"
 
 int main(int argc, char **argv)
 {

@@ -37,7 +37,7 @@ ubx_type_t basic_types[] = {
 
 static int stdtypes_init(ubx_node_t* nd)
 {
-	for(int i=0; i<ARRAY_SIZE(basic_types); i++)
+	for(unsigned int i=0; i<ARRAY_SIZE(basic_types); i++)
 		ubx_type_register(nd, &basic_types[i]);
 
 	return 0;
@@ -45,7 +45,7 @@ static int stdtypes_init(ubx_node_t* nd)
 
 static void stdtypes_cleanup(ubx_node_t *nd)
 {
-	for(int i=0; i<ARRAY_SIZE(basic_types); i++)
+	for(unsigned int i=0; i<ARRAY_SIZE(basic_types); i++)
 		ubx_type_unregister(nd, basic_types[i].name);
 }
 

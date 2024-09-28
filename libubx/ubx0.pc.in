@@ -1,13 +1,13 @@
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-libdir=@libdir@
-includedir=@includedir@
-UBX_MODDIR=@UBX_MODDIR@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+UBX_MODDIR=${exec_prefix}/lib/ubx/@VERSION_MAJOR@.@VERSION_MINOR@
 
 Name: microblx
 Description: microblx realtime function blocks
 URL: https://github.com/kmarkus/microblx
 # Requires: lfds6 >= 6.1.1
-Version: @VERSION@
+Version: @PROJECT_VERSION@
 Cflags: -I${includedir}/ubx/ -Wall -Wextra
 Libs: -L${libdir} -lubx
