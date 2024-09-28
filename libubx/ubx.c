@@ -109,7 +109,7 @@ int ubx_module_load(ubx_node_t *nd, const char *lib)
 	}
 
 	/* allocate data */
-	mod = calloc(sizeof(ubx_module_t), 1);
+	mod = calloc(1, sizeof(ubx_module_t));
 
 	if (mod == NULL) {
 		logf_err(nd, "failed to alloc module data");
