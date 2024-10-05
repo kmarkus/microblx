@@ -10,7 +10,7 @@ Dependencies
 Make sure to install the following dependencies
 
 - uthash (apt: ``uthash-dev``)
-- autotools etc. (apt: ``automake``, ``libtool``, ``pkg-config``, ``make``)
+- cmake
 - luajit (>=v2.0.0) (apt: ``luajit`` and ``libluajit-5.1-dev``)
 - lfs: lua-filesystem (apt: ``lua-filesystem``)
 
@@ -64,17 +64,10 @@ Now build *microblx*:
 .. code:: bash
 
 	  $ cd ../microblx
-	  $ ./bootstrap
-	  $ ./configure
+	  $ mkdir build && cd build
+	  $ cmake ..
 	  $ make
 	  $ sudo make install
-
-
-Note: it might be necessary to build with
-
-.. code:: bash
-
-	  $ make CXXFLAGS="-std=c++11"
 
 Using yocto
 -----------
