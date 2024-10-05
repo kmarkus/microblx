@@ -4,10 +4,10 @@ image: gcc:bullseye
 build:
   stage: build
   before_script:
-    - apt update && apt -y install automake make libtool pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck lua-unit
+    - apt update && apt -y install cmake pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck lua-unit
     - cd /builds/
     - git clone --depth=1 https://github.com/kmarkus/uutils.git
-    - git clone --depth=1 https://liblfds.org/git/liblfds6.1.1
+    - git clone --depth=1 git://liblfds.org/liblfds6.1.1
     - cd uutils/
     - make install
     - cd ..
@@ -22,11 +22,12 @@ build:
 
   script:
     - cd /builds/kmarkus/microblx/
-    - ./bootstrap
-    - ./configure
-    - make cppcheck
-    - make -j3
+    - mkdir build && pushd build
+    - cmake ..
+    # - make cppcheck
+    - make -j10
     - make install && ldconfig
+    - popd
     - ./run_tests.sh
     # test generating an out-of-tree block
     - ubx-genblock -d /tmp/testblock/ -c examples/blockmodels/block_model_example.lua

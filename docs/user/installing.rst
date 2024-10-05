@@ -17,7 +17,7 @@ Make sure to install the following dependencies
 The following must be installed from source (see instructions below):
 
 - ``uutils`` Lua utilities `uutils git <https://github.com/kmarkus/uutils>`_
-- ``liblfds`` lock free data structures (v6.1.1) `liblfds6.1.1 git <https://github.com/liblfds/liblfds6.1.1>`_
+- ``liblfds`` lock free data structures (v6.1.1) `liblfds6.1.1 git <git://liblfds.org/git/liblfds6.1.1>`_
 
 Optionally, to run the tests:
 
@@ -35,7 +35,7 @@ Clone the code:
 
 .. code:: bash
 
-   $ git clone https://github.com/liblfds/liblfds6.1.1.git
+   $ git clone git://liblfds.org/git/liblfds6.1.1
    $ git clone https://github.com/kmarkus/microblx.git
    $ git clone https://github.com/kmarkus/uutils.git
 
