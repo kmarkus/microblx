@@ -94,6 +94,7 @@ target_include_directories(ubx PRIVATE ${CMAKE_BINARY_DIR})
 set_target_properties(ubx
   PROPERTIES
   VERSION "${PROJECT_VERSION}"
+  SOVERSION "${VERSION_MAJOR}"
   PUBLIC_HEADER "${UBX_PUBLIC_HDRS}")
 
 target_link_libraries(ubx dl rt)
