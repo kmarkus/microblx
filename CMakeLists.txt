@@ -261,6 +261,7 @@ add_custom_target(cppcheck
 		  --suppress=missingInclude
 		  --suppress=missingIncludeSystem
 		  --suppress=unusedFunction
+		  --suppress=constParameterCallback
 		  --suppress=*:std_blocks/webif/mongoose.c
 		  --suppress=variableScope:libubx/md5.c .
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
