@@ -12,7 +12,6 @@ Make sure to install the following dependencies
 - uthash (apt: ``uthash-dev``)
 - cmake
 - luajit (>=v2.0.0) (apt: ``luajit`` and ``libluajit-5.1-dev``)
-- lfs: lua-filesystem (apt: ``lua-filesystem``)
 
 The following must be installed from source (see instructions below):
 

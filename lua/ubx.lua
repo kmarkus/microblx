@@ -69,6 +69,48 @@ function M.md5(str)
    return utils.str_to_hexstr(ffi.string(res, 16))
 end
 
+
+--
+-- ffi based lfs.dir replacement
+--
+ffi.cdef[[
+    typedef struct DIR DIR;
+    struct dirent {
+        unsigned long d_ino;        /* Inode number */
+        unsigned long d_off;        /* Not an offset; see below */
+        unsigned short d_reclen;    /* Length of this record */
+        unsigned char d_type;        /* Type of file */
+        char d_name[256];           /* Null-terminated filename */
+    };
+
+    DIR* opendir(const char* name);
+    struct dirent* readdir(DIR* dirp);
+    int closedir(DIR* dirp);
+]]
+
+--- list directory iterator
+-- @param path directory to list
+-- @return a directory iterator
+function M.dir(path)
+   local dirp = ffi.C.opendir(path)
+
+   if dirp == nil then
+      error("failed to open directory: " .. path)
+   end
+
+   local function iterator()
+      local entry = ffi.C.readdir(dirp)
+      if entry ~= nil then
+	 return ffi.string(entry.d_name)
+      else
+	 ffi.C.closedir(dirp)
+	 return nil
+      end
+   end
+
+   return iterator
+end
+
 --- Setup Enums
 -- called internally after loading libubx
 local function setup_enums()

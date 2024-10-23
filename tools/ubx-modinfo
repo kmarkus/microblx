@@ -10,16 +10,10 @@ local ubx = require("ubx")
 local utils = require("utils")
 local strict = require("strict")
 
-local res,lfs = _G.pcall(_G.require,'lfs')
 local res,cjson = _G.pcall(_G.require,'cjson')
 
 local ts = tostring
 local fmt = string.format
-
-if not res then
-   print("error: ubx-modinfo requires LuaFileSystem")
-   os.exit(1)
-end
 
 local function usage()
    print([[
@@ -176,7 +170,7 @@ local function modules_list()
       local modpath = prefix.."/lib/ubx/"..ver.."/"
 
       if utils.file_exists(modpath) then
-	 for f in lfs.dir(modpath) do
+	 for f in ubx.dir(modpath) do
 	    local ext = string.match(f, "^.+%.(.+)$")
 	    if f ~= "." and f ~= ".." and ext == "so" then
 	       print(modpath..f)

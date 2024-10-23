@@ -3,6 +3,11 @@ ChangeLog
 
 This file tracks user visible API changes
 
+## 0.9.3
+
+- switch to `cmake`
+- replace `lua-filesystem` with ffi implementation
+
 ## 0.9.2
 
 bugfix release:

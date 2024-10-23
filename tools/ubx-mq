@@ -9,12 +9,6 @@
 local ubx = require("ubx")
 local utils = require("utils")
 
-local res,lfs = _G.pcall(_G.require,'lfs')
-
-if not res then
-   print("error: ubx-mq requires lua-filesystem"); os.exit(1)
-end
-
 local MQPATH="/dev/mqueue"
 
 local ts = tostring
@@ -22,11 +16,6 @@ local fmt = string.format
 
 local nd
 local verbose=false
-
-if not res then
-   print("error: ubx-mq requires LuaFileSystem")
-   os.exit(1)
-end
 
 local function usage()
    print([[
@@ -52,7 +41,7 @@ end
 local function mqueues_get()
    local res = {}
 
-   for file in lfs.dir(MQPATH) do
+   for file in ubx.dir(MQPATH) do
       local hashstr, data_len, mq_id = string.match(file, "ubx_(%w+)_(%d+)_(.+)")
       if hashstr and data_len and mq_id then
 	 res[#res+1] = { mq_id=mq_id, hashstr=hashstr, data_len=tonumber(data_len) }
