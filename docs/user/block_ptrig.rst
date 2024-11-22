@@ -24,7 +24,7 @@ Configs
    thread_name, ``char``, "thread name (for dbg), default is block name"
    autostop_steps, ``int64_t``, "if set and > 0, block stops itself after X steps"
    num_chains, ``int``, "number of trigger chains (def: 1)"
-   tstats_mode, ``int``, "enable timing statistics over all blocks"
+   tstats_mode, ``int``, "0: off (def), 1: global only, 2: per block"
    tstats_profile_path, ``char``, "directory to write the timing stats file to"
    tstats_output_rate, ``double``, "throttle output on tstats port"
    tstats_skip_first, ``int``, "skip N steps before acquiring stats"
