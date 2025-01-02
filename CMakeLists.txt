@@ -140,6 +140,10 @@ configure_file(${UBX_SRC_DIR}/ubxrtl0.pc.in ubxrtl0.pc @ONLY)
 install(FILES ${CMAKE_BINARY_DIR}/ubxrtl0.pc
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT dev)
 
+# liblfq (lock free queue)
+set(LFQ_SRC_DIR ${CMAKE_SOURCE_DIR}/liblfq/)
+add_subdirectory(${LFQ_SRC_DIR})
+
 #
 # Lua modules
 #
@@ -167,6 +171,7 @@ add_block_subdir(BLOCK_CONST       "std_blocks/const"       ON)
 add_block_subdir(BLOCK_CPPDEMO     "std_blocks/cppdemo"     ON)
 add_block_subdir(BLOCK_HEXDUMP     "std_blocks/hexdump"     ON)
 add_block_subdir(BLOCK_LFDS_CYCLIC "std_blocks/lfds_cyclic" ON)
+add_block_subdir(BLOCK_LFRB	   "std_blocks/lfrb"	    ON)
 add_block_subdir(BLOCK_LUABLOCK    "std_blocks/luablock"    ON)
 add_block_subdir(BLOCK_MATH_DOUBLE "std_blocks/math_double" ON)
 add_block_subdir(BLOCK_MQUEUE      "std_blocks/mqueue"      ON)
