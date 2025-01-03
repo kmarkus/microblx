@@ -162,7 +162,6 @@ local function setup_enums()
    }
 end
 
-
 local ubx_ffi_headers = {
    "include/ubx/ubx_uthash_ffi.h",
    "include/ubx/ubx_types.h",
@@ -438,6 +437,17 @@ function M.clock_mono_sleep(sec, nsec)
    ts.sec=sec
    ts.nsec=nsec or 0
    M.clock_mono_nanosleep(0, ts)
+end
+
+-- find out whether to use lfds_cyclic or lfrb
+function M.get_default_iblock(nd)
+   if ubx.ubx_block_get(nd, "ubx/lfds_cyclic") ~= nil then
+      return "ubx/lfds_cyclic"
+   elseif ubx.ubx_block_get(nd, "ubx/lfrb") ~= nil then
+      return "ubx/lfrb"
+   else
+      error("no neither lfds_cyclic or lfrb iblock found")
+   end
 end
 
 function M.block_get(nd, bname)
@@ -1601,17 +1611,19 @@ end
 
 --
 -- port_clone_conn - create a new port connected to an existing port
--- via an lfds_cyclic interaction. The returned port is garbage
--- collected.
+-- via an lfds_cyclic or lfrb interaction. The returned port is
+-- garbage collected.
 --
 -- @param bname block
 -- @param pname name of port
 -- @param buff_len1 buffer length in in->out direction (default 1)
 -- @param buff_len2 buffer length in out->in direction (default buff_len1)
 -- @param loglevel_overruns loglevel for buffer overruns
--- @param allow_partial allow partial flag (see lfds_cyclic)
+-- @param allow_partial allow partial flag (see lfds_cyclic/lfrb)
 -- @return the new, inverse, connected port
 function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns, allow_partial)
+
+   local ibtype = M.get_default_iblock(block.nd)
 
    local prot = M.port_get(block, pname)
 
@@ -1652,7 +1664,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
    if p.out_type~=nil then
       local iname = fmt("PCC%d->%s.%s", pcc_cnt(), M.safe_tostr(block.name), pname)
 
-      i_p_to_prot = M.block_create(block.nd, "ubx/lfds_cyclic", iname,
+      i_p_to_prot = M.block_create(block.nd, ibtype, iname,
 				   {
 				      buffer_len = buff_len1,
 				      type_name = ffi.string(p.out_type.name),
@@ -1677,7 +1689,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
    if p.in_type ~= nil then -- new port is an in-port?
       local iname = fmt("PCC%d<-%s.%s", pcc_cnt(), M.safe_tostr(block.name), pname)
 
-      i_prot_to_p = M.block_create(block.nd, "ubx/lfds_cyclic", iname,
+      i_prot_to_p = M.block_create(block.nd, ibtype, iname,
 				   { buffer_len = buff_len2,
 				     type_name = ffi.string(p.in_type.name),
 				     data_len = tonumber(p.in_data_len),
@@ -1729,7 +1741,7 @@ end
 -- to it.
 --
 -- Special cases:
---  - for 1:   if ibtype is unset, the it defaults to lfds_cyclic
+--  - for 1:   if ibtype is unset, the it defaults to lfds_cyclic or lfrb
 --  - for 1+3: type_name, data_len and buffer_len are set automatically
 --             unless overriden in config.
 --  - for 3:   if config.mq_id is unset, a default name based on the
@@ -1895,7 +1907,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    -- connect!
    if srcp and tgtp then
       -- block.port -> block.port
-      ibtype = ibtype or "ubx/lfds_cyclic"
+      ibtype = ibtype or M.get_default_iblock(nd)
       ibconfig.data_len = ibconfig.data_len or tonumber(srcp.out_data_len)
       ibconfig.type_name = ibconfig.type_name or M.safe_tostr(srcp.out_type.name)
 

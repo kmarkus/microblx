@@ -19,7 +19,7 @@ local start_des = { 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 }
 return bd.system
 {
    imports = {
-      "stdtypes", "trig", "lfds_cyclic", "pid", "ramp_double",
+      "stdtypes", "trig", "lfrb", "pid", "ramp_double",
    },
 
    blocks = {

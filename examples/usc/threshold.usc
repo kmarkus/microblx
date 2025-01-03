@@ -26,7 +26,7 @@ return bd.system
    imports = {
       "stdtypes",
       "ptrig",
-      "lfds_cyclic",
+      "lfrb",
       "mqueue",
       "threshold",
       "ramp_double",
@@ -56,7 +56,7 @@ return bd.system
       {
 	 name="trigger",
 	 config = {
-	   period = {sec=0, usec=10000 }, -- 100 Hz
+	   period = {sec=0, usec=1000 }, -- 1000 Hz
 	    chain0 = {
 	       { b="#ramp" },
 	       { b="#sin" },
