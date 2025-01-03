@@ -11,4 +11,4 @@ install(TARGETS lfq
 
 # tests
 add_executable(test-lfq test-lfq.c)
-target_link_libraries(test-lfq PRIVATE lfq)
+target_link_libraries(test-lfq PRIVATE lfq rt pthread)
