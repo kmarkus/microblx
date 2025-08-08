@@ -2,80 +2,220 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdatomic.h>
+#include <string.h>
+#include <assert.h>
+#include <errno.h>
+#include <getopt.h>
 #include "lfq.h"
 
-#define NUM_WRITERS 30
-#define NUM_READERS 30
-#define CAPACITY 100
-#define NUM_OPERATIONS 10000
+#ifdef DEBUG
+#define dbg(fmt, ...)                                   \
+	(fprintf(stderr, "%s:%u ", __func__, __LINE__), \
+	 fprintf(stderr, fmt, __VA_ARGS__), fprintf(stderr, "\n"))
+#else
+#define dbg(fmt, ...) \
+	do {          \
+	} while (0)
+#endif
 
 lfq_t queue;
+atomic_bool *elem_written;
+atomic_bool *elem_read;
+int *elements;
+
+int num_threads = 30;
+int queue_capacity = 4;
+int num_operations = 100000;
+int total_elements;
+
+int verbose=0;
+
+#define inf(fmt, ...) if (verbose) printf(fmt, __VA_ARGS__);
+
+void print_usage(const char *progname)
+{
+	fprintf(stderr,
+		"Usage: %s [-c capacity] [-t threads] [-o operations] [-h]\n"
+		"  -c <int>    Queue capacity (default: 4)\n"
+		"  -t <int>    Number of reader/writer threads (default: 30)\n"
+		"  -o <int>    Number of operations per thread (default: 10000000)\n"
+		"  -v          Verbose outout\n"
+		"  -h          Show this help message and exit\n",
+		progname);
+}
 
 void *writer_thread(void *arg)
 {
 	int id = *(int *)arg;
-	for (int i = 0; i < NUM_OPERATIONS; ++i) {
-		int *element = malloc(sizeof(int));
-		*element = id * 1000 + i; /* unique value for each writer */
-		while (lfq_enqueue(&queue, element)) {
-			printf("writer %d contention enqueuing %d\n", id, *element);
-			usleep(1);
+	for (int i = 0; i < num_operations; ++i) {
+		int key = id * num_operations + i;
+		int *element = &elements[key];
+		*element = key;
+
+		while (true) {
+			int ret = lfq_enqueue(&queue, element);
+			if (ret == 0)
+				break;
+			else if (ret == -ENOSPC) {
+				dbg("writer %d: queue full, retrying %d", id,
+				    *element);
+				usleep(1);
+			} else {
+				fprintf(stderr, "lfq_enqueue failed: %s\n",
+					strerror(-ret));
+				exit(1);
+			}
 		}
-		printf("writer %d: enqueued %d\n", id, *element);
+
+		if (atomic_exchange(&elem_written[*element], true)) {
+			fprintf(stderr,
+				"Error: duplicate enqueue %d by writer %d\n",
+				*element, id);
+			exit(1);
+		}
+
+		dbg("writer %d: enqueued %d", id, *element);
 	}
+	inf("writer %d finished.\n", id);
 	return NULL;
 }
 
 void *reader_thread(void *arg)
 {
 	int id = *(int *)arg;
-	for (int i = 0; i < NUM_OPERATIONS; ++i) {
+	for (int i = 0; i < num_operations; ++i) {
 		void *element;
-		while (lfq_dequeue(&queue, &element)) {
-			printf("reader %d contention dequeuing\n", id);
-			usleep(1);
+		while (true) {
+			int ret = lfq_dequeue(&queue, &element);
+			if (ret == 0)
+				break;
+			else if (ret == -ENODATA) {
+				dbg("reader %d: queue empty", id);
+				usleep(1);
+			} else {
+				fprintf(stderr, "lfq_dequeue failed: %s\n",
+					strerror(-ret));
+				exit(1);
+			}
 		}
-		printf("reader %d: dequeued %d\n", id, *(int *)element);
-		free(element);
+
+		int key = *(int *)element;
+
+		if (atomic_exchange(&elem_read[key], true)) {
+			fprintf(stderr,
+				"Error: duplicate read %d by reader %d\n", key,
+				id);
+			exit(2);
+		}
+
+		dbg("reader %d: dequeued %d", id, key);
 	}
+	inf("reader %d finished.\n", id);
 	return NULL;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
-	lfq_init(&queue, CAPACITY);
+	int opt;
+	int failed=0;
 
-	pthread_t writers[NUM_WRITERS];
-	pthread_t readers[NUM_READERS];
-	int writer_ids[NUM_WRITERS];
-	int reader_ids[NUM_READERS];
+	while ((opt = getopt(argc, argv, "c:t:o:vh")) != -1) {
+		switch (opt) {
+		case 'c':
+			queue_capacity = atoi(optarg);
+			break;
+		case 't':
+			num_threads = atoi(optarg);
+			break;
+		case 'o':
+			num_operations = atoi(optarg);
+			break;
+		case 'v':
+			verbose = 1;
+			break;
+		case 'h':
+			print_usage(argv[0]);
+			exit(0);
+		default:
+			print_usage(argv[0]);
+			exit(EXIT_FAILURE);
+		}
+	}
 
-	/* Create writer threads */
-	for (int i = 0; i < NUM_WRITERS; ++i) {
+	total_elements = num_threads * num_operations;
+
+	inf("Using capacity=%d, threads=%d, operations=%d\n",
+	    queue_capacity, num_threads, num_operations);
+
+	elements = malloc(total_elements * sizeof(int));
+	elem_written = calloc(total_elements, sizeof(atomic_bool));
+	elem_read = calloc(total_elements, sizeof(atomic_bool));
+
+	if (!elements || !elem_written || !elem_read) {
+		perror("Failed to allocate arrays");
+		return 1;
+	}
+
+	lfq_init(&queue, queue_capacity);
+
+	pthread_t *writers = malloc(num_threads * sizeof(pthread_t));
+	pthread_t *readers = malloc(num_threads * sizeof(pthread_t));
+	int *writer_ids = malloc(num_threads * sizeof(int));
+	int *reader_ids = malloc(num_threads * sizeof(int));
+
+	if (!writers || !readers || !writer_ids || !reader_ids) {
+		perror("Failed to allocate thread metadata");
+		return 1;
+	}
+
+	for (int i = 0; i < num_threads; ++i) {
 		writer_ids[i] = i;
-		if (pthread_create(&writers[i], NULL, writer_thread, &writer_ids[i]) != 0) {
+		if (pthread_create(&writers[i], NULL, writer_thread,
+				   &writer_ids[i]) != 0) {
 			perror("failed to create writer thread");
-			return 1;
+			exit(EXIT_FAILURE);
 		}
 	}
 
-	/* Create reader threads */
-	for (int i = 0; i < NUM_READERS; ++i) {
+	for (int i = 0; i < num_threads; ++i) {
 		reader_ids[i] = i;
-		if (pthread_create(&readers[i], NULL, reader_thread, &reader_ids[i]) != 0) {
+		if (pthread_create(&readers[i], NULL, reader_thread,
+				   &reader_ids[i]) != 0) {
 			perror("failed to create reader thread");
-			return 1;
+			exit(EXIT_FAILURE);
 		}
 	}
 
-	/* Wait for all threads to complete */
-	for (int i = 0; i < NUM_WRITERS; ++i)
+	for (int i = 0; i < num_threads; ++i)
 		pthread_join(writers[i], NULL);
 
-	for (int i = 0; i < NUM_READERS; ++i)
+	for (int i = 0; i < num_threads; ++i)
 		pthread_join(readers[i], NULL);
 
+	for (int i = 0; i < total_elements; ++i) {
+		if (atomic_load(&elem_written[i]) &&
+		    !atomic_load(&elem_read[i])) {
+			fprintf(stderr, "Error: element %d was written but not read\n", i);
+			failed = 1;
+		}
+		if (!atomic_load(&elem_written[i]) &&
+		    atomic_load(&elem_read[i])) {
+			fprintf(stderr, "Error: element %d was read but not written\n", i);
+			failed = 1;
+		}
+	}
+
+	fprintf(stderr, "test_lfq: %s\n", failed==0 ? "OK" : "FAILED");
+
+	free(elements);
+	free(elem_written);
+	free(elem_read);
+	free(writers);
+	free(readers);
+	free(writer_ids);
+	free(reader_ids);
 	lfq_free(&queue);
 
-	return 0;
+	exit(failed);
 }

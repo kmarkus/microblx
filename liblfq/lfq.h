@@ -1,52 +1,49 @@
-#ifndef LOCKFREEQUEUE_H
-#define LOCKFREEQUEUE_H
+#ifndef _LFQ_H_
+#define _LFQ_H_
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdatomic.h>
+#include <errno.h>
 
 typedef struct {
-	_Atomic size_t count;
-	_Atomic size_t head;
-	_Atomic size_t tail;
-
-	 size_t capacity;
-
-	_Atomic int *slot_state; /* 0: empty, 1: full */
-	void **data;
+    size_t capacity;
+    size_t logical_capacity;
+    struct lfq_slot *slots;
+    _Atomic uint64_t head;
+    _Atomic uint64_t tail;
 } lfq_t;
 
+
 /**
- * @brief initialize a lock-free queue.
- *
- * @param q pointer to the lfq_t instance.
+ * @brief Initialize a lock-free queue
+ * @param q pointer to the queue
+ * @param capacity capacity of the queue (>=1, performs better if it is a power of 2)
+ * @return 0 on success, negative errno on failure
  */
 int lfq_init(lfq_t *q, size_t capacity);
 
 /**
- * @brief cleanup a lock-free queue.
- *
- * @param q pointer to the lfq_t instance.
+ * @brief Cleanup a lock-free queue.
+ * @param q pointer to the queue
  */
-
 void lfq_free(lfq_t *q);
 
 /**
- * @brief enqueue an element into the lock-free queue.
- *
- * @param q pointer to the LockFreeQueue instance.
- * @param element Pointer to the element to be added.
- * @return 0 if the element was successfully added, -ENOSPC if the queue is full.
+ * @brief Enqueue an element into the lock-free queue.
+ * @param q pointer to the queue
+ * @param pointer to element to enqueue
+ * @return 0 on success, -ENOSPC if the queue is full.
  */
 int lfq_enqueue(lfq_t *q, void *element);
 
 /**
  * @brief Dequeue an element from the lock-free queue.
- *
- * @param q Pointer to the LockFreeQueue instance.
- * @param element Pointer to the location where the dequeued element will be stored.
- * @return 0 if an element was successfully dequeued, -ENODATA if the queue is empty.
+ * @param q pointer to the queue
+ * @param pointer[out] pointer to element pointer for storing dequeued element
+ * @return 0 on success, -ENODATA if the queue is empty.
  */
 int lfq_dequeue(lfq_t *q, void **element);
 
-#endif // LOCKFREEQUEUE_H
+#endif /* _LFQ_H_ */

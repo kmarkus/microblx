@@ -1,106 +1,104 @@
-#include <stdlib.h>
-#include <errno.h>
+/* This is a simple implementation of Vyukov's algorithm adapted to
+ * support capacity == 1.
+ *
+ * Copyright (C) 2025 Markus Klotzbuecher <mk@mkio.de>*
+ * SPDX-License-Identifier: MPL-2.0
+ */
 
 #include "lfq.h"
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct lfq_slot {
+	_Atomic uint64_t seq;
+	_Atomic(void *) data;
+} lfq_slot_t;
 
 int lfq_init(lfq_t *q, size_t capacity)
 {
-	int ret = -ENOMEM;
+	if (!q || capacity < 1)
+		return -EINVAL;
 
-	q->head = 0;
-	q->tail = 0;
-	q->capacity = capacity;
-	atomic_init(&q->count, 0);
+	q->logical_capacity = capacity;
+	q->capacity = capacity == 1 ? 2 : capacity;
 
-	q->data = calloc(capacity, sizeof(void *));
-	if (q->data == NULL)
-		goto out;
+	q->slots = calloc(q->capacity, sizeof(lfq_slot_t));
+	if (!q->slots)
+		return -ENOMEM;
 
-	q->slot_state = calloc(capacity, sizeof(int));
-	if (q->slot_state == NULL) {
-		free(q->data);
-		goto out;
-	}
+	for (size_t i = 0; i < q->capacity; ++i)
+		atomic_store(&q->slots[i].seq, i);
 
-	/* init all slots as empty */
-	for (size_t i = 0; i < capacity; ++i)
-		q->slot_state[i] = 0;
-
-	ret = 0;
-out:
-	return ret;
+	atomic_store(&q->head, 0);
+	atomic_store(&q->tail, 0);
+	return 0;
 }
 
 void lfq_free(lfq_t *q)
 {
-	free(q->slot_state);
-	free(q->data);
+	if (q && q->slots) {
+		free(q->slots);
+		q->slots = NULL;
+		q->logical_capacity = 0;
+		q->capacity = 0;
+	}
 }
 
 int lfq_enqueue(lfq_t *q, void *element)
 {
-	size_t cur_tail, next_tail;
+	const size_t capacity = q->capacity;
+	lfq_slot_t *slots = q->slots;
 
-	while (true) {
-		/* check if the queue is full */
-		if (atomic_load(&q->count) == q->capacity)
+	while (1) {
+		uint64_t head = atomic_load_explicit(&q->head, memory_order_relaxed);
+		uint64_t tail = atomic_load_explicit(&q->tail, memory_order_relaxed);
+
+		/* this check is only necessary because we want to
+		 * support queue size 1 */
+		if (head - tail >= q->logical_capacity)
 			return -ENOSPC;
 
-		cur_tail = atomic_load(&q->tail);
-		next_tail = (cur_tail + 1) % q->capacity;
+		lfq_slot_t *slot = &slots[head % capacity];
+		uint64_t seq = atomic_load_explicit(&slot->seq, memory_order_acquire);
+		intptr_t diff = (intptr_t)seq - (intptr_t)head;
 
-		/* try to move the tail forward */
-		if (atomic_compare_exchange_weak(&q->tail, &cur_tail, next_tail)) {
-			/* ensure slot is empty before writing */
-			while (atomic_load(&q->slot_state[cur_tail]) != 0) {
-				/* busy-wait until slot becomes empty */
+		if (diff == 0) {
+			if (atomic_compare_exchange_weak_explicit(
+				    &q->head, &head, head + 1,
+				    memory_order_relaxed,
+				    memory_order_relaxed)) {
+				atomic_store_explicit(&slot->data, element, memory_order_relaxed);
+				atomic_store_explicit(&slot->seq, head + 1, memory_order_release);
+				return 0;
 			}
-
-			/* store the data */
-			q->data[cur_tail] = element;
-
-			/* mark the slot as used */
-			atomic_store(&q->slot_state[cur_tail], 1);
-
-			/* increment the count */
-			atomic_fetch_add(&q->count, 1);
-
-			return 0;
+		} else if (diff < 0) {
+			return -ENOSPC;
 		}
-		/* retry if CAS failed due to contention */
 	}
 }
 
 int lfq_dequeue(lfq_t *q, void **element)
 {
-	size_t cur_head, next_head;
+	const size_t capacity = q->capacity;
+	lfq_slot_t *slots = q->slots;
 
-	while (true) {
-		/* check if the queue is empty */
-		if (atomic_load(&q->count) == 0)
-			return -ENODATA;
+	while (1) {
+		uint64_t tail = atomic_load_explicit(&q->tail, memory_order_relaxed);
+		lfq_slot_t *slot = &slots[tail % capacity];
+		uint64_t seq = atomic_load_explicit(&slot->seq, memory_order_acquire);
+		intptr_t diff = (intptr_t)seq - (intptr_t)(tail + 1);
 
-		cur_head = atomic_load(&q->head);
-		next_head = (cur_head + 1) % q->capacity;
-
-		/* try to move the head forward */
-		if (atomic_compare_exchange_weak(&q->head, &cur_head, next_head)) {
-			/* ensure the slot is used before reading */
-			while (atomic_load(&q->slot_state[cur_head]) != 1) {
-				/* busy-wait until slot becomes full */
+		if (diff == 0) {
+			if (atomic_compare_exchange_weak_explicit(
+				    &q->tail, &tail, tail + 1,
+				    memory_order_relaxed,
+				    memory_order_relaxed)) {
+				*element = atomic_load_explicit(&slot->data, memory_order_relaxed);
+				atomic_store_explicit(&slot->seq, tail + capacity, memory_order_release);
+				return 0;
 			}
-
-			/* read the data */
-			*element = q->data[cur_head];
-
-			/* mark the slot as empty */
-			atomic_store(&q->slot_state[cur_head], 0);
-
-			/* decrement the count */
-			atomic_fetch_sub(&q->count, 1);
-
-			return 0;
+		} else if (diff < 0) {
+			return -ENODATA;
 		}
-		/* retry if CAS failed due to contention */
 	}
 }

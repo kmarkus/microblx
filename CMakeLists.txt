@@ -27,6 +27,7 @@ function(generate_hexarr INPUT_HEADER OUTPUT_HEXARR)
 endfunction()
 
 find_package(PkgConfig REQUIRED)
+pkg_check_modules(CMOCKA cmocka>=1.1.5)
 pkg_check_modules(LUAJIT REQUIRED luajit>=2.0.4)
 pkg_get_variable(LUA_ABIVER luajit abiver)
 
