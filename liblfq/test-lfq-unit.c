@@ -13,7 +13,6 @@ static void test_capacity_one(void **state)
 
 	lfq_t q;
 	assert_int_equal(lfq_init(&q, 1), 0);
-	printf("Queue initialized with capacity = %zu\n", q.capacity);
 
 	int val = 42;
 	int val2 = 99;
