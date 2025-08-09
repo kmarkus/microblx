@@ -15,8 +15,10 @@ Make sure to install the following dependencies
 
 The following must be installed from source (see instructions below):
 
+- ``ffi-reflect`` ffi reflection module `ffi-reflect git <https://github.com/corsix/ffi-reflect>` 
 - ``uutils`` Lua utilities `uutils git <https://github.com/kmarkus/uutils>`_
-- ``liblfds`` lock free data structures (v6.1.1) `liblfds6.1.1 git <git://liblfds.org/git/liblfds6.1.1>`_
+- ``liblfds`` lock free data structures (v6.1.1) `liblfds6.1.1 git <git://liblfds.org/git/liblfds6.1.1>`_(optional)
+
 
 Optionally, to run the tests:
 
@@ -37,6 +39,7 @@ Clone the code:
    $ git clone git://liblfds.org/git/liblfds6.1.1
    $ git clone https://github.com/kmarkus/microblx.git
    $ git clone https://github.com/kmarkus/uutils.git
+   $ git cline https://github.com/corsix/ffi-reflect.git
 
 
 First build *lfds-6.1.1*:
@@ -57,6 +60,12 @@ Then install *uutils*:
 	  $ cd ../uutils
 	  $ sudo make install
 
+
+Install *ffi-reflect*:
+
+.. code:: bash
+
+	  $ cp ffi-reflect/reflect.lua /usr/local/share/lua/5.1/
 
 Now build *microblx*:
 

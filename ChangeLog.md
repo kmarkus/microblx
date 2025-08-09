@@ -5,6 +5,11 @@ This file tracks user visible API changes
 
 ## 0.9.3
 
+- drop the ffi `lua/reflect.lua` library from the repo. It must be
+  installed from `https://github.com/corsix/ffi-reflect`.
+- add `liblfq`: a minimal and portable lock-free queue based on
+  Vyukovs algorithm. lfds currently doesn't run on aarch64|arm64 and
+  this implementation provdes a simple yet efficient replacement.
 - switch to `cmake`
 - replace `lua-filesystem` with ffi implementation
 

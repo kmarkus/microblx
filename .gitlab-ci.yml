@@ -8,6 +8,11 @@ build:
     - cd /builds/
     - git clone --depth=1 https://github.com/kmarkus/uutils.git
     - git clone --depth=1 git://liblfds.org/liblfds6.1.1
+    - git clone --depth=1 https://github.com/corsix/ffi-reflect.git
+    # install reflect
+    - install -d /usr/local/share/lua/5.1/
+    - cp ffi-reflect/reflect.lua /usr/local/share/lua/5.1/
+    # install uutils
     - cd uutils/
     - make install
     - cd ..

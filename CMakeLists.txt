@@ -151,7 +151,6 @@ add_subdirectory(${LFQ_SRC_DIR})
 install(FILES
   lua/ubx.lua
   lua/umf.lua
-  lua/reflect.lua
   lua/cdata.lua
   lua/blockdiagram.lua
   DESTINATION ${CMAKE_INSTALL_PREFIX}/share/lua/${LUA_ABIVER}/

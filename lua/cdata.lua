@@ -7,9 +7,13 @@
 --
 
 local ffi = require("ffi")
-local reflect = require("reflect")
+local have_reflect, reflect = pcall(require, "reflect")
 local utils = require("utils")
 local string = string
+
+if not have_reflect then
+   error("failed to load 'reflect' module, see manual.")
+end
 
 local M={}
 
