@@ -4,7 +4,7 @@ image: gcc:bullseye
 build:
   stage: build
   before_script:
-    - apt update && apt -y install cmake pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck lua-unit
+    - apt update && apt -y install cmake pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck lua-unit libcmocka-dev
     - cd /builds/
     - git clone --depth=1 https://github.com/kmarkus/uutils.git
     - git clone --depth=1 git://liblfds.org/liblfds6.1.1
@@ -75,3 +75,6 @@ build:
     - pushd examples/C/
     - gcc -Wall -Werror c-launch.c -o c-launch -lubx
     - ./c-launch 1
+    # run lfq tests
+    - test-lfq
+    - test-lfq-unit
