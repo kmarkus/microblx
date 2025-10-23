@@ -39,7 +39,7 @@ Clone the code:
    $ git clone git://liblfds.org/git/liblfds6.1.1
    $ git clone https://github.com/kmarkus/microblx.git
    $ git clone https://github.com/kmarkus/uutils.git
-   $ git cline https://github.com/corsix/ffi-reflect.git
+   $ git clone https://github.com/corsix/ffi-reflect.git
 
 
 First build *lfds-6.1.1*:
