@@ -219,6 +219,10 @@ add_executable(ubx-log tools/ubx-log.c)
 target_link_libraries(ubx-log PRIVATE rt rtlog_client)
 install(TARGETS ubx-log RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
+add_executable(ubx-time-test tools/ubx-time-test.c)
+target_link_libraries(ubx-time-test PRIVATE ubx)
+install(TARGETS ubx-time-test RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
 install(PROGRAMS
   tools/ubx-ilaunch
   tools/ubx-launch
