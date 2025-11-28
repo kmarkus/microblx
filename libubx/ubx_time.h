@@ -3,8 +3,6 @@
 #ifndef _UBX_TIME_H
 #define _UBX_TIME_H
 
-int ubx_clock_mono_gettime(struct ubx_timespec *uts);
-int ubx_clock_mono_nanosleep(int flags, struct ubx_timespec *request);
 int ubx_gettime(struct ubx_timespec *uts);
 int ubx_nanosleep(int flags, struct ubx_timespec *uts);
 int ubx_ts_cmp(const struct ubx_timespec *ts1, const struct ubx_timespec *ts2);

@@ -81,12 +81,19 @@ set(UBX_PUBLIC_HDRS
 
 add_library(ubx SHARED ${UBX_SRCS})
 
-# TSC
+# TIMESRC_TSC
 option(ENABLE_TIMESRC_TSC "Use TSC as timesource instead of POSIX time" OFF)
 
 if(ENABLE_TIMESRC_TSC)
   set(CPU_HZ 1600000000 CACHE STRING "CPU frequency in Hz for TSC to time calculation")
   target_compile_definitions(ubx PRIVATE -DTIMESRC_TSC=1 -DCPU_HZ=${CPU_HZ})
+endif()
+
+# TIMESRC_CNTVCT
+option(ENABLE_TIMESRC_CNTVCT "Use  CNTVCT as timesource instead of POSIX time" OFF)
+
+if(ENABLE_TIMESRC_CNTVCT)
+  add_compile_definitions(TIMESRC_CNTVCT)
 endif()
 
 # for config.h

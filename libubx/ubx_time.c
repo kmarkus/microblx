@@ -1,10 +1,9 @@
 /* Time handling */
 
-#include "math.h"
 #include "ubx.h"
 #include <config.h>
 
-#ifdef TIMESRC_TSC
+#if defined(TIMESRC_TSC)
 /**
  * rdtscp
  *
@@ -26,42 +25,77 @@ static uint64_t rdtscp(void)
 }
 
 /**
- * ubx_tsc_gettime - get elapsed using tsc counter
- *
- * @TODO: needs refactoring to avoid the double conversion.
+ * ubx_clock_gettime - get elapsed using TSC counters
+ * @param uts
+ * @return 0 or EINVALID_ARG
+ */
+int ubx_gettime(struct ubx_timespec *uts)
+{
+	if (uts == NULL)
+		return EINVALID_ARG;
+
+	uint64_t tsc = rdtscp();
+
+	uts->sec = tsc / CPU_HZ;
+	uts->nsec = ((tsc % CPU_HZ) * NSEC_PER_SEC) / CPU_HZ;
+
+	return 0;
+}
+
+#elif defined(TIMESRC_CNTVCT)
+
+#if !defined(__aarch64__) && !defined(__arm64__)
+#error "TIMESRC_CNTVCT: only support on aarach64/arm64"
+#endif
+
+int ubx_gettime(struct ubx_timespec *uts)
+{
+	uint64_t cnt;
+	static uint64_t cntfrq = 0;
+
+	if (uts == NULL)
+		return EINVALID_ARG;
+
+	if (!cntfrq)
+		asm volatile("mrs %0, cntfrq_el0" : "=r"(cntfrq));
+
+	asm volatile("mrs %0, cntvct_el0" : "=r"(cnt));
+
+	uts->sec = cnt / cntfrq;
+	uint64_t rem = cnt % cntfrq;
+	uts->nsec = (rem * 1000000000ULL) / cntfrq;
+
+	return 0;
+}
+
+#else /* no HW timestamps */
+/**
+ * ubx_clock_mono_gettime
+ * get current time using clock_gettime(CLOCK_MONOTONIC).
  *
  * @param uts
  *
- * @return 0 or EINVALID_ARG
+ * @return non-zero in case of error, 0 otherwise.
  */
-int ubx_tsc_gettime(struct ubx_timespec *uts)
+int ubx_gettime(struct ubx_timespec *uts)
 {
-	int ret = EINVALID_ARG;
-	double ts, frac, integral;
-
 	if (uts == NULL)
-		goto out;
+		return EINVALID_ARG;
 
-	ts = (double)rdtscp() / CPU_HZ;
-
-	frac = modf(ts, &integral);
-
-	uts->sec = integral;
-	uts->nsec = frac * NSEC_PER_SEC;
-	ret = 0;
-
-out:
-	return ret;
+	return clock_gettime(CLOCK_MONOTONIC, (struct timespec *)uts);
 }
 
+#endif /* TIMESRC_* */
+
+#if defined(TIMESRC_TSC) || defined(TIMESRC_CNTVCT)
 /**
- * ubx_tsc_nanosleep - get elapsed using tsc counter
+ * ubx_clock_nanosleep - get elapsed using tsc counter
  *
  * @param flags	(same flags as clock_nanosleep)
  * @param request abs or relative time to sleep
  * @return 0 or error
  */
-int ubx_tsc_nanosleep(int flags, struct ubx_timespec *request)
+int ubx_nanosleep(int flags, struct ubx_timespec *request)
 {
 	int ret;
 	struct ubx_timespec *endp, end, now;
@@ -69,7 +103,7 @@ int ubx_tsc_nanosleep(int flags, struct ubx_timespec *request)
 	if (flags & TIMER_ABSTIME) {
 		endp = request;
 	} else {
-		ret = ubx_tsc_gettime(&end);
+		ret = ubx_gettime(&end);
 
 		if (ret)
 			goto out;
@@ -79,7 +113,7 @@ int ubx_tsc_nanosleep(int flags, struct ubx_timespec *request)
 	}
 
 	for (;;) {
-		ret = ubx_tsc_gettime(&now);
+		ret = ubx_gettime(&now);
 
 		if (ret)
 			goto out;
@@ -90,46 +124,16 @@ int ubx_tsc_nanosleep(int flags, struct ubx_timespec *request)
 out:
 	return ret;
 }
-#endif /* TIMESRC_TSC */
 
-/**
- * ubx_clock_mono_gettime
- *           - get current time using clock_gettime(CLOCK_MONOTONIC).
- *
- * @param uts
- *
- * @return non-zero in case of error, 0 otherwise.
- */
-int ubx_clock_mono_gettime(struct ubx_timespec *uts)
+#else /* use POSIX clock_nanosleep */
+
+int ubx_nanosleep(int flags, struct ubx_timespec *request)
 {
-	if (uts == NULL)
-		return EINVALID_ARG;
-
-	return clock_gettime(CLOCK_MONOTONIC, (struct timespec*) uts);
-}
-
-/**
- * ubx_clock_mono_nanosleep - sleep for specified timespec
- *
- * @param uts
- *
- * @return non-zero in case of error, 0 otherwise
- */
-int ubx_clock_mono_nanosleep(int flags, struct ubx_timespec *request)
-{
-	struct timespec *ts = (struct timespec*) request;
+	struct timespec *ts = (struct timespec *)request;
 	return clock_nanosleep(CLOCK_MONOTONIC, flags, ts, NULL);
 }
 
-
-#ifdef TIMESRC_TSC
-int ubx_gettime(struct ubx_timespec *uts) { return ubx_tsc_gettime(uts); }
-int ubx_nanosleep(int flags, struct ubx_timespec *uts) { return ubx_tsc_nanosleep(flags, uts); }
-#else
-int ubx_gettime(struct ubx_timespec *uts) { return ubx_clock_mono_gettime(uts); }
-int ubx_nanosleep(int flags, struct ubx_timespec *uts) { return ubx_clock_mono_nanosleep(flags, uts); }
-#endif /* TIMESRC_TSC */
-
+#endif
 
 /**
  * Compare two ubx_timespecs
@@ -161,7 +165,6 @@ int ubx_ts_cmp(const struct ubx_timespec *ts1, const struct ubx_timespec *ts2)
  */
 void ubx_ts_norm(struct ubx_timespec *ts)
 {
-
 	if (ts->nsec >= NSEC_PER_SEC) {
 		ts->sec += ts->nsec / NSEC_PER_SEC;
 		ts->nsec = ts->nsec % NSEC_PER_SEC;
@@ -184,7 +187,6 @@ void ubx_ts_norm(struct ubx_timespec *ts)
 	}
 }
 
-
 /**
  * ubx_ts_sub - substract ts2 from ts1 and store the result in out
  *
@@ -192,8 +194,7 @@ void ubx_ts_norm(struct ubx_timespec *ts)
  * @param ts2
  * @param out
  */
-void ubx_ts_sub(const struct ubx_timespec *ts1,
-		const struct ubx_timespec *ts2,
+void ubx_ts_sub(const struct ubx_timespec *ts1, const struct ubx_timespec *ts2,
 		struct ubx_timespec *out)
 {
 	out->sec = ts1->sec - ts2->sec;
@@ -208,8 +209,7 @@ void ubx_ts_sub(const struct ubx_timespec *ts1,
  * @param ts2
  * @param out
  */
-void ubx_ts_add(const struct ubx_timespec *ts1,
-		const struct ubx_timespec *ts2,
+void ubx_ts_add(const struct ubx_timespec *ts1, const struct ubx_timespec *ts2,
 		struct ubx_timespec *out)
 {
 	out->sec = ts1->sec + ts2->sec;
@@ -224,7 +224,8 @@ void ubx_ts_add(const struct ubx_timespec *ts1,
  * @param div
  * @param out
  */
-void ubx_ts_div(const struct ubx_timespec *ts, const long div, struct ubx_timespec *out)
+void ubx_ts_div(const struct ubx_timespec *ts, const long div,
+		struct ubx_timespec *out)
 {
 	int64_t tmp_nsec = (ts->sec * NSEC_PER_SEC) + ts->nsec;
 
@@ -242,7 +243,7 @@ void ubx_ts_div(const struct ubx_timespec *ts, const long div, struct ubx_timesp
  */
 double ubx_ts_to_double(const struct ubx_timespec *ts)
 {
-	return ((double) ts->sec) + ((double) ts->nsec/NSEC_PER_SEC);
+	return ((double)ts->sec) + ((double)ts->nsec / NSEC_PER_SEC);
 }
 
 /**
