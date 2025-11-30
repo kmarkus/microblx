@@ -306,7 +306,7 @@ M.debug = dbg
 -- @return struct ubx_timespec with current time
 function M.clock_mono_gettime(ts)
    ts = ts or ffi.new("struct ubx_timespec")
-   ubx.ubx_clock_mono_gettime(ts)
+   ubx.ubx_clock_gettime(ts)
    return ts
 end
 
@@ -436,7 +436,7 @@ function M.clock_mono_sleep(sec, nsec)
    local ts = ffi.new("struct ubx_timespec")
    ts.sec=sec
    ts.nsec=nsec or 0
-   M.clock_mono_nanosleep(0, ts)
+   ubx.ubx_nanosleep(0, ts)
 end
 
 -- find out whether to use lfds_cyclic or lfrb

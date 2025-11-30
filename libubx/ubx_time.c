@@ -70,7 +70,7 @@ int ubx_gettime(struct ubx_timespec *uts)
 
 #else /* no HW timestamps */
 /**
- * ubx_clock_mono_gettime
+ * ubx_clock_gettime
  * get current time using clock_gettime(CLOCK_MONOTONIC).
  *
  * @param uts
