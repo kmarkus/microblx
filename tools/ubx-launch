@@ -10,6 +10,14 @@ ubx = require("ubx")
 bd = require("blockdiagram")
 local utils = require("utils")
 local ts = tostring
+local fmt = string.format
+
+local MAXINT = 2^31 - 1
+
+local function errexit(status, format, ...)
+   io.stderr:write(fmt(format, ...), "\n")
+   os.exit(status)
+end
 
 local function usage()
    local res, str = utils.preproc(
@@ -49,16 +57,11 @@ usage: ubx-launch [OPTION] -c <model file>
    print(str)
 end
 
-local function isempty(s)
-  return s == nil or s == ''
-end
-
 local opttab=utils.proc_args(arg)
 local nodename
 local model
 local conf_files
 local conf_types = {}
-local monitorblock
 local checks
 local loglevel
 
@@ -91,10 +94,6 @@ if opttab['-ctype'] then
        print("error: the use of -ctype requires the same number of parameters as -c")
        os.exit(1)
     end
-end
-
-if (opttab['-b'] and opttab['-b'][1]) then
-   monitorblock = opttab['-b'][1]
 end
 
 -- load first model and merge others into it
@@ -168,33 +167,41 @@ if opttab['-webif'] then
 end
 
 if not opttab['-i'] then
-   local duration = math.huge
-   local monblock = nil
+   local duration = MAXINT
+   local monblock
 
+   -- time
    if opttab['-t'] then
       if not opttab['-t'][1] then
-         print("no time given (-t option)")
-         os.exit(1)
+	 errexit(1, "missing duration argument to -t")
       else
          duration = tonumber(opttab['-t'][1])
       end
    end
 
-   if not isempty(monitorblock) then
+   -- monitorblock
+   if (opttab['-b'] and opttab['-b'][1]) then
+      local monitorblock = opttab['-b'][1]
+
+      if monitorblock == nil then
+	 errexit(1, "missing block name argument to -b")
+      end
+
       monblock = nd:block_get(monitorblock)
+
+      while duration > 0 do
+	 duration = duration - 1
+	 if ubx.wait_sigint(1) == 0 then
+	    print("received signal, shutting down")
+	    break
+	 end
+	 if monblock and monblock:get_block_state() ~= 'active' then
+	    break
+	 end
+      end
+   else
+      ubx.wait_sigint(duration)
    end
 
-   while duration > 0 do
-      duration = duration - 1
-
-      if ubx.wait_sigint(1) == 0 then
-	 print("received signal, shutting down")
-	 break
-      end
-      if monblock and monblock:get_block_state() ~= 'active' then
-	 break
-      end
-   end
    model:pulldown(nd)
 end
-
