@@ -21,7 +21,7 @@ end
 
 local function usage()
    local res, str = utils.preproc(
-	    [=[
+      [=[
 microblx function block model system launcher
 usage: ubx-launch [OPTION] -c <model file>
   -b BLOCK		monitor BLOCK and shutdown when it becomes inactive
@@ -84,16 +84,16 @@ end
 if opttab['-v'] then bd.VERBOSE=true end
 
 if opttab['-ctype'] then
-    if not opttab['-ctype'][1] then
-        print("error: -ctype option requires a type argument")
-        os.exit(1)
-    else
-       conf_types = utils.split(opttab['-ctype'][1], ',')
-    end
-    if #conf_files ~= #conf_types then
-       print("error: the use of -ctype requires the same number of parameters as -c")
-       os.exit(1)
-    end
+   if not opttab['-ctype'][1] then
+      print("error: -ctype option requires a type argument")
+      os.exit(1)
+   else
+      conf_types = utils.split(opttab['-ctype'][1], ',')
+   end
+   if #conf_files ~= #conf_types then
+      print("error: the use of -ctype requires the same number of parameters as -c")
+      os.exit(1)
+   end
 end
 
 -- load first model and merge others into it
@@ -146,15 +146,16 @@ local core_prefix, prefixes = ubx.get_prefix()
 print("core_prefix: " .. core_prefix)
 print("prefixes:    " .. table.concat(prefixes, ", "))
 
-nd = model:launch{nodename=nodename,
-		  verbose=true,
-		  loglevel=loglevel,
-		  use_stderr=opttab['-s'],
-		  mlockall=opttab['-mlockall'],
-		  dumpable=opttab['-dumpable'],
-		  nostart=opttab['-nostart'],
-		  checks=checks or nil,
-		  werror=opttab['-werror'],
+nd = model:launch{
+   nodename = nodename,
+   verbose = true,
+   loglevel = loglevel,
+   use_stderr = opttab['-s'],
+   mlockall = opttab['-mlockall'],
+   dumpable = opttab['-dumpable'],
+   nostart = opttab['-nostart'],
+   checks = checks or nil,
+   werror = opttab['-werror'],
 }
 
 if opttab['-webif'] then
@@ -175,7 +176,7 @@ if not opttab['-i'] then
       if not opttab['-t'][1] then
 	 errexit(1, "missing duration argument to -t")
       else
-         duration = tonumber(opttab['-t'][1])
+	 duration = tonumber(opttab['-t'][1])
       end
    end
 
