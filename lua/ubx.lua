@@ -728,7 +728,8 @@ local ubx_block_mt = {
    __tostring = M.block_tostr,
    __index = {
       get_name = function (b) return M.safe_tostr(b.name) end,
-      get_meta = function (b) return M.safe_tostr(b.meta) end,
+      get_meta = function (b) return M.safe_tostr(b.meta_data) end,
+      get_prototype = function (b) return M.block_prototype(b) end,
       get_block_state = function (b) return M.block_state_tostr[b.block_state] end,
       get_block_type = function (b) return M.block_type_tostr[b.type] end,
 
