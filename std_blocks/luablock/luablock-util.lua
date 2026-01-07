@@ -7,7 +7,10 @@ local utils = require("utils")
 
 local M = {}
 
-M.DEFAULT_PREFIX = "/usr/local/share/ubx/blocks"
+M.DEFAULT_PREFIXES = {
+   "/usr/share/ubx/blocks",
+   "/usr/local/share/ubx/blocks",
+}
 
 local loaded = {}
 
@@ -34,10 +37,18 @@ function M.create(nd, block, name, tgtstate)
 
    if not fn then
       local ver = string.sub(ubx.safe_tostr(ubx.version()), 1, 3)
-      fn = M.DEFAULT_PREFIX .. "/" .. ver .. "/" .. block .. ".lua"
 
-      if not utils.file_exists(fn) then
-	 error("no module " .. block .. " found in as file or under " .. M.DEFAULT_PREFIX .. "/" .. ver)
+      for _, d in ipairs(M.DEFAULT_PREFIXES) do
+	 local f = d .. "/" .. ver .. "/" .. block .. ".lua"
+	 if utils.file_exists(f) then
+	    fn = f
+	    break
+	 end
+      end
+
+      if not fn then
+	 error("no module " .. block .. " found in as file or under " ..
+	       table.concat(M.DEFAULT_PREFIXES, ', ') .. " with version " .. ver)
       end
    end
 
