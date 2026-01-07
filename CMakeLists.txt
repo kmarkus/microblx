@@ -6,8 +6,11 @@ set(VERSION_PATCH 2)
 
 project(microblx VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}" LANGUAGES C CXX)
 
+include(GNUInstallDirs)
+
 # module install path
 set(UBX_MOD_DIR ${CMAKE_INSTALL_PREFIX}/lib/ubx/${VERSION_MAJOR}.${VERSION_MINOR}/)
+set(UBX_LUABLOCK_DIR ${CMAKE_INSTALL_DATADIR}/ubx/blocks/${VERSION_MAJOR}.${VERSION_MINOR}/)
 set(UBX_MOD_CFLAGS -fvisibility=hidden)
 set(UBX_TOCARR ${CMAKE_SOURCE_DIR}/tools/ubx-tocarr)
 
@@ -15,7 +18,6 @@ add_compile_options(-W -Wextra -Wall -Werror)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
-include(GNUInstallDirs)
 
 # generate hexarr helper
 function(generate_hexarr INPUT_HEADER OUTPUT_HEXARR)
