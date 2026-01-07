@@ -1,4 +1,4 @@
-#!/usr/bin/lua
+#!/usr/bin/env luajit
 
 local lsdb = require("lsdbus")
 local utils = require("utils")
