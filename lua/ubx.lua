@@ -1515,8 +1515,7 @@ end
 
 function M.modules_map(nd, fun, pred)
    local res = {}
-   local function mod_apply(m) res[#res+1] = fun(m) end
-   M.modules_foreach(nd, mod_apply, pred)
+   M.modules_foreach(nd, function(m) res[#res+1]=fun(m) end, pred)
    return res
 end
 
@@ -1584,7 +1583,7 @@ function M.node_todot(nd)
       return table.concat(res, '\n')
    end
 
-   local btab = M.blocks_map(nd, M.block_totab, function(b) return not M.is_proto(b) end)
+   local btab = M.blocks_map(nd, M.block_totab, M.is_instance)
    return utils.expand(
       [[
 digraph "$node" {

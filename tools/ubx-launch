@@ -6,11 +6,15 @@
 -- SPDX-License-Identifier: BSD-3-Clause
 --
 
-ubx = require("ubx")
-bd = require("blockdiagram")
+local ubx = require("ubx")
+local bd = require("blockdiagram")
 local utils = require("utils")
 local ts = tostring
 local fmt = string.format
+
+-- Export nd, bd and ubx globally
+_G.ubx = ubx
+_G.bd = bd
 
 local MAXINT = 2^31 - 1
 
@@ -40,6 +44,7 @@ usage: ubx-launch [OPTION] -c <model file>
   -v                    verbose (will log additional, early messages to stderr)
   -webif [PORT]		create and start webinterface block.
 			the optional port defaults to 8888.
+  -dbus                 create and start the dbus interface block.
 
   -validate             don't run, just validate configuration file
 
@@ -146,7 +151,7 @@ local core_prefix, prefixes = ubx.get_prefix()
 print("core_prefix: " .. core_prefix)
 print("prefixes:    " .. table.concat(prefixes, ", "))
 
-nd = model:launch{
+local nd = model:launch{
    nodename = nodename,
    verbose = true,
    loglevel = loglevel,
@@ -158,6 +163,8 @@ nd = model:launch{
    werror = opttab['-werror'],
 }
 
+_G.nd = nd
+
 if opttab['-webif'] then
    local port = opttab['-webif'][1] or 8888
    print("starting up webinterface block (http://localhost:"..ts(port)..")")
@@ -165,6 +172,28 @@ if opttab['-webif'] then
    local webif1=ubx.block_create(nd, "ubx/webif", "webif1", { port=ts(port) })
    assert(ubx.block_init(webif1)==0)
    assert(ubx.block_start(webif1)==0)
+end
+
+if opttab['-dbus'] then
+   -- TODO
+   pcall(ubx.load_module, nd, "ptrig")
+
+   -- load the luablock instantiation helper module
+   local have_luablock, lbutil = pcall(require, "ubx/luablock-util")
+
+   if not have_luablock then
+      errexit(1, "luablock module is not available")
+   end
+
+   --  create
+   local lsdb0 = lbutil.create(nd, "lsdb-intf", "lsdb0", "active")
+   local lsdb0_ptrig = ubx.block_create(
+      nd, "ubx/ptrig", "lsdb0-ptrig", { num_chains=1, period={sec=0,usec=100000} }
+   )
+   ubx.block_init(lsdb0_ptrig)
+   ubx.set_config(lsdb0_ptrig, "chain0", { b=lsdb0} )
+   ubx.block_tostate(lsdb0, "active")
+   ubx.block_tostate(lsdb0_ptrig, "active")
 end
 
 if not opttab['-i'] then
