@@ -192,6 +192,7 @@ add_block_subdir(BLOCK_SKELLETON   "std_blocks/skelleton"   ON)
 add_block_subdir(BLOCK_THRESHOLD   "std_blocks/threshold"   ON)
 add_block_subdir(BLOCK_TRIG        "std_blocks/trig"        ON)
 add_block_subdir(BLOCK_WEBIF       "std_blocks/webif"       ON)
+add_block_subdir(BLOCK_LSDB_INTF   "std_blocks/lsdb-intf"   ON)
 
 # examples
 add_block_subdir(BLOCK_EXAMPLE_RANDOM      "std_blocks/examples/random"      ON)

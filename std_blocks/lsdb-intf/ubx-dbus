@@ -1,0 +1,212 @@
+#!/usr/bin/lua
+
+local lsdb = require("lsdbus")
+local utils = require("utils")
+local pt = require("prettytable")
+local optparse = require("optparse")
+
+local fmt = string.format
+
+local UBX={
+   SRV = 'org.ubx.%s',
+   PATH = '/',
+   INTF = 'org.ubx.node',
+}
+
+local function printf(format, ... )
+   print(fmt(format, ...))
+end
+
+local function errexit(code, format, ... )
+   printf(format, ...); os.exit(code)
+end
+
+function lsdb.proxy.error(_, err, msg)
+   errexit(3, "%s: %s", err, msg)
+end
+
+local function get_proxy(name, bustype)
+   local bus = lsdb.open(bustype)
+   return lsdb.proxy.new(bus, fmt(UBX.SRV, name), UBX.PATH, UBX.INTF)
+end
+
+local function str2lua(str)
+   local func, err, ok, r
+
+   func, err = load("return " .. str, "str2lua", "t", {})
+   if not func then
+      errexit(2, "error loading value: %s", err)
+   end
+
+   ok, r = pcall(func)
+   if not ok then
+      errexit(2, "error loading value: %s", r)
+   end
+   return r
+end
+
+
+
+local help = [[
+ubx-dbus v0.1
+
+Usage: ubx-dbus COMMAND [OPTIONS]
+
+Commands
+  -i  --info=[BLOCK]              show information about the node or a block
+  -m  --module=MODULE             load a module
+  -c  --create=NAME,TYPE,CFG      create a block NAME of TYPE and apply the CFG table
+  -r  --remove=NAME               remove a block
+  -s  --switch-state=BLOCK,STATE  bring a block to a given state [preinit,inactive,active]
+  -t  --trigger=BLOCK[,BLOCK...]  call the step function of one or more blocks
+  -T  --periodic=BLOCK[,BLOCK...] like --trigger but call continuously
+  -x  --connect=CONN_SPEC         connect two entities. CONNDEF is
+                                    SRCBLK,SRCPORT,TGTBLK,TGTPORT,IBLKTYPE,IBCONFIG
+                                  and corresponds to the arguments of ubx.connect
+  -d  --disconnect=DISCONN_SPEC   disconnect two entities. DISCONN_SPEC is
+                                    SRCBLK,SRCPORT,TGTBLK,TGTPORT
+  -l  --load-usc=USC              load an usc model
+  -w  --write=BLOCK,PORT,VALUE    write a value to a port
+  -r  --read=BLOCK,PORT           read from a port
+  -R  --read-mon=BLOCK,PORT       read continuously from a port
+  -C  --clear                     clear all blocks expect the dbus block
+
+Options
+  -n  --node=NAME                 use the node NAME
+  -S  --system                    use the system bus
+  -U  --session                   use the session bus
+      --examples                  show some examples
+  -v  --verbose                   verbose
+  -h  --help                      display this help, then exit
+      --version                   display version information, then exit
+  --                              end of options
+]]
+
+local parser = optparse(help)
+local arg, opts = parser:parse(arg)
+
+if #arg>0 then
+   errexit(1, "invalid arg: %s, try -h", table.concat(arg, ", "))
+end
+
+
+local bustyp = 'default'
+if opts.system then
+   bustyp = 'default_system'
+elseif opts.session then
+   bustyp = 'default_user'
+end
+
+local handled = false
+local ndname = opts.node or 'n'
+
+if opts.info then
+   local p = get_proxy(ndname, bustyp)
+
+   if opts.info == true then
+      printf("node:         %s", p.Node)
+      printf("modules:      %s", pt.tostr(p.Modules))
+      printf("cblock types: %s", pt.tostr(p.CBlockTypes))
+      printf("iblock types: %s", pt.tostr(p.IBlockTypes))
+      printf("cblocks:      %s", pt.tostr(p.CBlocks))
+      printf("connections:  %s", pt.tostr(p.Connections))
+   else
+      print(pt.tostr(p('GetBlockInfo', opts.info)))
+   end
+   handled = true
+end
+
+if opts.module then
+   local p = get_proxy(ndname, bustyp)
+   p('LoadModule', opts.module)
+   handled = true
+end
+
+if opts.create then
+   local p = get_proxy(ndname, bustyp)
+   local args = utils.split(opts.create, ",")
+   if #args ~= 3 then
+      errexit(1, "invalid arg: %s, expected NAME,TYPE,{CONFIG}", opts.create)
+   end
+   local cfg = str2lua(args[3])
+   p('CreateBlock', args[1], args[2], lsdb.tovariant2(cfg))
+   handled = true
+end
+
+if opts.remove then
+   local p = get_proxy(ndname, bustyp)
+   p('RemoveBlock', opts.remove)
+   handled = true
+end
+
+if opts.switch_state then
+   local p = get_proxy(ndname, bustyp)
+   local args = utils.split(opts.switch_state, ",")
+   if #args < 2 then
+      errexit(1, "invalid arg: %s, expected BLOCK,STATE", opts.switch_state)
+   end
+   p('SwitchState', args[1], args[2])
+   handled = true
+end
+
+if opts.trigger or opts.periodic then
+
+   if opts.trigger and opts.periodic then
+      errexit(1, "invalid arg: can't use both --trigger and --periodic")
+   end
+
+   local num
+   local p = get_proxy(ndname, bustyp)
+   local args = utils.split(opts.trigger or opts.periodic, ",")
+
+   if #args < 1 then
+      errexit(1, "invalid arg: %s, expected BLOCK", opts.trigger)
+   end
+
+   if opts.periodic then num = math.huge else num = 1 end
+
+   while num > 0 do
+      num = num - 1
+      p('Trigger', args)
+   end
+
+   handled = true
+end
+
+if opts.connect then
+   local p = get_proxy(ndname, bustyp)
+   local args = utils.split(opts.connect, ",")
+   if #args < 3 then
+      errexit(1, "invalid arg: %s, expected at least three args", opts.connect)
+   end
+   print(pt.tostr(args))
+   p('Connect',
+     args[1] or "",
+     args[2] or "",
+     args[3] or "",
+     args[4] or "",
+     args[5] or "",
+     lsdb.tovariant(args[6] or "")
+   )
+   handled = true
+end
+
+if opts.disconnect then
+   error("disconnect: TODO")
+   handled = true
+end
+
+if opts.clear then
+   local p = get_proxy(ndname, bustyp)
+   p('ClearNode')
+   handled = true
+end
+
+if opts.load_usc then
+   error("load usc: TODO")
+   handled = true
+end
+
+if handled == false then
+   errexit(1, "missing command, try -h")
+end
