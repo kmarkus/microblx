@@ -104,7 +104,7 @@ int ubx_module_load(ubx_node_t *nd, const char *lib)
 	HASH_FIND_STR(nd->modules, lib, mod);
 
 	if (mod != NULL) {
-		logf_err(nd, "module %s already loaded", lib);
+		logf_notice(nd, "module %s already loaded", lib);
 		goto out;
 	}
 
