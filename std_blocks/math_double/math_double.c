@@ -81,6 +81,7 @@ int parse_func(ubx_block_t *b, struct math_info *inf)
 
 	len = cfg_getptr_char(b, CFUNC, &func);
 	assert(len > 0);
+    (void) len;
 
 	for (unsigned int i=0; i<ARRAY_SIZE(functions); i++) {
 		if (strncasecmp(func, functions[i].name, MATHFUNC_MAXLEN) == 0) {

@@ -72,6 +72,7 @@ int thres_init(ubx_block_t *b)
 	 * assert only guards against mistyping the configs name */
 	len = cfg_getptr_double(b, "threshold", &inf->threshold);
 	assert(len > 0);
+	(void) len;
 
 	/* cache the port ptrs: avoids repeated lookups in step */
 	inf->pin = ubx_port_get(b, "in");

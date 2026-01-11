@@ -60,6 +60,7 @@ int skel_init(ubx_block_t *b)
 
 	len = cfg_getptr_foo_type(b, "foo", &inf->foo);
 	assert(len > 0);
+	(void) len;
 
 	inf->p_out = ubx_port_get(b, "foo_out");
 	assert(inf->p_out != NULL);
