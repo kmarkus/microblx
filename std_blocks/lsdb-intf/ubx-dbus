@@ -1,4 +1,5 @@
 #!/usr/bin/env luajit
+-- -*- lua -*-
 
 local lsdb = require("lsdbus")
 local utils = require("utils")
@@ -6,6 +7,7 @@ local pt = require("prettytable")
 local optparse = require("optparse")
 
 local fmt = string.format
+local ARGSEP = ':'
 
 local UBX={
    SRV = 'org.ubx.%s',
@@ -45,7 +47,7 @@ local function str2lua(str)
    return r
 end
 
-
+local function split(str) return utils.split(str, ARGSEP) end
 
 local help = [[
 ubx-dbus v0.1
@@ -55,20 +57,21 @@ Usage: ubx-dbus COMMAND [OPTIONS]
 Commands
   -i  --info=[BLOCK]              show information about the node or a block
   -m  --module=MODULE             load a module
-  -c  --create=NAME,TYPE,CFG      create a block NAME of TYPE and apply the CFG table
+  -n  --create=NAME:TYPE:CFG      create a block NAME of TYPE and apply the CFG table
   -r  --remove=NAME               remove a block
-  -s  --switch-state=BLOCK,STATE  bring a block to a given state [preinit,inactive,active]
-  -t  --trigger=BLOCK[,BLOCK...]  call the step function of one or more blocks
-  -T  --periodic=BLOCK[,BLOCK...] like --trigger but call continuously
+  -s  --switch-state=BLOCK:STATE  bring a block to a given state [preinit,inactive,active]
+  -t  --trigger=BLOCK[:BLOCK...]  call the step function of one or more blocks
+  -T  --periodic=BLOCK[:BLOCK...] like --trigger but call continuously
   -x  --connect=CONN_SPEC         connect two entities. CONNDEF is
-                                    SRCBLK,SRCPORT,TGTBLK,TGTPORT,IBLKTYPE,IBCONFIG
+                                    SRCBLK:SRCPORT:TGTBLK:TGTPORT:IBLKTYPE:IBCONFIG
                                   and corresponds to the arguments of ubx.connect
   -d  --disconnect=DISCONN_SPEC   disconnect two entities. DISCONN_SPEC is
-                                    SRCBLK,SRCPORT,TGTBLK,TGTPORT
+                                    SRCBLK:SRCPORT:TGTBLK:TGTPORT
+  -c  --config=BLOCK:CFG[:VALUE]  get or set a configuration value
+  -w  --write=BLOCK:PORT:VALUE    write a value to a port
+  -r  --read=BLOCK:PORT           read from a port
+  -R  --read-mon=BLOCK:PORT       read continuously from a port
   -l  --load-usc=USC              load an usc model
-  -w  --write=BLOCK,PORT,VALUE    write a value to a port
-  -r  --read=BLOCK,PORT           read from a port
-  -R  --read-mon=BLOCK,PORT       read continuously from a port
   -C  --clear                     clear all blocks expect the dbus block
 
 Options
@@ -88,7 +91,6 @@ local arg, opts = parser:parse(arg)
 if #arg>0 then
    errexit(1, "invalid arg: %s, try -h", table.concat(arg, ", "))
 end
-
 
 local bustyp = 'default'
 if opts.system then
@@ -124,9 +126,9 @@ end
 
 if opts.create then
    local p = get_proxy(ndname, bustyp)
-   local args = utils.split(opts.create, ",")
+   local args = split(opts.create)
    if #args ~= 3 then
-      errexit(1, "invalid arg: %s, expected NAME,TYPE,{CONFIG}", opts.create)
+      errexit(1, "invalid arg: %s, expected NAME:TYPE:{CONFIG}", opts.create)
    end
    local cfg = str2lua(args[3])
    p('CreateBlock', args[1], args[2], lsdb.tovariant2(cfg))
@@ -141,7 +143,7 @@ end
 
 if opts.switch_state then
    local p = get_proxy(ndname, bustyp)
-   local args = utils.split(opts.switch_state, ",")
+   local args = split(opts.switch_state)
    if #args < 2 then
       errexit(1, "invalid arg: %s, expected BLOCK,STATE", opts.switch_state)
    end
@@ -157,7 +159,7 @@ if opts.trigger or opts.periodic then
 
    local num
    local p = get_proxy(ndname, bustyp)
-   local args = utils.split(opts.trigger or opts.periodic, ",")
+   local args = split(opts.trigger or opts.periodic)
 
    if #args < 1 then
       errexit(1, "invalid arg: %s, expected BLOCK", opts.trigger)
@@ -175,7 +177,7 @@ end
 
 if opts.connect then
    local p = get_proxy(ndname, bustyp)
-   local args = utils.split(opts.connect, ",")
+   local args = split(opts.connect)
    if #args < 3 then
       errexit(1, "invalid arg: %s, expected at least three args", opts.connect)
    end
@@ -196,9 +198,54 @@ if opts.disconnect then
    handled = true
 end
 
+if opts.config then
+   local p = get_proxy(ndname, bustyp)
+   local args = split(opts.config)
+
+   if #args == 2 then
+      print(pt.tostr(p('GetConfig', args[1], args[2])))
+   elseif #args == 3 then
+      local v = str2lua(args[3])
+      p('SetConfig', args[1], args[2], lsdb.tovariant(v))
+   else
+      errexit(1, "invalid number of args: %s, expected 2 or 3", #args)
+   end
+   handled = true
+end
+
 if opts.clear then
    local p = get_proxy(ndname, bustyp)
    p('ClearNode')
+   handled = true
+end
+
+if opts.read then
+   local p = get_proxy(ndname, bustyp)
+   local args = split(opts.read)
+   print(pt.tostr(p('Read', args[1], args[2])))
+   handled = true
+end
+
+if opts.read_mon then
+   local p = get_proxy(ndname, bustyp)
+   local args = split(opts.read_mon)
+   while true do
+      local v = p('Read', args[1], args[2])
+      if v ~= false then
+	 print(pt.tostr(v))
+      end
+   end
+   -- handled = true
+end
+
+if opts.write then
+   local p = get_proxy(ndname, bustyp)
+   local args = split(opts.write)
+   if #args < 3 then
+      errexit(1, "invalid arg: %s, expected BLOCK:PORT:VALUE", opts.write)
+   end
+   local v = str2lua(args[3])
+   p('Write', args[1], args[2], lsdb.tovariant(v))
    handled = true
 end
 

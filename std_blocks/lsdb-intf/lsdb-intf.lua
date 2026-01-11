@@ -1,13 +1,32 @@
-
 local ubx = require("ubx")
 local ffi = require("ffi")
 local lsdb = require("lsdbus")
+local err = require("lsdbus.error")
 local utils = require("utils")
+local pt = require("prettytable")
 local fmt = string.format
 
 local BUS_RUN_TIMEOUT_USEC = 200000
 
 local SERVICE =	"org.ubx.%s"
+
+-- helpers
+local function check_block(vt, name)
+   local b = ubx.block_get(vt.nd, name)
+   if b == nil then
+      lsdb.throw(err.INVALID_ARGS, "invalid block '%s'", name)
+   end
+   return b
+end
+
+local function check_config(vt, bname, cname)
+   local b = check_block(vt, bname)
+   local c = ubx.block_config_get(b, cname)
+   if c == nil then
+      lsdb.throw(err.INVALID_ARGS, "invalid config '%s' for block '%s'", cname, bname)
+   end
+   return c, b
+end
 
 --- Methods
 local function load_module(vt, module)
@@ -47,6 +66,39 @@ local function connect(vt, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    vt:emitPropertiesChanged("Connections")
 end
 
+local function set_config(vt, block, config, value)
+   local function resolve_blkref(v, t, k)
+      if type(v) ~= 'string' then return end
+      local bn = string.match(v, ".*#([%w_%-%/]+)")
+      if bn then
+	 local ptr = ubx.block_get(vt.nd, bn)
+	 if ptr then
+	    t[k] = ptr
+	 else
+	    error("invalid block reference: "..v)
+	 end
+      end
+   end
+
+   if type(value) == 'table' then
+      utils.maptree(resolve_blkref, value)
+   end
+
+   local c, b = check_config(vt, block, config)
+
+   if b:get_block_state() == 'active' then
+      lsdb.throw(err.FAILED, "changing active block config not allowed")
+   end
+
+   ubx.data_resize(c.value, 1)
+   ubx.config_set(c, value)
+end
+
+local function get_config(vt, block, config)
+   local c = check_config(vt, block, config)
+   return lsdb.tovariant(c:tolua())
+end
+
 -- like ubx_node_clear, but with filters
 -- TODO: crude exclusion of lsdb blocks by wildcard
 local function clear_node(vt)
@@ -60,18 +112,25 @@ local function clear_node(vt)
 end
 
 -- a list of port_clone_conn ports
+-- TODO: these need to be cleared when the associated blocks are removed
 local wpccs = {}
+local rppcs = {}
 
 local function write(vt, bn, pn, val)
    local pcc
 
+   -- ensure the blocks (still) exists
+   local b = ubx.block_get(vt.nd, bn)
+
+   if not b then
+      wpccs[bn][pn] = nil
+      lsdb.throw(err.INVALID_ARGS, "write: invalid block '%s'", bn)
+   end
+
    if wpccs[bn] and wpccs[bn][pn] then
       pcc = wpccs[bn][pn]
    else
-      local b = ubx.ubx_block_get(vt.nd, bn)
-      local p = ubx.block_port_get(b, pn)
-
-      pcc = ubx.port_clone_conn(p)
+      pcc = ubx.port_clone_conn(b, pn, nil, nil, -1)
       wpccs[bn] = wpccs[bn] or {}
       wpccs[bn][pn] = pcc
    end
@@ -79,24 +138,32 @@ local function write(vt, bn, pn, val)
    ubx.port_write(pcc, val)
 end
 
-local rppcs = {}
-
 local function read(vt, bn, pn)
    local pcc
+
+   local b = ubx.block_get(vt.nd, bn)
+
+   if not b then
+      rppcs[bn][pn] = nil
+      lsdb.throw(err.INVALID_ARGS, "read: invalid block '%s'", bn)
+   end
 
    if rppcs[bn] and rppcs[bn][pn] then
       pcc = rppcs[bn][pn]
    else
-      local b = ubx.ubx_block_get(vt.nd, bn)
-      local p = ubx.block_port_get(b, pn)
-
-      pcc = ubx.port_clone_conn(p)
+      pcc = ubx.port_clone_conn(b, pn, nil, nil, -1)
       rppcs[bn] = rppcs[bn] or {}
       rppcs[bn][pn] = pcc
    end
 
-   local v =ubx.port_read(pcc)
-   return lsdb.tovariant2(v)
+   local ret, res = ubx.port_read(pcc)
+   if ret < 0 then
+      ubx.err("read failed: %d", ret);
+      lsdb.throw(err.FAILURE, "read from %s.%s failed: '%s'", bn, pn, ret)
+   elseif ret == 0 then
+      return lsdb.tovariant(false)
+   end
+   return lsdb.tovariant(res:tolua())
 end
 
 -- Property getters/setters
@@ -173,30 +240,36 @@ local intf = {
 	 { direction='in', name='name', type='s' },
 	 handler = load_module
       },
+
       CreateBlock = {
 	 { direction='in', name='type', type='s' },
 	 { direction='in', name='name', type='s' },
 	 { direction='in', name='config', type='a{sv}' },
 	 handler = create_block,
       },
+
       RemoveBlock = {
 	 { direction='in', name='name', type='s' },
 	 handler = remove_block,
       },
+
       SwitchState = {
 	 { direction='in', name='name', type='s' },
 	 { direction='in', name='state', type='s' },
 	 handler = switch_state,
       },
+
       Trigger = {
 	 { direction='in', name='blocks', type='as' },
 	 handler = trigger_blocks,
       },
+
       GetBlockInfo = {
 	 { direction='in', name='name', type='s' },
 	 { direction='out', name='info', type='a{sv}' },
 	 handler = get_block_info
       },
+
       Connect = {
 	 { direction='in', name='srcbn', type='s' },
 	 { direction='in', name='srcpn', type='s' },
@@ -206,12 +279,28 @@ local intf = {
 	 { direction='in', name='ibconfig', type='v' },
 	 handler = connect,
       },
+
+      SetConfig = {
+	 { direction='in', name='block', type='s' },
+	 { direction='in', name='config', type='s' },
+	 { direction='in', name='value', type='v' },
+	 handler = set_config,
+      },
+
+      GetConfig = {
+	 { direction='in', name='block', type='s' },
+	 { direction='in', name='config', type='s' },
+	 { direction='out', name='value', type='v' },
+	 handler = get_config,
+      },
+
       Write = {
 	 { direction='in', name='tgtbn', type='s' },
 	 { direction='in', name='tgtpn', type='s' },
 	 { direction='in', name='value', type='v' },
 	 handler = write,
       },
+
       Read = {
 	 { direction='in', name='tgtbn', type='s' },
 	 { direction='in', name='tgtpn', type='s' },
