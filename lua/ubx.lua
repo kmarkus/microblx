@@ -446,7 +446,7 @@ function M.get_default_iblock(nd)
    elseif ubx.ubx_block_get(nd, "ubx/lfrb") ~= nil then
       return "ubx/lfrb"
    else
-      error("no neither lfds_cyclic or lfrb iblock found")
+      error("neither lfds_cyclic or lfrb iblocks found")
    end
 end
 
