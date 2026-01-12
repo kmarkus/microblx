@@ -71,9 +71,8 @@ local function def_loggers(nd, src)
    end
 end
 
-local function err_exit(code, format, ...)
-   err(format, ...)
-   os.exit(code)
+local function errorf(name, format, ...)
+   error(fmt(format, ...))
 end
 
 --- Return the block table identified by bfqn at the level of sys
@@ -585,7 +584,7 @@ local function late_checks(conf, nd)
    foreach(
       function (chk)
 	 if not M._checks[chk] then
-	    err_exit(1, "unknown check %s", chk)
+	    errorf("unknown check %s", chk)
 	 end
 	 M._checks[chk].fun(nd,res)
       end,
@@ -594,7 +593,7 @@ local function late_checks(conf, nd)
    foreach(function(v) warn(v) end, res)
 
    if #res > 0 and conf.werror then
-      err_exit(1, "warnings raised and treating warnings as errors")
+      errorf("warnings raised and treating warnings as errors")
    end
 end
 
@@ -618,8 +617,7 @@ function system.startup(self, nd)
       info("starting block %s", green(bname))
       local ret = ubx.block_tostate(b, 'active')
       if ret ~= 0 then
-	 err_exit(ret, "failed to start block %s: %s",
-		  bname, (ubx.retval_tostr[ret] or ts(ret)))
+	 errorf("failed to start block %s: %s", bname, (ubx.retval_tostr[ret] or ts(ret)))
       end
    end
 
@@ -716,9 +714,9 @@ local function preproc_configs(nd, c, s)
       local bfqn = s._fqn..name
       local ptr = ubx.block_get(nd, bfqn)
       if ptr==nil then
-	 err_exit(1, "error: failed to resolve # blockref to block %s", bfqn)
+	 errorf("error: failed to resolve # blockref to block %s", bfqn)
       elseif ubx.is_proto(ptr) then
-	 err_exit(1, "error: block #%s is a proto block", bfqn)
+	 errorf("error: block #%s is a proto block", bfqn)
       end
       info("resolved # blockref to %s", magenta(bfqn))
       tab[key]=ptr
@@ -746,7 +744,7 @@ local function apply_cfg_val(b, name, val, NC)
 
    if nodecfg then
       if not NC[nodecfg] then
-	 err_exit(1, "invalid node config reference '%s'", val)
+	 errorf("invalid node config reference '%s'", val)
       end
       info("nodecfg %s.%s with %s %s",
 	   green(blkfqn), blue(name), yellow(nodecfg),
@@ -754,10 +752,10 @@ local function apply_cfg_val(b, name, val, NC)
 
       local ret = ubx.config_assign(blkcfg, NC[nodecfg])
       if ret < 0 then
-	 err_exit(1, "failed to assign nodecfg %s to %s: %s",
-		  utils.tab2str(NC[nodecfg]),
-		  green(blkfqn.."."..blue(name)),
-		  ubx.retval_tostr[ret])
+	 errorf("failed to assign nodecfg %s to %s: %s",
+		utils.tab2str(NC[nodecfg]),
+		green(blkfqn.."."..blue(name)),
+		ubx.retval_tostr[ret])
       end
    else -- regular config
       info("cfg %s.%s: %s", green(blkfqn), blue(name), yellow(utils.tab2str(val)))
@@ -815,8 +813,7 @@ local function reapply_config(cfg, b, NC, configured, nonexist)
       if nonexist[cfgfqn] == nil then goto continue end
 
       if ubx.block_config_get(b, name) == nil then
-	 err_exit(1, "block %s [%s] has no config '%s'",
-		  cfg._tgt._fqn, cfg._tgt.type, name)
+	 errorf("block %s [%s] has no config '%s'", cfg._tgt._fqn, cfg._tgt.type, name)
 	 nonexist[cfgfqn] = false
 	 goto continue
       end
@@ -860,8 +857,7 @@ local function configure_blocks(nd, root_sys, NC)
       function(cfg, i)
 	 local b = get_ubx_block(nd, cfg._tgt)
 	 if b == nil then
-	    err_exit(1, "error: config %s for block %s: no such block found",
-		     cfg._fqn, cfg.name)
+	    errorf("error: config %s for block %s: no such block found", cfg._fqn, cfg.name)
 	 end
 
 	 local bstate = b:get_block_state()
@@ -880,8 +876,7 @@ local function configure_blocks(nd, root_sys, NC)
 	 info("initializing block %s", safets(b.name))
 	 local ret = ubx.block_init(b)
 	 if ret ~= 0 then
-	    err_exit(ret, "failed to initialize block %s: %d",
-		     btab.name, tonumber(ret))
+	    errorf("failed to initialize block %s: %d", btab.name, tonumber(ret))
 	 end
       end, root_sys)
 
@@ -890,8 +885,7 @@ local function configure_blocks(nd, root_sys, NC)
       function(cfg, i)
 	 local b = get_ubx_block(nd, cfg._tgt)
 	 if b == nil then
-	    err_exit(1, "error: config %s for block %s: no such block found",
-		     cfg._fqn, cfg.name)
+	    errorf("error: config %s for block %s: no such block found", cfg._fqn, cfg.name)
 	 end
 
 	 local bstate = b:get_block_state()
@@ -933,7 +927,7 @@ local function connect_blocks(nd, root_sys)
       local ret, msg = ubx.connect(nd, srcbn, srcpn, tgtbn, tgtpn, c.type, c.config)
 
       if not ret then
-	 err_exit(1, "error: %s", msg)
+	 errorf("error: %s", msg)
       end
    end
    mapconns(do_connect, root_sys)
