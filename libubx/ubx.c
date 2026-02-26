@@ -837,7 +837,7 @@ int ubx_data_resize(ubx_data_t *d, long newlen)
 {
 	int ret = EOUTOFMEM;
 	void *ptr;
-	unsigned int newsz = newlen * d->type->size;
+	size_t newsz = (size_t)newlen * d->type->size;
 
 	ptr = realloc(d->data, newsz);
 	if (ptr == NULL)
@@ -1329,7 +1329,7 @@ int ubx_ports_connect(ubx_port_t *out_port, ubx_port_t *in_port, const ubx_block
 
 	if (in_port->in_type != out_port->out_type) {
 		logf_err(iblock->nd, "ETYPE_MISMATCH: in: %s, out: %s",
-			 in_port->in_type->name, in_port->out_type->name);
+			 in_port->in_type->name, out_port->out_type->name);
 		return ETYPE_MISMATCH;
 	}
 
@@ -1614,7 +1614,8 @@ static int __ubx_config_add(ubx_block_t *b,
 	if (cnew->max < cnew->min) {
 		ubx_err(b, "config_add: invalid min/max [%u/%u] for %s",
 			cnew->min, cnew->max, name);
-		return EINVALID_CONFIG;;
+		ret = EINVALID_CONFIG;
+		goto out_free;
 	}
 
 	if (doc) {
