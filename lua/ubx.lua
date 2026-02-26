@@ -379,7 +379,10 @@ function M.load_module(nd, libfile)
 
       if utils.file_exists(modpath) then
 	 local res = ubx.ubx_module_load(nd, modpath)
-	 if res ~= 0 then
+	 if res == ffi.C.EENTEXISTS then
+	    notice(nd, "lua", "module "..modpath.." already loaded")
+	    return modpath
+	 elseif res ~= 0 then
 	    error(red("loading module ", true)..magenta(modpath)..red(" failed", true))
 	 end
 	 info(nd, "lua", "loaded module "..modpath)

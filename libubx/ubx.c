@@ -103,10 +103,8 @@ int ubx_module_load(ubx_node_t *nd, const char *lib)
 
 	HASH_FIND_STR(nd->modules, lib, mod);
 
-	if (mod != NULL) {
-		logf_notice(nd, "module %s already loaded", lib);
-		goto out;
-	}
+	if (mod != NULL)
+		return EENTEXISTS;
 
 	/* allocate data */
 	mod = calloc(1, sizeof(ubx_module_t));
