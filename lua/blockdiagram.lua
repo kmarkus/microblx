@@ -175,6 +175,14 @@ local imports_spec = TableSpec
    array = { StringSpec{} },
 }
 
+-- extern_blocks: blocks expected to already exist in the node
+local extern_blocks_spec = TableSpec
+{
+   name='extern_blocks',
+   sealed='both',
+   array = { StringSpec{} },
+}
+
 -- blocks
 local blocks_spec = TableSpec
 {
@@ -351,6 +359,7 @@ local system_spec = ObjectSpec
    dict={
       subsystems = subsystems_spec,
       imports=imports_spec,
+      extern_blocks=extern_blocks_spec,
       blocks=blocks_spec,
       connections=connections_spec,
       node_configurations=node_config_spec,
@@ -360,7 +369,7 @@ local system_spec = ObjectSpec
       _fqn=AnySpec{},
       _srcfile=StringSpec{},
    },
-   optional={ 'subsystems', 'imports', 'blocks', 'connections',
+   optional={ 'subsystems', 'imports', 'extern_blocks', 'blocks', 'connections',
 	      'node_configurations', 'configurations',
 	      '_name', '_parent', '_fqn', '_srcfile' },
 }
@@ -397,6 +406,13 @@ local function resolve_refs(root_sys)
       if not connref then return false end
       local bref, portname = unpack(utils.split(connref, "%."))
       local btab = blocktab_get(sys, bref)
+      if not btab and sys.extern_blocks then
+	 for _, ename in ipairs(sys.extern_blocks) do
+	    if ename == bref then
+	       return { name = bref, _fqn = bref, _extern = true }, portname
+	    end
+	 end
+      end
       return btab, portname
    end
 
@@ -469,6 +485,7 @@ end
 --- System constructor
 function system:init()
    self.imports = self.imports or {}
+   self.extern_blocks = self.extern_blocks or {}
    self.blocks = self.blocks or {}
    self.node_configurations = self.node_configurations or {}
    self.configurations = self.configurations or {}

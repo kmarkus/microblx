@@ -207,6 +207,43 @@ name, configures it with ``config`` and connect ``blkX.portZ`` to it:
   ``blkX.portZ`` in the example above.
 
 This form is useful to create one-line connections via mqueues or similar.
+
+External blocks
+~~~~~~~~~~~~~~~
+
+The ``extern_blocks`` keyword declares blocks that are expected to
+already exist in the node when the composition is launched. This is
+useful when loading an auxiliary composition into a running node (e.g.
+via the ``LoadUSCLua`` or ``LoadUSCJSON`` lsdb interface methods) that
+needs to connect to blocks from the already running core composition.
+
+.. code:: lua
+
+	return bd.system
+	{
+	    imports = { "stdtypes", "lfds_cyclic", "myblocks" },
+
+	    extern_blocks = { "core_sensor", "core_actuator" },
+
+	    blocks = {
+		{ name="controller", type="myblocks/ctrl" },
+	    },
+
+	    connections = {
+		{ src="core_sensor.out", tgt="controller.in" },
+		{ src="controller.out", tgt="core_actuator.in" },
+	    },
+
+	    configurations = {
+		{ name="controller", config = { gain=1.5 } },
+	    },
+	}
+
+Blocks listed in ``extern_blocks`` can be referenced in
+``connections`` just like blocks defined in ``blocks``. Validation
+will reject references to blocks that are in neither ``blocks`` nor
+``extern_blocks``, so typos are still caught at model checking time.
+
   
 Hierarchical compositions
 -------------------------

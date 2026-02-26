@@ -147,4 +147,87 @@ function test_resolve_block_hash_invalid()
 		 "err @ : unable to resolve block ref #g1")
 end
 
+--- Test that extern_blocks allows connections to external blocks
+function test_extern_blocks_valid()
+
+   local sys = bd.system {
+      imports = { "stdtypes", "ramp_int32", "lfds_cyclic" },
+      extern_blocks = { "ext_blk" },
+      blocks = {
+	 { name = "r1", type = "ubx/ramp_int32" },
+      },
+      connections = {
+	 { src = "r1.out", tgt = "ext_blk.in" },
+      },
+      configurations = {
+	 { name = "r1", config = { start=0, slope=1 } },
+      },
+   }
+
+   local numerr = bd.system.validate(sys, false)
+   assert_equals(numerr, 0)
+end
+
+--- Test that a connection to an unknown block (not in blocks or extern_blocks) still fails
+function test_extern_blocks_invalid()
+
+   local sys = bd.system {
+      imports = { "stdtypes", "ramp_int32", "lfds_cyclic" },
+      extern_blocks = { "ext_blk" },
+      blocks = {
+	 { name = "r1", type = "ubx/ramp_int32" },
+      },
+      connections = {
+	 { src = "r1.out", tgt = "typo_blk.in" },
+      },
+      configurations = {
+	 { name = "r1", config = { start=0, slope=1 } },
+      },
+   }
+
+   local numerr, res = bd.system.validate(sys, false)
+   assert(numerr > 0, "expected validation errors for unknown block ref")
+end
+
+--- Test launching extern_blocks into an existing node
+function test_extern_blocks_launch()
+
+   -- first create a node with a "core" block
+   local core = bd.system {
+      imports = { "stdtypes", "random", "lfds_cyclic" },
+      blocks = {
+	 { name = "core_rnd", type = "ubx/random" },
+      },
+      configurations = {
+	 { name = "core_rnd", config = { min_max_config={min=1, max=100} } },
+      },
+   }
+
+   local nd = core:launch{ nodename="test_extern", nostart=true }
+   assert_not_nil(nd)
+
+   -- now load an auxiliary system that connects to the core block
+   local aux = bd.system {
+      imports = { "stdtypes", "random", "lfds_cyclic" },
+      extern_blocks = { "core_rnd" },
+      blocks = {
+	 { name = "aux_rnd", type = "ubx/random" },
+      },
+      connections = {
+	 { src = "core_rnd.rnd", tgt = "aux_rnd.seed" },
+      },
+      configurations = {
+	 { name = "aux_rnd", config = { min_max_config={min=1, max=100} } },
+      },
+   }
+
+   aux:launch{ nd = nd, nostart=true }
+
+   -- verify aux_rnd exists in the node
+   local b = ubx.block_get(nd, "aux_rnd")
+   assert_not_nil(b)
+
+   ubx.node_cleanup(nd)
+end
+
 os.exit( luaunit.LuaUnit.run() )
