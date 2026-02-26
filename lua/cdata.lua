@@ -30,7 +30,7 @@ local num_format_spec="%.3f"
 function M.tolua(cd, refct)
    local res
 
-   if type(cd)==nil then error("cdata is nil") end
+   if rawequal(cd, nil) then error("cdata is nil") end
 
    if type(cd)~='cdata' then return cd end
    refct = refct or reflect.typeof(cd)
@@ -75,7 +75,7 @@ function M.tolua(cd, refct)
    elseif  refct.what=='ptr' then
       -- Don't touch any char*, because we don't know if they are zero
       -- terminated or not
-      if cd==nil then res='NULL'
+      if rawequal(cd, nil) then res='NULL'
       elseif refct.element_type.what=='void' then res=tonumber(ffi.cast('intptr_t', ffi.cast('void *', cd))) --cf. http://wiki.luajit.org/ffi-knowledge       	
       elseif is_prim_num(refct.element_type) then res=tonumber(cd[0])
       else res=M.tolua(cd, refct.element_type) end
@@ -211,7 +211,6 @@ function M.gen_logfun(ctype, prefix)
       return
       function (x, fd)
 	 if x=='header' then fd:write(prefix); return end
-	 print("is_prim_num:", utils.tab2str(reflect.typeof(ffi.typeof(x))))
 	 fd:write(format_num(x))
       end
    elseif is_prim_num_ptr(ctype) then
