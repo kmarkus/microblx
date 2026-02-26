@@ -12,6 +12,9 @@ local ubx = require "ubx"
 local umf = require "umf"
 local utils = require "utils"
 local has_json, json = pcall(require, "cjson")
+if not has_json then
+   has_json, json = pcall(require, "json")
+end
 
 local M={}
 
@@ -38,8 +41,7 @@ local yellow=ubx.yellow
 local magenta=ubx.magenta
 
 local function undef_log()
-   utils.stderr("logger undefined, call def_loggers before using")
-   os.exit(1)
+   error("logger undefined, call def_loggers before using")
 end
 
 local crit, err, warn, notice, info =
@@ -489,42 +491,44 @@ function system:validate(verbose)
    return umf.check(self, system_spec, verbose)
 end
 
---- read blockdiagram system file from usc or json file
--- @param fn file name of file (usc or json)
--- @param file_type optional file type (usc|json). Auto-detected from extension if not provided
-local function load(fn, file_type)
-
-   local function read_json()
-      local f = assert(io.open(fn, "r"))
-      local data = json.decode(f:read("*all"))
-      return system(data)
-   end
-
-   if file_type == nil then
-      file_type = string.match(fn, "^.+%.(.+)$")
-   end
+--- load blockdiagram system from a string
+-- @param str string containing usc (JSON or Lua)
+-- @param file_type type of the string content ('json' or 'usc'/'lua')
+local function load_str(str, file_type)
 
    local suc, mod
    if file_type == 'json' then
       if not has_json then
-	 print("no cjson library found, unable to load json")
-	 os.exit(1)
+	 error("no json library found, unable to load json")
       end
-      suc, mod = pcall(read_json, fn)
+      suc, mod = pcall(function() return system(json.decode(str)) end)
    elseif file_type == 'usc' or file_type == 'lua' then
-      suc, mod = pcall(dofile, fn)
+      local fn, errmsg = _G.load(str, "load_str", "t")
+      if not fn then error("failed to parse lua usc: "..errmsg) end
+      suc, mod = pcall(fn)
    else
-      print("ubx-launch error: unknown file type "..ts(file_type))
-      os.exit(1)
+      error("unknown file type "..ts(file_type))
    end
 
    if not is_system(mod) then
-      print("failed to load "..ts(fn).."\n"..ts(mod))
-      os.exit(1)
+      error("failed to load usc\n"..ts(mod))
    end
 
-   mod._srcfile = fn
+   return mod
+end
 
+--- read blockdiagram system file from usc or json file
+-- @param fn file name of file (usc or json)
+-- @param file_type optional file type (usc|json). Auto-detected from extension if not provided
+local function load(fn, file_type)
+   if file_type == nil then
+      file_type = string.match(fn, "^.+%.(.+)$")
+   end
+   local f = assert(io.open(fn, "r"))
+   local str = f:read("*all")
+   f:close()
+   local mod = load_str(str, file_type)
+   mod._srcfile = fn
    return mod
 end
 
@@ -1052,17 +1056,20 @@ end
 -- @return nd node handle
 function system.launch(self, t)
 
-   if self:validate(false) > 0 then self:validate(true) os.exit(1) end
+   if self:validate(false) > 0 then
+      self:validate(true)
+      error("system validation failed")
+   end
 
    -- fire it up
    t = t or {}
    t.nodename = t.nodename or "n"
    M.LOG_STDERR = t.use_stderr or false
 
-   local nd = ubx.node_create(t.nodename,
-			      { loglevel=t.loglevel,
-				mlockall=t.mlockall,
-				dumpable=t.dumpable })
+   local nd = t.nd or ubx.node_create(t.nodename,
+					{ loglevel=t.loglevel,
+					  mlockall=t.mlockall,
+					  dumpable=t.dumpable })
 
    def_loggers(nd, "launch")
    import_modules(nd, self)
@@ -1082,5 +1089,6 @@ M.is_system = is_system
 M.system = system
 M.system_spec = system_spec
 M.load = load
+M.load_str = load_str
 
 return M
