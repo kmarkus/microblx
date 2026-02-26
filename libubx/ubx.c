@@ -67,7 +67,7 @@ const char *block_states[] = {	"preinit", "inactive", "active" };
  */
 const char *block_state_tostr(unsigned int state)
 {
-	if (state >= sizeof(block_states))
+	if (state >= ARRAY_SIZE(block_states))
 		return "invalid";
 	return block_states[state];
 }
