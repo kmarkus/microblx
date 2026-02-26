@@ -3,6 +3,7 @@ local ffi = require("ffi")
 local lsdb = require("lsdbus")
 local err = require("lsdbus.error")
 local utils = require("utils")
+local bd = require("blockdiagram")
 local pt = require("prettytable")
 local fmt = string.format
 
@@ -97,6 +98,16 @@ end
 local function get_config(vt, block, config)
    local c = check_config(vt, block, config)
    return lsdb.tovariant(c:tolua())
+end
+
+local function load_usc_json(vt, str)
+   local sys = bd.load_str(str, 'json')
+   sys:launch({ nd = vt.nd })
+end
+
+local function load_usc_lua(vt, str)
+   local sys = bd.load_str(str, 'lua')
+   sys:launch({ nd = vt.nd })
 end
 
 -- like ubx_node_clear, but with filters
@@ -308,7 +319,15 @@ local intf = {
 	 handler = read,
       },
 
-      -- LoadUSC = { }
+      LoadUSCJSON = {
+	 { direction='in', name='usc', type='s' },
+	 handler = load_usc_json,
+      },
+
+      LoadUSCLua = {
+	 { direction='in', name='usc', type='s' },
+	 handler = load_usc_lua,
+      },
 
       ClearNode = {
 	 handler = clear_node,

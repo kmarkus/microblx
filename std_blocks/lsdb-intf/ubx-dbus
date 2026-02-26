@@ -250,7 +250,21 @@ if opts.write then
 end
 
 if opts.load_usc then
-   error("load usc: TODO")
+   local p = get_proxy(ndname, bustyp)
+   local ext = string.match(opts.load_usc, "^.+%.(.+)$")
+   local f = io.open(opts.load_usc, "r")
+   if not f then
+      errexit(1, "failed to open file '%s'", opts.load_usc)
+   end
+   local contents = f:read("*all")
+   f:close()
+   if ext == 'json' then
+      p('LoadUSCJSON', contents)
+   elseif ext == 'usc' or ext == 'lua' then
+      p('LoadUSCLua', contents)
+   else
+      errexit(1, "unknown USC file type '%s', expected .json, .usc or .lua", ext or "")
+   end
    handled = true
 end
 
