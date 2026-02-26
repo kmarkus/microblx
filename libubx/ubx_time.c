@@ -173,7 +173,7 @@ void ubx_ts_norm(struct ubx_timespec *ts)
 	/* normalize negative nsec */
 	if (ts->nsec <= -NSEC_PER_SEC) {
 		ts->sec += ts->nsec / NSEC_PER_SEC;
-		ts->nsec = ts->nsec % -NSEC_PER_SEC;
+		ts->nsec = ts->nsec % NSEC_PER_SEC;
 	}
 
 	if (ts->sec > 0 && ts->nsec < 0) {
@@ -227,8 +227,15 @@ void ubx_ts_add(const struct ubx_timespec *ts1, const struct ubx_timespec *ts2,
 void ubx_ts_div(const struct ubx_timespec *ts, const long div,
 		struct ubx_timespec *out)
 {
-	int64_t tmp_nsec = (ts->sec * NSEC_PER_SEC) + ts->nsec;
+	int64_t tmp_nsec;
 
+	if (div == 0) {
+		out->sec = 0;
+		out->nsec = 0;
+		return;
+	}
+
+	tmp_nsec = (ts->sec * NSEC_PER_SEC) + ts->nsec;
 	tmp_nsec /= div;
 	out->sec = tmp_nsec / NSEC_PER_SEC;
 	out->nsec = tmp_nsec % NSEC_PER_SEC;

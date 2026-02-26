@@ -30,7 +30,7 @@ int common_write_stats(ubx_block_t *b, struct ubx_chain *chains, int num_chains)
 		return -1;
 
 	for (int i = 0; i < num_chains; i++) {
-		if (ubx_chain_tstats_fwrite(b, fp, chains) != 0)
+		if (ubx_chain_tstats_fwrite(b, fp, &chains[i]) != 0)
 			return -1;
 	}
 

@@ -63,12 +63,13 @@ int rand_init(ubx_block_t *b)
 
 	/* allocate memory for the block local state */
 	b->private_data = calloc(1, sizeof(struct rand_info));
-	inf = (struct rand_info *)b->private_data;
 
 	if (b->private_data == NULL) {
 		ubx_err(b, "rand: failed to alloc memory");
 		return EOUTOFMEM;
 	}
+
+	inf = (struct rand_info *)b->private_data;
 
 	/* seed */
 	len = cfg_getptr_long(b, SEED, &seed);

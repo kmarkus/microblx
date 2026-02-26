@@ -241,7 +241,8 @@ int ptrig_handle_config(ubx_block_t *b)
 			goto out;
 		}
 
-		if (pthread_attr_setstacksize(&inf->attr, *stacksize)) {
+		ret = pthread_attr_setstacksize(&inf->attr, *stacksize);
+		if (ret) {
 			ubx_err(b, "pthread_attr_setstacksize failed: %s",
 				strerror(ret));
 			goto out;

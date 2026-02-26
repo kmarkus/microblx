@@ -364,7 +364,7 @@ void ubx_node_cleanup(ubx_node_t *nd)
 
 	cnt = ubx_num_types(nd);
 	if (cnt > 0)
-		logf_warn(nd, "not has types after cleanup");
+		logf_warn(nd, "node has types after cleanup");
 
 	cnt = ubx_num_blocks(nd);
 	if (cnt > 0)
