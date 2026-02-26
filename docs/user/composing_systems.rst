@@ -60,6 +60,29 @@ minimal example:
 	}
 
 
+Lua blocks
+~~~~~~~~~~
+
+Blocks implemented in Lua using the ``luablock`` module can be
+instantiated directly in a composition using the ``luablock:`` type
+prefix:
+
+.. code:: lua
+
+	  blocks = {
+	      { name="myblk", type="luablock:myluablock" },
+	  },
+
+When the blockdiagram module encounters a block type with the
+``luablock:`` prefix, it uses the ``luablock-util`` module to locate
+and instantiate the Lua block. The name after the colon (e.g.
+``myluablock``) is resolved by searching for the corresponding
+``.lua`` file in the standard microblx block prefixes. This means
+there is no need to manually import the ``luablock`` module, create a
+``ubx/luablock`` instance, or configure ``lua_file`` with an absolute
+path.
+
+
 Launching
 ~~~~~~~~~
 

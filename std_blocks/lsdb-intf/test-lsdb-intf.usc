@@ -1,28 +1,21 @@
-local LSDB_BLK = "/home/mk/prog/c/microblx/std_blocks/lsdbus/lsdb-intf.lua"
-
 return bd.system {
-   imports = { "stdtypes", "ptrig", "luablock" },
+   imports = { "stdtypes", "ptrig" },
 
    blocks = {
-      { name = "lb1", type="ubx/luablock" },
-      { name = "ptrig1", type="ubx/ptrig" }
+      { name = "lsdb0", type="luablock:lsdb-intf" },
+      { name = "lsdb0-ptrig", type="ubx/ptrig" }
    },
 
    connections = {},
 
    configurations = {
-      { name='lb1',
-	config = {
-	   lua_file = LSDB_BLK }
-      },
-
-      { name="ptrig1",
+      { name="lsdb0-ptrig",
 	config = {
 	   period = {sec=0, usec=100000 },
 	   tstats_mode=0,
 	   tstats_profile_path="/tmp",
 	   chain0={
-	      { b="#lb1" } }
+	      { b="#lsdb0" } }
 	}
       }
    }

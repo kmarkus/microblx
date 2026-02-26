@@ -15,6 +15,7 @@ local has_json, json = pcall(require, "cjson")
 if not has_json then
    has_json, json = pcall(require, "json")
 end
+local has_lbutil, lbutil = pcall(require, "ubx/luablock-util")
 
 local M={}
 
@@ -503,8 +504,9 @@ local function load_str(str, file_type)
       end
       suc, mod = pcall(function() return system(json.decode(str)) end)
    elseif file_type == 'usc' or file_type == 'lua' then
-      local fn, errmsg = _G.load(str, "load_str", "t")
+      local fn, errmsg = loadstring(str, "load_str")
       if not fn then error("failed to parse lua usc: "..errmsg) end
+      setfenv(fn, setmetatable({bd = M}, {__index = _G}))
       suc, mod = pcall(fn)
    else
       error("unknown file type "..ts(file_type))
@@ -664,13 +666,21 @@ local function import_modules(nd, s)
 end
 
 --- Instantiate blocks
--- @param nd ubx_node into which to instantiate the blocks
--- @param root_sys system
+--- @param nd ubx_node into which to instantiate the blocks
+--- @param root_sys system
 local function create_blocks(nd, root_sys)
    mapblocks(
       function(b,i,p)
 	 info("creating block %s [%s]", green(b._fqn), blue(b.type))
-	 ubx.block_create(nd, b.type, b._fqn)
+	 local lbn = string.match(b.type, "^luablock:(.+)")
+	 if lbn then
+	    if not has_lbutil then
+	       errorf("luablock-util not available, can't create lua block %s", b._fqn)
+	    end
+	    lbutil.create(nd, lbn, b._fqn)
+	 else
+	    ubx.block_create(nd, b.type, b._fqn)
+	 end
       end, root_sys)
 end
 
