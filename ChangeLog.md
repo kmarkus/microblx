@@ -5,6 +5,14 @@ This file tracks user visible API changes
 
 ## 0.9.3
 
+- `libubx`: `ubx_module_load` returns `EENTEXISTS` when a module is
+  already loaded. Lua `load_module` has been changed to log and ignore
+  opposed to error in this case.
+- `blockdiagram`: added support for directly loading luablocks via the
+  `luablock:LUABLOCKNAME` syntax.
+- `lsdb-intf`: added D-Bus interface block for remote controlling a
+  ubx system via D-Bus or the command-line tool `ubx-dbus`.
+- `ubx_time`: added support for hw timestamps on arm64 via CNTVCT
 - drop the ffi `lua/reflect.lua` library from the repo. It must be
   installed from `https://github.com/corsix/ffi-reflect`.
 - add `liblfq`: a minimal and portable lock-free queue based on
