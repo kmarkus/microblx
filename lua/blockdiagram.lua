@@ -1088,6 +1088,11 @@ function system.launch(self, t)
       error("system validation failed")
    end
 
+   -- work on a deep copy to avoid mutating the original system spec
+   -- (e.g. preproc_configs replaces #blockrefs with C pointers)
+   local s = utils.deepcopy(self)
+   system_populate_meta(s)
+
    -- fire it up
    t = t or {}
    t.nodename = t.nodename or "n"
@@ -1099,14 +1104,14 @@ function system.launch(self, t)
 					  dumpable=t.dumpable })
 
    def_loggers(nd, "launch")
-   import_modules(nd, self)
-   create_blocks(nd, self)
-   _NC = build_nodecfg_tab(nd, self)
-   configure_blocks(nd, self, _NC)
-   connect_blocks(nd, self)
+   import_modules(nd, s)
+   create_blocks(nd, s)
+   _NC = build_nodecfg_tab(nd, s)
+   configure_blocks(nd, s, _NC)
+   connect_blocks(nd, s)
    late_checks(t, nd)
 
-   if not t.nostart then system.startup(self, nd) end
+   if not t.nostart then system.startup(s, nd) end
 
    return nd
 end
