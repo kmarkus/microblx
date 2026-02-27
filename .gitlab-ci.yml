@@ -1,5 +1,5 @@
 
-image: gcc:bullseye
+image: gcc:trixie
 
 build:
   stage: build
