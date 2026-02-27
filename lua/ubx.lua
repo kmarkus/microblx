@@ -418,6 +418,7 @@ end
 --- Cleanup a node: cleanup and remove instances and unload modules.
 -- @param nd node info
 function M.node_cleanup(nd)
+   ffi.gc(nd, nil)
    ubx.ubx_node_cleanup(nd)
    collectgarbage("collect")
 end
