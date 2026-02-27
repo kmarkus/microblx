@@ -230,4 +230,66 @@ function test_extern_blocks_launch()
    ubx.node_cleanup(nd)
 end
 
+--- Test load_str with Lua format (as used by lsdb-intf LoadUSCLua)
+function test_load_str_lua()
+   local nd = ubx.node_create("test_load_str_lua",
+			      { loglevel=7 })
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "ramp_int32")
+
+   local usc_lua = [[
+return bd.system {
+   imports = { "stdtypes", "ramp_int32" },
+   blocks = {
+      { name = "r1", type = "ubx/ramp_int32" },
+   },
+   configurations = {
+      { name = "r1", config = { start=0, slope=1 } },
+   },
+}
+]]
+   local sys = bd.load_str(usc_lua, 'lua')
+   sys:launch{ nd=nd, nostart=true }
+
+   local b = ubx.block_get(nd, "r1")
+   assert_not_nil(b)
+   assert_equals(b:get_block_state(), "inactive")
+
+   ubx.node_cleanup(nd)
+end
+
+--- Test load_str with JSON format (as used by lsdb-intf LoadUSCJSON)
+function test_load_str_json()
+   local has_json = pcall(require, "cjson") or pcall(require, "json")
+   if not has_json then
+      print("skipping test_load_str_json: no json library")
+      return
+   end
+
+   local nd = ubx.node_create("test_load_str_json",
+			      { loglevel=7 })
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "ramp_int32")
+
+   local usc_json = [[
+{
+   "imports": [ "stdtypes", "ramp_int32" ],
+   "blocks": [
+      { "name": "jr1", "type": "ubx/ramp_int32" }
+   ],
+   "configurations": [
+      { "name": "jr1", "config": { "start": 0, "slope": 1 } }
+   ]
+}
+]]
+   local sys = bd.load_str(usc_json, 'json')
+   sys:launch{ nd=nd, nostart=true }
+
+   local b = ubx.block_get(nd, "jr1")
+   assert_not_nil(b)
+   assert_equals(b:get_block_state(), "inactive")
+
+   ubx.node_cleanup(nd)
+end
+
 os.exit( luaunit.LuaUnit.run() )
