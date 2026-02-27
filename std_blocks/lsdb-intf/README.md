@@ -2,6 +2,26 @@
 
 
 
+## LoadUSC Limitations
+
+The `LoadUSCLua` and `LoadUSCJSON` D-Bus methods accept a USC model
+as a string. Since the model is not loaded from a file, the following
+limitations apply compared to file-based `.usc` loading:
+
+- **No file-based subsystem loading**: `bd.load("file.usc")` in
+  `subsystems` requires a file path. Relative paths will resolve
+  against the current working directory of the node process, not
+  against any source file.
+- **No relative file paths**: any file reference (e.g. `lua_file` in
+  a luablock configuration) must use an absolute path or the
+  `luablock:name` syntax, which searches the standard installation
+  prefixes.
+- **JSON-specific**: the JSON format cannot express Lua constructs
+  such as computed values, variables or function calls. All values
+  must be JSON literals. Subsystem loading via `bd.load()` is
+  unavailable in JSON USC models.
+
+
 ## Examples
 
 ### Start it up
