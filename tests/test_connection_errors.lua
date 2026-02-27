@@ -10,10 +10,13 @@ local ni
 
 TestConnectionErrors = {}
 
+function TestConnectionErrors:setup()
+   ubx.reset_block_uid()
+end
+
 function TestConnectionErrors:teardown()
    if ni then ubx.node_rm(ni) end
    ni = nil
-   ubx.reset_block_uid()
 end
 
 --- Test that connecting ports with mismatched types fails validation

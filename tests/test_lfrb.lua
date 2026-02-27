@@ -15,10 +15,13 @@ local ni
 
 TestLfrb = {}
 
+function TestLfrb:setup()
+   ubx.reset_block_uid()
+end
+
 function TestLfrb:teardown()
    if ni then ubx.node_rm(ni) end
    ni = nil
-   ubx.reset_block_uid()
 end
 
 --- Test basic connection using lfrb iblock

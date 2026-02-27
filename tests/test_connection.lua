@@ -11,10 +11,13 @@ ubx.color=false
 local ni
 TestConnection = {}
 
+function TestConnection:setup()
+   ubx.reset_block_uid()
+end
+
 function TestConnection:teardown()
    if ni then ubx.node_rm(ni) end
    ni = nil
-   ubx.reset_block_uid()
 end
 
 function TestConnection:Test_01_Simple()
