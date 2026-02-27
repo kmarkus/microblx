@@ -72,7 +72,11 @@ Commands
   -r  --read=BLOCK:PORT           read from a port
   -R  --read-mon=BLOCK:PORT       read continuously from a port
   -l  --load-usc=USC              load an usc model
-  -C  --clear                     clear all blocks expect the dbus block
+  -C  --clear=[KEEPLIST]          clear all blocks except the dbus block.
+                                   KEEPLIST is an optional colon-separated list
+                                   of block names or Lua match patterns to keep.
+                                   Patterns are distinguished by ^/$ anchoring.
+                                   e.g. -C=ptrig0:^logger
 
 Options
   -n  --node=NAME                 use the node NAME
@@ -215,7 +219,11 @@ end
 
 if opts.clear then
    local p = get_proxy(ndname, bustyp)
-   p('ClearNode')
+   local keeplist = {}
+   if type(opts.clear) == 'string' then
+      keeplist = split(opts.clear)
+   end
+   p('ClearNode', keeplist)
    handled = true
 end
 

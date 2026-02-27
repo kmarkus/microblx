@@ -192,5 +192,33 @@ $ ubx-dbus -w thres:in:1 && ubx-dbus -t thres
 $ ubx-dbus -w thres:in:0 && ubx-dbus -t thres
 ```
 
+### Clear a node
+
+Clear all block instances except the dbus block itself:
+
+```sh
+$ ubx-dbus -C
+```
+
+To keep specific blocks, pass a colon-separated keeplist:
+
+```sh
+# keep block "ptrig0" (exact name) and all blocks starting with "logger" (Lua match pattern)
+$ ubx-dbus -C=ptrig0:^logger
+```
+
+Keeplist entries are distinguished as follows:
+
+- **Exact name**: a plain string like `ptrig0` matches only blocks
+  with that exact instance name.
+- **Lua match pattern**: if the entry starts with `^` or ends with
+  `$`, it is treated as a Lua
+  [string.match](https://www.lua.org/manual/5.1/manual.html#pdf-string.match)
+  pattern. For example, `^trig` matches any block whose name starts
+  with `trig`, and `_0$` matches any block whose name ends with `_0`.
+
+> **Note**: blocks containing `lsdb` in their name are always kept
+> implicitly.
+
 ### connect a blocks
 

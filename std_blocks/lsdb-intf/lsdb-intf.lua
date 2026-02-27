@@ -110,11 +110,30 @@ local function load_usc_lua(vt, str)
    sys:launch({ nd = vt.nd })
 end
 
+-- Return true if name matches any entry in the keeplist.
+-- Entries anchored with ^ or $ are treated as Lua match patterns,
+-- plain entries are compared as exact block instance names.
+local function keeplist_match(name, keeplist)
+   for _, entry in ipairs(keeplist) do
+      if string.sub(entry, 1, 1) == '^' or string.sub(entry, -1) == '$' then
+	 if string.match(name, entry) then return true end
+      else
+	 if name == entry then return true end
+      end
+   end
+   return false
+end
+
 -- like ubx_node_clear, but with filters
--- TODO: crude exclusion of lsdb blocks by wildcard
-local function clear_node(vt)
+local function clear_node(vt, keeplist)
+   keeplist = keeplist or {}
+
    local function filter(b)
-      return ubx.is_instance(b) and string.match(b:get_name(), "lsdb") == nil
+      if not ubx.is_instance(b) then return false end
+      local name = b:get_name()
+      if string.match(name, "lsdb") then return false end
+      if keeplist_match(name, keeplist) then return false end
+      return true
    end
 
    ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'inactive') end, filter)
@@ -330,6 +349,7 @@ local intf = {
       },
 
       ClearNode = {
+	 { direction='in', name='keeplist', type='as' },
 	 handler = clear_node,
       }
    },
