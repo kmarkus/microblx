@@ -221,4 +221,4 @@ function TestMerge:TestMergePartialConfigOverride()
    lu.assert_equals(ni:b("rnd1"):c("min_max_config"):tolua(), { min = 1, max = 10 })
 end
 
-os.exit(lu.LuaUnit.run())
+if not _RUNNER then os.exit(lu.LuaUnit.run()) end

@@ -115,4 +115,4 @@ function TestSaturation:TestLen5()
    end
 end
 
-os.exit( lu.LuaUnit.run() )
+if not _RUNNER then os.exit( lu.LuaUnit.run() ) end

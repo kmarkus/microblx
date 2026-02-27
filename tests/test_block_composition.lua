@@ -104,11 +104,14 @@ local NI
 
 TestComp = {}
 
---function CompTest:setup() end
+function TestComp:setup()
+   ubx.reset_block_uid()
+end
 
 function TestComp:teardown()
-   if NI then ubx.node_cleanup(NI) end
+   if NI then ubx.node_rm(NI) end
    NI = nil
+   ubx.reset_block_uid()
 end
 
 function TestComp:test_leaf()
@@ -128,10 +131,10 @@ function TestComp:test_leaf()
    local conntab_exp = {
       rnd1={
 	 {seed={incoming={}, outgoing={}}},
-	 {rnd={incoming={}, outgoing={"i_0000000d"}}}
+	 {rnd={incoming={}, outgoing={"i_00000001"}}}
       },
       rnd2={
-	 {seed={incoming={"i_0000000d"}, outgoing={}}},
+	 {seed={incoming={"i_00000001"}, outgoing={}}},
 	 {rnd={incoming={}, outgoing={}}}
       },
       trig={
@@ -382,4 +385,4 @@ function TestComp:test_late_config2()
    end
 end
 
-os.exit( lu.LuaUnit.run() )
+if not _RUNNER then os.exit( lu.LuaUnit.run() ) end

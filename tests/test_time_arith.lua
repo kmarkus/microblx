@@ -16,8 +16,10 @@ local ubx_timespec=ffi.typeof("struct ubx_timespec")
 -- |       |        |       |        |           |
 -- |       |        |       |        |           |
 
+TestTimeArith = {}
+
 -- POS POS
-function test_sub_pos_sec_pos_nsec()
+function TestTimeArith:test_sub_pos_sec_pos_nsec()
    local ts1= ubx_timespec{sec=3, nsec=2}
    local ts2= ubx_timespec{sec=2, nsec=1}
    local tsres = ubx_timespec()
@@ -27,7 +29,7 @@ function test_sub_pos_sec_pos_nsec()
 end
 
 -- NULL POS
-function test_sub_null_sec_pos_nsec()
+function TestTimeArith:test_sub_null_sec_pos_nsec()
    local ts1= ubx_timespec{sec=3, nsec=1}
    local ts2= ubx_timespec{sec=2, nsec=2}
    local tsres = ubx_timespec()
@@ -37,7 +39,7 @@ function test_sub_null_sec_pos_nsec()
 end
 
 -- NULL NEG
-function test_sub_null_sec_neg_nsec()
+function TestTimeArith:test_sub_null_sec_neg_nsec()
    local ts1= ubx_timespec{sec=2, nsec=2}
    local ts2= ubx_timespec{sec=3, nsec=1}
    local tsres = ubx_timespec()
@@ -47,7 +49,7 @@ function test_sub_null_sec_neg_nsec()
 end
 
 --- POS NEG
-function test_sub_pos_sec_neg_nsec()
+function TestTimeArith:test_sub_pos_sec_neg_nsec()
    local ts1= ubx_timespec{sec=4, nsec=1}
    local ts2= ubx_timespec{sec=2, nsec=2}
    local tsres = ubx_timespec()
@@ -57,7 +59,7 @@ function test_sub_pos_sec_neg_nsec()
 end
 
 -- NULL sec, NEG nsec (ts1 < ts2, small diff)
-function test_sub_null_sec_neg_nsec_2()
+function TestTimeArith:test_sub_null_sec_neg_nsec_2()
    local ts1= ubx_timespec{sec=2, nsec=2}
    local ts2= ubx_timespec{sec=3, nsec=1}
    local tsres = ubx_timespec()
@@ -67,7 +69,7 @@ function test_sub_null_sec_neg_nsec_2()
 end
 
 -- NEG sec, NEG nsec (ts1 << ts2)
-function test_sub_neg_sec_neg_nsec_wrap()
+function TestTimeArith:test_sub_neg_sec_neg_nsec_wrap()
    local ts1= ubx_timespec{sec=2, nsec=2}
    local ts2= ubx_timespec{sec=4, nsec=1}
    local tsres = ubx_timespec()
@@ -78,7 +80,7 @@ end
 
 
 -- NEG sec, NEG nsec (both components negative)
-function test_sub_neg_sec_neg_nsec()
+function TestTimeArith:test_sub_neg_sec_neg_nsec()
    local ts1= ubx_timespec{sec=2, nsec=1}
    local ts2= ubx_timespec{sec=3, nsec=2}
    local tsres = ubx_timespec()
@@ -89,7 +91,7 @@ end
 
 
 -- Addition
-function test_add_pos_sec_pos_nsec()
+function TestTimeArith:test_add_pos_sec_pos_nsec()
    local ts1= ubx_timespec{sec=2, nsec=500000000}
    local ts2= ubx_timespec{sec=1, nsec=500000001}
    local tsres = ubx_timespec()
@@ -99,7 +101,7 @@ function test_add_pos_sec_pos_nsec()
 end
 
 -- Addition
-function test_add_zero_sec_neg_nsec()
+function TestTimeArith:test_add_zero_sec_neg_nsec()
    local ts1= ubx_timespec{sec=2, nsec=500000000}
    local ts2= ubx_timespec{sec=0, nsec=-500000001}
    local tsres = ubx_timespec()
@@ -109,7 +111,7 @@ function test_add_zero_sec_neg_nsec()
 end
 
 -- Addition
-function test_add_neg_sec_neg_nsec()
+function TestTimeArith:test_add_neg_sec_neg_nsec()
    local ts1= ubx_timespec{sec=1, nsec=500000000}
    local ts2= ubx_timespec{sec=-2, nsec=-500000001}
    local tsres = ubx_timespec()
@@ -119,7 +121,7 @@ function test_add_neg_sec_neg_nsec()
 end
 
 --- ts_div tests
-function test_div_basic()
+function TestTimeArith:test_div_basic()
    local ts1= ubx_timespec{sec=4, nsec=0}
    local tsres = ubx_timespec()
    ubx.ts_div(ts1, 2, tsres)
@@ -127,7 +129,7 @@ function test_div_basic()
    assert_equals(0, tn(tsres.nsec))
 end
 
-function test_div_with_remainder()
+function TestTimeArith:test_div_with_remainder()
    local ts1= ubx_timespec{sec=1, nsec=0}
    local tsres = ubx_timespec()
    ubx.ts_div(ts1, 3, tsres)
@@ -136,7 +138,7 @@ function test_div_with_remainder()
    assert_equals(333333333, tn(tsres.nsec))
 end
 
-function test_div_by_zero()
+function TestTimeArith:test_div_by_zero()
    local ts1= ubx_timespec{sec=5, nsec=123}
    local tsres = ubx_timespec()
    ubx.ts_div(ts1, 0, tsres)
@@ -144,7 +146,7 @@ function test_div_by_zero()
    assert_equals(0, tn(tsres.nsec))
 end
 
-function test_div_nsec()
+function TestTimeArith:test_div_nsec()
    local ts1= ubx_timespec{sec=0, nsec=900000000}
    local tsres = ubx_timespec()
    ubx.ts_div(ts1, 3, tsres)
@@ -153,64 +155,64 @@ function test_div_nsec()
 end
 
 --- ts_cmp tests
-function test_cmp_equal()
+function TestTimeArith:test_cmp_equal()
    local ts1= ubx_timespec{sec=3, nsec=100}
    local ts2= ubx_timespec{sec=3, nsec=100}
    assert_equals(0, ubx.ts_cmp(ts1, ts2))
 end
 
-function test_cmp_greater_sec()
+function TestTimeArith:test_cmp_greater_sec()
    local ts1= ubx_timespec{sec=4, nsec=0}
    local ts2= ubx_timespec{sec=3, nsec=999999999}
    assert_equals(1, ubx.ts_cmp(ts1, ts2))
 end
 
-function test_cmp_less_sec()
+function TestTimeArith:test_cmp_less_sec()
    local ts1= ubx_timespec{sec=2, nsec=999999999}
    local ts2= ubx_timespec{sec=3, nsec=0}
    assert_equals(-1, ubx.ts_cmp(ts1, ts2))
 end
 
-function test_cmp_greater_nsec()
+function TestTimeArith:test_cmp_greater_nsec()
    local ts1= ubx_timespec{sec=3, nsec=200}
    local ts2= ubx_timespec{sec=3, nsec=100}
    assert_equals(1, ubx.ts_cmp(ts1, ts2))
 end
 
-function test_cmp_less_nsec()
+function TestTimeArith:test_cmp_less_nsec()
    local ts1= ubx_timespec{sec=3, nsec=100}
    local ts2= ubx_timespec{sec=3, nsec=200}
    assert_equals(-1, ubx.ts_cmp(ts1, ts2))
 end
 
 --- ts_to_double test
-function test_ts_to_double()
+function TestTimeArith:test_ts_to_double()
    local ts1= ubx_timespec{sec=3, nsec=500000000}
    local d = tn(ubx.ts_to_double(ts1))
    assert(math.abs(d - 3.5) < 1e-9, "ts_to_double: expected 3.5 got "..d)
 end
 
 --- ts_to_ns test
-function test_ts_to_ns()
+function TestTimeArith:test_ts_to_ns()
    local ts1= ubx_timespec{sec=1, nsec=500000000}
    assert_equals(1500000000ULL, ubx.ts_to_ns(ts1))
 end
 
 --- ts_to_us test
-function test_ts_to_us()
+function TestTimeArith:test_ts_to_us()
    local ts1= ubx_timespec{sec=1, nsec=500000000}
    assert_equals(1500000ULL, ubx.ts_to_us(ts1))
 end
 
 --- ts_norm tests
-function test_norm_large_nsec()
+function TestTimeArith:test_norm_large_nsec()
    local ts = ubx_timespec{sec=1, nsec=2000000000}
    ubx.ts_norm(ts)
    assert_equals(3, tn(ts.sec))
    assert_equals(0, tn(ts.nsec))
 end
 
-function test_norm_neg_nsec()
+function TestTimeArith:test_norm_neg_nsec()
    local ts = ubx_timespec{sec=3, nsec=-1500000000}
    ubx.ts_norm(ts)
    assert_equals(1, tn(ts.sec))
@@ -218,20 +220,20 @@ function test_norm_neg_nsec()
 end
 
 --- timespec metatype operator tests
-function test_mt_eq()
+function TestTimeArith:test_mt_eq()
    local ts1= ubx_timespec{sec=3, nsec=100}
    local ts2= ubx_timespec{sec=3, nsec=100}
    lu.assert_true(ts1 == ts2)
 end
 
-function test_mt_lt()
+function TestTimeArith:test_mt_lt()
    local ts1= ubx_timespec{sec=2, nsec=100}
    local ts2= ubx_timespec{sec=3, nsec=100}
    lu.assert_true(ts1 < ts2)
    lu.assert_false(ts2 < ts1)
 end
 
-function test_mt_le()
+function TestTimeArith:test_mt_le()
    local ts1= ubx_timespec{sec=3, nsec=100}
    local ts2= ubx_timespec{sec=3, nsec=100}
    lu.assert_true(ts1 <= ts2)
@@ -239,4 +241,4 @@ function test_mt_le()
    lu.assert_true(ts3 <= ts1)
 end
 
-os.exit( lu.LuaUnit.run() )
+if not _RUNNER then os.exit( lu.LuaUnit.run() ) end

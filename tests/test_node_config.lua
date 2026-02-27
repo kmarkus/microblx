@@ -39,20 +39,20 @@ local sys1 = bd.system {
 
 local nd=nil
 
-function setup()
+local function setup()
    nd = sys1:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN }
 end
 
-function teardown()
+local function teardown()
    sys1:pulldown(nd)
    nd=nil
 end
 
-test_scalar = {}
-test_scalar.setup = setup
-test_scalar.teardown = teardown
+TestNodeCfgScalar = {}
+TestNodeCfgScalar.setup = setup
+TestNodeCfgScalar.teardown = teardown
 
-function test_scalar.test_initial_node_conf_rampstart()
+function TestNodeCfgScalar:test_initial_node_conf_rampstart()
    for i=1,3 do
       local blkcfg = nd:b("ramp"..i):c("start"):tolua()
       local nodecfg = sys1.node_configurations.ramp_start.config
@@ -60,14 +60,14 @@ function test_scalar.test_initial_node_conf_rampstart()
    end
 end
 
-function test_scalar.test_initial_node_conf_rampslope()
+function TestNodeCfgScalar:test_initial_node_conf_rampslope()
    for i=1,3 do
       local blkcfg = nd:b("ramp"..i):c("slope"):tolua()
       assert_equals(blkcfg, 345, "ramp_slope: nodecfg != blkconfig")
    end
 end
 
-function test_scalar.test_node_conf_change_rampstart()
+function TestNodeCfgScalar:test_node_conf_change_rampstart()
    local new_val = 997755
    nd:b("ramp1"):c("start"):set(new_val)
    for i=1,3 do
@@ -76,7 +76,7 @@ function test_scalar.test_node_conf_change_rampstart()
    end
 end
 
-function test_scalar.test_node_conf_change_rampslope()
+function TestNodeCfgScalar:test_node_conf_change_rampslope()
    local new_val = 11223344
    nd:b("ramp3"):c("slope"):set(new_val)
    for i=1,3 do
@@ -85,11 +85,11 @@ function test_scalar.test_node_conf_change_rampslope()
    end
 end
 
-test_struct = {}
-test_struct.setup = setup
-test_struct.teardown = teardown
+TestNodeCfgStruct = {}
+TestNodeCfgStruct.setup = setup
+TestNodeCfgStruct.teardown = teardown
 
-function test_struct.test_initial_node_conf_struct()
+function TestNodeCfgStruct:test_initial_node_conf_struct()
    for i=1,3 do
       local blkcfg = nd:b("rand"..i):c("min_max_config"):tolua()
       local nodecfg = sys1.node_configurations.rand_conf.config
@@ -98,7 +98,7 @@ function test_struct.test_initial_node_conf_struct()
    end
 end
 
-function test_struct.test_node_conf_change_struct()
+function TestNodeCfgStruct:test_node_conf_change_struct()
    nd:b("rand2"):c("min_max_config"):set{min=29999, max=131313}
 
    for i=1,3 do
@@ -108,11 +108,11 @@ function test_struct.test_node_conf_change_struct()
    end
 end
 
-test_array = {}
-test_array.setup = setup
-test_array.teardown = teardown
+TestNodeCfgArray = {}
+TestNodeCfgArray.setup = setup
+TestNodeCfgArray.teardown = teardown
 
-function test_array.test_array_change()
+function TestNodeCfgArray:test_array_change()
    nd:b("rand2"):c("min_max_config"):set{
       {min=1, max=11},
       {min=2, max=22},
@@ -131,4 +131,4 @@ function test_array.test_array_change()
    end
 end
 
-os.exit( luaunit.LuaUnit.run() )
+if not _RUNNER then os.exit( luaunit.LuaUnit.run() ) end

@@ -62,6 +62,15 @@ local function sys1_gen_configurations()
    return res
 end
 
+TestBlockdiagram = {}
+
+local _nd
+
+function TestBlockdiagram:teardown()
+   if _nd then ubx.node_rm(_nd) end
+   _nd = nil
+end
+
 --- Test launching a simple composition
 local sys1 = bd.system {
    imports = { "stdtypes", "ramp_uint32", "lfds_cyclic", "luablock" },
@@ -70,10 +79,9 @@ local sys1 = bd.system {
    configurations = sys1_gen_configurations(),
 }
 
-function test_launch()
-   local nd=sys1:launch{nodename="sys1", nostart=true }
-   assert_not_nil(nd)
-   ubx.node_cleanup(nd)
+function TestBlockdiagram:test_launch()
+   _nd=sys1:launch{nodename="sys1", nostart=true }
+   assert_not_nil(_nd)
 end
 
 
@@ -85,8 +93,9 @@ local sys_ndcfg_res = bd.system {
    configurations = { { name = "r1", config = { start = 0, slope="&foo" } } }
 }
 
-function test_resolve_ndcfg()
-   assert_not_nil(sys_ndcfg_res:launch{ nodename="test_resolve_ndcfg", nostart=true })
+function TestBlockdiagram:test_resolve_ndcfg()
+   _nd = sys_ndcfg_res:launch{ nodename="test_resolve_ndcfg", nostart=true }
+   assert_not_nil(_nd)
 end
 
 --- Test that an invalid node config is caught
@@ -97,7 +106,7 @@ local sys_invalid_ndcfg = bd.system {
    configurations = { { name = "r1", config = { start = 0, slope="&fooX" } } }
 }
 
-function test_resolve_ndcfg_invalid()
+function TestBlockdiagram:test_resolve_ndcfg_invalid()
    local numerr, res = bd.system.validate(sys_invalid_ndcfg, false)
    assert_equals(numerr, 1)
    assert_equals(utils.strip_ansi(res.msgs[1]),
@@ -105,7 +114,7 @@ function test_resolve_ndcfg_invalid()
 end
 
 --- Test resolving of #block
-function test_resolve_block_hash()
+function TestBlockdiagram:test_resolve_block_hash()
 
    local sys = bd.system {
       imports = { "stdtypes", "ramp_int32", "trig" },
@@ -121,11 +130,12 @@ function test_resolve_block_hash()
 	       chain0 = {
 		  { b="#r1", num_steps=1, measure=0 } } } } } }
 
-   assert_not_nil(sys:launch{ nodename="test_resolve_block_hash", nostart=true })
+   _nd = sys:launch{ nodename="test_resolve_block_hash", nostart=true }
+   assert_not_nil(_nd)
 end
 
 --- Test resolving of #block
-function test_resolve_block_hash_invalid()
+function TestBlockdiagram:test_resolve_block_hash_invalid()
 
    local sys = bd.system {
       imports = { "stdtypes", "ramp_int32", "trig" },
@@ -148,7 +158,7 @@ function test_resolve_block_hash_invalid()
 end
 
 --- Test that extern_blocks allows connections to external blocks
-function test_extern_blocks_valid()
+function TestBlockdiagram:test_extern_blocks_valid()
 
    local sys = bd.system {
       imports = { "stdtypes", "ramp_int32", "lfds_cyclic" },
@@ -169,7 +179,7 @@ function test_extern_blocks_valid()
 end
 
 --- Test that a connection to an unknown block (not in blocks or extern_blocks) still fails
-function test_extern_blocks_invalid()
+function TestBlockdiagram:test_extern_blocks_invalid()
 
    local sys = bd.system {
       imports = { "stdtypes", "ramp_int32", "lfds_cyclic" },
@@ -190,7 +200,7 @@ function test_extern_blocks_invalid()
 end
 
 --- Test launching extern_blocks into an existing node
-function test_extern_blocks_launch()
+function TestBlockdiagram:test_extern_blocks_launch()
 
    -- first create a node with a "core" block
    local core = bd.system {
@@ -203,8 +213,8 @@ function test_extern_blocks_launch()
       },
    }
 
-   local nd = core:launch{ nodename="test_extern", nostart=true }
-   assert_not_nil(nd)
+   _nd = core:launch{ nodename="test_extern", nostart=true }
+   assert_not_nil(_nd)
 
    -- now load an auxiliary system that connects to the core block
    local aux = bd.system {
@@ -221,21 +231,19 @@ function test_extern_blocks_launch()
       },
    }
 
-   aux:launch{ nd = nd, nostart=true }
+   aux:launch{ nd = _nd, nostart=true }
 
    -- verify aux_rnd exists in the node
-   local b = ubx.block_get(nd, "aux_rnd")
+   local b = ubx.block_get(_nd, "aux_rnd")
    assert_not_nil(b)
-
-   ubx.node_cleanup(nd)
 end
 
 --- Test load_str with Lua format (as used by lsdb-intf LoadUSCLua)
-function test_load_str_lua()
-   local nd = ubx.node_create("test_load_str_lua",
-			      { loglevel=7 })
-   ubx.load_module(nd, "stdtypes")
-   ubx.load_module(nd, "ramp_int32")
+function TestBlockdiagram:test_load_str_lua()
+   _nd = ubx.node_create("test_load_str_lua",
+			   { loglevel=7 })
+   ubx.load_module(_nd, "stdtypes")
+   ubx.load_module(_nd, "ramp_int32")
 
    local usc_lua = [[
 return bd.system {
@@ -249,27 +257,25 @@ return bd.system {
 }
 ]]
    local sys = bd.load_str(usc_lua, 'lua')
-   sys:launch{ nd=nd, nostart=true }
+   sys:launch{ nd=_nd, nostart=true }
 
-   local b = ubx.block_get(nd, "r1")
+   local b = ubx.block_get(_nd, "r1")
    assert_not_nil(b)
    assert_equals(b:get_block_state(), "inactive")
-
-   ubx.node_cleanup(nd)
 end
 
 --- Test load_str with JSON format (as used by lsdb-intf LoadUSCJSON)
-function test_load_str_json()
+function TestBlockdiagram:test_load_str_json()
    local has_json = pcall(require, "cjson") or pcall(require, "json")
    if not has_json then
       print("skipping test_load_str_json: no json library")
       return
    end
 
-   local nd = ubx.node_create("test_load_str_json",
-			      { loglevel=7 })
-   ubx.load_module(nd, "stdtypes")
-   ubx.load_module(nd, "ramp_int32")
+   _nd = ubx.node_create("test_load_str_json",
+			  { loglevel=7 })
+   ubx.load_module(_nd, "stdtypes")
+   ubx.load_module(_nd, "ramp_int32")
 
    local usc_json = [[
 {
@@ -283,13 +289,11 @@ function test_load_str_json()
 }
 ]]
    local sys = bd.load_str(usc_json, 'json')
-   sys:launch{ nd=nd, nostart=true }
+   sys:launch{ nd=_nd, nostart=true }
 
-   local b = ubx.block_get(nd, "jr1")
+   local b = ubx.block_get(_nd, "jr1")
    assert_not_nil(b)
    assert_equals(b:get_block_state(), "inactive")
-
-   ubx.node_cleanup(nd)
 end
 
-os.exit( luaunit.LuaUnit.run() )
+if not _RUNNER then os.exit( luaunit.LuaUnit.run() ) end

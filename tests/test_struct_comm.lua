@@ -6,17 +6,13 @@ local ubx=require"ubx"
 local utils=require"utils"
 local cdata=require"cdata"
 
-assert_equals = lu.assert_equals
-assert_true = lu.assert_true
+local assert_equals = lu.assert_equals
+local assert_true = lu.assert_true
 
 local code_str_len = 16*1024*1024
 
-local nd = ubx.node_create("test_struct_comm")
-
-ubx.load_module(nd, "stdtypes")
-ubx.load_module(nd, "testtypes")
-ubx.load_module(nd, "luablock")
-ubx.load_module(nd, "lfds_cyclic")
+local nd
+local lb1, p_pos_out, p_pos_in, _vin, _vout, vcdin, vcdout
 
 local lua_testcomp = [[
 ubx=require "ubx"
@@ -63,22 +59,37 @@ end
 ]]
 
 
-lb1=ubx.block_create(nd, "ubx/luablock", "lb1", { lua_str=lua_testcomp } )
-assert_equals(ubx.block_init(lb1), 0)
+TestStructComm = {}
 
-local p_pos_out = ubx.port_clone_conn(lb1, "pos_in", 4)
-local p_pos_in = ubx.port_clone_conn(lb1, "pos_out", 4)
+function TestStructComm.setupClass()
+   nd = ubx.node_create("test_struct_comm")
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "testtypes")
+   ubx.load_module(nd, "luablock")
+   ubx.load_module(nd, "lfds_cyclic")
 
-assert_equals(ubx.block_start(lb1), 0)
+   lb1=ubx.block_create(nd, "ubx/luablock", "lb1", { lua_str=lua_testcomp } )
+   assert_equals(ubx.block_init(lb1), 0)
 
-local _vin=ubx.data_alloc(nd, "struct kdl_vector")
-local _vout=ubx.data_alloc(nd, "struct kdl_vector")
-vcdin = ubx.data_to_cdata(_vin)
-vcdout = ubx.data_to_cdata(_vout)
+   p_pos_out = ubx.port_clone_conn(lb1, "pos_in", 4)
+   p_pos_in = ubx.port_clone_conn(lb1, "pos_out", 4)
 
-ubx.data_set(_vin, {x=1,y=2,z=3})
+   assert_equals(ubx.block_start(lb1), 0)
 
-function test_comm()
+   _vin=ubx.data_alloc(nd, "struct kdl_vector")
+   _vout=ubx.data_alloc(nd, "struct kdl_vector")
+   vcdin = ubx.data_to_cdata(_vin)
+   vcdout = ubx.data_to_cdata(_vout)
+
+   ubx.data_set(_vin, {x=1,y=2,z=3})
+end
+
+function TestStructComm.teardownClass()
+   if nd then ubx.node_rm(nd) end
+   nd = nil
+end
+
+function TestStructComm:test_comm()
    for i=1,100000 do
       vcdin.x=vcdin.x*i; vcdin.y=vcdin.y*i; vcdin.z=vcdin.z*i;
       ubx.port_write(p_pos_out, _vin)
@@ -90,4 +101,4 @@ function test_comm()
    end
 end
 
-os.exit( lu.LuaUnit.run() )
+if not _RUNNER then os.exit( lu.LuaUnit.run() ) end

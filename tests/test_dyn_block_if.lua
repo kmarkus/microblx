@@ -15,15 +15,23 @@ local assert_nil = lu.assert_nil
 
 local code_str_len = 16*1024*1024
 
-local nd = ubx.node_create("test_dyn_block_if")
-
-ubx.load_module(nd, "stdtypes")
-ubx.load_module(nd, "testtypes")
-ubx.load_module(nd, "luablock")
-ubx.load_module(nd, "lfds_cyclic")
-ubx.load_module(nd, "random")
+local nd
 
 TestDynIF = {}
+
+function TestDynIF.setupClass()
+   nd = ubx.node_create("test_dyn_block_if")
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "testtypes")
+   ubx.load_module(nd, "luablock")
+   ubx.load_module(nd, "lfds_cyclic")
+   ubx.load_module(nd, "random")
+end
+
+function TestDynIF.teardownClass()
+   if nd then ubx.node_rm(nd) end
+   nd = nil
+end
 
 local exec_str, lb
 
@@ -160,4 +168,4 @@ function TestDynIF:TestPortAttrCloned()
    assert_equals(0, bit.band(dynport.attrs, ffi.C.CONFIG_ATTR_CLONED))
 end
 
-os.exit( lu.LuaUnit.run() )
+if not _RUNNER then os.exit( lu.LuaUnit.run() ) end

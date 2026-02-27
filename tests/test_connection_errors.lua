@@ -35,8 +35,10 @@ function TestConnectionErrors:TestTypeMismatch()
 
    -- connecting two output ports should fail (tgt port is not an input)
    -- This will either fail validation or fail at launch
+   -- create node explicitly so teardown can clean it up even if launch errors
+   ni = ubx.node_create("TestTypeMismatch", { loglevel = LOGLEVEL })
    local ok, err = pcall(function()
-      ni = sys:launch({ nodename = "TestTypeMismatch", nostart = true, loglevel = LOGLEVEL })
+      sys:launch({ nd = ni, nodename = "TestTypeMismatch", nostart = true, loglevel = LOGLEVEL })
    end)
    -- expect failure
    lu.assert_false(ok, "expected connection to fail for type/direction mismatch")
@@ -59,8 +61,9 @@ function TestConnectionErrors:TestNonExistentPort()
       },
    }
 
+   ni = ubx.node_create("TestNonExistentPort", { loglevel = LOGLEVEL })
    local ok, err = pcall(function()
-      ni = sys:launch({ nodename = "TestNonExistentPort", nostart = true, loglevel = LOGLEVEL })
+      sys:launch({ nd = ni, nodename = "TestNonExistentPort", nostart = true, loglevel = LOGLEVEL })
    end)
    lu.assert_false(ok, "expected connection to fail for non-existent port")
 end
@@ -164,4 +167,4 @@ function TestConnectionErrors:TestBufferLenConfig()
    lu.assert_equals(ni:b("i_00000001"):c("buffer_len"):tolua(), 42)
 end
 
-os.exit(lu.LuaUnit.run())
+if not _RUNNER then os.exit(lu.LuaUnit.run()) end

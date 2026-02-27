@@ -165,4 +165,4 @@ function TestMathDouble:TestLog()
    lu.assert_almost_equals(val:tolua(), 1.0, eps)
 end
 
-os.exit(lu.LuaUnit.run())
+if not _RUNNER then os.exit(lu.LuaUnit.run()) end

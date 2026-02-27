@@ -16,7 +16,7 @@ function TestTypeLookup:setup()
 end
 
 function TestTypeLookup:teardown()
-   if NI then ubx.node_cleanup(NI) end
+   if NI then ubx.node_rm(NI) end
    NI = nil
 end
 
@@ -58,4 +58,4 @@ function TestTypeLookup:TestLookupInvalidHashstr()
 end
 
 
-os.exit( luaunit.LuaUnit.run() )
+if not _RUNNER then os.exit( luaunit.LuaUnit.run() ) end

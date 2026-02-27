@@ -14,12 +14,22 @@ local assert_false = lu.assert_false
 local assert_equals = lu.assert_equals
 local assert_not_equals = lu.assert_not_equals
 
-local nd=ubx.node_create("cdata_tolua_test")
+local nd
 
-ubx.load_module(nd, "stdtypes")
-ubx.load_module(nd, "testtypes")
+TestCdataTolua = {}
 
-function test_vector()
+function TestCdataTolua.setupClass()
+   nd=ubx.node_create("cdata_tolua_test")
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "testtypes")
+end
+
+function TestCdataTolua.teardownClass()
+   if nd then ubx.node_rm(nd) end
+   nd = nil
+end
+
+function TestCdataTolua:test_vector()
    local init = {x=1,y=2,z=3}
    local v1 = ffi.new("struct kdl_vector", init)
 
@@ -27,7 +37,7 @@ function test_vector()
    assert_true(utils.table_cmp(val, init), "A: table->vector rountrip comparison error")
 end
 
-function test_vector_inv()
+function TestCdataTolua:test_vector_inv()
    local init = {x=1,y=2,z=3}
    local v1 = ffi.new("struct kdl_vector", init)
    v1.x=33
@@ -36,7 +46,7 @@ function test_vector_inv()
    assert_false(utils.table_cmp(val, init), "B: table->vector rountrip comparison error")
 end
 
-function test_frame()
+function TestCdataTolua:test_frame()
    local init = {
       M={ data = {
 	     1, 0, 0,
@@ -52,7 +62,7 @@ function test_frame()
    assert_true(utils.table_cmp(val, init), "C: table->frame rountrip comparison error")
 end
 
-function test_frame_inv()
+function TestCdataTolua:test_frame_inv()
    local init = {
       M={ data = {
 	     1, 0, 0,
@@ -67,7 +77,7 @@ function test_frame_inv()
    assert_false(utils.table_cmp(val, init), "D: table->frame rountrip comparison error")
 end
 
-function test_char()
+function TestCdataTolua:test_char()
    local init = {
       name="Frodo Baggins",
       benchmark=993
@@ -79,21 +89,21 @@ function test_char()
 end
 
 
-function test_int()
+function TestCdataTolua:test_int()
    local init=33
    local i = ffi.new("unsigned int", init)
    local val=cdata.tolua(i)
    assert_equals(val, init, "F: table->int rountrip comparison error")
 end
 
-function test_int_inv()
+function TestCdataTolua:test_int_inv()
    local init=33
    local i = ffi.new("unsigned int", init)
    local val=cdata.tolua(i)
    assert_not_equals(init, val-1, "G: table->int rountrip comparison error")
 end
 
-function test_ubx_data()
+function TestCdataTolua:test_ubx_data()
    local ubx_data_vect = ubx.data_alloc(nd, "struct kdl_vector", 1)
    local init = { x=7, y=8, z=9 }
    ubx.data_set(ubx_data_vect, init, true)
@@ -101,7 +111,7 @@ function test_ubx_data()
    assert_true(utils.table_cmp(val, init), "H: table->ubx_data(vector) rountrip comparison error")
 end
 
-function test_ubx_data_inv()
+function TestCdataTolua:test_ubx_data_inv()
    local ubx_data_vect = ubx.data_alloc(nd, "struct kdl_vector", 1)
    local init = { x=2, y=5, z=22 }
    ubx.data_set(ubx_data_vect, init, true)
@@ -110,7 +120,7 @@ function test_ubx_data_inv()
    assert_false(utils.table_cmp(val, init), "I: table->ubx_data(vector) rountrip comparison error")
 end
 
-function test_ubx_data_basic()
+function TestCdataTolua:test_ubx_data_basic()
    local ubx_data_int = ubx.data_alloc(nd, "unsigned int", 1)
    local init = 4711
    ubx.data_set(ubx_data_int, init, false)
@@ -119,7 +129,7 @@ function test_ubx_data_basic()
    assert_equals(init, val, "J: table->ubx_data(int) rountrip comparison error")
 end
 
-function test_pointer_to_prim()
+function TestCdataTolua:test_pointer_to_prim()
    local init = 333
    local i = ffi.new("unsigned int[1]", init )
    local ip = ffi.new("unsigned int*", i)
@@ -133,7 +143,7 @@ function test_pointer_to_prim()
 
 end
 
-function test_arr_data()
+function TestCdataTolua:test_arr_data()
    local d = ubx.data_alloc(nd, "double", 5)
    local init = {1.1,2.2,3.3,4.4,5.5}
    ubx.data_set(d, init)
@@ -141,11 +151,11 @@ function test_arr_data()
    assert_true(utils.table_cmp(res, init), "test_arr_data double[5] roundtrip failed")
 end
 
-function test_void_pointer_to_prim()
+function TestCdataTolua:test_void_pointer_to_prim()
    local init = 0xdeafbeaf
    local vp = ffi.new("void *", ffi.cast('void *', init))
    local val = cdata.tolua(vp)
    assert_equals(init, val, "L: mismatch after converting from cdata")
 end
 
-os.exit( lu.LuaUnit.run() )
+if not _RUNNER then os.exit( lu.LuaUnit.run() ) end

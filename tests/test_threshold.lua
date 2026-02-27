@@ -142,4 +142,4 @@ function TestThreshold:TestNoData()
    lu.assert_equals(tonumber(slen), 0)
 end
 
-os.exit(lu.LuaUnit.run())
+if not _RUNNER then os.exit(lu.LuaUnit.run()) end

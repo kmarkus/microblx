@@ -4,12 +4,22 @@ local ubx=require"ubx"
 
 local assert_equals = lu.assert_equals
 
-local nd=ubx.node_create("data_init_test")
+local nd
 
-ubx.load_module(nd, "stdtypes")
-ubx.load_module(nd, "testtypes")
+TestDataInit = {}
 
-function test_scalar_assignment()
+function TestDataInit.setupClass()
+   nd=ubx.node_create("data_init_test")
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "testtypes")
+end
+
+function TestDataInit.teardownClass()
+   if nd then ubx.node_rm(nd) end
+   nd = nil
+end
+
+function TestDataInit:test_scalar_assignment()
    local d=ubx.data_alloc(nd, "unsigned int")
    ubx.data_set(d, 33)
    local numptr = ffi.cast("unsigned int*", d.data)
@@ -17,7 +27,7 @@ function test_scalar_assignment()
    -- ubx.data_free(d)
 end
 
-function test_scalar_assignment_zero_data()
+function TestDataInit:test_scalar_assignment_zero_data()
    local d=ubx.data_alloc(nd, "unsigned int", 0)
    ubx.data_set(d, 33, true)
    local numptr = ffi.cast("unsigned int*", d.data)
@@ -25,7 +35,7 @@ function test_scalar_assignment_zero_data()
    -- ubx.data_free(d)
 end
 
-function test_string_assignment()
+function TestDataInit:test_string_assignment()
    local teststr="my beautiful string"
    local d=ubx.data_alloc(nd, "char", 30)
    ubx.data_set(d, teststr)
@@ -34,7 +44,7 @@ function test_string_assignment()
    -- ubx.data_free(d)
 end
 
-function test_string_assignment_zero_data()
+function TestDataInit:test_string_assignment_zero_data()
    local teststr="my beautiful string"
    local d=ubx.data_alloc(nd, "char", 0)
    ubx.data_set(d, teststr, true)
@@ -43,7 +53,7 @@ function test_string_assignment_zero_data()
    -- ubx.data_free(d)
 end
 
-function test_simple_struct_assignment()
+function TestDataInit:test_simple_struct_assignment()
    local d=ubx.data_alloc(nd, "struct kdl_vector")
    ubx.data_set(d, {x=444,y=55.3, z=-34})
    local vptr = ffi.cast("struct kdl_vector*", d.data)
@@ -53,7 +63,7 @@ function test_simple_struct_assignment()
    -- ubx.data_free(d)
 end
 
-function test_simple_struct_assignment_zero_data()
+function TestDataInit:test_simple_struct_assignment_zero_data()
    local d=ubx.data_alloc(nd, "struct kdl_vector", 0)
    ubx.data_set(d, {x=444,y=55.3, z=-34}, true)
    local vptr = ffi.cast("struct kdl_vector*", d.data)
@@ -63,7 +73,7 @@ function test_simple_struct_assignment_zero_data()
    -- ubx.data_free(d)
 end
 
-function test_composite_struct_assignment()
+function TestDataInit:test_composite_struct_assignment()
    local d=ubx.data_alloc(nd, "struct kdl_frame")
    local conf = {
       p={ x=444, y=55.3, z=-34 },
@@ -93,7 +103,7 @@ function test_composite_struct_assignment()
    assert_equals(333, vptr.M.data[8])
 end
 
-function test_composite_struct_assignment_zero_data()
+function TestDataInit:test_composite_struct_assignment_zero_data()
    local d=ubx.data_alloc(nd, "struct kdl_frame", 0)
    local conf = {
       p={ x=444, y=55.3, z=-34 },
@@ -123,7 +133,7 @@ function test_composite_struct_assignment_zero_data()
    assert_equals(333, vptr.M.data[8])
 end
 
-function test_simple_struct_assignment2()
+function TestDataInit:test_simple_struct_assignment2()
    local d=ubx.data_alloc(nd, "struct test_trig_conf", 3)
    local conf = {
       { name="block_name1", benchmark=0 },
@@ -145,7 +155,7 @@ function test_simple_struct_assignment2()
    -- ubx.data_free(d)
 end
 
-function test_data_resize()
+function TestDataInit:test_data_resize()
    local d=ubx.data_alloc(nd, "struct test_trig_conf", 0)
    local conf = {
       { name="block_name1", benchmark=0 },
@@ -169,4 +179,4 @@ function test_data_resize()
    -- ubx.data_free(d)
 end
 
-os.exit( lu.LuaUnit.run() )
+if not _RUNNER then os.exit( lu.LuaUnit.run() ) end

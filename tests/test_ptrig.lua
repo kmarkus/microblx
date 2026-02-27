@@ -369,4 +369,4 @@ end
 
 
 
-os.exit( luaunit.LuaUnit.run() )
+if not _RUNNER then os.exit( luaunit.LuaUnit.run() ) end

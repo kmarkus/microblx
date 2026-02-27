@@ -145,4 +145,4 @@ function TestLfrb:TestConnTab()
    lu.assert_equals(conntab, conntab_exp)
 end
 
-os.exit(lu.LuaUnit.run())
+if not _RUNNER then os.exit(lu.LuaUnit.run()) end

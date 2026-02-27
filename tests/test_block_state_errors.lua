@@ -23,7 +23,7 @@ function TestBlockStateErrors:setup()
 end
 
 function TestBlockStateErrors:teardown()
-   if nd then ubx.node_cleanup(nd) end
+   if nd then ubx.node_rm(nd) end
    nd = nil
 end
 
@@ -130,4 +130,4 @@ function TestBlockStateErrors:TestNumBlocks()
    assert_equals(ib1, ib0)
 end
 
-os.exit(lu.LuaUnit.run())
+if not _RUNNER then os.exit(lu.LuaUnit.run()) end

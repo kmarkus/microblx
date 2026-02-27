@@ -163,4 +163,4 @@ function TestPID:TestVectorPID()
    lu.assert_equals(val:tolua(), { 9.0, 36.0, 81.0 })
 end
 
-os.exit(lu.LuaUnit.run())
+if not _RUNNER then os.exit(lu.LuaUnit.run()) end
