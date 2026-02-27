@@ -289,7 +289,7 @@ int ubx_node_init(ubx_node_t *nd, const char *name, uint32_t attrs)
 	logf_info(nd, "TSC timesource enabled");
 #endif
 
-	nd->attrs = attrs;
+	nd->attrs = attrs | ND_INITIALIZED;
 	nd->blocks = NULL;
 	nd->types = NULL;
 	nd->modules = NULL;
@@ -354,6 +354,9 @@ void ubx_node_cleanup(ubx_node_t *nd)
 	int cnt;
 	ubx_module_t *m = NULL, *mtmp = NULL;
 
+	if (!(nd->attrs & ND_INITIALIZED))
+		return;
+
 	logf_debug(nd, "node %s", nd->name);
 
 	ubx_node_clear(nd);
@@ -394,6 +397,7 @@ void ubx_node_rm(ubx_node_t *nd)
 	logf_info(nd, "removing node %s", nd->name);
 	ubx_node_cleanup(nd);
 	ubx_log_cleanup(nd);
+	nd->attrs &= ~ND_INITIALIZED;
 	memset((char*) nd->name, 0, UBX_NODE_NAME_MAXLEN);
 }
 

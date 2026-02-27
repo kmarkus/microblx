@@ -370,8 +370,9 @@ typedef struct ubx_module {
 
 /* node flags */
 enum {
-	ND_MLOCK_ALL = 1 << 0,
-	ND_DUMPABLE =  1 << 1,
+	ND_MLOCK_ALL =    1 << 0,
+	ND_DUMPABLE =     1 << 1,
+	ND_INITIALIZED =  1 << 2,
 };
 
 /**
