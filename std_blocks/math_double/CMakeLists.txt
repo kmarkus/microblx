@@ -1,29 +1,33 @@
-set(MOD_NAME math_double)
+set(MOD_SRC_DIR ${CMAKE_SOURCE_DIR}/std_blocks/math_double)
+set(MOD_BUILD_DIR ${CMAKE_BINARY_DIR}/std_blocks/math_double)
 
-set(MOD_SRC_DIR ${CMAKE_SOURCE_DIR}/std_blocks/${MOD_NAME})
-set(MOD_BUILD_DIR ${CMAKE_BINARY_DIR}/std_blocks/${MOD_NAME})
-
-# module
 set(MOD_SRCS ${MOD_SRC_DIR}/math_double.c)
 
-add_library(${MOD_NAME} MODULE ${MOD_SRCS} ${MOD_HDRS} ${MOD_HDRS_GEN})
+# helper to compile math variants
+function(add_math name type)
+  add_library(${name} MODULE ${MOD_SRCS})
 
-target_include_directories(${MOD_NAME}
-  PRIVATE ${CMAKE_SOURCE_DIR}/libubx/
-  ${MOD_BUILD_DIR}
-)
+  target_include_directories(${name}
+    PRIVATE ${CMAKE_SOURCE_DIR}/libubx/
+    ${MOD_BUILD_DIR}
+  )
 
-target_compile_options(${MOD_NAME} PRIVATE ${UBX_MOD_CFLAGS})
-target_link_libraries(${MOD_NAME} PRIVATE ubx)
+  target_compile_definitions(${name} PRIVATE -DMATH_T=${type})
+  target_compile_options(${name} PRIVATE ${UBX_MOD_CFLAGS})
+  target_link_libraries(${name} PRIVATE ubx)
 
-set_target_properties(${MOD_NAME}
-  PROPERTIES
-  POSITION_INDEPENDENT_CODE ON
-  PREFIX ""
-  OUTPUT_NAME ${MOD_NAME}
-)
+  set_target_properties(${name}
+    PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    PREFIX ""
+    OUTPUT_NAME ${name}
+  )
 
-install(
-  TARGETS ${MOD_NAME}
-  LIBRARY DESTINATION ${UBX_MOD_DIR} COMPONENT libraries
-)
+  install(
+    TARGETS ${name}
+    LIBRARY DESTINATION ${UBX_MOD_DIR} COMPONENT libraries
+  )
+endfunction()
+
+add_math(math_double double)
+add_math(math_float float)
