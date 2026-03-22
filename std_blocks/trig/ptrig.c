@@ -69,6 +69,7 @@ ubx_proto_config_t ptrig_config[] = {
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "directory to write the timing stats file to" },
 	{ .name = "tstats_output_rate", .type_name = "double", .max = 1, .doc = "throttle output on tstats port" },
 	{ .name = "tstats_skip_first", .type_name = "int", .max=1, .doc = "skip N steps before acquiring stats" },
+	{ .name = "sleep_mode", .type_name = "int", .max = 1, .doc = "0: OS sleep (ubx_nanosleep, def), 1: busy-wait (ubx_nanowait)",  },
 	{ .name = "loglevel", .type_name = "int" },
 	{ 0 },
 };
@@ -113,10 +114,21 @@ struct ptrig_inf {
 	int actchain;
 
 	int64_t autostop_steps;
+	int sleep_mode;
+	int (*sleep_fn)(const struct ubx_timespec *);
 
 	ubx_port_t *p_actchain;
 };
 
+
+static const char *sleep_mode_tostr(int sleep_mode)
+{
+	switch (sleep_mode) {
+	case 0: return "OS sleep (ubx_nanosleep)";
+	case 1: return "busy-wait (ubx_nanowait)";
+	default: return "unknown";
+	}
+}
 
 /* helper for normalizing struct timespecs */
 inline void tsnorm(struct timespec *ts)
@@ -190,10 +202,10 @@ void *thread_startup(void *arg)
 			}
 		}
 
-		ret = ubx_nanosleep(TIMER_ABSTIME, &next);
+		ret = inf->sleep_fn(&next);
 
 		if (ret) {
-			ubx_err(b, "clock_nanosleep failed: %s", strerror(errno));
+			ubx_err(b, "sleep failed: %s", strerror(errno));
 			goto out;
 		}
 	}
@@ -220,6 +232,19 @@ int ptrig_handle_config(ubx_block_t *b)
 	assert(len >= 0);
 
 	inf->autostop_steps = (len > 0) ? *autostop_steps : -1;
+
+	/* sleep_mode */
+	const int *sleep_mode;
+	len = cfg_getptr_int(b, "sleep_mode", &sleep_mode);
+	assert(len >= 0);
+	inf->sleep_mode = (len > 0) ? *sleep_mode : 0;
+
+	if (inf->sleep_mode < 0 || inf->sleep_mode > 1) {
+		ubx_err(b, "invalid sleep_mode %d, expected 0 (sleep) or 1 (busy)",
+			inf->sleep_mode);
+		goto out;
+	}
+	inf->sleep_fn = (inf->sleep_mode == 0) ? ubx_nanosleep : ubx_nanowait;
 
 	/* period */
 	len = cfg_getptr_ptrig_period(b, "period", &inf->period);
@@ -303,16 +328,17 @@ int ptrig_handle_config(ubx_block_t *b)
 
 	/* log */
 	if (stacksize != NULL)
-		ubx_info(b, "period: %lus:%luus, policy %s, prio %d, stacksize 0x%zu",
+		ubx_info(b, "period: %lus:%luus, policy %s, prio %d, stacksize 0x%zu, sleep_mode %s",
 			 inf->period->sec, inf->period->usec,
 			 schedpol_tostr(schedpol),
 			 sched_param.sched_priority,
-			 *stacksize);
+			 *stacksize, sleep_mode_tostr(inf->sleep_mode));
 	else
-		ubx_info(b, "period %lus:%luus, policy %s, prio %d, stacksize default",
+		ubx_info(b, "period %lus:%luus, policy %s, prio %d, stacksize default, sleep_mode %s",
 			 inf->period->sec, inf->period->usec,
 			 schedpol_tostr(schedpol),
-			 sched_param.sched_priority);
+			 sched_param.sched_priority,
+			 sleep_mode_tostr(inf->sleep_mode));
 
 	ret = 0;
 out:

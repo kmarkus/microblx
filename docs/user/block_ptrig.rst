@@ -28,6 +28,7 @@ Configs
    tstats_profile_path, ``char``, "directory to write the timing stats file to"
    tstats_output_rate, ``double``, "throttle output on tstats port"
    tstats_skip_first, ``int``, "skip N steps before acquiring stats"
+   sleep_mode, ``int``, "0: OS sleep (ubx_nanosleep, def), 1: busy-wait (ubx_nanowait)"
    loglevel, ``int``, ""
 
 
