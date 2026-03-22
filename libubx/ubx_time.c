@@ -25,7 +25,7 @@ static uint64_t rdtscp(void)
 }
 
 /**
- * ubx_clock_gettime - get elapsed using TSC counters
+ * ubx_gettime - get elapsed using TSC counters
  * @param uts
  * @return 0 or EINVALID_ARG
  */
@@ -70,7 +70,7 @@ int ubx_gettime(struct ubx_timespec *uts)
 
 #else /* no HW timestamps */
 /**
- * ubx_clock_gettime
+ * ubx_gettime
  * get current time using clock_gettime(CLOCK_MONOTONIC).
  *
  * @param uts
@@ -87,53 +87,52 @@ int ubx_gettime(struct ubx_timespec *uts)
 
 #endif /* TIMESRC_* */
 
-#if defined(TIMESRC_TSC) || defined(TIMESRC_CNTVCT)
 /**
- * ubx_clock_nanosleep - get elapsed using tsc counter
+ * ubx_nanosleep - sleep until absolute time using clock_nanosleep
  *
- * @param flags	(same flags as clock_nanosleep)
- * @param request abs or relative time to sleep
+ * Uses clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME) to sleep
+ * until the given absolute time. Yields the CPU while waiting.
+ *
+ * @param abs absolute monotonic target time
  * @return 0 or error
  */
-int ubx_nanosleep(int flags, struct ubx_timespec *request)
+int ubx_nanosleep(const struct ubx_timespec *abs)
+{
+	if (abs == NULL)
+		return EINVALID_ARG;
+
+	return clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME,
+			       (const struct timespec *)abs, NULL);
+}
+
+/**
+ * ubx_nanowait - busy-wait until absolute time
+ *
+ * Spins on ubx_gettime until the given absolute time is reached.
+ * Suitable for hard realtime use.
+ *
+ * @param abs absolute monotonic target time
+ * @return 0 or error
+ */
+int ubx_nanowait(const struct ubx_timespec *abs)
 {
 	int ret;
-	struct ubx_timespec *endp, end, now;
+	struct ubx_timespec now;
 
-	if (flags & TIMER_ABSTIME) {
-		endp = request;
-	} else {
-		ret = ubx_gettime(&end);
-
-		if (ret)
-			goto out;
-
-		ubx_ts_add(&end, request, &end);
-		endp = &end;
-	}
+	if (abs == NULL)
+		return EINVALID_ARG;
 
 	for (;;) {
 		ret = ubx_gettime(&now);
 
 		if (ret)
-			goto out;
+			return ret;
 
-		if (ubx_ts_cmp(&now, endp) == 1)
+		if (ubx_ts_cmp(&now, abs) == 1)
 			break;
 	}
-out:
-	return ret;
+	return 0;
 }
-
-#else /* use POSIX clock_nanosleep */
-
-int ubx_nanosleep(int flags, struct ubx_timespec *request)
-{
-	struct timespec *ts = (struct timespec *)request;
-	return clock_nanosleep(CLOCK_MONOTONIC, flags, ts, NULL);
-}
-
-#endif
 
 /**
  * Compare two ubx_timespecs

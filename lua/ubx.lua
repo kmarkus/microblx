@@ -306,8 +306,23 @@ M.debug = dbg
 -- @return struct ubx_timespec with current time
 function M.clock_mono_gettime(ts)
    ts = ts or ffi.new("struct ubx_timespec")
-   ubx.ubx_clock_gettime(ts)
+   ubx.ubx_gettime(ts)
    return ts
+end
+
+--- Sleep for a relative duration using ubx_nanosleep.
+-- @param sec seconds to sleep
+-- @param nsec nanoseconds to sleep (optional, default 0)
+function M.clock_mono_sleep(sec, nsec)
+   local ts = ffi.new("struct ubx_timespec")
+   ubx.ubx_gettime(ts)
+   ts.sec = ts.sec + sec
+   ts.nsec = ts.nsec + (nsec or 0)
+   if ts.nsec >= 1000000000 then
+      ts.sec = ts.sec + 1
+      ts.nsec = ts.nsec - 1000000000
+   end
+   ubx.ubx_nanosleep(ts)
 end
 
 local function to_sec(sec, nsec)
@@ -433,14 +448,6 @@ function M.block_create(nd, type, name, conf)
    if b==nil then error("failed to create block "..ts(name).." of type "..ts(type)) end
    if conf then M.set_config_tab(b, conf) end
    return b
-end
-
--- OS stuff
-function M.clock_mono_sleep(sec, nsec)
-   local ts = ffi.new("struct ubx_timespec")
-   ts.sec=sec
-   ts.nsec=nsec or 0
-   ubx.ubx_nanosleep(0, ts)
 end
 
 -- find out whether to use lfds_cyclic or lfrb
