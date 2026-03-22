@@ -23,12 +23,16 @@ local function load_luablock(nd)
 end
 
 --- Create a new luablock
--- @param node
+-- @param nd node
 -- @param block	either a) a path to file with lua block or b) a blockname (w/o extension) to search for in path
 -- @param name name of the block
 -- @param tgtstate optional: desired state of the block
--- @param return block
-function M.create(nd, block, name, tgtstate)
+-- @param active optional: if true or a table {period=N}, make the block
+--   self-triggering using the luablock's built-in thread. When true,
+--   the default period is 100 ms. When a table, the 'period' field
+--   sets the period in milliseconds.
+-- @return block
+function M.create(nd, block, name, tgtstate, active)
    local fn, b
 
    load_luablock(nd)
@@ -52,7 +56,18 @@ function M.create(nd, block, name, tgtstate)
       end
    end
 
-   b = ubx.block_create(nd, "ubx/luablock", name, { lua_file=fn } )
+   local cfg = { lua_file=fn }
+
+   if active then
+      local period = 100
+      if type(active) == 'table' and active.period then
+	 period = active.period
+      end
+      cfg.thread = 1
+      cfg.period = period
+   end
+
+   b = ubx.block_create(nd, "ubx/luablock", name, cfg)
 
    if tgtstate then
       ubx.block_tostate(b, tgtstate)

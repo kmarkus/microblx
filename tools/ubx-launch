@@ -175,25 +175,13 @@ if opttab['-webif'] then
 end
 
 if opttab['-dbus'] then
-   -- TODO
-   pcall(ubx.load_module, nd, "ptrig")
-
-   -- load the luablock instantiation helper module
    local have_luablock, lbutil = pcall(require, "ubx/luablock-util")
 
    if not have_luablock then
       errexit(1, "luablock module is not available")
    end
 
-   --  create
-   local lsdb0 = lbutil.create(nd, "lsdb-intf", "lsdb0", "active")
-   local lsdb0_ptrig = ubx.block_create(
-      nd, "ubx/ptrig", "lsdb0-ptrig", { num_chains=1, period={sec=0,usec=100000} }
-   )
-   ubx.block_init(lsdb0_ptrig)
-   ubx.set_config(lsdb0_ptrig, "chain0", { b=lsdb0} )
-   ubx.block_tostate(lsdb0, "active")
-   ubx.block_tostate(lsdb0_ptrig, "active")
+   lbutil.create(nd, "lsdb-intf", "lsdb0", "active", true)
 end
 
 if not opttab['-i'] then

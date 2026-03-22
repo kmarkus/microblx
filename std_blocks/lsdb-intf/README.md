@@ -53,7 +53,6 @@ cblocks:      {
   {"sin", "ubx/math_double", "active"},
   {"trigger", "ubx/ptrig", "inactive"},
   {"lsdb0", "ubx/luablock", "active"},
-  {"lsdb0-ptrig", "ubx/ptrig", "active"},
 }
 connections:  {
   {from="i_00000002", to={"thres", "in"}},
@@ -217,7 +216,7 @@ Keeplist entries are distinguished as follows:
   pattern. For example, `^trig` matches any block whose name starts
   with `trig`, and `_0$` matches any block whose name ends with `_0`.
 
-> **Note**: blocks containing `lsdb` in their name are always kept
+> **Note**: the lsdb-intf block's own instance is always kept
 > implicitly.
 
 ### connect a blocks

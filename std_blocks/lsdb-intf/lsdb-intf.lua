@@ -131,7 +131,7 @@ local function clear_node(vt, keeplist)
    local function filter(b)
       if not ubx.is_instance(b) then return false end
       local name = b:get_name()
-      if string.match(name, "lsdb") then return false end
+      if name == vt.blkname then return false end
       if keeplist_match(name, keeplist) then return false end
       return true
    end
@@ -381,6 +381,7 @@ function start(block)
    bus:request_name(fmt(SERVICE, ndname))
    vt = lsdb.server.new(bus, "/", intf)
    vt.nd = nd
+   vt.blkname = ubx.safe_tostr(block.name)
    vt:emitAllPropertiesChanged()
 
    return true

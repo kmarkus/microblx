@@ -1,21 +1,17 @@
 return bd.system {
-   imports = { "stdtypes", "ptrig" },
+   imports = { "stdtypes" },
 
    blocks = {
       { name = "lsdb0", type="luablock:lsdb-intf" },
-      { name = "lsdb0-ptrig", type="ubx/ptrig" }
    },
 
    connections = {},
 
    configurations = {
-      { name="lsdb0-ptrig",
+      { name="lsdb0",
 	config = {
-	   period = {sec=0, usec=100000 },
-	   tstats_mode=0,
-	   tstats_profile_path="/tmp",
-	   chain0={
-	      { b="#lsdb0" } }
+	   thread = 1,
+	   period = 100,
 	}
       }
    }

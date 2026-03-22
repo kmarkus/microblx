@@ -18,6 +18,8 @@ Configs
 
    lua_file, ``char``, ""
    lua_str, ``char``, ""
+   thread, ``int``, "if 1, spawn a self-triggering thread"
+   period, ``int``, "thread period in msec (required if thread=1)"
    loglevel, ``int``, ""
 
 

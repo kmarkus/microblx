@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 #include "ubx.h"
 
@@ -23,6 +24,8 @@ ubx_proto_port_t lua_ports[] = {
 ubx_proto_config_t lua_conf[] = {
 	{ .name = "lua_file", .type_name = "char" },
 	{ .name = "lua_str", .type_name = "char" },
+	{ .name = "thread", .type_name = "int", .max = 1, .doc = "if 1, spawn a self-triggering thread" },
+	{ .name = "period", .type_name = "int", .max = 1, .doc = "thread period in msec (required if thread=1)" },
 	{ .name = "loglevel", .type_name = "int" },
 	{ 0 }
 };
@@ -32,10 +35,21 @@ char luablock_meta[] =
 	"  realtime=false,"
 	"}";
 
+/* wait up to 1s for thread to stop */
+#define THREAD_STOP_TIMEOUT_US	50000
+#define THREAD_STOP_RETRIES	20
+
 struct luablock_info {
 	struct ubx_node *ni;
 	struct lua_State *L;
 	ubx_data_t *exec_str_buff;
+
+	/* optional self-triggering thread */
+	int use_thread;
+	int period_ms;
+	pthread_t tid;
+	pthread_mutex_t mutex;
+	volatile int thread_running;
 };
 
 const char *predef_hooks =
@@ -54,7 +68,7 @@ const char *predef_hooks =
  * @param require_res if 1, require a boolean valued result.
  * @return -1 in case of error, 0 otherwise.
  */
-int call_hook(ubx_block_t *b, const char *fname, int require_fun, int require_res)
+int __call_hook(ubx_block_t *b, const char *fname, int require_fun, int require_res)
 {
 	int ret = 0;
 	struct luablock_info *inf = (struct luablock_info *)b->private_data;
@@ -90,6 +104,64 @@ int call_hook(ubx_block_t *b, const char *fname, int require_fun, int require_re
 	}
  out:
 	return ret;
+}
+
+/**
+ * call_hook - call a Lua hook, mutex-protected if thread is active
+ */
+int call_hook(ubx_block_t *b, const char *fname, int require_fun, int require_res)
+{
+	int ret;
+	struct luablock_info *inf = (struct luablock_info *)b->private_data;
+
+	if (inf->use_thread) {
+		pthread_mutex_lock(&inf->mutex);
+		ret = __call_hook(b, fname, require_fun, require_res);
+		pthread_mutex_unlock(&inf->mutex);
+	} else {
+		ret = __call_hook(b, fname, require_fun, require_res);
+	}
+	return ret;
+}
+
+/**
+ * luablock_thread - self-triggering thread entry
+ */
+static void *luablock_thread(void *arg)
+{
+	ubx_block_t *b = (ubx_block_t *)arg;
+	struct luablock_info *inf = (struct luablock_info *)b->private_data;
+	struct ubx_timespec next, period;
+	int ret;
+
+	period.sec = inf->period_ms / 1000;
+	period.nsec = (inf->period_ms % 1000) * NSEC_PER_USEC * 1000;
+
+	ret = ubx_gettime(&next);
+	if (ret) {
+		ubx_err(b, "ubx_gettime failed: %s", strerror(errno));
+		goto out;
+	}
+
+	while (inf->thread_running) {
+		ubx_ts_add(&next, &period, &next);
+
+		ret = ubx_nanosleep(&next);
+		if (ret) {
+			ubx_err(b, "ubx_nanosleep failed: %s", strerror(errno));
+			goto out;
+		}
+
+		if (!inf->thread_running)
+			break;
+
+		pthread_mutex_lock(&inf->mutex);
+		__call_hook(b, "step", 0, 0);
+		pthread_mutex_unlock(&inf->mutex);
+	}
+
+out:
+	pthread_exit(NULL);
 }
 
 
@@ -171,6 +243,26 @@ int luablock_init(ubx_block_t *b)
 
 	lua_str = (len > 0) ? lua_str : NULL;
 
+	/* thread config */
+	const int *thread_cfg;
+	len = cfg_getptr_int(b, "thread", &thread_cfg);
+	if (len < 0)
+		goto out_free1;
+
+	inf->use_thread = (len > 0 && *thread_cfg == 1) ? 1 : 0;
+
+	if (inf->use_thread) {
+		const int *period_cfg;
+		len = cfg_getptr_int(b, "period", &period_cfg);
+		if (len <= 0 || *period_cfg <= 0) {
+			ubx_err(b, "thread=1 requires a positive period (msec)");
+			ret = -EINVALID_CONFIG;
+			goto out_free1;
+		}
+		inf->period_ms = *period_cfg;
+		pthread_mutex_init(&inf->mutex, NULL);
+	}
+
 	inf->exec_str_buff = ubx_data_alloc(b->nd, "char", EXEC_STR_BUFF_SIZE);
 	if (inf->exec_str_buff == NULL) {
 		ubx_err(b, "failed to allocate exec_str buffer");
@@ -198,7 +290,25 @@ int luablock_init(ubx_block_t *b)
 
 int luablock_start(ubx_block_t *b)
 {
-	return call_hook(b, "start", 0, 1);
+	int ret;
+	struct luablock_info *inf = (struct luablock_info *)b->private_data;
+
+	ret = call_hook(b, "start", 0, 1);
+	if (ret != 0)
+		return ret;
+
+	if (inf->use_thread) {
+		inf->thread_running = 1;
+		ret = pthread_create(&inf->tid, NULL, luablock_thread, b);
+		if (ret != 0) {
+			ubx_err(b, "pthread_create failed: %s", strerror(ret));
+			inf->thread_running = 0;
+			return -1;
+		}
+		ubx_info(b, "started self-trigger thread, period %d ms", inf->period_ms);
+	}
+
+	return 0;
 }
 
 /**
@@ -211,6 +321,9 @@ void luablock_step(ubx_block_t *b)
 	int len = 0, ret;
 	struct luablock_info *inf = (struct luablock_info *)b->private_data;
 
+	if (inf->use_thread)
+		pthread_mutex_lock(&inf->mutex);
+
 	/* any lua code to execute */
 	ubx_port_t *p_exec_str = ubx_port_get(b, "exec_str");
 
@@ -222,17 +335,28 @@ void luablock_step(ubx_block_t *b)
 			goto out;
 		}
 	}
-	call_hook(b, "step", 0, 0);
+	__call_hook(b, "step", 0, 0);
  out:
 	/* TODO: fix this. realloc could have changed port addr */
 	if (len > 0) {
 		p_exec_str = ubx_port_get(b, "exec_str");
 		write_int(p_exec_str, &ret);
 	}
+
+	if (inf->use_thread)
+		pthread_mutex_unlock(&inf->mutex);
 }
 
 void luablock_stop(ubx_block_t *b)
 {
+	struct luablock_info *inf = (struct luablock_info *)b->private_data;
+
+	if (inf->use_thread && inf->thread_running) {
+		inf->thread_running = 0;
+		pthread_join(inf->tid, NULL);
+		ubx_info(b, "self-trigger thread stopped");
+	}
+
 	call_hook(b, "stop", 0, 0);
 }
 
@@ -242,6 +366,10 @@ void luablock_cleanup(ubx_block_t *b)
 
 	call_hook(b, "cleanup", 0, 0);
 	lua_close(inf->L);
+
+	if (inf->use_thread)
+		pthread_mutex_destroy(&inf->mutex);
+
 	ubx_data_free(inf->exec_str_buff);
 	free(b->private_data);
 }
