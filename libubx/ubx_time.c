@@ -88,39 +88,45 @@ int ubx_gettime(struct ubx_timespec *uts)
 #endif /* TIMESRC_* */
 
 /**
- * ubx_nanosleep - sleep until absolute time using clock_nanosleep
+ * ubx_nanosleep - sleep for a relative duration using clock_nanosleep
  *
- * Uses clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME) to sleep
- * until the given absolute time. Yields the CPU while waiting.
+ * Uses clock_nanosleep(CLOCK_MONOTONIC) to sleep for the given
+ * relative duration. Yields the CPU while waiting.
  *
- * @param abs absolute monotonic target time
+ * @param dur relative duration to sleep
  * @return 0 or error
  */
-int ubx_nanosleep(const struct ubx_timespec *abs)
+int ubx_nanosleep(const struct ubx_timespec *dur)
 {
-	if (abs == NULL)
+	if (dur == NULL)
 		return EINVALID_ARG;
 
-	return clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME,
-			       (const struct timespec *)abs, NULL);
+	return clock_nanosleep(CLOCK_MONOTONIC, 0,
+			       (const struct timespec *)dur, NULL);
 }
 
 /**
- * ubx_nanowait - busy-wait until absolute time
+ * ubx_nanowait - busy-wait for a relative duration
  *
- * Spins on ubx_gettime until the given absolute time is reached.
+ * Spins on ubx_gettime for the given relative duration.
  * Suitable for hard realtime use.
  *
- * @param abs absolute monotonic target time
+ * @param dur relative duration to wait
  * @return 0 or error
  */
-int ubx_nanowait(const struct ubx_timespec *abs)
+int ubx_nanowait(const struct ubx_timespec *dur)
 {
 	int ret;
-	struct ubx_timespec now;
+	struct ubx_timespec end, now;
 
-	if (abs == NULL)
+	if (dur == NULL)
 		return EINVALID_ARG;
+
+	ret = ubx_gettime(&end);
+	if (ret)
+		return ret;
+
+	ubx_ts_add(&end, dur, &end);
 
 	for (;;) {
 		ret = ubx_gettime(&now);
@@ -128,7 +134,7 @@ int ubx_nanowait(const struct ubx_timespec *abs)
 		if (ret)
 			return ret;
 
-		if (ubx_ts_cmp(&now, abs) == 1)
+		if (ubx_ts_cmp(&now, &end) == 1)
 			break;
 	}
 	return 0;

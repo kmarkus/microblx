@@ -131,22 +131,14 @@ static void *luablock_thread(void *arg)
 {
 	ubx_block_t *b = (ubx_block_t *)arg;
 	struct luablock_info *inf = (struct luablock_info *)b->private_data;
-	struct ubx_timespec next, period;
+	struct ubx_timespec period;
 	int ret;
 
 	period.sec = inf->period_ms / 1000;
 	period.nsec = (inf->period_ms % 1000) * NSEC_PER_USEC * 1000;
 
-	ret = ubx_gettime(&next);
-	if (ret) {
-		ubx_err(b, "ubx_gettime failed: %s", strerror(errno));
-		goto out;
-	}
-
 	while (inf->thread_running) {
-		ubx_ts_add(&next, &period, &next);
-
-		ret = ubx_nanosleep(&next);
+		ret = ubx_nanosleep(&period);
 		if (ret) {
 			ubx_err(b, "ubx_nanosleep failed: %s", strerror(errno));
 			goto out;

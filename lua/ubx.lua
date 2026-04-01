@@ -315,13 +315,8 @@ end
 -- @param nsec nanoseconds to sleep (optional, default 0)
 function M.clock_mono_sleep(sec, nsec)
    local ts = ffi.new("struct ubx_timespec")
-   ubx.ubx_gettime(ts)
-   ts.sec = ts.sec + sec
-   ts.nsec = ts.nsec + (nsec or 0)
-   if ts.nsec >= 1000000000 then
-      ts.sec = ts.sec + 1
-      ts.nsec = ts.nsec - 1000000000
-   end
+   ts.sec = sec
+   ts.nsec = nsec or 0
    ubx.ubx_nanosleep(ts)
 end
 

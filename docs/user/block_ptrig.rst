@@ -16,7 +16,7 @@ Configs
 .. csv-table::
    :header: "name", "type", "doc"
 
-   period, ``struct ptrig_period``, "trigger period in { sec, ns }"
+   period, ``struct ptrig_period``, "trigger period in { sec, usec }"
    stacksize, ``size_t``, "stacksize as per pthread_attr_setstacksize(3)"
    sched_priority, ``int``, "pthread priority"
    sched_policy, ``char``, "pthread scheduling policy"

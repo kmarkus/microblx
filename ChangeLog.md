@@ -6,13 +6,12 @@ This file tracks user visible API changes
 ## 0.9.3
 
 - `ubx_time`: **API change** - replaced `ubx_nanosleep(int flags, struct
-  ubx_timespec *ts)` with two new functions that take absolute monotonic
-  time: `ubx_nanosleep(const struct ubx_timespec *abs)` which yields the
-  CPU using `clock_nanosleep`, and `ubx_nanowait(const struct ubx_timespec
-  *abs)` which busy-waits using `ubx_gettime`. Both functions use
+  ubx_timespec *ts)` with two new functions that take relative durations:
+  `ubx_nanosleep(const struct ubx_timespec *dur)` which yields the CPU
+  using `clock_nanosleep`, and `ubx_nanowait(const struct ubx_timespec
+  *dur)` which busy-waits using `ubx_gettime`. Both functions use
   `ubx_gettime` for time retrieval, benefiting from hardware timestamping
-  (TSC/CNTVCT) when available. Users requiring different clocks or relative
-  time should use POSIX functions directly. 
+  (TSC/CNTVCT) when available.
 - `libubx`: `ubx_module_load` returns `EENTEXISTS` when a module is
   already loaded. Lua `load_module` has been changed to log and ignore
   opposed to error in this case.

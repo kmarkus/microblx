@@ -241,4 +241,34 @@ function TestTimeArith:test_mt_le()
    lu.assert_true(ts3 <= ts1)
 end
 
+--- ubx_nanosleep relative duration test
+function TestTimeArith:test_nanosleep_relative()
+   local dur = ubx_timespec{sec=0, nsec=50000000} -- 50ms
+   local t1 = ubx_timespec()
+   ubx.gettime(t1)
+   ubx.nanosleep(dur)
+   local t2 = ubx_timespec()
+   ubx.gettime(t2)
+   local elapsed = ubx_timespec()
+   ubx.ts_sub(t2, t1, elapsed)
+   local elapsed_ns = tn(ubx.ts_to_ns(elapsed))
+   lu.assert_true(elapsed_ns >= 50000000, "nanosleep: elapsed "..elapsed_ns.."ns < 50ms")
+   lu.assert_true(elapsed_ns < 150000000, "nanosleep: elapsed "..elapsed_ns.."ns > 150ms")
+end
+
+--- ubx_nanowait relative duration test
+function TestTimeArith:test_nanowait_relative()
+   local dur = ubx_timespec{sec=0, nsec=10000000} -- 10ms
+   local t1 = ubx_timespec()
+   ubx.gettime(t1)
+   ubx.nanowait(dur)
+   local t2 = ubx_timespec()
+   ubx.gettime(t2)
+   local elapsed = ubx_timespec()
+   ubx.ts_sub(t2, t1, elapsed)
+   local elapsed_ns = tn(ubx.ts_to_ns(elapsed))
+   lu.assert_true(elapsed_ns >= 10000000, "nanowait: elapsed "..elapsed_ns.."ns < 10ms")
+   lu.assert_true(elapsed_ns < 100000000, "nanowait: elapsed "..elapsed_ns.."ns > 100ms")
+end
+
 if not _RUNNER then os.exit( lu.LuaUnit.run() ) end

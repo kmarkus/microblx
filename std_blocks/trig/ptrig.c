@@ -54,7 +54,7 @@ def_cfg_getptr_fun(cfg_getptr_ptrig_period, struct ptrig_period);
 static void __ptrig_stop(ubx_block_t *b);
 
 ubx_proto_config_t ptrig_config[] = {
-	{ .name = "period", .type_name = "struct ptrig_period", .doc = "trigger period in { sec, ns }", },
+	{ .name = "period", .type_name = "struct ptrig_period", .doc = "trigger period in { sec, usec }", },
 	{ .name = "stacksize", .type_name = "size_t", .doc = "stacksize as per pthread_attr_setstacksize(3)" },
 	{ .name = "sched_priority", .type_name = "int", .doc = "pthread priority" },
 	{ .name = "sched_policy", .type_name = "char", .doc = "pthread scheduling policy" },
@@ -145,7 +145,7 @@ void *thread_startup(void *arg)
 	int ret;
 	ubx_block_t *b;
 	struct ptrig_inf *inf;
-	struct ubx_timespec next, period;
+	struct ubx_timespec start, now, period, remaining;
 
 	b = (ubx_block_t *) arg;
 	inf = (struct ptrig_inf *)b->private_data;
@@ -173,7 +173,7 @@ void *thread_startup(void *arg)
 		inf->thread_state = THREAD_ACTIVE;
 		pthread_mutex_unlock(&inf->mutex);
 
-		ret = ubx_gettime(&next);
+		ret = ubx_gettime(&start);
 
 		if (ret) {
 			ubx_err(b, "ubx_gettime failed: %s", strerror(errno));
@@ -184,8 +184,6 @@ void *thread_startup(void *arg)
 
 		if (ubx_chain_trigger(&inf->chains[inf->actchain]) != 0)
 			ubx_err(b, "ubx_chain_trigger failed for chain%i", inf->actchain);
-
-		ubx_ts_add(&next, &period, &next);
 
 		/* check autostop_steps */
 		if (inf->autostop_steps > 0) {
@@ -202,11 +200,23 @@ void *thread_startup(void *arg)
 			}
 		}
 
-		ret = inf->sleep_fn(&next);
-
+		/* compute remaining sleep time: period - elapsed */
+		ret = ubx_gettime(&now);
 		if (ret) {
-			ubx_err(b, "sleep failed: %s", strerror(errno));
+			ubx_err(b, "ubx_gettime failed: %s", strerror(errno));
 			goto out;
+		}
+
+		ubx_ts_sub(&now, &start, &remaining);
+		ubx_ts_sub(&period, &remaining, &remaining);
+
+		/* only sleep if there is time remaining */
+		if (remaining.sec >= 0 && remaining.nsec > 0) {
+			ret = inf->sleep_fn(&remaining);
+			if (ret) {
+				ubx_err(b, "sleep failed: %s", strerror(errno));
+				goto out;
+			}
 		}
 	}
 
