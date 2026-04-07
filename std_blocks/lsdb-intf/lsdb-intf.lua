@@ -35,11 +35,18 @@ local function load_module(vt, module)
    vt:emitPropertiesChanged("CBlockTypes", "IBlockTypes")
 end
 
+-- a list of port_clone_conn ports
+-- these are cleared in remove_block when blocks are removed
+local wpccs = {}
+local rppcs = {}
+
 local function create_block(vt,	type, name, conf)
    ubx.block_create(vt.nd, type, name, conf)
 end
 
 local function remove_block(vt, name)
+   wpccs[name] = nil
+   rppcs[name] = nil
    ubx.block_unload(vt.nd, name)
 end
 
@@ -138,13 +145,8 @@ local function clear_node(vt, keeplist)
 
    ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'inactive') end, filter)
    ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'preinit') end, filter)
-   ubx.blocks_map(vt.nd, function(b) ubx.block_rm(vt.nd, b:get_name()) end, filter)
+   ubx.blocks_map(vt.nd, function(b) remove_block(vt, b:get_name()) end, filter)
 end
-
--- a list of port_clone_conn ports
--- TODO: these need to be cleared when the associated blocks are removed
-local wpccs = {}
-local rppcs = {}
 
 local function write(vt, bn, pn, val)
    local pcc
