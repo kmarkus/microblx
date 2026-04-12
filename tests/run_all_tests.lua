@@ -14,4 +14,10 @@ for f in p:lines() do
 end
 p:close()
 
-os.exit(require("luaunit").LuaUnit.run())
+local lu = require("luaunit")
+-- Use JUnit XML output if JUNIT_OUTPUT env var is set, otherwise use default text output
+if os.getenv("JUNIT_OUTPUT") then
+   lu.LuaUnit.run('--output', 'junit', '--name', os.getenv("JUNIT_OUTPUT"))
+else
+   os.exit(lu.LuaUnit.run())
+end

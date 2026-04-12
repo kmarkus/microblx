@@ -50,10 +50,15 @@ test:
     - pushd build
     - make install && ldconfig
     - popd
+    - export JUNIT_OUTPUT=test-results.xml
     - ./run_tests.sh
     # run lfq tests
     - test-lfq
     - test-lfq-unit
+  artifacts:
+    when: always
+    reports:
+      junit: test-results.xml
 
 examples:
   stage: test
