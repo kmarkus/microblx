@@ -1,8 +1,10 @@
+stages:
+  - build
+  - test
 
 image: gcc:trixie
 
-build:
-  stage: build
+.setup_deps:
   before_script:
     - apt update && apt -y install cmake pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck lua-unit libcmocka-dev
     - cd /builds/
@@ -18,22 +20,49 @@ build:
     - cd ..
     # install liblfds
     - cd liblfds6.1.1
-    - git -c user.name='gitlab' -c user.email='xxx' am /builds/kmarkus/microblx/liblfds/*.patch
+    - git -c user.name='gitlab' -c user.email='xxx' am $CI_PROJECT_DIR/liblfds/*.patch
     - ./bootstrap
     - ./configure --prefix=/usr/
     - make -j3
     - make install
     - cd ..
 
+build:
+  stage: build
+  extends: .setup_deps
   script:
-    - cd /builds/kmarkus/microblx/
+    - cd $CI_PROJECT_DIR
     - mkdir build && pushd build
     - cmake ..
     # - make cppcheck
     - make -j10
+    - popd
+  artifacts:
+    paths:
+      - build/
+    expire_in: 1 hour
+
+test:
+  stage: test
+  extends: .setup_deps
+  script:
+    - cd $CI_PROJECT_DIR
+    - pushd build
     - make install && ldconfig
     - popd
     - ./run_tests.sh
+    # run lfq tests
+    - test-lfq
+    - test-lfq-unit
+
+examples:
+  stage: test
+  extends: .setup_deps
+  script:
+    - cd $CI_PROJECT_DIR
+    - pushd build
+    - make install && ldconfig
+    - popd
     # test generating an out-of-tree block
     - ubx-genblock -d /tmp/testblock/ -c examples/blockmodels/block_model_example.lua
     - pushd /tmp/testblock/
@@ -75,6 +104,3 @@ build:
     - pushd examples/C/
     - gcc -Wall -Werror c-launch.c -o c-launch -lubx
     - ./c-launch 1
-    # run lfq tests
-    - test-lfq
-    - test-lfq-unit
