@@ -1,8 +1,9 @@
 local luaunit = require("luaunit")
 local ubx = require("ubx")
 local bd = require("blockdiagram")
-local lsdb = require("lsdbus")
 local lbutil = require("ubx/luablock-util")
+
+local lsdb_available, lsdb = pcall(require, "lsdbus")
 
 ubx.color = false
 
@@ -65,7 +66,13 @@ local _lsdb_blk
 local _bus
 local _proxy
 
-function TestLsdbIntf:teardown()
+function TestLsdbIntf:setUp()
+   if not lsdb_available then
+      luaunit.skip("lsdbus not available")
+   end
+end
+
+function TestLsdbIntf:tearDown()
    if _lsdb_blk then
       ubx.block_stop(_lsdb_blk)
       ubx.block_cleanup(_lsdb_blk)
