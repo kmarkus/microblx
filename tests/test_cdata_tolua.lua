@@ -158,4 +158,92 @@ function TestCdataTolua:test_void_pointer_to_prim()
    assert_equals(init, val, "L: mismatch after converting from cdata")
 end
 
+--- enum and union support -------------------------------------------------
+
+ffi.cdef[[
+   enum test_color { RED=0, GREEN=1, BLUE=2 };
+   union test_variant { int32_t i; float f; };
+   struct test_with_enum { enum test_color col; int32_t val; };
+   struct test_with_union { union test_variant v; uint8_t tag; };
+   enum { ANON_A=10, ANON_B=20 };
+   union { int32_t x; float y; } __attribute__((packed));
+]]
+
+function TestCdataTolua:test_enum_basic()
+   local e = ffi.new("enum test_color", "GREEN")
+   local val = cdata.tolua(e)
+   assert_equals(val, 1, "enum basic value mismatch")
+end
+
+function TestCdataTolua:test_enum_in_struct()
+   local s = ffi.new("struct test_with_enum", { col = "BLUE", val = 42 })
+   local val = cdata.tolua(s)
+   assert_equals(val.col, 2, "enum-in-struct color mismatch")
+   assert_equals(val.val, 42, "enum-in-struct val mismatch")
+end
+
+function TestCdataTolua:test_union_default()
+   local u = ffi.new("union test_variant")
+   u.i = 77
+   local val = cdata.tolua(u)
+   -- default (no hook): all members converted like a struct
+   assert_equals(type(val), "table", "union should convert to table")
+   assert_equals(val.i, 77, "union member i mismatch")
+   -- val.f is whatever the bit-pattern gives; just check it exists
+   assert_true(val.f ~= nil, "union member f should be present")
+end
+
+function TestCdataTolua:test_union_in_struct()
+   local s = ffi.new("struct test_with_union")
+   s.v.i = 99
+   s.tag = 1
+   local val = cdata.tolua(s)
+   assert_equals(type(val.v), "table", "nested union should be a table")
+   assert_equals(val.v.i, 99, "nested union member mismatch")
+   assert_equals(val.tag, 1, "struct tag mismatch")
+end
+
+function TestCdataTolua:test_union_struct2tab_hook()
+   -- register a custom converter for the named union
+   cdata.struct2tab['union test_variant'] = function(cd)
+      return { i = tonumber(cd.i) }
+   end
+
+   local u = ffi.new("union test_variant")
+   u.i = 123
+   local val = cdata.tolua(u)
+   assert_equals(type(val), "table", "hooked union should return table")
+   assert_equals(val.i, 123, "hooked union value mismatch")
+   assert_equals(val.f, nil, "hook should suppress member f")
+
+   -- cleanup
+   cdata.struct2tab['union test_variant'] = nil
+end
+
+function TestCdataTolua:test_struct_struct2tab_hook()
+   -- verify the existing struct hook mechanism still works
+   cdata.struct2tab['struct test_with_enum'] = function(cd)
+      return "custom"
+   end
+
+   local s = ffi.new("struct test_with_enum", { col = "RED", val = 7 })
+   local val = cdata.tolua(s)
+   assert_equals(val, "custom", "struct hook should override default")
+
+   -- cleanup
+   cdata.struct2tab['struct test_with_enum'] = nil
+end
+
+function TestCdataTolua:test_enum_destruct()
+   local res = cdata.ctype_destruct(ffi.typeof("struct test_with_enum"))
+   assert_equals(res.col, "number", "enum field should destruct to 'number'")
+   assert_equals(res.val, "number", "int field should destruct to 'number'")
+end
+
+function TestCdataTolua:test_union_destruct()
+   local res = cdata.ctype_destruct(ffi.typeof("union test_variant"))
+   assert_equals(res.i, "number", "union int member should be 'number'")
+   assert_equals(res.f, "number", "union float member should be 'number'")
+end
+
 if not _RUNNER then os.exit( lu.LuaUnit.run() ) end

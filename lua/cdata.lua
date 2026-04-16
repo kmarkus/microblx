@@ -17,6 +17,33 @@ end
 
 local M={}
 
+--- Custom cdata-to-Lua converter table.
+--
+-- Maps C type names to converter functions for use by tolua().
+-- When tolua() encounters a named struct or union, it looks up the
+-- type name in this table *before* falling back to the generic
+-- member-by-member conversion.  If a match is found the registered
+-- function is called instead.
+--
+-- Keys must include the type keyword, e.g.:
+--   'struct foo'  for  struct foo { ... };
+--   'union bar'   for  union bar  { ... };
+--
+-- The registered function receives the cdata value and must return
+-- a plain Lua value (table, string, number, ...).
+--
+-- Example – register a converter for 'union my_variant':
+--   cdata.struct2tab['union my_variant'] = function(cd)
+--      return { active = tonumber(cd.i) }   -- only expose one member
+--   end
+--
+-- Example – override the default struct conversion:
+--   cdata.struct2tab['struct my_struct'] = function(cd)
+--      return ffi.string(cd.name)
+--   end
+--
+-- Anonymous structs/unions (name == nil) always use the generic
+-- member-by-member path and cannot be hooked.
 M.struct2tab={}
 
 M.struct2tab['struct ubx_block']=function(b) return ffi.string(b.name) end
@@ -66,8 +93,13 @@ function M.tolua(cd, refct)
    local function do_number(cd, refct) return tonumber(cd) end
 
    if refct.what=='int' or refct.what=='float' then res=do_number(cd)
+   elseif refct.what=='enum' then res=do_number(cd)
    elseif refct.what=='struct' then
       local fun = refct.name and M.struct2tab['struct '..refct.name]
+      if fun then res=fun(cd)
+      else res=do_struct(cd, refct) end
+   elseif refct.what=='union' then
+      local fun = refct.name and M.struct2tab['union '..refct.name]
       if fun then res=fun(cd)
       else res=do_struct(cd, refct) end
    elseif refct.what=='array' then res=do_array(cd, refct)
@@ -116,7 +148,9 @@ function M.refct_destruct(refct)
    end
 
    if refct.what=='int' or refct.what=='float' then res='number'
+   elseif refct.what=='enum' then res='number'
    elseif refct.what=='struct' then res=do_struct(refct)
+   elseif refct.what=='union' then res=do_struct(refct)
    elseif refct.what=='array' then res=do_array(refct)
    elseif refct.what=='ref' then res=M.refct_destruct(refct.element_type)
    elseif  refct.what=='ptr' then
@@ -182,12 +216,12 @@ end
 
 function is_composite(ctype)
    local refct = reflect.typeof(ctype)
-   return refct.what=='struct' or refct.what=='array'
+   return refct.what=='struct' or refct.what=='union' or refct.what=='array'
 end
 
 function is_composite_ptr(ctype)
    local refct = reflect.typeof(ctype)
-   return refct.what=='ptr' and (refct.element_type.what=='struct' or refct.element_type.what=='array')
+   return refct.what=='ptr' and (refct.element_type.what=='struct' or refct.element_type.what=='union' or refct.element_type.what=='array')
 end
 
 --- Generate a fast logging function for the given ctype
