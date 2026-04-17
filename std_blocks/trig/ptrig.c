@@ -42,6 +42,7 @@ ubx_proto_port_t ptrig_ports[] = {
 	{ .name = "active_chain", .in_type_name = "int", .doc = "switch the active trigger chain" },
 	{ .name = "tstats", .out_type_name = "struct ubx_tstat", .doc = "out port for timing statistics" },
 	{ .name = "shutdown", .in_type_name = "int", .doc = "input port for stopping ptrig" },
+	{ .name = "period", .in_type_name = "struct ptrig_period", .doc = "dynamically change the trigger period" },
 	{ 0 },
 };
 
@@ -50,6 +51,7 @@ ubx_type_t ptrig_types[] = {
 };
 
 def_cfg_getptr_fun(cfg_getptr_ptrig_period, struct ptrig_period);
+def_port_accessors(ptrig_period, struct ptrig_period);
 
 static void __ptrig_stop(ubx_block_t *b);
 
@@ -118,6 +120,7 @@ struct ptrig_inf {
 	int (*sleep_fn)(const struct ubx_timespec *);
 
 	ubx_port_t *p_actchain;
+	ubx_port_t *p_period;
 };
 
 
@@ -145,6 +148,7 @@ void *thread_startup(void *arg)
 	int ret;
 	ubx_block_t *b;
 	struct ptrig_inf *inf;
+	struct ptrig_period port_period;
 	struct ubx_timespec start, now, period, remaining;
 
 	b = (ubx_block_t *) arg;
@@ -181,6 +185,11 @@ void *thread_startup(void *arg)
 		}
 
 		common_read_actchain(b, inf->p_actchain, inf->num_chains, &inf->actchain);
+
+		if (read_ptrig_period(inf->p_period, &port_period) > 0) {
+			period.sec = port_period.sec;
+			period.nsec = port_period.usec * NSEC_PER_USEC;
+		}
 
 		if (ubx_chain_trigger(&inf->chains[inf->actchain]) != 0)
 			ubx_err(b, "ubx_chain_trigger failed for chain%i", inf->actchain);
@@ -374,6 +383,9 @@ int ptrig_init(ubx_block_t *b)
 
 	inf->p_actchain = ubx_port_get(b, "active_chain");
 	assert(inf->p_actchain != NULL);
+
+	inf->p_period = ubx_port_get(b, "period");
+	assert(inf->p_period != NULL);
 
 	/* initialize chains and add configs */
 	inf->num_chains = common_init_chains(b, &inf->chains);

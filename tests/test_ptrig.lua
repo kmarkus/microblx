@@ -369,4 +369,53 @@ end
 
 
 
+--
+-- period port test
+--
+
+local sys5 = bd.system {
+   imports = { "stdtypes", "ptrig", "ramp_uint64", "lfds_cyclic" },
+   blocks = {
+      { name="ramp",  type="ubx/ramp_uint64" },
+      { name="ptrig", type="ubx/ptrig" },
+   },
+   configurations = {
+      { name="ramp", config = { start=0, slope=1 } },
+      { name="ptrig", config = {
+	 period = { sec=0, usec=20000 },  -- 20ms / 50 Hz
+	 chain0 = { { b="#ramp" } }
+      }},
+   },
+}
+
+function TestPtrig:TestPeriodPort()
+   local nd = sys5:launch{ nostart=true, loglevel=LOGLEVEL, nodename='TestPeriodPort' }
+   local p_period = ubx.port_clone_conn(nd:b("ptrig"), "period")
+   local p_ramp   = ubx.port_clone_conn(nd:b("ramp"), "out", 1)
+
+   sys5:startup(nd)
+
+   -- run at 20ms for 500ms → ~25 steps
+   ubx.clock_mono_sleep(0, 500000000)
+   local _, v1 = p_ramp:read()
+   local steps_fast = v1:tolua()
+
+   -- switch to 500ms period via port
+   p_period:write({ sec=0, usec=500000 })
+
+   -- run another 500ms at slow rate → at most 1-2 additional steps
+   ubx.clock_mono_sleep(0, 500000000)
+   local _, v2 = p_ramp:read()
+   local steps_slow = v2:tolua() - steps_fast
+
+   nd:b("ptrig"):do_stop()
+   ubx.node_rm(nd)
+
+   assert_true(steps_fast > 10,
+	       "expected >10 steps at 20ms period, got " .. steps_fast)
+   assert_true(steps_slow < 5,
+	       "expected <5 steps at 500ms period, got " .. steps_slow)
+end
+
+
 if not _RUNNER then os.exit( luaunit.LuaUnit.run() ) end
