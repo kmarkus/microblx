@@ -10,6 +10,10 @@ set(MOD_HDRS
   ${MOD_SRC_DIR}/types/kdl_rotation.h
   ${MOD_SRC_DIR}/types/kdl_vector.h
   ${MOD_SRC_DIR}/types/test_trig_conf.h
+  ${MOD_SRC_DIR}/types/test_with_enum.h
+  ${MOD_SRC_DIR}/types/test_with_union.h
+  ${MOD_SRC_DIR}/types/test_with_anon_union.h
+  ${MOD_SRC_DIR}/types/test_with_anon_enum.h
 )
 
 set(MOD_GEN_HDRS
@@ -17,6 +21,10 @@ set(MOD_GEN_HDRS
   ${MOD_BUILD_DIR}/types/kdl_rotation.h.hexarr
   ${MOD_BUILD_DIR}/types/kdl_vector.h.hexarr
   ${MOD_BUILD_DIR}/types/test_trig_conf.h.hexarr
+  ${MOD_BUILD_DIR}/types/test_with_enum.h.hexarr
+  ${MOD_BUILD_DIR}/types/test_with_union.h.hexarr
+  ${MOD_BUILD_DIR}/types/test_with_anon_union.h.hexarr
+  ${MOD_BUILD_DIR}/types/test_with_anon_enum.h.hexarr
 )
 
 add_library(${MOD_NAME} MODULE
@@ -25,10 +33,14 @@ add_library(${MOD_NAME} MODULE
   ${MOD_GEN_HDRS}
 )
 
-generate_hexarr(${MOD_SRC_DIR}/types/kdl_frame.h      ${MOD_BUILD_DIR}/types/kdl_frame.h.hexarr)
-generate_hexarr(${MOD_SRC_DIR}/types/kdl_rotation.h   ${MOD_BUILD_DIR}/types/kdl_rotation.h.hexarr)
-generate_hexarr(${MOD_SRC_DIR}/types/kdl_vector.h     ${MOD_BUILD_DIR}/types/kdl_vector.h.hexarr)
-generate_hexarr(${MOD_SRC_DIR}/types/test_trig_conf.h ${MOD_BUILD_DIR}/types/test_trig_conf.h.hexarr)
+generate_hexarr(${MOD_SRC_DIR}/types/kdl_frame.h          ${MOD_BUILD_DIR}/types/kdl_frame.h.hexarr)
+generate_hexarr(${MOD_SRC_DIR}/types/kdl_rotation.h       ${MOD_BUILD_DIR}/types/kdl_rotation.h.hexarr)
+generate_hexarr(${MOD_SRC_DIR}/types/kdl_vector.h         ${MOD_BUILD_DIR}/types/kdl_vector.h.hexarr)
+generate_hexarr(${MOD_SRC_DIR}/types/test_trig_conf.h     ${MOD_BUILD_DIR}/types/test_trig_conf.h.hexarr)
+generate_hexarr(${MOD_SRC_DIR}/types/test_with_enum.h     ${MOD_BUILD_DIR}/types/test_with_enum.h.hexarr)
+generate_hexarr(${MOD_SRC_DIR}/types/test_with_union.h    ${MOD_BUILD_DIR}/types/test_with_union.h.hexarr)
+generate_hexarr(${MOD_SRC_DIR}/types/test_with_anon_union.h  ${MOD_BUILD_DIR}/types/test_with_anon_union.h.hexarr)
+generate_hexarr(${MOD_SRC_DIR}/types/test_with_anon_enum.h   ${MOD_BUILD_DIR}/types/test_with_anon_enum.h.hexarr)
 
 target_include_directories(${MOD_NAME} PRIVATE ${MOD_BUILD_DIR})
 target_link_libraries(${MOD_NAME} PRIVATE ubx)

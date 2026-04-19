@@ -820,6 +820,8 @@ function M.ffi_load_types(nd)
 
    local function ffi_load_no_ns(t)
       if t.type_class==ubx.TYPE_CLASS_STRUCT and t.private_data~=nil then
+	 -- a sibling type sharing the same hexarr may have already loaded it
+	 if ffi_struct_type_is_loaded(t) then return end
 	 local struct_str = preproc(ffi.string(t.private_data))
 	 local ret, err = pcall(ffi.cdef, struct_str)
 	 if ret==false then

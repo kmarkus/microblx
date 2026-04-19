@@ -77,7 +77,14 @@ function M.tolua(cd, refct)
    local function do_struct(cd, refct)
       res = {}
       for field_refct in refct:members() do
-	 res[field_refct.name]=M.tolua(cd[field_refct.name])
+	 if field_refct.name == nil then
+	    -- anonymous aggregate: promote sub-members to parent
+	    for sub_refct in field_refct:members() do
+	       res[sub_refct.name] = M.tolua(cd[sub_refct.name])
+	    end
+	 else
+	    res[field_refct.name] = M.tolua(cd[field_refct.name])
+	 end
       end
       return res
    end
@@ -134,7 +141,14 @@ function M.refct_destruct(refct)
    local function do_struct(refct)
       res = {}
       for field_refct in refct:members() do
-	 res[field_refct.name]=M.refct_destruct(field_refct.type)
+	 if field_refct.name == nil then
+	    -- anonymous aggregate: promote sub-members to parent
+	    for sub_refct in field_refct:members() do
+	       res[sub_refct.name] = M.refct_destruct(sub_refct.type)
+	    end
+	 else
+	    res[field_refct.name] = M.refct_destruct(field_refct.type)
+	 end
       end
       return res
    end

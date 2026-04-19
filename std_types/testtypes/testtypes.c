@@ -2,8 +2,6 @@
  * The basic types
  */
 
-#include <stdint.h>
-
 #include "ubx.h"
 
 #include "types/test_trig_conf.h"
@@ -18,6 +16,18 @@
 #include "types/kdl_frame.h"
 #include "types/kdl_frame.h.hexarr"
 
+#include "types/test_with_enum.h"
+#include "types/test_with_enum.h.hexarr"
+
+#include "types/test_with_union.h"
+#include "types/test_with_union.h.hexarr"
+
+#include "types/test_with_anon_union.h"
+#include "types/test_with_anon_union.h.hexarr"
+
+#include "types/test_with_anon_enum.h"
+#include "types/test_with_anon_enum.h.hexarr"
+
 
 /* declare types */
 ubx_type_t types[] = {
@@ -26,6 +36,10 @@ ubx_type_t types[] = {
 	def_struct_type(struct kdl_vector, &kdl_vector_h),
 	def_struct_type(struct kdl_rotation, &kdl_rotation_h),
 	def_struct_type(struct kdl_frame, &kdl_frame_h),
+	def_struct_type(struct test_with_enum, &test_with_enum_h),
+	def_struct_type(struct test_with_union, &test_with_union_h),
+	def_struct_type(struct test_with_anon_union, &test_with_anon_union_h),
+	def_struct_type(struct test_with_anon_enum, &test_with_anon_enum_h),
 };
 
 static int testtypes_init(ubx_node_t* nd)

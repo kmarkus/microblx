@@ -357,14 +357,167 @@ It can be declared as follows:
 
 .. code:: c
 
-   #include "types/random_config.h"
-   #include "types/random_config.h.hexarr"
+   #include “types/random_config.h”
+   #include “types/random_config.h.hexarr”
    ubx_type_t random_config_type = def_struct_type(struct random_config, &random_config_h);
 
 This fills in a ``ubx_type_t`` data structure called
 ``random_config_type``, which stores information on types. Using this
 type declaration the ``struct random_config`` can then be registered
 with a node (see “Block and type registration” below).
+
+Supported type system
+~~~~~~~~~~~~~~~~~~~~~
+
+Microblx registers types as named **structs** (``TYPE_CLASS_STRUCT``).
+The header file associated with each struct is passed verbatim to
+LuaJIT’s ``ffi.cdef`` at runtime. This imposes two rules on type
+headers:
+
+1. **No** ``#include`` directives — LuaJIT’s ``ffi.cdef`` does not run
+   the C preprocessor.  Use only C types that the LuaJIT FFI already
+   knows (all standard integer types such as ``int``, ``unsigned long``,
+   ``float``, ``double``, etc. are built-in; ``int32_t``, ``uint8_t``
+   and the rest of the ``<stdint.h>`` family are also recognised
+   natively).
+
+2. Only one named struct (the one being registered) should be the
+   *primary* definition in a header. Auxiliary declarations (enums,
+   unions) that are required by that struct may live in the same
+   header; put each in its own file to keep things tidy.
+
+The following constructs are all supported.
+
+**Plain struct** (the common case):
+
+.. code:: c
+
+   /* types/my_point.h */
+   struct my_point { double x; double y; double z; };
+
+**Named enum used as a struct field**:
+
+The enum declaration must appear in the same header as the struct:
+
+.. code:: c
+
+   /* types/test_with_enum.h */
+   enum test_color { RED=0, GREEN=1, BLUE=2 };
+
+   struct test_with_enum {
+       enum test_color col;
+       int val;
+   };
+
+Only one ``ubx_type_t`` is registered — for the struct:
+
+.. code:: c
+
+   #include “types/test_with_enum.h”
+   #include “types/test_with_enum.h.hexarr”
+   ubx_type_t t = def_struct_type(struct test_with_enum, &test_with_enum_h);
+
+Enum fields are represented as numbers in Lua. When setting a config
+value from Lua or a USC model, symbolic string values are accepted and
+converted automatically by the LuaJIT FFI:
+
+.. code:: lua
+
+   -- numeric and symbolic forms are equivalent:
+   { name=”blk”, config = { color = 2 } }
+   { name=”blk”, config = { color = “BLUE” } }
+
+**Named union used as a struct field**:
+
+.. code:: c
+
+   /* types/test_with_union.h */
+   union test_variant { int i; float f; };
+
+   struct test_with_union {
+       union test_variant v;
+       unsigned char tag;
+   };
+
+``cdata.tolua`` converts the union to a Lua table containing *all*
+members.  A ``cdata.struct2tab`` hook (see `cdata.struct2tab hooks`_)
+can be registered to expose only the active member:
+
+.. code:: lua
+
+   cdata.struct2tab[“union test_variant”] = function(cd)
+       return tonumber(cd.i)   -- expose only integer member
+   end
+
+**Anonymous union inside a struct**:
+
+Anonymous union fields are promoted to the struct’s namespace by the
+LuaJIT FFI.  ``cdata.tolua`` promotes them to the top-level Lua table
+as well:
+
+.. code:: c
+
+   /* types/test_with_anon_union.h */
+   struct test_with_anon_union {
+       union {
+           int   i;
+           float f;
+       };
+       unsigned char selector;
+   };
+
+Setting this type in a USC configuration works the same way:
+
+.. code:: lua
+
+   { name=”blk”, config = { value = { i=42, selector=0 } } }
+
+**Anonymous enum field inside a struct**:
+
+An anonymous enum used as a field type introduces its constants into
+the surrounding scope.  The field is accessed and set like any other
+integer:
+
+.. code:: c
+
+   /* types/test_with_anon_enum.h */
+   struct test_with_anon_enum {
+       enum { KIND_INT=0, KIND_FLOAT=1 } kind;
+       int value;
+   };
+
+As with named enums, symbolic strings are accepted in USC configs:
+
+.. code:: lua
+
+   { name=”blk”, config = { value = { kind=”KIND_FLOAT”, value=3.14 } } }
+
+.. _cdata-struct2tab:
+
+cdata.struct2tab hooks
+~~~~~~~~~~~~~~~~~~~~~~
+
+For any named struct or union, a custom Lua→table converter can be
+installed in the ``cdata.struct2tab`` table.  The key must include the
+C type keyword (``”struct foo”`` or ``”union bar”``):
+
+.. code:: lua
+
+   local cdata = require “cdata”
+
+   -- override default struct conversion
+   cdata.struct2tab[“struct test_with_enum”] = function(cd)
+       local names = { [0]=”RED”, [1]=”GREEN”, [2]=”BLUE” }
+       return { col = names[tonumber(cd.col)], val = tonumber(cd.val) }
+   end
+
+   -- select only the active union member
+   cdata.struct2tab[“union test_variant”] = function(cd)
+       return tonumber(cd.i)
+   end
+
+Anonymous structs and unions cannot be hooked because they have no
+name; register a hook on the *containing* struct instead.
 
 .. _type-safe-accessors:
 
@@ -375,7 +528,7 @@ The following macros are available to define type safe accessors for
 accessing configuration and reading/writing from ports:
 
 .. code:: c
-	  
+
    def_type_accessors(SUFFIX, TYPENAME)
 
    /* will define the following functions */

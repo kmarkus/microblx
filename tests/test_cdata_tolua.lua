@@ -159,15 +159,7 @@ function TestCdataTolua:test_void_pointer_to_prim()
 end
 
 --- enum and union support -------------------------------------------------
-
-ffi.cdef[[
-   enum test_color { RED=0, GREEN=1, BLUE=2 };
-   union test_variant { int32_t i; float f; };
-   struct test_with_enum { enum test_color col; int32_t val; };
-   struct test_with_union { union test_variant v; uint8_t tag; };
-   enum { ANON_A=10, ANON_B=20 };
-   union { int32_t x; float y; } __attribute__((packed));
-]]
+-- types are defined by the testtypes module loaded in setupClass
 
 function TestCdataTolua:test_enum_basic()
    local e = ffi.new("enum test_color", "GREEN")
