@@ -186,6 +186,91 @@ local function format_connections(conns, iblk_stats)
    return #lines > 0 and ("\n" .. table.concat(lines, '\n')) or "(none)"
 end
 
+-- pretty-print a single block's GetBlockInfo result
+local function format_block_info(info)
+   local lines = {}
+   local state_color = { active='green', inactive='yellow', preinit='red' }
+   local sc = use_colors and ac[state_color[info.state] or 'white'] or nil
+   local proto = (info.prototype and info.prototype ~= false) and info.prototype or "(proto)"
+
+   -- header
+   local stat_str
+   if info.stat_num_steps then
+      stat_str = fmt("  steps:%d", info.stat_num_steps)
+   elseif info.stat_num_reads ~= nil then
+      stat_str = fmt("  r:%d w:%d", info.stat_num_reads, info.stat_num_writes)
+   else
+      stat_str = ""
+   end
+   lines[#lines+1] = fmt("%s  %s  %s%s",
+      C(ac.bright, info.name), proto,
+      sc and (sc .. info.state .. ac.reset) or info.state,
+      stat_str)
+
+   -- ports
+   if info.ports and #info.ports > 0 then
+      lines[#lines+1] = ""
+      lines[#lines+1] = C(ac.yellow, "ports:")
+      local maxname, maxtype = 0, 0
+      for _, p in ipairs(info.ports) do
+         maxname = math.max(maxname, #p.name)
+         local t = p.in_type_name or p.out_type_name or ""
+         maxtype = math.max(maxtype, #t + 4) -- +4 for "[N]" room
+      end
+      for _, p in ipairs(info.ports) do
+         local dir, type_str
+         if p.in_type_name and p.out_type_name then
+            dir = "[in/out]"
+            type_str = fmt("%s[%d]", p.in_type_name, p.in_data_len)
+         elseif p.in_type_name then
+            dir = "[in]    "
+            type_str = fmt("%s[%d]", p.in_type_name, p.in_data_len)
+         else
+            dir = "[out]   "
+            type_str = fmt("%s[%d]", p.out_type_name, p.out_data_len)
+         end
+         local inc = (p.connections and p.connections.incoming) or {}
+         local out = (p.connections and p.connections.outgoing) or {}
+         local conn = {}
+         if #inc > 0 then conn[#conn+1] = C(ac.green, "<-") .. " " .. table.concat(inc, ", ") end
+         if #out > 0 then conn[#conn+1] = C(ac.green, "->") .. " " .. table.concat(out, ", ") end
+         local doc = (p.doc and #p.doc > 0) and C(ac.dim, "  -- " .. p.doc) or ""
+         lines[#lines+1] = fmt("  %s  %s  %s%s%s",
+            C(ac.cyan, rpad(p.name, maxname)),
+            C(ac.dim, dir),
+            rpad(type_str, maxtype),
+            #conn > 0 and ("  " .. table.concat(conn, "  ")) or "",
+            doc)
+      end
+   end
+
+   -- configs
+   if info.configs and #info.configs > 0 then
+      lines[#lines+1] = ""
+      lines[#lines+1] = C(ac.yellow, "configs:")
+      local maxname, maxtype = 0, 0
+      for _, c in ipairs(info.configs) do
+         maxname = math.max(maxname, #c.name)
+         maxtype = math.max(maxtype, #c.type_name)
+      end
+      for _, c in ipairs(info.configs) do
+         local val_str = c.value ~= nil and ("  " .. pt.tostr(c.value)) or ""
+         local doc = (c.doc and #c.doc > 0) and C(ac.dim, "  -- " .. c.doc) or ""
+         lines[#lines+1] = fmt("  %s  %s%s%s",
+            C(ac.cyan, rpad(c.name, maxname)),
+            rpad(c.type_name, maxtype),
+            val_str, doc)
+      end
+   end
+
+   if info.meta_data and #info.meta_data > 0 then
+      lines[#lines+1] = ""
+      lines[#lines+1] = fmt("%s %s", C(ac.yellow, "meta_data:"), info.meta_data)
+   end
+
+   return table.concat(lines, '\n')
+end
+
 if opts.info then
    local p = get_proxy(ndname, bustyp)
 
@@ -223,7 +308,8 @@ if opts.info then
          printf("%s %s", lbl("connections: "), format_connections(p.Connections, iblk_stats))
       end
    else
-      print(pt.tostr(p('GetBlockInfo', opts.info)))
+      local info = p('GetBlockInfo', opts.info)
+      print(use_raw and pt.tostr(info) or format_block_info(info))
    end
    handled = true
 end
