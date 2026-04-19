@@ -220,6 +220,8 @@ The following concepts are important to know:
   trigger based on external events. The `trig_utils` functions (see
   `./libubx/trig_utils.h`) make this straightforward.
 
-- **dynamic block interface**: sometimes the type or length of the
-  port data is not static but depends on configuration values
-  themselves. This is almost always the case for iblocks
+- **dynamic block interface**: sometimes the type or length of port
+  data is not static but depends on configuration values. This is
+  almost always the case for iblocks, which use the canonical configs
+  ``type_name`` and ``data_len`` to configure their port types at
+  runtime.

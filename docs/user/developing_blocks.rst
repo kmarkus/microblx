@@ -64,7 +64,7 @@ configuration values. For example:
 
 .. code:: c
 
-   ubx_config_t rnd_config[] = {
+   ubx_proto_config_t rnd_config[] = {
        { .name="min_max_config", .type_name = "struct random_config", .min=1, .max=1 },
        { 0 },
    };
@@ -188,19 +188,20 @@ Reading configuration values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Configurations can be accessed in a type safe manner using the
-``cfg_getptr_<TYPE>`` familiy of functions, which are available for
+``cfg_getptr_<TYPE>`` family of functions, which are available for
 all basic types. For example, the following snippet retrieves a scalar
-``uint32_t`` config and uses a default ``47`` if unconfigured:
+``int`` config and uses a default ``47`` if unconfigured:
 
 .. code:: c
 
    long len;
-   uint32_t *value;
+   const int *cfgval;
+   int value;
 
-   if ((len = cfg_getptr_int(b, "myconfig", &value)) < 0)
+   if ((len = cfg_getptr_int(b, "myconfig", &cfgval)) < 0)
        goto out_err;
 
-   value = (len > 0) ? *value : 47;
+   value = (len > 0) ? *cfgval : 47;
 
 Defining type safe configuration accessors for custom types can be
 achieved using the macros described in section
@@ -236,10 +237,10 @@ block shows how this is done for ``struct min_max_config``:
 	}
    }
 
-Like with the first example, the the generated accessor
-``cfg_getptr_random_config`` returns <0 in case of error, 0 if
-unconfigured, or the array length (>0) if configured. If >0
-``rndconf`` will be set to point to the actual configuration data.
+Like the first example, the generated accessor
+``cfg_getptr_random_config`` returns <0 on error, 0 if unconfigured,
+or the array length (>0) if configured. If >0, ``rndconf`` points to
+the actual configuration data.
 
 Copy configs or use pointer directly?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -261,7 +262,7 @@ state:
 
 
 Due to possible resizing in `preinit`, config ptr and length should be
-re-retreived in `init`.
+re-retrieved in `init`.
 
 
 When to read configuration: init vs start?
@@ -310,7 +311,7 @@ Writing to ports can be done using the ``write_<TYPE>`` or
 For more see ``std_blocks/ramp/ramp.c``.
 
 Type safe read/write functions are defined for all basic types and
-availale via the ``<ubx.h>`` header. Defining similar functions for
+available via the ``<ubx.h>`` header. Defining similar functions for
 custom types can be done using the macros described in
 :ref:`type-safe-accessors`.
 
@@ -381,10 +382,10 @@ headers:
    and the rest of the ``<stdint.h>`` family are also recognised
    natively).
 
-2. Only one named struct (the one being registered) should be the
-   *primary* definition in a header. Auxiliary declarations (enums,
-   unions) that are required by that struct may live in the same
-   header; put each in its own file to keep things tidy.
+2. Keep one registered struct per header file. Auxiliary declarations
+   (enums, helper unions) used only by that struct may appear in the
+   same file. Do not define two independently registered structs in
+   the same header.
 
 The following constructs are all supported.
 
@@ -681,7 +682,7 @@ To dual-license a block, write:
 
    UBX_MODULE_LICENSE_SPDX(MPL-2.0 BSD-3-Clause)
 
-Is is strongly recommended to use this macro. The list of licenses can
+It is strongly recommended to use this macro. The list of licenses can
 be found on `<http://spdx.org/licenses>`_
 
 Generating blocks with ubx_genblock
