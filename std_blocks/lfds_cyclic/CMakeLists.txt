@@ -30,3 +30,8 @@ install(
   TARGETS ${MOD_NAME}
   LIBRARY DESTINATION ${UBX_MOD_DIR} COMPONENT libraries
 )
+
+add_executable(test-lfds ${MOD_SRC_DIR}/test-lfds.c)
+target_include_directories(test-lfds PRIVATE ${LFDS_INCLUDE_DIRS})
+target_link_libraries(test-lfds PRIVATE ${LFDS_LIBRARIES} pthread rt)
+install(TARGETS test-lfds RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <stdatomic.h>
 #include <string.h>
 #include <assert.h>
-#include <errno.h>
 #include <getopt.h>
 #include <time.h>
-#include "lfq.h"
+#include <liblfds611.h>
 
 #ifdef DEBUG
 #define dbg(fmt, ...)                                   \
@@ -20,7 +20,7 @@
 	} while (0)
 #endif
 
-lfq_t queue;
+struct lfds611_queue_state *queue;
 atomic_bool *elem_written;
 atomic_bool *elem_read;
 int *elements;
@@ -30,7 +30,7 @@ int queue_capacity = 4;
 int num_operations = 100000;
 int total_elements;
 
-int verbose=0;
+int verbose = 0;
 
 #define inf(fmt, ...) if (verbose) printf(fmt, __VA_ARGS__);
 
@@ -41,7 +41,7 @@ void print_usage(const char *progname)
 		"  -c <int>    Queue capacity (default: 4)\n"
 		"  -t <int>    Number of reader/writer threads (default: 30)\n"
 		"  -o <int>    Number of operations per thread (default: 100000)\n"
-		"  -v          Verbose outout\n"
+		"  -v          Verbose output\n"
 		"  -h          Show this help message and exit\n",
 		progname);
 }
@@ -49,34 +49,28 @@ void print_usage(const char *progname)
 void *writer_thread(void *arg)
 {
 	int id = *(int *)arg;
+
+	/* required for all threads that did not call lfds611_queue_new */
+	lfds611_queue_use(queue);
+
 	for (int i = 0; i < num_operations; ++i) {
 		int key = id * num_operations + i;
 		int *element = &elements[key];
 		*element = key;
 
-		while (true) {
-			int ret = lfq_enqueue(&queue, element);
-			if (ret == 0)
-				break;
-			else if (ret == -ENOSPC) {
-				dbg("writer %d: queue full, retrying %d", id,
-				    *element);
-				usleep(1);
-			} else {
-				fprintf(stderr, "lfq_enqueue failed: %s\n",
-					strerror(-ret));
-				exit(1);
-			}
+		while (lfds611_queue_enqueue(queue, element) == 0) {
+			dbg("writer %d: queue full, retrying %d", id, *element);
+			usleep(1);
 		}
 
-		if (atomic_exchange(&elem_written[*element], true)) {
+		if (atomic_exchange(&elem_written[key], true)) {
 			fprintf(stderr,
 				"Error: duplicate enqueue %d by writer %d\n",
-				*element, id);
+				key, id);
 			exit(1);
 		}
 
-		dbg("writer %d: enqueued %d", id, *element);
+		dbg("writer %d: enqueued %d", id, key);
 	}
 	inf("writer %d finished.\n", id);
 	return NULL;
@@ -85,20 +79,15 @@ void *writer_thread(void *arg)
 void *reader_thread(void *arg)
 {
 	int id = *(int *)arg;
+
+	lfds611_queue_use(queue);
+
 	for (int i = 0; i < num_operations; ++i) {
 		void *element;
-		while (true) {
-			int ret = lfq_dequeue(&queue, &element);
-			if (ret == 0)
-				break;
-			else if (ret == -ENODATA) {
-				dbg("reader %d: queue empty", id);
-				usleep(1);
-			} else {
-				fprintf(stderr, "lfq_dequeue failed: %s\n",
-					strerror(-ret));
-				exit(1);
-			}
+
+		while (lfds611_queue_dequeue(queue, &element) == 0) {
+			dbg("reader %d: queue empty", id);
+			usleep(1);
 		}
 
 		int key = *(int *)element;
@@ -125,7 +114,7 @@ static double timespec_diff_sec(struct timespec *start, struct timespec *end)
 int main(int argc, char *argv[])
 {
 	int opt;
-	int failed=0;
+	int failed = 0;
 	struct timespec t_start, t_end;
 
 	while ((opt = getopt(argc, argv, "c:t:o:vh")) != -1) {
@@ -165,7 +154,10 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	lfq_init(&queue, queue_capacity);
+	if (lfds611_queue_new(&queue, queue_capacity) == 0) {
+		fprintf(stderr, "lfds611_queue_new failed\n");
+		return 1;
+	}
 
 	pthread_t *writers = malloc(num_threads * sizeof(pthread_t));
 	pthread_t *readers = malloc(num_threads * sizeof(pthread_t));
@@ -212,17 +204,21 @@ int main(int argc, char *argv[])
 	for (int i = 0; i < total_elements; ++i) {
 		if (atomic_load(&elem_written[i]) &&
 		    !atomic_load(&elem_read[i])) {
-			fprintf(stderr, "Error: element %d was written but not read\n", i);
+			fprintf(stderr,
+				"Error: element %d was written but not read\n",
+				i);
 			failed = 1;
 		}
 		if (!atomic_load(&elem_written[i]) &&
 		    atomic_load(&elem_read[i])) {
-			fprintf(stderr, "Error: element %d was read but not written\n", i);
+			fprintf(stderr,
+				"Error: element %d was read but not written\n",
+				i);
 			failed = 1;
 		}
 	}
 
-	fprintf(stderr, "test_lfq: %s\n", failed==0 ? "OK" : "FAILED");
+	fprintf(stderr, "test_lfds: %s\n", failed == 0 ? "OK" : "FAILED");
 
 	free(elements);
 	free(elem_written);
@@ -231,7 +227,7 @@ int main(int argc, char *argv[])
 	free(readers);
 	free(writer_ids);
 	free(reader_ids);
-	lfq_free(&queue);
+	lfds611_queue_delete(queue, NULL, NULL);
 
 	exit(failed);
 }
