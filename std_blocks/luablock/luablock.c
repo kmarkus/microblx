@@ -149,6 +149,7 @@ static void *luablock_thread(void *arg)
 
 		pthread_mutex_lock(&inf->mutex);
 		__call_hook(b, "step", 0, 0);
+		b->stat_num_steps++;
 		pthread_mutex_unlock(&inf->mutex);
 	}
 
