@@ -4,6 +4,7 @@
 local lsdb = require("lsdbus")
 local utils = require("utils")
 local pt = require("prettytable")
+local ac = require("ansicolors")
 local optparse = require("optparse")
 
 local fmt = string.format
@@ -83,6 +84,8 @@ Options
   -S  --system                    use the system bus
   -U  --session                   use the session bus
       --examples                  show some examples
+  -N  --no-colors                 disable colored output
+      --raw                       print raw values using pt.tostr
   -v  --verbose                   verbose
   -h  --help                      display this help, then exit
       --version                   display version information, then exit
@@ -105,17 +108,120 @@ end
 
 local handled = false
 local ndname = opts.node or 'n'
+local use_colors = not opts.no_colors
+local use_raw = opts.raw
+
+-- wrap s in color c, or return s plain when colors disabled
+local function C(c, s) return use_colors and (c .. s .. ac.reset) or s end
+
+local rpad = utils.rpad
+
+-- format an array of strings, one per line
+local function format_list(t)
+   if #t == 0 then return "(none)" end
+   local lines = {}
+   for _, s in ipairs(t) do lines[#lines+1] = "  " .. s end
+   return "\n" .. table.concat(lines, '\n')
+end
+
+-- format modules: array of {id, license} pairs
+local function format_modules(mods)
+   if #mods == 0 then return "(none)" end
+   local maxw = 0
+   for _, m in ipairs(mods) do maxw = math.max(maxw, #m[1]) end
+   local lines = {}
+   for _, m in ipairs(mods) do
+      lines[#lines+1] = fmt("  %s  %s", C(ac.cyan, rpad(m[1], maxw)), m[2])
+   end
+   return "\n" .. table.concat(lines, '\n')
+end
+
+-- format cblocks: array of {name, prototype, state} triples; steps from GetBlockInfo
+local function format_cblocks(cblocks, steps)
+   if #cblocks == 0 then return "(none)" end
+   local maxname, maxproto = 0, 0
+   for _, b in ipairs(cblocks) do
+      maxname  = math.max(maxname,  #b[1])
+      maxproto = math.max(maxproto, #b[2])
+   end
+   local state_color = { active='green', inactive='yellow', preinit='red' }
+   local lines = {}
+   for _, b in ipairs(cblocks) do
+      local sc = use_colors and ac[state_color[b[3]] or 'white'] or nil
+      local s = steps and steps[b[1]]
+      lines[#lines+1] = fmt("  %s  %s  %s%s",
+         C(ac.cyan, rpad(b[1], maxname)),
+         rpad(b[2], maxproto),
+         sc and (sc .. b[3] .. ac.reset) or b[3],
+         s and fmt("  steps:%d", s) or "")
+   end
+   return "\n" .. table.concat(lines, '\n')
+end
+
+-- group raw connections (iblk-centric) into cblock.port -[iblk r:N w:N]-> cblock.port lines
+-- iblk_stats: optional map of iblk_name -> {reads, writes} from GetBlockInfo calls
+local function format_connections(conns, iblk_stats)
+   local iblk_map = {}
+   for _, conn in ipairs(conns) do
+      if type(conn.from) == 'table' then
+         local iblk = conn.to
+         iblk_map[iblk] = iblk_map[iblk] or {}
+         iblk_map[iblk].from = conn.from
+      else
+         local iblk = conn.from
+         iblk_map[iblk] = iblk_map[iblk] or {}
+         iblk_map[iblk].to = conn.to
+      end
+   end
+   local lines = {}
+   for iblk, conn in pairs(iblk_map) do
+      local src = conn.from and fmt("%s.%s", conn.from[1], conn.from[2]) or "?"
+      local tgt = conn.to   and fmt("%s.%s", conn.to[1],   conn.to[2])   or "?"
+      local st = iblk_stats and iblk_stats[iblk]
+      local label = st and fmt("%s r:%d w:%d", iblk, st.reads, st.writes) or iblk
+      local arrow = C(ac.green, fmt("-[%s]->", label))
+      lines[#lines+1] = fmt("  %s %s %s", C(ac.cyan, src), arrow, C(ac.cyan, tgt))
+   end
+   table.sort(lines)
+   return #lines > 0 and ("\n" .. table.concat(lines, '\n')) or "(none)"
+end
 
 if opts.info then
    local p = get_proxy(ndname, bustyp)
 
    if opts.info == true then
-      printf("node:         %s", p.Node)
-      printf("modules:      %s", pt.tostr(p.Modules))
-      printf("cblock types: %s", pt.tostr(p.CBlockTypes))
-      printf("iblock types: %s", pt.tostr(p.IBlockTypes))
-      printf("cblocks:      %s", pt.tostr(p.CBlocks))
-      printf("connections:  %s", pt.tostr(p.Connections))
+      if use_raw then
+         printf("node:         %s", p.Node)
+         printf("modules:      %s", pt.tostr(p.Modules))
+         printf("cblock types: %s", pt.tostr(p.CBlockTypes))
+         printf("iblock types: %s", pt.tostr(p.IBlockTypes))
+         printf("cblocks:      %s", pt.tostr(p.CBlocks))
+         printf("connections:  %s", pt.tostr(p.Connections))
+      else
+         local function lbl(s) return C(ac.yellow, s) end
+         -- collect unique iblock names from connections
+         local iblk_names = {}
+         for _, conn in ipairs(p.Connections) do
+            local name = type(conn.from) == 'table' and conn.to or conn.from
+            iblk_names[name] = true
+         end
+         -- fetch stats for each iblock and each cblock via GetBlockInfo
+         local iblk_stats, cblk_steps = {}, {}
+         for name in pairs(iblk_names) do
+            local info = p('GetBlockInfo', name)
+            iblk_stats[name] = { reads=info.stat_num_reads, writes=info.stat_num_writes }
+         end
+         for _, b in ipairs(p.CBlocks) do
+            local info = p('GetBlockInfo', b[1])
+            cblk_steps[b[1]] = info.stat_num_steps
+         end
+         printf("%s %s", lbl("node:        "), C(ac.bright, p.Node))
+         printf("%s %s", lbl("modules:     "), format_modules(p.Modules))
+         printf("%s %s", lbl("cblock types:"), format_list(p.CBlockTypes))
+         printf("%s %s", lbl("iblock types:"), format_list(p.IBlockTypes))
+         printf("%s %s", lbl("cblocks:     "), format_cblocks(p.CBlocks, cblk_steps))
+         printf("%s %s", lbl("connections: "), format_connections(p.Connections, iblk_stats))
+      end
    else
       print(pt.tostr(p('GetBlockInfo', opts.info)))
    end
