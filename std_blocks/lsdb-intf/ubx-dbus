@@ -185,7 +185,6 @@ if opts.connect then
    if #args < 3 then
       errexit(1, "invalid arg: %s, expected at least three args", opts.connect)
    end
-   print(pt.tostr(args))
    p('Connect',
      args[1] or "",
      args[2] or "",
@@ -198,8 +197,7 @@ if opts.connect then
 end
 
 if opts.disconnect then
-   error("disconnect: TODO")
-   handled = true
+   errexit(1, "disconnect: not yet implemented")
 end
 
 if opts.config then
@@ -273,6 +271,48 @@ if opts.load_usc then
    else
       errexit(1, "unknown USC file type '%s', expected .json, .usc or .lua", ext or "")
    end
+   handled = true
+end
+
+if opts.examples then
+   print([[
+Examples:
+  # show node info (default node 'n')
+  ubx-dbus -i
+
+  # show info about a specific block
+  ubx-dbus -i ptrig0
+
+  # load a module
+  ubx-dbus -m /usr/local/lib/ubx/0.9/lfrb.so
+
+  # create a block named 'buf1' of type 'lfrb'
+  ubx-dbus --create=buf1:lfrb:{data_len=8,buffer_len=4}
+
+  # bring a block to active state
+  ubx-dbus --switch-state=buf1:active
+
+  # connect src.outport to tgt.inport via an lfrb iblock
+  ubx-dbus --connect=src:outport:tgt:inport:lfrb:{}
+
+  # get a config value
+  ubx-dbus --config=ptrig0:period
+
+  # set a config value
+  ubx-dbus --config=ptrig0:period:{sec=0,nsec=100000000}
+
+  # write a value to a port
+  ubx-dbus --write=myblock:myport:42
+
+  # read from a port
+  ubx-dbus --read=myblock:myport
+
+  # load a USC model
+  ubx-dbus --load-usc=mymodel.usc
+
+  # trigger a block once, then clear all except ptrig0
+  ubx-dbus --trigger=ptrig0
+  ubx-dbus --clear=ptrig0]])
    handled = true
 end
 
