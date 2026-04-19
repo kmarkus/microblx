@@ -818,10 +818,18 @@ function M.ffi_load_types(nd)
       return pcall(ffi.typeof, ffi.string(t.name))
    end
 
+   local loaded_hexarrs = {}
+
    local function ffi_load_no_ns(t)
       if t.type_class==ubx.TYPE_CLASS_STRUCT and t.private_data~=nil then
-	 -- a sibling type sharing the same hexarr may have already loaded it
-	 if ffi_struct_type_is_loaded(t) then return end
+	 -- Dedup by hexarr pointer: multiple types may share one header/hexarr.
+	 -- Using a name-based check here would silently skip a conflicting type
+	 -- from a different module with the same struct name; pointer-based dedup
+	 -- only suppresses the exact same hexarr and lets ffi.cdef raise loudly
+	 -- on any genuine name collision from a different source.
+	 local ptr = tostring(ffi.cast("uintptr_t", t.private_data))
+	 if loaded_hexarrs[ptr] then return end
+	 loaded_hexarrs[ptr] = true
 	 local struct_str = preproc(ffi.string(t.private_data))
 	 local ret, err = pcall(ffi.cdef, struct_str)
 	 if ret==false then
