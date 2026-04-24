@@ -1,0 +1,77 @@
+--- GPIO block example
+--
+-- This usc demonstrates the ubx/gpio block reading two input GPIOs and
+-- driving one output GPIO.
+--
+-- The setup:
+--
+--   /-------\
+--   | gpio  |-- BUTTON0 (out-port, input GPIO)
+--   |       |-- LED_EN  (out-port, input GPIO)
+--   |       |<- LED_OUT (in-port, output GPIO)
+--   \-------/
+--       ^
+--       . triggers
+--  /----------\
+--  | ptrig    |
+--  \----------/
+--
+-- gpio_config fields:
+--   name          : GPIO line name as reported by the kernel (see 'gpioinfo')
+--   dir           : 0=UBX_GPIO_DIR_IN, 1=UBX_GPIO_DIR_OUT
+--   active_low    : 0=active-high (default), 1=active-low
+--   pull          : 0=UBX_GPIO_PULL_DISABLED (default), 1=PULL_UP, 2=PULL_DOWN
+--   emit_on_change: 0=emit every step (default), 1=emit only when value changes
+--                   (only effective for dir=in GPIOs)
+--
+-- Testing with ubx-dbus (after ubx-launch gpio.usc):
+--
+--   # read the BUTTON0 input port once
+--   ubx-dbus --read=gpio:BUTTON0
+--
+--   # continuously monitor the LED_EN input port
+--   ubx-dbus --read-mon=gpio:LED_EN
+--
+--   # write a value to the LED_OUT output port (drives the GPIO)
+--   ubx-dbus --write=gpio:LED_OUT:1
+--   ubx-dbus --write=gpio:LED_OUT:0
+
+local bd = require("blockdiagram")
+
+return bd.system {
+   imports = {
+      "stdtypes",
+      "ptrig",
+      "gpio",
+   },
+
+   blocks = {
+      { name="gpio", type="ubx/gpio" },
+      { name="trig", type="ubx/ptrig" },
+   },
+
+   configurations = {
+      {
+	 name = "gpio",
+	 config = {
+	    gpios = {
+	       -- read BUTTON0 with pull-up, emit only when state changes
+	       { name="BUTTON0", dir=0, pull=1, emit_on_change=1 },
+	       -- read LED_EN input, emit on every step
+	       { name="LED_EN",  dir=0 },
+	       -- drive LED_OUT output, active-low
+	       { name="LED_OUT", dir=1, active_low=1 },
+	    },
+	 }
+      },
+      {
+	 name = "trig",
+	 config = {
+	    period = { sec=0, usec=10000 },  -- 100 Hz
+	    chain0 = { { b="#gpio" } },
+	 }
+      },
+   },
+
+   connections = {},
+}
