@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <stddef.h>
 #include <uthash.h>
 #include "ubx_types.h"
@@ -118,9 +119,9 @@ int main(int argc, char *argv[])
 
 		if (i % (num_samples/10) == 0) {
 			printf("Sample %4d (sleep: %.6f s):\n", i, sleep_ns / 1000000000.0);
-			printf("  POSIX diff: %ld ns (%.6f s)\n", posix_diff, posix_diff / 1000000000.0);
-			printf("  ubx diff:   %ld ns (%.6f s)\n", ubx_diff, ubx_diff / 1000000000.0);
-			printf("  Error:      %ld ns (%.4f%%)\n\n", error_ns, percent_error);
+			printf("  POSIX diff: %" PRId64 " ns (%.6f s)\n", posix_diff, posix_diff / 1000000000.0);
+			printf("  ubx diff:   %" PRId64 " ns (%.6f s)\n", ubx_diff, ubx_diff / 1000000000.0);
+			printf("  Error:      %" PRId64 " ns (%.4f%%)\n\n", error_ns, percent_error);
 		}
 	}
 
