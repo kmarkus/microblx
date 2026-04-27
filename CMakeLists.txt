@@ -183,6 +183,7 @@ if (NOT CMAKE_C_COMPILER_TARGET MATCHES "aarch64|arm64")
   add_block_subdir(BLOCK_LFDS_CYCLIC "std_blocks/lfds_cyclic" ON)
 endif()
 add_block_subdir(BLOCK_GPIO        "std_blocks/gpio"        ON)
+add_block_subdir(BLOCK_GPS         "std_blocks/gps"         ON)
 add_block_subdir(BLOCK_IIO         "std_blocks/iio"         ON)
 add_block_subdir(BLOCK_LFRB	   "std_blocks/lfrb"	    ON)
 add_block_subdir(BLOCK_LSDB_INTF   "std_blocks/lsdb-intf"   OFF)
@@ -198,6 +199,7 @@ add_block_subdir(BLOCK_THRESHOLD   "std_blocks/threshold"   ON)
 add_block_subdir(BLOCK_TRIG        "std_blocks/trig"        ON)
 add_block_subdir(BLOCK_WEBGRAPH    "std_blocks/webgraph"    ON)
 add_block_subdir(BLOCK_WEBIF       "std_blocks/webif"       ON)
+
 
 # examples
 add_block_subdir(BLOCK_EXAMPLE_RANDOM      "std_blocks/examples/random"      ON)

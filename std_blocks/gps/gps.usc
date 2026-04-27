@@ -1,0 +1,39 @@
+--- GPS block example
+--
+-- Reads position/velocity from gpsd via shared memory at 10 Hz.
+-- gpsd must be running with a GPS receiver attached:
+--
+--   gpsd /dev/ttyACM0 -F /var/run/gpsd.sock
+--
+-- Testing with ubx-dbus (after ubx-launch -c gps.usc -dbus):
+--
+--   ubx-dbus --read=gps:gps
+--   ubx-dbus --read-mon=gps:gps
+
+local bd = require("blockdiagram")
+
+return bd.system {
+   imports = {
+      "stdtypes",
+      "ptrig",
+      "lfrb",
+      "gps",
+   },
+
+   blocks = {
+      { name="gps",  type="ubx/gps" },
+      { name="trig", type="ubx/ptrig" },
+   },
+
+   configurations = {
+      {
+	 name = "trig",
+	 config = {
+	    period = { sec=0, usec=100000 },   -- 10 Hz
+	    chain0 = { { b="#gps" } },
+	 }
+      },
+   },
+
+   connections = {},
+}
