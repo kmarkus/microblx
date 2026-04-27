@@ -1,0 +1,56 @@
+--- IIO block example for BeagleBone Black (AM335x internal ADC)
+--
+-- The AM335x ADC exposes 7 analog input channels (AIN0–AIN6, 0–1.8 V, 12-bit).
+-- libiio reads raw values and applies the kernel-reported scale (≈ 0.44 mV/count).
+--
+-- Discover on target:
+--
+--   iio_info                                      # list all devices and channels
+--   iio_info -s                                   # same, scan-context form
+--   cat /sys/bus/iio/devices/iio:device0/name     # → 48300000.adc  (or "tiadc" on older images)
+--
+-- The 'device' field matches the kernel name attribute; 'direction=0' (default) means
+-- device-input channel → ubx out-port of type double (physical value in mV).
+--
+-- Testing with ubx-dbus (after ubx-launch -c iio_bbb.usc -dbus):
+--
+--   ubx-dbus --read=iio:voltage0
+--   ubx-dbus --read-mon=iio:voltage1
+--
+
+local bd = require("blockdiagram")
+
+return bd.system {
+   imports = {
+      "stdtypes",
+      "ptrig",
+      "iio",
+   },
+
+   blocks = {
+      { name="iio",  type="ubx/iio" },
+      { name="trig", type="ubx/ptrig" },
+   },
+
+   configurations = {
+      {
+	 name = "iio",
+	 config = {
+	    channels = {
+	       { device="48300000.adc", channel="voltage0" },
+	       { device="48300000.adc", channel="voltage1" },
+	       { device="48300000.adc", channel="voltage2" },
+	    },
+	 }
+      },
+      {
+	 name = "trig",
+	 config = {
+	    period = { sec=0, usec=10000 },   -- 100 Hz
+	    chain0 = { { b="#iio" } },
+	 }
+      },
+   },
+
+   connections = {},
+}
