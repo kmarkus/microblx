@@ -1,30 +1,10 @@
 # lsdb-intf: D-Bus interface block
 
-
-
-## LoadUSC Limitations
-
-The `LoadUSCLua` and `LoadUSCJSON` D-Bus methods accept a USC model
-as a string. Since the model is not loaded from a file, the following
-limitations apply compared to file-based `.usc` loading:
-
-- **No file-based subsystem loading**: `bd.load("file.usc")` in
-  `subsystems` requires a file path. Relative paths will resolve
-  against the current working directory of the node process, not
-  against any source file.
-- **No relative file paths**: any file reference (e.g. `lua_file` in
-  a luablock configuration) must use an absolute path or the
-  `luablock:name` syntax, which searches the standard installation
-  prefixes.
-- **JSON-specific**: the JSON format cannot express Lua constructs
-  such as computed values, variables or function calls. All values
-  must be JSON literals. Subsystem loading via `bd.load()` is
-  unavailable in JSON USC models.
-
+Exposes a ubx node over D-Bus using the lsdbus Lua bindings.
 
 ## Examples
 
-### Start it up
+### Start
 
 ```sh
 $ ubx-launch -c /usr/local/share/ubx/examples/usc/threshold.usc -v -dbus -s -l 8
@@ -33,18 +13,9 @@ $ ubx-launch -c /usr/local/share/ubx/examples/usc/threshold.usc -v -dbus -s -l 8
 ### Show system state
 
 ```sh
- $ ubx-dbus -i
+$ ubx-dbus -i
 node:         n
-modules:      {
-  {"/usr/local/lib/ubx/0.9/stdtypes.so", "BSD-3-Clause"},
-  {"/usr/local/lib/ubx/0.9/ptrig.so", "BSD-3-Clause"},
-  {"/usr/local/lib/ubx/0.9/lfrb.so", "BSD-3-Clause"},
-  {"/usr/local/lib/ubx/0.9/mqueue.so", "BSD-3-Clause"},
-  {"/usr/local/lib/ubx/0.9/threshold.so", "BSD-3-Clause"},
-  {"/usr/local/lib/ubx/0.9/ramp_double.so", "BSD-3-Clause"},
-  {"/usr/local/lib/ubx/0.9/math_double.so", "BSD-3-Clause"},
-  {"/usr/local/lib/ubx/0.9/luablock.so", "BSD-3-Clause"},
-}
+modules:      { {"/usr/local/lib/ubx/0.9/stdtypes.so", "BSD-3-Clause"}, ... }
 cblock types: {"ubx/ptrig", "ubx/threshold", "ubx/ramp_double", "ubx/math_double", "ubx/luablock"}
 iblock types: {"ubx/lfrb", "ubx/mqueue"}
 cblocks:      {
@@ -55,11 +26,9 @@ cblocks:      {
   {"lsdb0", "ubx/luablock", "active"},
 }
 connections:  {
-  {from="i_00000002", to={"thres", "in"}},
-  {from={"thres", "event"}, to="i_00000003"},
   {from={"ramp", "out"}, to="i_00000001"},
   {from="i_00000001", to={"sin", "x"}},
-  {from={"sin", "y"}, to="i_00000002"},
+  ...
 }
 ```
 
@@ -68,55 +37,28 @@ connections:  {
 ```sh
 $ ubx-dbus -i thres
 {
-  attrs={},
-  block_type="cblock",
+  name="thres", prototype="ubx/threshold", state="active",
   configs={
-    {doc="", name="threshold", type_name="double", value=0.8},
-    {doc="", name="loglevel", type_name="int", value=8},
+    {name="threshold", type_name="double", value=0.8},
+    {name="loglevel",  type_name="int",    value=8},
   },
-  meta_data="",
-  name="thres",
   ports={
-    { attrs=1,
-      connections={incoming={"i_00000002"}, outgoing={}},
-      doc="",
-      in_data_len=1,
-      in_type_name="double",
-      name="in",
-    },
-    {
-      attrs=1,
-      connections={incoming={}, outgoing={}},
-      doc="",
-      name="state",
-      out_data_len=1,
-      out_type_name="int",
-    },
-    {
-      attrs=1,
-      connections={incoming={}, outgoing={"i_00000003"}},
-      doc="",
-      name="event",
-      out_data_len=1,
-      out_type_name="struct thres_event",
-    },
+    {name="in",    in_type_name="double",              connections={incoming={"i_00000002"}}},
+    {name="state", out_type_name="int"},
+    {name="event", out_type_name="struct thres_event", connections={outgoing={"i_00000003"}}},
   },
-  prototype="ubx/threshold",
   stat_num_steps=5777,
-  state="active",
 }
-
 ```
 
 ### Change block state
 
 ```sh
-# reconfigure
 $ ubx-dbus -s trigger:preinit
 $ ubx-dbus -s trigger:active
 ```
 
-### Reconfiguring a trigger
+### Reconfigure a trigger
 
 ```sh
 $ ubx-dbus -s trigger:inactive
@@ -128,23 +70,20 @@ $ ubx-dbus -c trigger:chain0
 }
 
 # reconfigure with every=2
-$ $ ubx-dbus -c trigger:chain0:'{
-  {b="#ramp", every=2, num_steps=1}, 
-  {b="#sin", every=2, num_steps=1}, 
-  {b="#thres", every=2, num_steps=1}, 
+$ ubx-dbus -c trigger:chain0:'{
+  {b="#ramp", every=2, num_steps=1},
+  {b="#sin", every=2, num_steps=1},
+  {b="#thres", every=2, num_steps=1},
 }'
 $ ubx-dbus -s trigger:active
 ```
 
-> **Note**: the same `#BLOCK` syntax as in `.usc` files is used to
-> indicate blocks.
+> **Note**: the same `#BLOCK` syntax as in `.usc` files is used to reference blocks.
 
 ### Manually trigger a chain
 
 ```sh
-# stop the trigger
 $ ubx-dbus -s trigger:inactive
-# trigger the chain manually
 $ ubx-dbus -t ramp:sin:thres
 ```
 
@@ -158,31 +97,25 @@ $ ubx-dbus -r thres:event
 {dir=1, ts={nsec=507728369, sec=70768}}
 ```
 
-> **Note**: when no data is available, `false` is returned. It is
-> quite likely that this happens upon the first read.
+> **Note**: `false` is returned when no data is available.
 
-using `-R` (`--read-mon`) the port can be read continuously:
+Use `-R` (`--read-mon`) to read continuously:
 
 ```sh
 $ ubx-dbus -R thres:event
 {dir=0, ts={nsec=166774413, sec=70836}}
 {dir=1, ts={nsec=284097045, sec=70836}}
-{dir=0, ts={nsec=314593892, sec=70836}}
-{dir=1, ts={nsec=425048420, sec=70836}}
-{dir=0, ts={nsec=451531259, sec=70836}}
+...
 ```
 
-> **Note**: reading this way is very inefficent and really only useful
-> for for very slow signals or debugging. A much more efficient
-> approach is using the `mqueue` iblock or a shared memory buffer.
+> **Note**: continuous reads are inefficient; prefer `mqueue` or shared memory for real use.
 
-### write to a port
+### Write to a port
 
 ```sh
 $ ubx-dbus -s trigger:inactive
 
-# monitor the threshold output in another terminal using
-#   $ ubx-mq read thres.event -p threshold
+# monitor threshold output: ubx-mq read thres.event -p threshold
 
 # rising (dir=1)
 $ ubx-dbus -w thres:in:1 && ubx-dbus -t thres
@@ -193,31 +126,102 @@ $ ubx-dbus -w thres:in:0 && ubx-dbus -t thres
 
 ### Clear a node
 
-Clear all block instances except the dbus block itself:
-
 ```sh
-$ ubx-dbus -C
+$ ubx-dbus -C                 # clear all blocks (lsdb-intf itself is always kept)
+$ ubx-dbus -C=ptrig0:^logger  # keep ptrig0 and any block matching ^logger
 ```
 
-To keep specific blocks, pass a colon-separated keeplist:
+Keeplist entries: plain strings match exactly; entries starting with `^` or ending with `$`
+are Lua [string.match](https://www.lua.org/manual/5.1/manual.html#pdf-string.match) patterns.
+
+### Connect blocks
 
 ```sh
-# keep block "ptrig0" (exact name) and all blocks starting with "logger" (Lua match pattern)
-$ ubx-dbus -C=ptrig0:^logger
+$ ubx-dbus -C srcblock:srcport:tgtblock:tgtport
 ```
 
-Keeplist entries are distinguished as follows:
+## Plugins
 
-- **Exact name**: a plain string like `ptrig0` matches only blocks
-  with that exact instance name.
-- **Lua match pattern**: if the entry starts with `^` or ends with
-  `$`, it is treated as a Lua
-  [string.match](https://www.lua.org/manual/5.1/manual.html#pdf-string.match)
-  pattern. For example, `^trig` matches any block whose name starts
-  with `trig`, and `_0$` matches any block whose name ends with `_0`.
+User-specific D-Bus interfaces can be added to a running node by loading *plugins*. Each
+plugin registers one D-Bus object on its own path and interface, independent of `org.ubx.node`.
 
-> **Note**: the lsdb-intf block's own instance is always kept
-> implicitly.
+### Plugin file format
 
-### connect a blocks
+```lua
+-- my_robot_plugin.lua
+local M = {}
 
+function M.init(ctx)
+   -- ctx.nd    – ubx_node_t*
+   -- ctx.bus   – lsdbus bus connection
+   -- ctx.api.* – pre-bound wrappers: create_block, remove_block, switch_state, trigger,
+   --             connect, set_config, get_config, write, read,
+   --             load_module, load_usc_lua, load_usc_json, clear_node
+
+   return {
+      path = "/robot",
+      intf = {
+         name = "org.myapp.robot",
+         methods = {
+            StartMission = {
+               { direction='in', name='mode', type='s' },
+               handler = function(vt, mode)
+                  ctx.api.switch_state("mission_ctrl", "active")
+               end,
+            },
+         },
+      },
+   }
+end
+
+function M.cleanup() end   -- optional; called before unload
+
+return M
+```
+
+`init(ctx)` must return a table with:
+- `path` (`string`): D-Bus object path (e.g. `"/robot"`)
+- `intf` (`table`): lsdbus interface definition (`name`, `methods`, `properties`, `signals`)
+
+### Plugin search path
+
+- **Absolute path** (starts with `/`): loaded directly.
+- **Short name**: resolved from `<prefix>/share/ubx/lsdb-intf.d/`. The `.lua` suffix is
+  optional; the plugin is listed and unloaded by the base name without extension.
+
+```sh
+$ ubx-dbus call --interface org.ubx.pluginmanager LoadPlugin s:"/opt/myapp/robot_plugin.lua"
+$ ubx-dbus call --interface org.ubx.pluginmanager LoadPlugin s:"robot_plugin"
+$ ubx-dbus call --interface org.ubx.pluginmanager LoadPlugin s:"robot_plugin.lua"  # also accepted
+```
+
+### Loading at startup
+
+```lua
+{ name="lsdb0", config = { thread=1, period=100,
+                            plugins="robot_plugin;sensors_plugin" } }
+```
+
+### Managing at runtime
+
+Plugin management is on the `org.ubx.pluginmanager` interface at object path `/`:
+
+```sh
+$ ubx-dbus call --interface org.ubx.pluginmanager LoadPlugin   s:"robot_plugin"
+$ ubx-dbus call --interface org.ubx.pluginmanager ListPlugins
+$ ubx-dbus call --interface org.ubx.pluginmanager UnloadPlugin s:"robot_plugin"
+```
+
+All plugins are automatically unloaded when the block stops.
+
+
+## LoadUSC Limitations
+
+`LoadUSCLua` and `LoadUSCJSON` accept a USC model as a string. Compared to file-based loading:
+
+- **No file-based subsystem loading**: `bd.load("file.usc")` in `subsystems` requires a file
+  path; relative paths resolve against the node process's working directory.
+- **No relative file paths**: file references (e.g. `lua_file`) must use absolute paths or
+  the `luablock:name` syntax.
+- **JSON-specific**: JSON cannot express Lua constructs (computed values, variables, function
+  calls); `bd.load()` is unavailable in JSON USC models.

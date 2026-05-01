@@ -11,6 +11,9 @@ local BUS_RUN_TIMEOUT_USEC = 200000
 
 local SERVICE =	"org.ubx.%s"
 
+local _prefix = ubx.get_prefix()
+local PLUGIN_DIR = _prefix .. "/share/ubx/lsdb-intf.d"
+
 -- helpers
 local function check_block(vt, name)
    local b = ubx.block_get(vt.nd, name)
@@ -39,6 +42,15 @@ end
 -- these are cleared in remove_block when blocks are removed
 local wpccs = {}
 local rppcs = {}
+
+-- plugin registry: module_name → { vt=vtable, mod=module_table }
+local plugins_reg = {}
+
+-- context passed to plugin setup(); populated in start() once vt exists
+local ctx
+
+-- bus connection and org.ubx.node vtable; set in start(), used by step/stop and plugins
+local bus, vt
 
 local function create_block(vt,	type, name, conf)
    ubx.block_create(vt.nd, type, name, conf)
@@ -155,7 +167,7 @@ local function write(vt, bn, pn, val)
    local b = ubx.block_get(vt.nd, bn)
 
    if not b then
-      wpccs[bn][pn] = nil
+      if wpccs[bn] then wpccs[bn][pn] = nil end
       lsdb.throw(err.INVALID_ARGS, "write: invalid block '%s'", bn)
    end
 
@@ -176,7 +188,7 @@ local function read(vt, bn, pn)
    local b = ubx.block_get(vt.nd, bn)
 
    if not b then
-      rppcs[bn][pn] = nil
+      if rppcs[bn] then rppcs[bn][pn] = nil end
       lsdb.throw(err.INVALID_ARGS, "read: invalid block '%s'", bn)
    end
 
@@ -191,7 +203,7 @@ local function read(vt, bn, pn)
    local ret, res = ubx.port_read(pcc)
    if ret < 0 then
       ubx.err("read failed: %d", ret);
-      lsdb.throw(err.FAILURE, "read from %s.%s failed: '%s'", bn, pn, ret)
+      lsdb.throw(err.FAILED, "read from %s.%s failed: '%s'", bn, pn, ret)
    elseif ret == 0 then
       return lsdb.tovariant(false)
    end
@@ -263,6 +275,87 @@ local function get_connections(vt)
       end
    end
    return lsdb.tovariant2(r)
+end
+
+-- build the context table passed to plugin setup(); must be called after vt is set
+local function make_ctx()
+   ctx = {
+      nd  = vt.nd,
+      bus = bus,
+      api = {
+	 load_module  = function(...) return load_module(vt, ...) end,
+	 create_block = function(...) return create_block(vt, ...) end,
+	 remove_block = function(...) return remove_block(vt, ...) end,
+	 switch_state = function(...) return switch_state(vt, ...) end,
+	 trigger      = function(...) return trigger_blocks(vt, ...) end,
+	 connect      = function(...) return connect(vt, ...) end,
+	 set_config   = function(...) return set_config(vt, ...) end,
+	 get_config   = function(...) return get_config(vt, ...) end,
+	 write        = function(...) return write(vt, ...) end,
+	 read         = function(...) return read(vt, ...) end,
+	 load_usc_lua = function(...) return load_usc_lua(vt, ...) end,
+	 load_usc_json= function(...) return load_usc_json(vt, ...) end,
+	 clear_node   = function(...) return clear_node(vt, ...) end,
+      }
+   }
+end
+
+-- For short names (no leading '/'), strip .lua suffix to get the registry key
+-- and resolve the file as <PLUGIN_DIR>/<key>.lua.
+-- Absolute paths are used as-is for both key and file.
+local function normalize_plugin_name(name)
+   if name:sub(1,1) == '/' then return name, name end
+   local key = name:gsub("%.lua$", "")
+   return key, PLUGIN_DIR .. "/" .. key .. ".lua"
+end
+
+local function do_load_plugin(name)
+   local key, path = normalize_plugin_name(name)
+   if plugins_reg[key] then
+      lsdb.throw(err.INVALID_ARGS, "plugin '%s' already loaded", key)
+   end
+   local chunk, loaderr = loadfile(path)
+   if not chunk then
+      lsdb.throw(err.FAILED, "failed to load plugin '%s': %s", path, loaderr)
+   end
+   local mod = chunk()
+   if type(mod.init) ~= 'function' then
+      lsdb.throw(err.FAILED, "plugin '%s' missing init() function", path)
+   end
+   local spec = mod.init(ctx)
+   if type(spec) ~= 'table' or type(spec.path) ~= 'string' or type(spec.intf) ~= 'table' then
+      lsdb.throw(err.FAILED, "plugin '%s' init() must return { path=string, intf=table }", path)
+   end
+   local pvt = lsdb.server.new(bus, spec.path, spec.intf)
+   plugins_reg[key] = { vt=pvt, mod=mod }
+end
+
+local function do_unload_plugin(name)
+   local key = normalize_plugin_name(name)
+   local p = plugins_reg[key]
+   if not p then
+      lsdb.throw(err.INVALID_ARGS, "plugin '%s' not loaded", key)
+   end
+   if p.mod and type(p.mod.cleanup) == 'function' then p.mod.cleanup() end
+   p.vt:unref()
+   plugins_reg[key] = nil
+end
+
+local function load_plugin(vt, name) do_load_plugin(name) end
+
+local function unload_plugin(vt, name)
+   local key = normalize_plugin_name(name)
+   if plugins_reg[key] and plugins_reg[key].builtin then
+      lsdb.throw(err.INVALID_ARGS, "cannot unload built-in plugin '%s'", key)
+   end
+   do_unload_plugin(name)
+end
+
+local function list_plugins(vt)
+   local names = {}
+   for name in pairs(plugins_reg) do names[#names+1] = name end
+   table.sort(names)
+   return names
 end
 
 local intf = {
@@ -353,7 +446,7 @@ local intf = {
       ClearNode = {
 	 { direction='in', name='keeplist', type='as' },
 	 handler = clear_node,
-      }
+      },
    },
 
    properties = {
@@ -366,10 +459,27 @@ local intf = {
    }
 }
 
-local bus, vt
+local pluginmgr_intf = {
+   name = "org.ubx.pluginmanager",
+   methods = {
+      LoadPlugin = {
+	 { direction='in', name='name', type='s' },
+	 handler = load_plugin,
+      },
+      UnloadPlugin = {
+	 { direction='in', name='name', type='s' },
+	 handler = unload_plugin,
+      },
+      ListPlugins = {
+	 { direction='out', name='plugins', type='as' },
+	 handler = list_plugins,
+      },
+   },
+}
 
 function init(block)
-   -- add config bus type ?
+   block = ffi.cast("ubx_block_t*", block)
+   block:config_add("plugins", "semicolon-separated list of plugin module names to load at startup", "char")
    return true
 end
 
@@ -381,10 +491,27 @@ function start(block)
 
    bus = lsdb.open()
    bus:request_name(fmt(SERVICE, ndname))
+
    vt = lsdb.server.new(bus, "/", intf)
    vt.nd = nd
    vt.blkname = ubx.safe_tostr(block.name)
    vt:emitAllPropertiesChanged()
+   plugins_reg["org.ubx.node"] = { vt=vt, builtin=true }
+
+   local vt_pm = lsdb.server.new(bus, "/", pluginmgr_intf)
+   plugins_reg["org.ubx.pluginmanager"] = { vt=vt_pm, builtin=true }
+
+   make_ctx()
+
+   local c = ubx.block_config_get(block, "plugins")
+   if c then
+      local plugin_str = c:tolua()
+      if type(plugin_str) == 'string' and plugin_str ~= "" then
+	 for name in string.gmatch(plugin_str, "[^;]+") do
+	    do_load_plugin(name)
+	 end
+      end
+   end
 
    return true
 end
@@ -394,7 +521,9 @@ function step(block)
 end
 
 function stop(block)
-   vt:unref()
+   local names = {}
+   for name in pairs(plugins_reg) do names[#names+1] = name end
+   for _, name in ipairs(names) do do_unload_plugin(name) end
 end
 
 function cleanup(block)

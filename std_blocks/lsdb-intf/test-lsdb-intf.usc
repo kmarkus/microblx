@@ -12,6 +12,7 @@ return bd.system {
 	config = {
 	   thread = 1,
 	   period = 100,
+	   plugins = "lsdb_intf_test_plugin"
 	}
       }
    }
