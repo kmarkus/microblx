@@ -5,8 +5,8 @@ graph of the current microblx node.
 
 ## Dependencies
 
-- `luasocket` (runtime)
-- `json.lua` (runtime, ships with ubx)
+- `luasocket`
+- `json.lua`
 - JS libs fetched from CDN on first browser load (`@xyflow/react`, `elkjs`)
 
 ## Usage
@@ -35,11 +35,11 @@ every 3 seconds and re-runs the ELK layered layout.
 
 ## What is shown
 
-| Element | Details |
-|---------|---------|
+| Element         | Details                                               |
+|-----------------|-------------------------------------------------------|
 | **cblock node** | name, prototype, state (colour-coded), configs, ports |
-| **port handle** | name, type[len] shown on hover |
-| **edge** | iblock name, type, data_len, buffer_len |
+| **port handle** | name, type[len] shown on hover                        |
+| **edge**        | iblock name, type, data_len, buffer_len               |
 
 ## Extending
 
