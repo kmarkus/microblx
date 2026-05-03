@@ -1,11 +1,15 @@
-local ubx = require("ubx")
-local ffi = require("ffi")
-local lsdb = require("lsdbus")
-local err = require("lsdbus.error")
+local ubx   = require("ubx")
+local ffi   = require("ffi")
 local utils = require("utils")
-local bd = require("blockdiagram")
-local pt = require("prettytable")
-local fmt = string.format
+local bd    = require("blockdiagram")
+local fmt   = string.format
+
+local _lsdb_ok, lsdb = pcall(require, "lsdbus")
+local _err_ok,  err  = pcall(require, "lsdbus.error")
+
+local _missing_deps = {}
+if not _lsdb_ok then _missing_deps[#_missing_deps+1] = "lsdbus" end
+if not _err_ok  then _missing_deps[#_missing_deps+1] = "lsdbus.error" end
 
 local BUS_RUN_TIMEOUT_USEC = 200000
 
@@ -479,6 +483,10 @@ local pluginmgr_intf = {
 
 function init(block)
    block = ffi.cast("ubx_block_t*", block)
+   if #_missing_deps > 0 then
+      ubx.err(block.nd, "lsdb-intf", "missing dependencies: " .. table.concat(_missing_deps, ", "))
+      return false
+   end
    block:config_add("plugins", "semicolon-separated list of plugin module names to load at startup", "char")
    return true
 end
