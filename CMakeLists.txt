@@ -194,6 +194,7 @@ add_block_subdir(BLOCK_SKELLETON   "std_blocks/skelleton"   ON)
 add_block_subdir(BLOCK_THRESHOLD   "std_blocks/threshold"   ON)
 add_block_subdir(BLOCK_TRIG        "std_blocks/trig"        ON)
 add_block_subdir(BLOCK_WEBIF       "std_blocks/webif"       ON)
+add_block_subdir(BLOCK_WEBGRAPH    "std_blocks/webgraph"    ON)
 add_block_subdir(BLOCK_GPIO        "std_blocks/gpio"        ON)
 add_block_subdir(BLOCK_LSDB_INTF   "std_blocks/lsdb-intf"   OFF)
 

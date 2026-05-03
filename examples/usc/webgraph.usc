@@ -1,0 +1,25 @@
+-- webgraph.usc - mix-in: add webgraph visualization to any ubx system
+--
+-- Merge into another composition with:
+--   ubx-launch -c your_system.usc,webgraph.usc
+--
+-- The block runs its own 50 ms thread so it does not need to be
+-- added to any trigger chain.
+
+return bd.system {
+   imports = { "stdtypes" },
+
+   blocks = {
+      { name="webgraph", type="luablock:webgraph" },
+   },
+
+   configurations = {
+      {
+         name   = "webgraph",
+         config = {
+            thread = 1,
+            period = 50,    -- poll for connections every 50 ms
+         },
+      },
+   },
+}
