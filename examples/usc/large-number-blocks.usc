@@ -1,0 +1,87 @@
+-- large-number-blocks.usc
+--
+-- Stress test: instantiate N ramp→sin→threshold chains, each with its
+-- own ubx/trig, all driven by a single ptrig.
+--
+-- Usage:
+--   cd examples/usc
+--   ubx-launch -c large-number-blocks.usc
+--
+-- Override the count at the top of this file or via the environment:
+--   N=100 ubx-launch -c large-number-blocks.usc
+
+local N = tonumber(os.getenv("N")) or 50
+
+-- ---------------------------------------------------------------
+-- Build blocks, configurations and connections programmatically
+-- ---------------------------------------------------------------
+
+local function make_chain(i)
+   local s = tostring(i)
+   return {
+      blocks = {
+         { name="ramp_" ..s, type="ubx/ramp_double" },
+         { name="sin_"  ..s, type="ubx/math_double" },
+         { name="thres_"..s, type="ubx/threshold"   },
+         { name="trig_" ..s, type="ubx/trig"        },
+      },
+      configurations = {
+         { name="ramp_" ..s, config = { slope = 0.01 * i } },
+         { name="sin_"  ..s, config = { func  = "sin"    } },
+         { name="thres_"..s, config = { threshold = 0.5  } },
+         { name="trig_" ..s, config = {
+              chain0 = {
+                 { b="#ramp_" ..s, num_steps=1 },
+                 { b="#sin_"  ..s, num_steps=1 },
+                 { b="#thres_"..s, num_steps=1 },
+              }
+           }
+         },
+      },
+      connections = {
+         { src="ramp_"..s..".out", tgt="sin_"  ..s..".x"  },
+         { src="sin_" ..s..".y",   tgt="thres_"..s..".in" },
+      },
+      -- entry for ptrig's chain0
+      ptrig_entry = { b="#trig_"..s, num_steps=1 },
+   }
+end
+
+local blocks         = { { name="ptrig_1", type="ubx/ptrig" } }
+local configurations = {}
+local connections    = {}
+local ptrig_chain0   = {}
+
+for i = 1, N do
+   local c = make_chain(i)
+   for _, b   in ipairs(c.blocks)         do blocks        [#blocks        +1] = b   end
+   for _, cfg in ipairs(c.configurations) do configurations[#configurations+1] = cfg end
+   for _, cn  in ipairs(c.connections)    do connections   [#connections   +1] = cn  end
+   ptrig_chain0[#ptrig_chain0+1] = c.ptrig_entry
+end
+
+configurations[#configurations+1] = {
+   name="ptrig_1",
+   config = {
+      period = { sec=0, usec=10000 },   -- 100 Hz
+      chain0 = ptrig_chain0,
+   }
+}
+
+-- ---------------------------------------------------------------
+
+return bd.system {
+   imports = {
+      "stdtypes",
+      "ptrig",
+      "trig",
+      "lfrb",
+      "ramp_double",
+      "math_double",
+      "threshold",
+   },
+
+   blocks         = blocks,
+   configurations = configurations,
+   connections    = connections,
+}
