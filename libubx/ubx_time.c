@@ -79,10 +79,16 @@ int ubx_gettime(struct ubx_timespec *uts)
  */
 int ubx_gettime(struct ubx_timespec *uts)
 {
+	struct timespec ts;
+	int ret;
+
 	if (uts == NULL)
 		return EINVALID_ARG;
 
-	return clock_gettime(CLOCK_MONOTONIC, (struct timespec *)uts);
+	ret = clock_gettime(CLOCK_MONOTONIC, &ts);
+	uts->sec = ts.tv_sec;
+	uts->nsec = ts.tv_nsec;
+	return ret;
 }
 
 #endif /* TIMESRC_* */
@@ -98,11 +104,14 @@ int ubx_gettime(struct ubx_timespec *uts)
  */
 int ubx_nanosleep(const struct ubx_timespec *dur)
 {
+	struct timespec ts;
+
 	if (dur == NULL)
 		return EINVALID_ARG;
 
-	return clock_nanosleep(CLOCK_MONOTONIC, 0,
-			       (const struct timespec *)dur, NULL);
+	ts.tv_sec = dur->sec;
+	ts.tv_nsec = dur->nsec;
+	return clock_nanosleep(CLOCK_MONOTONIC, 0, &ts, NULL);
 }
 
 /**
