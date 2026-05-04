@@ -256,30 +256,9 @@ endif()
 #
 # tests
 #
-install(PROGRAMS
-  tests/test_block_composition.lua
-  tests/test_block_state.lua
-  tests/test_block_state_errors.lua
-  tests/test_blockdiagram.lua
-  tests/test_cdata_tolua.lua
-  tests/test_connection.lua
-  tests/test_connection_errors.lua
-  tests/test_data_errors.lua
-  tests/test_data_init.lua
-  tests/test_dyn_block_if.lua
-  tests/test_lfrb.lua
-  tests/test_math_double.lua
-  tests/test_md5.lua
-  tests/test_merge.lua
-  tests/test_node_config.lua
-  tests/test_pid.lua
-  tests/test_ptrig.lua
-  tests/test_saturation.lua
-  tests/test_struct_comm.lua
-  tests/test_threshold.lua
-  tests/test_time_arith.lua
-  tests/test_type_lookup.lua
-  DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/tests/
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/ubx
+  USE_SOURCE_PERMISSIONS)
 
 
 #
