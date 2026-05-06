@@ -77,6 +77,7 @@ local function build_graph(nd)
 
       nodes[#nodes+1] = {
          id             = b.name,
+         node_type      = "cblock",
          name           = b.name,
          prototype      = b.prototype or "",
          state          = b.state,
@@ -87,49 +88,126 @@ local function build_graph(nd)
       }
    end
 
-   -- Build edges: walk outgoing connections of every cblock port.
-   -- Each outgoing entry is an iblock name; find cblocks whose port
-   -- has that iblock in their incoming list.
-   --
-   -- incoming_map[iblock_name] = { {block, port, in_type, in_len}, ... }
+   -- lfds_cyclic and lfrb are shown as direct cblock→cblock edges;
+   -- all other iblock types are shown as explicit nodes.
+   local TRANSPARENT = { ["ubx/lfds_cyclic"]=true, ["ubx/lfrb"]=true }
+
+   local function is_transparent(iname)
+      return TRANSPARENT[(iblocks[iname] or {}).prototype or ""]
+   end
+
+   -- Build explicit iblock nodes (non-transparent only)
+   for iname, ib in pairs(iblocks) do
+      if not TRANSPARENT[ib.prototype or ""] then
+         local icfg = iblock_cfg(nd, iname)
+         local type_name, data_len = "", 1
+         for _, b in ipairs(cblocks) do
+            if type_name ~= "" then break end
+            for _, p in ipairs(b.ports) do
+               if type_name ~= "" then break end
+               for _, oib in ipairs(p.connections.outgoing) do
+                  if oib == iname and (p.out_type_name or "") ~= "" then
+                     type_name = p.out_type_name
+                     data_len  = p.out_data_len or 1
+                     break
+                  end
+               end
+            end
+         end
+         nodes[#nodes+1] = {
+            id              = iname,
+            node_type       = "iblock",
+            name            = iname,
+            prototype       = ib.prototype or "",
+            state           = ib.state,
+            type_name       = type_name,
+            data_len        = data_len,
+            buf_len         = tonumber(icfg.buffer_len) or 1,
+            stat_num_reads  = ib.stat_num_reads,
+            stat_num_writes = ib.stat_num_writes,
+         }
+      end
+   end
+
+   -- Build edges
+   local edges = {}
+   local seen  = {}
+
+   -- incoming_map for transparent iblocks: used to build direct cblock→cblock edges
    local incoming_map = {}
    for _, b in ipairs(cblocks) do
       for _, p in ipairs(b.ports) do
          for _, ib in ipairs(p.connections.incoming) do
-            if not incoming_map[ib] then incoming_map[ib] = {} end
-            incoming_map[ib][#incoming_map[ib]+1] = {
-               block = b.name,
-               port  = p.name,
-               type  = p.in_type_name,
-               len   = p.in_data_len,
-            }
+            if is_transparent(ib) then
+               if not incoming_map[ib] then incoming_map[ib] = {} end
+               incoming_map[ib][#incoming_map[ib]+1] = {
+                  block = b.name, port = p.name,
+                  type  = p.in_type_name, len = p.in_data_len,
+               }
+            end
          end
       end
    end
 
-   local edges = {}
-   local seen = {}
    for _, b in ipairs(cblocks) do
       for _, p in ipairs(b.ports) do
          for _, ib in ipairs(p.connections.outgoing) do
-            local targets = incoming_map[ib] or {}
-            -- Get buffer_len from iblock config
-            local icfg = iblock_cfg(nd, ib)
-            local buf_len = icfg.buffer_len or 1
-            for _, tgt in ipairs(targets) do
-               local eid = b.name..":"..p.name.."->"..ib.."->"..tgt.block..":"..tgt.port
+            if is_transparent(ib) then
+               -- transparent: direct cblock→cblock edge (iblock shown as label)
+               local icfg = iblock_cfg(nd, ib)
+               local buf_len = icfg.buffer_len or 1
+               for _, tgt in ipairs(incoming_map[ib] or {}) do
+                  local eid = b.name..":"..p.name.."->"..ib.."->"..tgt.block..":"..tgt.port
+                  if not seen[eid] then
+                     seen[eid] = true
+                     local ib_data = iblocks[ib]
+                     edges[#edges+1] = {
+                        id              = eid,
+                        kind            = "direct",
+                        source_block    = b.name,
+                        source_port     = p.name,
+                        target_block    = tgt.block,
+                        target_port     = tgt.port,
+                        iblock          = ib,
+                        type_name       = p.out_type_name or tgt.type or "",
+                        data_len        = p.out_data_len or tgt.len or 1,
+                        buffer_len      = buf_len,
+                        stat_num_reads  = ib_data and ib_data.stat_num_reads or 0,
+                        stat_num_writes = ib_data and ib_data.stat_num_writes or 0,
+                     }
+                  end
+               end
+            else
+               -- opaque: write edge cblock→iblock node
+               local eid = b.name..":"..p.name..">>>"..ib
                if not seen[eid] then
                   seen[eid] = true
                   edges[#edges+1] = {
-                     id           = eid,
-                     iblock       = ib,
-                     source_block = b.name,
-                     source_port  = p.name,
-                     target_block = tgt.block,
-                     target_port  = tgt.port,
-                     type_name    = p.out_type_name or tgt.type or "",
-                     data_len     = p.out_data_len or tgt.len or 1,
-                     buffer_len   = buf_len,
+                     id        = eid,
+                     kind      = "write",
+                     cblock    = b.name,
+                     port      = p.name,
+                     iblock    = ib,
+                     type_name = p.out_type_name or "",
+                     data_len  = p.out_data_len or 1,
+                  }
+               end
+            end
+         end
+         for _, ib in ipairs(p.connections.incoming) do
+            if not is_transparent(ib) then
+               -- opaque: read edge iblock node→cblock
+               local eid = ib..">>>"..b.name..":"..p.name
+               if not seen[eid] then
+                  seen[eid] = true
+                  edges[#edges+1] = {
+                     id        = eid,
+                     kind      = "read",
+                     iblock    = ib,
+                     cblock    = b.name,
+                     port      = p.name,
+                     type_name = p.in_type_name or "",
+                     data_len  = p.in_data_len or 1,
                   }
                end
             end
@@ -249,6 +327,26 @@ body { font-family: monospace; background: #1a1a2e; color: #eee; }
 .react-flow__handle-left  { left:  0 !important; }
 .react-flow__handle-right { right: 0 !important; }
 
+/* Interaction block node */
+.ubx-iblock {
+  background: #0d2211;
+  border: 2px solid #2d5a27;
+  border-radius: 4px;
+  min-width: 140px;
+  font-size: 11px;
+  padding: 5px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: monospace;
+}
+.ubx-iblock.active   { border-color: #4ade80; }
+.ubx-iblock.inactive { border-color: #f87171; }
+.ubx-iblock.preinit  { border-color: #60a5fa; }
+.iblock-name  { font-weight: bold; font-size: 12px; color: #e2e8f0; }
+.iblock-proto { color: #6b7280; font-size: 10px; }
+.iblock-type  { color: #4ade80; font-size: 10px; }
+
 </style>
 </head>
 <body>
@@ -275,6 +373,7 @@ import {
   ReactFlow, Background, Controls, MiniMap,
   useNodesState, useEdgesState,
   Handle, Position, ReactFlowProvider,
+  getBezierPath, BaseEdge,
 } from '@xyflow/react';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import htm from 'htm';
@@ -292,12 +391,15 @@ const ELK_OPTS = {
 };
 
 // Approximate node height for ELK — exact value doesn't need to match rendering
-const NODE_W   = 220;
-const PORT_H   = 22;
-const HEADER_H = 54;
-const CFG_H    = 16;
+const NODE_W    = 220;
+const IBLOCK_W  = 160;
+const IBLOCK_H  = 76;
+const PORT_H    = 22;
+const HEADER_H  = 54;
+const CFG_H     = 16;
 
 function nodeHeight(b) {
+  if (b.node_type === 'iblock') return IBLOCK_H;
   return HEADER_H + b.configs.length * CFG_H + b.ports.length * PORT_H + 8;
 }
 
@@ -350,7 +452,49 @@ function UbxBlock({ id, data }) {
     </div>`;
 }
 
-const NODE_TYPES = { ubxBlock: UbxBlock };
+// ---------- Interaction block node ----------
+function UbxIBlock({ id, data }) {
+  const { name, prototype, state, type_name, data_len, buf_len,
+          stat_num_reads, stat_num_writes } = data;
+  const typeStr = type_name + (data_len > 1 ? '['+data_len+']' : '');
+  return html`
+    <div className=${'ubx-iblock ' + state}>
+      <${Handle} type="target" id=${id+':in'} position=${Position.Left}>[>]</${Handle}>
+      <span className="iblock-name">${name}</span>
+      <span className="iblock-proto">${prototype}</span>
+      ${typeStr && html`<span className="iblock-type">${typeStr} ×${buf_len}</span>`}
+      <span className="iblock-type">w:${stat_num_writes} r:${stat_num_reads}</span>
+      <${Handle} type="source" id=${id+':out'} position=${Position.Right}>[>]</${Handle}>
+    </div>`;
+}
+
+const NODE_TYPES = { ubxBlock: UbxBlock, ubxIBlock: UbxIBlock };
+
+// ---------- Custom edge: direct (transparent iblock) ----------
+// Two-line SVG label: "type buf:N" / "w:N r:N", updated without re-layout.
+function DirectEdge({ id, sourceX, sourceY, targetX, targetY,
+                      sourcePosition, targetPosition, data, style }) {
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition,
+  });
+  const line1 = (data.type_name||'') + (data.data_len > 1 ? '['+data.data_len+']' : '')
+              + ' buf:' + data.buffer_len;
+  const line2 = 'w:' + (data.stat_num_writes ?? 0) + ' r:' + (data.stat_num_reads ?? 0);
+  const rw = Math.max(line1.length, line2.length) * 5.5 + 14;
+  return [
+    html`<${BaseEdge} key="p" id=${id} path=${edgePath} style=${style}/>`,
+    html`<g key="l" transform=${'translate('+labelX+','+labelY+')'}>
+      <rect x=${-rw/2} y="-14" width=${rw} height="28" rx="3"
+        fill="rgba(15,20,40,0.9)" stroke="#2a4a70" strokeWidth="1"/>
+      <text textAnchor="middle" fontFamily="monospace" fontSize="9" fill="#94a3b8">
+        <tspan x="0" dy="-7">${line1}</tspan>
+        <tspan x="0" dy="14">${line2}</tspan>
+      </text>
+    </g>`,
+  ];
+}
+
+const EDGE_TYPES = { directEdge: DirectEdge };
 
 // Shared label style for all edges (React Flow renders string labels in SVG)
 const EDGE_LABEL_STYLE    = { fill: '#94a3b8', fontSize: 9, fontFamily: 'monospace' };
@@ -362,17 +506,19 @@ const EDGE_LABEL_BG_STYLE = { fill: 'rgba(15,20,40,0.9)', stroke: '#2a4a70', str
 async function applyLayout(graphData) {
   const triggers = graphData.triggers || [];
 
-  // Run ELK on data-flow blocks and edges only
+  // Run ELK on all nodes and edges
   const elkNodes = graphData.nodes.map(b => ({
     id: b.id,
-    width: NODE_W,
+    width:  b.node_type === 'iblock' ? IBLOCK_W : NODE_W,
     height: nodeHeight(b),
   }));
 
   const elkEdges = graphData.edges.map(e => ({
     id: e.id,
-    sources: [e.source_block],
-    targets: [e.target_block],
+    sources: [e.kind === 'direct' ? e.source_block
+            : e.kind === 'write'  ? e.cblock : e.iblock],
+    targets: [e.kind === 'direct' ? e.target_block
+            : e.kind === 'write'  ? e.iblock  : e.cblock],
   }));
 
   const layout = await elk.layout({
@@ -434,29 +580,45 @@ async function applyLayout(graphData) {
 
   const nodes = graphData.nodes.map(b => {
     const p = allPos.get(b.id);
+    const isI = b.node_type === 'iblock';
     return {
       id: b.id,
-      type: 'ubxBlock',
+      type: isI ? 'ubxIBlock' : 'ubxBlock',
       position: { x: p ? p.x : 0, y: p ? p.y : 0 },
-      width:  NODE_W,
+      width:  isI ? IBLOCK_W : NODE_W,
       height: nodeHeight(b),
       data: b,
     };
   });
 
-  const dataEdges = graphData.edges.map(e => ({
-    id: e.id,
-    source: e.source_block,
-    sourceHandle: e.source_block + ':' + e.source_port + ':out',
-    target: e.target_block,
-    targetHandle: e.target_block + ':' + e.target_port + ':in',
-    label: e.type_name + (e.data_len > 1 ? '['+e.data_len+']' : '') + ' buf:' + e.buffer_len,
-    labelStyle: EDGE_LABEL_STYLE,
-    labelBgStyle: EDGE_LABEL_BG_STYLE,
-    labelBgPadding: [3, 5],
-    labelBgBorderRadius: 3,
-    style: { stroke: '#7dd3fc' },
-  }));
+  const dataEdges = graphData.edges.map(e => {
+    if (e.kind === 'direct') {
+      return {
+        id: e.id, type: 'directEdge',
+        source: e.source_block, sourceHandle: e.source_block+':'+e.source_port+':out',
+        target: e.target_block, targetHandle: e.target_block+':'+e.target_port+':in',
+        data: {
+          type_name: e.type_name, data_len: e.data_len, buffer_len: e.buffer_len,
+          stat_num_reads: e.stat_num_reads, stat_num_writes: e.stat_num_writes,
+        },
+        style: { stroke: '#7dd3fc' },
+      };
+    }
+    const [src, srcH, tgt, tgtH] = e.kind === 'write'
+      ? [e.cblock, e.cblock+':'+e.port+':out', e.iblock, e.iblock+':in']
+      : [e.iblock, e.iblock+':out',             e.cblock, e.cblock+':'+e.port+':in'];
+    return {
+      id: e.id,
+      source: src, sourceHandle: srcH,
+      target: tgt, targetHandle: tgtH,
+      label: e.type_name + (e.data_len > 1 ? '['+e.data_len+']' : ''),
+      labelStyle: EDGE_LABEL_STYLE,
+      labelBgStyle: EDGE_LABEL_BG_STYLE,
+      labelBgPadding: [3, 5],
+      labelBgBorderRadius: 3,
+      style: { stroke: '#7dd3fc' },
+    };
+  });
 
   const trigEdges = triggers.map(t => {
     const parts = ['#' + t.step];
@@ -515,10 +677,18 @@ function App() {
         setNodes(n);
         setEdges(e);
       } else {
-        // Same topology: update block data (state, configs) without moving nodes
+        // Same topology: update node data (state, configs, iblock stats)
         setNodes(prev => prev.map(node => {
           const b = data.nodes.find(n => n.id === node.id);
           return b ? { ...node, data: b } : node;
+        }));
+        // Update r/w counts on direct edges without re-layout
+        setEdges(prev => prev.map(edge => {
+          if (edge.type !== 'directEdge') return edge;
+          const e = data.edges.find(de => de.id === edge.id);
+          if (!e) return edge;
+          return { ...edge, data: { ...edge.data,
+            stat_num_reads: e.stat_num_reads, stat_num_writes: e.stat_num_writes } };
         }));
       }
 
@@ -564,6 +734,7 @@ function App() {
           nodes=${nodes} edges=${edges}
           onNodesChange=${onNodesChange} onEdgesChange=${onEdgesChange}
           nodeTypes=${NODE_TYPES}
+          edgeTypes=${EDGE_TYPES}
           fitView=${true}
           minZoom=${0.1}>
           <${Background} color="#0f3460" gap=${20}/>
