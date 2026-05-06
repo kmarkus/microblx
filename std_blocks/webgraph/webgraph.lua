@@ -164,7 +164,11 @@ local function build_graph(nd)
       end
    end
 
-   return json.encode({ nodes = nodes, edges = edges, triggers = triggers })
+   return json.encode({
+      nodes    = json.util.InitArray(nodes),
+      edges    = json.util.InitArray(edges),
+      triggers = json.util.InitArray(triggers),
+   })
 end
 
 -- ============================================================
