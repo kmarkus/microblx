@@ -633,6 +633,7 @@ function init(block)
       print("webgraph: missing dependencies: " .. table.concat(_missing_deps, ", "))
       return false
    end
+   ubx.config_add(block, "port", "HTTP port (default: 8888)", "uint32_t")
    return true
 end
 
@@ -655,7 +656,7 @@ function start(block)
       return false
    end
    srv:settimeout(0)  -- non-blocking accept
-   print("webgraph: listening on http://localhost:"..p)
+   ubx.info(block.nd, "webgraph", "listening on http://localhost:"..p)
    return true
 end
 
@@ -674,4 +675,6 @@ function stop(block)
    print("webgraph: stopped")
 end
 
-function cleanup(block) end
+function cleanup(block)
+   ubx.config_rm(block, "port")
+end
