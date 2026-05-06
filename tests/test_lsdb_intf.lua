@@ -348,12 +348,11 @@ end
 function TestLsdbIntf:test_load_plugin_from_stddir_lua_suffix()
    _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_load_plugin_stddir_lua")
 
-   -- .lua suffix is accepted but stripped from the registry key
    _pm_proxy('LoadPlugin', "lsdb_intf_test_plugin.lua")
 
    local plugins = _pm_proxy('ListPlugins')
-   assert_true(list_contains(plugins, "lsdb_intf_test_plugin"),
-               "plugin loaded with .lua suffix should be listed without extension")
+   assert_true(list_contains(plugins, "lsdb_intf_test_plugin.lua"),
+               "plugin loaded with .lua suffix should be listed with extension")
 end
 
 function TestLsdbIntf:test_load_unload_plugin()
