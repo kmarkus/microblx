@@ -57,6 +57,7 @@ static struct iio_device *iio_find_dev(struct iio_context *ctx, const char *name
 	unsigned int n = iio_context_get_devices_count(ctx);
 	for (unsigned int i = 0; i < n; i++) {
 		dev = iio_context_get_device(ctx, i);
+		if (!dev) continue;
 		if (strcmp(iio_device_get_id(dev), name) == 0)
 			return dev;
 	}
@@ -166,6 +167,11 @@ static int iio_init(ubx_block_t *b)
 			goto out_cleanup;
 		}
 		e->port = ubx_port_get(b, cfg->channel);
+		if (!e->port) {
+			ubx_err(b, "'%s/%s': port_get failed", cfg->device, cfg->channel);
+			i++;
+			goto out_cleanup;
+		}
 	}
 	return 0;
 
@@ -184,6 +190,8 @@ out_free_inf:
 static void iio_cleanup(ubx_block_t *b)
 {
 	struct iio_info *inf = (struct iio_info *)b->private_data;
+	if (!inf)
+		return;
 
 	for (long i = 0; i < inf->num_channels; i++)
 		ubx_port_rm(b, inf->cfgs[i].channel);

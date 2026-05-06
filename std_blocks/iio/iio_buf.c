@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <math.h>
 #include <poll.h>
 #include <iio.h>
 
@@ -92,7 +93,7 @@ struct iio_buf_info {
 };
 
 /* Convert one buffer sample to double, handling all IIO data formats correctly. */
-static double convert_sample(const struct iio_channel *ch, void *src)
+static double convert_sample(ubx_block_t *b, const struct iio_channel *ch, void *src)
 {
 	const struct iio_data_format *fmt = iio_channel_get_data_format(ch);
 
@@ -111,7 +112,8 @@ static double convert_sample(const struct iio_channel *ch, void *src)
 		case 8: { uint64_t v; iio_channel_convert(ch, &v, src); return (double)v; }
 		}
 	}
-	return 0.0;
+	ubx_err(b, "unsupported IIO data format length %u bits", fmt->length);
+	return NAN;
 }
 
 /* Find a device group by device pointer; return index or -1. */
@@ -134,6 +136,7 @@ static struct iio_device *iio_buf_find_dev(struct iio_context *ctx, const char *
 	unsigned int n = iio_context_get_devices_count(ctx);
 	for (unsigned int i = 0; i < n; i++) {
 		dev = iio_context_get_device(ctx, i);
+		if (!dev) continue;
 		if (strcmp(iio_device_get_id(dev), name) == 0)
 			return dev;
 	}
@@ -260,6 +263,11 @@ static int iio_buf_init(ubx_block_t *b)
 			goto out_cleanup;
 		}
 		e->port = ubx_port_get(b, cfg->channel);
+		if (!e->port) {
+			ubx_err(b, "'%s/%s': port_get failed", cfg->device, cfg->channel);
+			i++;
+			goto out_cleanup;
+		}
 	}
 	return 0;
 
@@ -370,6 +378,8 @@ static void iio_buf_stop(ubx_block_t *b)
 static void iio_buf_cleanup(ubx_block_t *b)
 {
 	struct iio_buf_info *inf = b->private_data;
+	if (!inf)
+		return;
 
 	for (long i = 0; i < inf->num_channels; i++)
 		ubx_port_rm(b, inf->cfgs[i].channel);
@@ -413,7 +423,7 @@ static void iio_buf_step(ubx_block_t *b)
 			if (!last)
 				continue;
 
-			double raw = convert_sample(e->ch, last);
+			double raw = convert_sample(b, e->ch, last);
 			double val = (raw + e->offset) * e->scale;
 			write_double(e->port, &val);
 		}
