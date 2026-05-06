@@ -79,13 +79,14 @@ Commands
   -R  --read-mon=BLOCK:PORT       read continuously from a port
   -l  --load-usc=USC              load an usc model
   -C  --clear=[KEEPLIST]          clear all blocks except the dbus block.
+                                  KEEPLIST is an optional colon-separated list
+                                  of block names or Lua match patterns to keep.
+                                  Patterns are distinguished by ^/$ anchoring.
+                                  e.g. -C=ptrig0:^logger
   -p  --load-plugin=NAME          load a plugin by name or absolute path
   -u  --unload-plugin=NAME        unload a loaded plugin
   -P  --list-plugins              list loaded plugins
-                                   KEEPLIST is an optional colon-separated list
-                                   of block names or Lua match patterns to keep.
-                                   Patterns are distinguished by ^/$ anchoring.
-                                   e.g. -C=ptrig0:^logger
+
 
 Options
   -n  --node=NAME                 use the node NAME
