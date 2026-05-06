@@ -11,6 +11,7 @@ local _missing_deps = {}
 if not _lsdb_ok then _missing_deps[#_missing_deps+1] = "lsdbus" end
 if not _err_ok  then _missing_deps[#_missing_deps+1] = "lsdbus.error" end
 
+local BUS_RUN_TIMEOUT_USEC = 200000
 
 local SERVICE =	"org.ubx.%s"
 
@@ -537,7 +538,7 @@ function start(block)
 end
 
 function step(block)
-   while bus:run(0) > 0 do end
+   while bus:run(BUS_RUN_TIMEOUT_USEC) > 0 do end
 end
 
 function stop(block)
