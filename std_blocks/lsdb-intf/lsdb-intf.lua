@@ -11,7 +11,6 @@ local _missing_deps = {}
 if not _lsdb_ok then _missing_deps[#_missing_deps+1] = "lsdbus" end
 if not _err_ok  then _missing_deps[#_missing_deps+1] = "lsdbus.error" end
 
-local BUS_RUN_TIMEOUT_USEC = 200000
 
 local SERVICE =	"org.ubx.%s"
 
@@ -314,8 +313,7 @@ end
 
 local function resolve_plugin_path(name)
    if name:sub(1,1) == '/' then return name end
-   local filename = name:sub(-4) == '.lua' and name or name .. '.lua'
-   return PLUGIN_DIR .. "/" .. filename
+   return PLUGIN_DIR .. "/" .. name
 end
 
 local function do_load_plugin(name)
@@ -539,7 +537,7 @@ function start(block)
 end
 
 function step(block)
-   while bus:run(BUS_RUN_TIMEOUT_USEC) > 0 do end
+   while bus:run(0) > 0 do end
 end
 
 function stop(block)

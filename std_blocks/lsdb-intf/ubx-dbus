@@ -28,9 +28,14 @@ function lsdb.proxy.error(_, err, msg)
    errexit(3, "%s: %s", err, msg)
 end
 
-local function get_proxy(name, bustype)
-   local bus = lsdb.open(bustype)
+local bus
+
+local function get_proxy(name)
    return lsdb.proxy.new(bus, fmt(UBX.SRV, name), UBX.PATH, UBX.INTF)
+end
+
+local function get_pm_proxy(name)
+   return lsdb.proxy.new(bus, fmt(UBX.SRV, name), UBX.PATH, 'org.ubx.pluginmanager')
 end
 
 local function str2lua(str)
@@ -74,6 +79,9 @@ Commands
   -R  --read-mon=BLOCK:PORT       read continuously from a port
   -l  --load-usc=USC              load an usc model
   -C  --clear=[KEEPLIST]          clear all blocks except the dbus block.
+  -p  --load-plugin=NAME          load a plugin by name or absolute path
+  -u  --unload-plugin=NAME        unload a loaded plugin
+  -P  --list-plugins              list loaded plugins
                                    KEEPLIST is an optional colon-separated list
                                    of block names or Lua match patterns to keep.
                                    Patterns are distinguished by ^/$ anchoring.
@@ -105,6 +113,8 @@ if opts.system then
 elseif opts.session then
    bustyp = 'default_user'
 end
+
+bus = lsdb.open(bustyp)
 
 local handled = false
 local ndname = opts.node or 'n'
@@ -272,7 +282,7 @@ local function format_block_info(info)
 end
 
 if opts.info then
-   local p = get_proxy(ndname, bustyp)
+   local p = get_proxy(ndname)
 
    if opts.info == true then
       if use_raw then
@@ -315,13 +325,13 @@ if opts.info then
 end
 
 if opts.module then
-   local p = get_proxy(ndname, bustyp)
+   local p = get_proxy(ndname)
    p('LoadModule', opts.module)
    handled = true
 end
 
 if opts.create then
-   local p = get_proxy(ndname, bustyp)
+   local p = get_proxy(ndname)
    local args = split(opts.create)
    if #args ~= 3 then
       errexit(1, "invalid arg: %s, expected NAME:TYPE:{CONFIG}", opts.create)
@@ -332,13 +342,13 @@ if opts.create then
 end
 
 if opts.remove then
-   local p = get_proxy(ndname, bustyp)
+   local p = get_proxy(ndname)
    p('RemoveBlock', opts.remove)
    handled = true
 end
 
 if opts.switch_state then
-   local p = get_proxy(ndname, bustyp)
+   local p = get_proxy(ndname)
    local args = split(opts.switch_state)
    if #args < 2 then
       errexit(1, "invalid arg: %s, expected BLOCK,STATE", opts.switch_state)
@@ -354,7 +364,7 @@ if opts.trigger or opts.periodic then
    end
 
    local num
-   local p = get_proxy(ndname, bustyp)
+   local p = get_proxy(ndname)
    local args = split(opts.trigger or opts.periodic)
 
    if #args < 1 then
@@ -372,7 +382,7 @@ if opts.trigger or opts.periodic then
 end
 
 if opts.connect then
-   local p = get_proxy(ndname, bustyp)
+   local p = get_proxy(ndname)
    local args = split(opts.connect)
    if #args < 3 then
       errexit(1, "invalid arg: %s, expected at least three args", opts.connect)
@@ -393,7 +403,7 @@ if opts.disconnect then
 end
 
 if opts.config then
-   local p = get_proxy(ndname, bustyp)
+   local p = get_proxy(ndname)
    local args = split(opts.config)
 
    if #args == 2 then
@@ -408,7 +418,7 @@ if opts.config then
 end
 
 if opts.clear then
-   local p = get_proxy(ndname, bustyp)
+   local p = get_proxy(ndname)
    local keeplist = {}
    if type(opts.clear) == 'string' then
       keeplist = split(opts.clear)
@@ -418,14 +428,14 @@ if opts.clear then
 end
 
 if opts.read then
-   local p = get_proxy(ndname, bustyp)
+   local p = get_proxy(ndname)
    local args = split(opts.read)
    print(pt.tostr(p('Read', args[1], args[2])))
    handled = true
 end
 
 if opts.read_mon then
-   local p = get_proxy(ndname, bustyp)
+   local p = get_proxy(ndname)
    local args = split(opts.read_mon)
    while true do
       local v = p('Read', args[1], args[2])
@@ -437,7 +447,7 @@ if opts.read_mon then
 end
 
 if opts.write then
-   local p = get_proxy(ndname, bustyp)
+   local p = get_proxy(ndname)
    local args = split(opts.write)
    if #args < 3 then
       errexit(1, "invalid arg: %s, expected BLOCK:PORT:VALUE", opts.write)
@@ -448,7 +458,7 @@ if opts.write then
 end
 
 if opts.load_usc then
-   local p = get_proxy(ndname, bustyp)
+   local p = get_proxy(ndname)
    local ext = string.match(opts.load_usc, "^.+%.(.+)$")
    local f = io.open(opts.load_usc, "r")
    if not f then
@@ -463,6 +473,24 @@ if opts.load_usc then
    else
       errexit(1, "unknown USC file type '%s', expected .json, .usc or .lua", ext or "")
    end
+   handled = true
+end
+
+if opts.load_plugin then
+   local pm = get_pm_proxy(ndname)
+   pm('LoadPlugin', opts.load_plugin)
+   handled = true
+end
+
+if opts.unload_plugin then
+   local pm = get_pm_proxy(ndname)
+   pm('UnloadPlugin', opts.unload_plugin)
+   handled = true
+end
+
+if opts.list_plugins then
+   local pm = get_pm_proxy(ndname)
+   print(format_list(pm('ListPlugins')))
    handled = true
 end
 
@@ -504,7 +532,17 @@ Examples:
 
   # trigger a block once, then clear all except ptrig0
   ubx-dbus --trigger=ptrig0
-  ubx-dbus --clear=ptrig0]])
+  ubx-dbus --clear=ptrig0
+
+  # load a plugin by short name or absolute path
+  ubx-dbus -p myplugin.lua
+  ubx-dbus -p /path/to/myplugin.lua
+
+  # list loaded plugins
+  ubx-dbus -P
+
+  # unload a plugin
+  ubx-dbus -u myplugin.lua]])
    handled = true
 end
 
