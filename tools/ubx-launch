@@ -45,6 +45,8 @@ usage: ubx-launch [OPTION] -c <model file>
   -webif [PORT]		create and start webinterface block.
 			the optional port defaults to 8888.
   -dbus                 create and start the dbus interface block.
+  -webgraph [PORT]	create and start the webgraph block.
+			the optional port defaults to 8888.
 
   -validate             don't run, just validate configuration file
 
@@ -182,6 +184,21 @@ if opttab['-dbus'] then
    end
 
    lbutil.create(nd, "lsdb-intf", "lsdb0", "active", true)
+end
+
+if opttab['-webgraph'] then
+   local port = tonumber(opttab['-webgraph'][1]) or 8888
+   local have_luablock, lbutil = pcall(require, "ubx/luablock-util")
+
+   if not have_luablock then
+      errexit(1, "luablock module is not available")
+   end
+
+   if opttab['-v'] then print("webgraph: listening on http://localhost:"..ts(port)) end
+   local b = lbutil.create(nd, "webgraph", "webgraph0", nil, {period=50})
+   assert(ubx.block_tostate(b, 'inactive') == 0)
+   ubx.set_config(b, 'port', port)
+   assert(ubx.block_tostate(b, 'active') == 0)
 end
 
 if not opttab['-i'] then
