@@ -87,24 +87,39 @@ local function build_graph(nd)
          name           = b.name,
          prototype      = b.prototype or "",
          state          = b.state,
-         attrs          = b.attrs,
          ports          = ports,
          configs        = configs,
          stat_num_steps = b.stat_num_steps,
       }
    end
 
-   -- lfds_cyclic and lfrb are shown as direct cblock→cblock edges;
-   -- all other iblock types are shown as explicit nodes.
+   -- lfds_cyclic and lfrb connecting two cblocks are shown as direct edges (minimal label);
+   -- dangling ones (only one side connected) and all other iblock types are shown as nodes.
    local TRANSPARENT = { ["ubx/lfds_cyclic"]=true, ["ubx/lfrb"]=true }
 
    local function is_transparent(iname)
       return TRANSPARENT[(iblocks[iname] or {}).prototype or ""]
    end
 
-   -- Build explicit iblock nodes (non-transparent only)
+   -- Determine which transparent iblocks have both a writer and a reader (bridging)
+   local has_writer, has_reader = {}, {}
+   for _, b in ipairs(cblocks) do
+      for _, p in ipairs(b.ports) do
+         for _, ib in ipairs(p.connections.outgoing) do
+            if is_transparent(ib) then has_writer[ib] = true end
+         end
+         for _, ib in ipairs(p.connections.incoming) do
+            if is_transparent(ib) then has_reader[ib] = true end
+         end
+      end
+   end
+   local function is_bridging(iname)
+      return is_transparent(iname) and has_writer[iname] and has_reader[iname]
+   end
+
+   -- Build explicit iblock nodes: non-transparent + dangling transparent
    for iname, ib in pairs(iblocks) do
-      if not TRANSPARENT[ib.prototype or ""] then
+      if not is_bridging(iname) then
          local icfg = iblock_cfg(nd, iname)
          local type_name, data_len = "", 1
          for _, b in ipairs(cblocks) do
@@ -113,9 +128,13 @@ local function build_graph(nd)
                if type_name ~= "" then break end
                for _, oib in ipairs(p.connections.outgoing) do
                   if oib == iname and (p.out_type_name or "") ~= "" then
-                     type_name = p.out_type_name
-                     data_len  = p.out_data_len or 1
-                     break
+                     type_name = p.out_type_name; data_len = p.out_data_len or 1; break
+                  end
+               end
+               if type_name ~= "" then break end
+               for _, iib in ipairs(p.connections.incoming) do
+                  if iib == iname and (p.in_type_name or "") ~= "" then
+                     type_name = p.in_type_name; data_len = p.in_data_len or 1; break
                   end
                end
             end
@@ -144,7 +163,7 @@ local function build_graph(nd)
    for _, b in ipairs(cblocks) do
       for _, p in ipairs(b.ports) do
          for _, ib in ipairs(p.connections.incoming) do
-            if is_transparent(ib) then
+            if is_bridging(ib) then
                if not incoming_map[ib] then incoming_map[ib] = {} end
                incoming_map[ib][#incoming_map[ib]+1] = {
                   block = b.name, port = p.name,
@@ -158,10 +177,10 @@ local function build_graph(nd)
    for _, b in ipairs(cblocks) do
       for _, p in ipairs(b.ports) do
          for _, ib in ipairs(p.connections.outgoing) do
-            if is_transparent(ib) then
-               -- transparent: direct cblock→cblock edge (iblock shown as label)
+            if is_bridging(ib) then
+               -- bridging: direct cblock→cblock edge (iblock shown as label)
                local icfg = iblock_cfg(nd, ib)
-               local buf_len = icfg.buffer_len or 1
+               local buf_len = tonumber(icfg.buffer_len) or 1
                for _, tgt in ipairs(incoming_map[ib] or {}) do
                   local eid = b.name..":"..p.name.."->"..ib.."->"..tgt.block..":"..tgt.port
                   if not seen[eid] then
@@ -174,7 +193,6 @@ local function build_graph(nd)
                         source_port     = p.name,
                         target_block    = tgt.block,
                         target_port     = tgt.port,
-                        iblock          = ib,
                         type_name       = p.out_type_name or tgt.type or "",
                         data_len        = p.out_data_len or tgt.len or 1,
                         buffer_len      = buf_len,
@@ -188,32 +206,42 @@ local function build_graph(nd)
                local eid = b.name..":"..p.name..">>>"..ib
                if not seen[eid] then
                   seen[eid] = true
+                  local icfg   = iblock_cfg(nd, ib)
+                  local ib_data = iblocks[ib]
                   edges[#edges+1] = {
-                     id        = eid,
-                     kind      = "write",
-                     cblock    = b.name,
-                     port      = p.name,
-                     iblock    = ib,
-                     type_name = p.out_type_name or "",
-                     data_len  = p.out_data_len or 1,
+                     id              = eid,
+                     kind            = "write",
+                     cblock          = b.name,
+                     port            = p.name,
+                     iblock          = ib,
+                     type_name       = p.out_type_name or "",
+                     data_len        = p.out_data_len or 1,
+                     buffer_len      = tonumber(icfg.buffer_len) or 1,
+                     stat_num_reads  = ib_data and ib_data.stat_num_reads or 0,
+                     stat_num_writes = ib_data and ib_data.stat_num_writes or 0,
                   }
                end
             end
          end
          for _, ib in ipairs(p.connections.incoming) do
-            if not is_transparent(ib) then
-               -- opaque: read edge iblock node→cblock
+            if not is_bridging(ib) then
+               -- non-bridging: read edge iblock node→cblock
                local eid = ib..">>>"..b.name..":"..p.name
                if not seen[eid] then
                   seen[eid] = true
+                  local icfg    = iblock_cfg(nd, ib)
+                  local ib_data = iblocks[ib]
                   edges[#edges+1] = {
-                     id        = eid,
-                     kind      = "read",
-                     iblock    = ib,
-                     cblock    = b.name,
-                     port      = p.name,
-                     type_name = p.in_type_name or "",
-                     data_len  = p.in_data_len or 1,
+                     id              = eid,
+                     kind            = "read",
+                     iblock          = ib,
+                     cblock          = b.name,
+                     port            = p.name,
+                     type_name       = p.in_type_name or "",
+                     data_len        = p.in_data_len or 1,
+                     buffer_len      = tonumber(icfg.buffer_len) or 1,
+                     stat_num_reads  = ib_data and ib_data.stat_num_reads or 0,
+                     stat_num_writes = ib_data and ib_data.stat_num_writes or 0,
                   }
                end
             end
@@ -295,7 +323,6 @@ body { font-family: monospace; background: #1a1a2e; color: #eee; }
 .block-name  { font-weight: bold; font-size: 13px; color: #e2e8f0; }
 .block-proto { display: block; color: #94a3b8; font-size: 10px; }
 .block-state { display: block; color: #64748b; font-size: 10px; }
-.block-steps { display: block; color: #64748b; font-size: 10px; }
 
 .block-configs {
   padding: 3px 8px;
@@ -462,41 +489,47 @@ function UbxBlock({ id, data }) {
 function UbxIBlock({ id, data }) {
   const { name, prototype, state, type_name, data_len, buf_len,
           stat_num_reads, stat_num_writes } = data;
-  const typeStr = type_name + (data_len > 1 ? '['+data_len+']' : '');
+  const typeStr = (type_name||'') + (data_len > 1 ? '['+data_len+']' : '') + '×' + (buf_len||1);
   return html`
     <div className=${'ubx-iblock ' + state}>
       <${Handle} type="target" id=${id+':in'} position=${Position.Left}>[>]</${Handle}>
       <span className="iblock-name">${name}</span>
       <span className="iblock-proto">${prototype}</span>
-      ${typeStr && html`<span className="iblock-type">${typeStr} ×${buf_len}</span>`}
-      <span className="iblock-type">w:${stat_num_writes} r:${stat_num_reads}</span>
+      <span className="iblock-type">${typeStr}</span>
+      <span className="iblock-type">r:${stat_num_reads||0} w:${stat_num_writes||0}</span>
       <${Handle} type="source" id=${id+':out'} position=${Position.Right}>[>]</${Handle}>
     </div>`;
 }
 
 const NODE_TYPES = { ubxBlock: UbxBlock, ubxIBlock: UbxIBlock };
 
-// ---------- Custom edge: direct (transparent iblock) ----------
-// Two-line SVG label: "type buf:N" / "w:N r:N", updated without re-layout.
+// ---------- Custom edge: used for all data edges (direct, write, read) ----------
+// Two-line SVG label built with createElement to avoid htm/SVG namespace issues.
 function DirectEdge({ id, sourceX, sourceY, targetX, targetY,
                       sourcePosition, targetPosition, data, style }) {
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition,
   });
   const line1 = (data.type_name||'') + (data.data_len > 1 ? '['+data.data_len+']' : '')
-              + ' buf:' + data.buffer_len;
-  const line2 = 'w:' + (data.stat_num_writes ?? 0) + ' r:' + (data.stat_num_reads ?? 0);
-  const rw = Math.max(line1.length, line2.length) * 5.5 + 14;
+              + '×' + (data.buffer_len ?? 1);
+  const line2 = 'r:' + (data.stat_num_reads ?? 0) + ' w:' + (data.stat_num_writes ?? 0);
+  const rw = Math.max(line1.length, line2.length) * 6 + 14;
   return [
     html`<${BaseEdge} key="p" id=${id} path=${edgePath} style=${style}/>`,
-    html`<g key="l" transform=${'translate('+labelX+','+labelY+')'}>
-      <rect x=${-rw/2} y="-14" width=${rw} height="28" rx="3"
-        fill="rgba(15,20,40,0.9)" stroke="#2a4a70" strokeWidth="1"/>
-      <text textAnchor="middle" fontFamily="monospace" fontSize="9" fill="#94a3b8">
-        <tspan x="0" dy="-7">${line1}</tspan>
-        <tspan x="0" dy="14">${line2}</tspan>
-      </text>
-    </g>`,
+    createElement('g', { key: 'l' },
+      createElement('rect', {
+        x: labelX - rw/2, y: labelY - 14, width: rw, height: 28, rx: 3,
+        fill: 'rgba(15,20,40,0.9)', stroke: '#2a4a70', strokeWidth: 1,
+      }),
+      createElement('text', {
+        x: labelX, y: labelY - 4,
+        textAnchor: 'middle', fontFamily: 'monospace', fontSize: 9, fill: '#94a3b8',
+      }, line1),
+      createElement('text', {
+        x: labelX, y: labelY + 9,
+        textAnchor: 'middle', fontFamily: 'monospace', fontSize: 9, fill: '#94a3b8',
+      }, line2),
+    ),
   ];
 }
 
@@ -598,30 +631,18 @@ async function applyLayout(graphData) {
   });
 
   const dataEdges = graphData.edges.map(e => {
-    if (e.kind === 'direct') {
-      return {
-        id: e.id, type: 'directEdge',
-        source: e.source_block, sourceHandle: e.source_block+':'+e.source_port+':out',
-        target: e.target_block, targetHandle: e.target_block+':'+e.target_port+':in',
-        data: {
-          type_name: e.type_name, data_len: e.data_len, buffer_len: e.buffer_len,
-          stat_num_reads: e.stat_num_reads, stat_num_writes: e.stat_num_writes,
-        },
-        style: { stroke: '#7dd3fc' },
-      };
-    }
-    const [src, srcH, tgt, tgtH] = e.kind === 'write'
-      ? [e.cblock, e.cblock+':'+e.port+':out', e.iblock, e.iblock+':in']
-      : [e.iblock, e.iblock+':out',             e.cblock, e.cblock+':'+e.port+':in'];
+    const src  = e.kind === 'direct' ? e.source_block : e.kind === 'write' ? e.cblock  : e.iblock;
+    const srcH = e.kind === 'direct' ? src+':'+e.source_port+':out' : e.kind === 'write' ? src+':'+e.port+':out' : src+':out';
+    const tgt  = e.kind === 'direct' ? e.target_block : e.kind === 'write' ? e.iblock  : e.cblock;
+    const tgtH = e.kind === 'direct' ? tgt+':'+e.target_port+':in' : e.kind === 'write' ? tgt+':in'             : tgt+':'+e.port+':in';
     return {
-      id: e.id,
+      id: e.id, type: 'directEdge',
       source: src, sourceHandle: srcH,
       target: tgt, targetHandle: tgtH,
-      label: e.type_name + (e.data_len > 1 ? '['+e.data_len+']' : ''),
-      labelStyle: EDGE_LABEL_STYLE,
-      labelBgStyle: EDGE_LABEL_BG_STYLE,
-      labelBgPadding: [3, 5],
-      labelBgBorderRadius: 3,
+      data: {
+        type_name: e.type_name, data_len: e.data_len, buffer_len: e.buffer_len,
+        stat_num_reads: e.stat_num_reads, stat_num_writes: e.stat_num_writes,
+      },
       style: { stroke: '#7dd3fc' },
     };
   });
