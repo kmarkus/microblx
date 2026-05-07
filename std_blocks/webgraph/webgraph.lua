@@ -17,6 +17,12 @@ local _missing_deps = {}
 if not _json_ok   then _missing_deps[#_missing_deps+1] = "json (json.lua)" end
 if not _sock_ok   then _missing_deps[#_missing_deps+1] = "socket (luasocket)" end
 
+-- json.util.InitArray forces empty-table-as-array encoding; shim for versions without it
+local function json_array(t)
+   if json.util and json.util.InitArray then return json.util.InitArray(t) end
+   return setmetatable(t, {__jsontype = 'array'})
+end
+
 local srv = nil
 local node_ref = nil  -- cached node pointer (set in start)
 
@@ -243,9 +249,9 @@ local function build_graph(nd)
    end
 
    return json.encode({
-      nodes    = json.util.InitArray(nodes),
-      edges    = json.util.InitArray(edges),
-      triggers = json.util.InitArray(triggers),
+      nodes    = json_array(nodes),
+      edges    = json_array(edges),
+      triggers = json_array(triggers),
    })
 end
 
