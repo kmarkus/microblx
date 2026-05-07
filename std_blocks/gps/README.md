@@ -53,9 +53,27 @@ the downstream lfrb retains its last value.
 ## Usage
 
 ```sh
-ubx-launch -c gps.usc -dbus
-ubx-dbus --read=gps:gps
-ubx-dbus --read-mon=gps:gps
+$ ubx-launch -c gps.usc -dbus
+
+# second terminal
+$ ubx-dbus -R gps:gps
+{
+  altHAE=464.949,
+  altMSL=417.502,
+  climb=-0.036999994486979,
+  eph=41.94,
+  epv=27.044,
+  latitude=47.335140,
+  longitude=9.715919,
+  mode=3,
+  satellites_used=8,
+  satellites_visible=21,
+  speed=0.33,
+  status=1,
+  time=1.7782188370004e+18,
+  track=146.64387,
+}
+
 ```
 
 See `gps.usc` for the complete example.
