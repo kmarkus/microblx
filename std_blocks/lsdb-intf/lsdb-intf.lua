@@ -294,6 +294,14 @@ local function make_ctx()
    ctx = {
       nd  = vt.nd,
       bus = bus,
+      emerg  = function(src, ...) ubx.emerg(vt.nd,  src, ...) end,
+      alert  = function(src, ...) ubx.alert(vt.nd,  src, ...) end,
+      crit   = function(src, ...) ubx.crit(vt.nd,   src, ...) end,
+      err    = function(src, ...) ubx.err(vt.nd,    src, ...) end,
+      warn   = function(src, ...) ubx.warn(vt.nd,   src, ...) end,
+      notice = function(src, ...) ubx.notice(vt.nd, src, ...) end,
+      info   = function(src, ...) ubx.info(vt.nd,   src, ...) end,
+      debug  = function(src, ...) ubx.debug(vt.nd,  src, ...) end,
       api = {
 	 load_module  = function(...) return load_module(vt, ...) end,
 	 create_block = function(...) return create_block(vt, ...) end,
