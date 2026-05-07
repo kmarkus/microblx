@@ -9,11 +9,94 @@
 local ubx = require("ubx")
 local utils = require("utils")
 local strict = require("strict")
+local ac = require("ansicolors")
 
 local res,cjson = _G.pcall(_G.require,'cjson')
 
 local ts = tostring
 local fmt = string.format
+
+local use_color = true  -- updated from -c flag after arg parsing
+
+local function colorize(fn, s, bright)
+   if not use_color then return s end
+   s = fn(s)
+   if bright then s = ac.bright(s) end
+   return s
+end
+
+local function red(s, b)     return colorize(ac.red,     s, b) end
+local function green(s, b)   return colorize(ac.green,   s, b) end
+local function blue(s, b)    return colorize(ac.blue,    s, b) end
+local function cyan(s, b)    return colorize(ac.cyan,    s, b) end
+local function yellow(s, b)  return colorize(ac.yellow,  s, b) end
+local function magenta(s, b) return colorize(ac.magenta, s, b) end
+
+local function block_state_str(sstr)
+   if sstr == 'preinit'  then return blue(sstr, true)
+   elseif sstr == 'inactive' then return red(sstr)
+   elseif sstr == 'active'   then return green(sstr, true)
+   else return sstr end
+end
+
+local function config_tabtostr(ctab)
+   return blue(ctab.name, true)
+      .." ["..magenta(ctab.type_name).."] "
+      ..yellow(utils.tab2str(ctab.value))
+      .." "..red("// "..ctab.doc)
+end
+
+local function port_tabtostr(pt)
+   local in_str, out_str, doc = "", "", ""
+   if pt.in_type_name then
+      in_str = "in: "..magenta(pt.in_type_name)
+      if pt.in_data_len > 1 then in_str = in_str.."["..ts(pt.in_data_len).."]" end
+      in_str = in_str.." #conn: "..ts(#pt.connections.incoming)
+   end
+   if pt.out_type_name then
+      out_str = "out: "..magenta(pt.out_type_name)
+      if pt.out_data_len > 1 then out_str = out_str.."["..ts(pt.out_data_len).."]" end
+      out_str = out_str.." #conn: "..ts(#pt.connections.outgoing)
+   end
+   if pt.doc then doc = red(" // "..pt.doc) end
+   return cyan(pt.name, true).." ["..(in_str)..(out_str).."] "..doc
+end
+
+local function type_tostr(t)
+   return magenta(t.name)..", sz="..yellow(ts(t.size))..", "..t.class
+end
+
+local function block_pp(b)
+   local res = {}
+   local bt = ubx.is_block(b) and ubx.block_totab(b) or b
+
+   if bt.block_type == 'cblock' then
+      local f = "%s [state: %s, steps: %u] (type: %s, prototype: %s, attrs: %s)"
+      res[#res+1] = f:format(green(bt.name), block_state_str(bt.state),
+                             bt.stat_num_steps, bt.block_type,
+                             blue(bt.prototype), table.concat(bt.attrs, ', '))
+   elseif bt.block_type == 'iblock' then
+      local f = "%s [state: %s, reads: %u, writes: %u] (type: %s, prototype: %s, attrs: %s)"
+      res[#res+1] = f:format(green(bt.name), block_state_str(bt.state),
+                             bt.stat_num_reads, bt.stat_num_writes,
+                             bt.block_type, blue(bt.prototype),
+                             table.concat(bt.attrs, ', '))
+   else
+      error("unknown block type "..bt.block_type)
+   end
+
+   if #bt.configs > 0 then
+      res[#res+1] = "  configs:"
+      utils.foreach(function(c) res[#res+1] = "    "..config_tabtostr(c) end, bt.configs)
+   end
+
+   if #bt.ports > 0 then
+      res[#res+1] = "  ports:"
+      utils.foreach(function(p) res[#res+1] = "    "..port_tabtostr(p) end, bt.ports)
+   end
+
+   return table.concat(res, '\n')
+end
 
 local function usage()
    print([[
@@ -34,7 +117,7 @@ commands:
 global parameters:
 
    -l N	            set global loglevel to N
-   -c [0|1]         color: disable or enable (default)
+   -c [0|1]         color: disable or enable (default: enabled)
    -p MOD1,MOD2     list of depending modules to preload
                     (stdtypes loaded by default)
    -h               show help
@@ -229,8 +312,8 @@ end
 -- handle global args
 local loglevel = get_arg(opttab, "-l", 6, false, false, tonumber)
 
-ubx.color = get_arg(opttab, "-c", true, false, true,
-		    function (c) return tonumber(c) ~= 0 end)
+use_color = get_arg(opttab, "-c", true, false, true,
+                    function(c) return tonumber(c) ~= 0 end)
 
 if opttab[0][1] == "list" then
    modules_list()
@@ -262,21 +345,21 @@ if opttab[0][1] == "show" then
    if #show_types > 0 or #show_blocks > 0 then
       if #show_types > 0 then
 	 for _,tname in ipairs(show_types) do
-	    print("  " ..ubx.type_tostr(types[tname]))
+	    print("  " ..type_tostr(types[tname]))
 	 end
       end
 
       if #show_blocks > 0 then
 	 for _,bname in ipairs(show_blocks) do
-	    print("  " ..ubx.block_pp(blocks[bname]))
+	    print("  " ..block_pp(blocks[bname]))
 	 end
       end
    else
       -- print all
       print(" types:")
-      for _,t in pairs(types) do print("  "..ubx.type_tostr(t)) end
+      for _,t in pairs(types) do print("  "..type_tostr(t)) end
       print("\n blocks:")
-      for _,b in pairs(blocks) do print("  " ..ubx.block_pp(b)) end
+      for _,b in pairs(blocks) do print("  " ..block_pp(b)) end
    end
 elseif opttab[0][1] == "dump" then
    if not opttab[0][2] then
