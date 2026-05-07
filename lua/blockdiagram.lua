@@ -34,12 +34,6 @@ local safets = ubx.safe_tostr
 -- node configuration
 local _NC = nil
 
-local red=ubx.red
-local blue=ubx.blue
-local cyan=ubx.cyan
-local green=ubx.green
-local yellow=ubx.yellow
-local magenta=ubx.magenta
 
 local function undef_log()
    error("logger undefined, call def_loggers before using")
@@ -562,9 +556,9 @@ local function lc_unconn_inports(nd, res)
       ubx.ports_foreach(b,
 			function(p)
 			   if p.in_interaction == nil then
-			      res[#res+1] = yellow("unconnected input port ", true) ..
-				 green(safets(b.name)) .. "." ..
-				 cyan(safets(p.name))
+			      res[#res+1] = "unconnected input port " ..
+				 safets(b.name) .. "." ..
+				 safets(p.name)
 			   end
 			end, ubx.is_inport)
    end
@@ -577,9 +571,9 @@ local function lc_unconn_outports(nd, res)
       ubx.ports_foreach(b,
 			function(p)
 			   if p.out_interaction == nil then
-			      res[#res+1] = yellow("unconnected output port ", true) ..
-				 green(safets(b.name)) .. "." ..
-				 cyan(safets(p.name))
+			      res[#res+1] = "unconnected output port " ..
+				 safets(b.name) .. "." ..
+				 safets(p.name)
 			   end
 			end, ubx.is_outport)
    end
@@ -637,7 +631,7 @@ function system.startup(self, nd)
 
    local function block_start(b)
       local bname = safets(b.name)
-      info("starting block %s", green(bname))
+      info("starting block %s", bname)
       local ret = ubx.block_tostate(b, 'active')
       if ret ~= 0 then
 	 errorf("failed to start block %s: %s", bname, (ubx.retval_tostr[ret] or ts(ret)))
@@ -688,7 +682,7 @@ end
 local function create_blocks(nd, root_sys)
    mapblocks(
       function(b,i,p)
-	 info("creating block %s [%s]", green(b._fqn), blue(b.type))
+	 info("creating block %s [%s]", b._fqn, b.type)
 	 local lbn = string.match(b.type, "^luablock:(.+)")
 	 if lbn then
 	    if not has_lbutil then
@@ -725,8 +719,8 @@ local function build_nodecfg_tab(nd, root_sys)
       ubx.data_set(d, cfg.config, true)
       NC[name] = d
       info("creating node config %s [%s] %s",
-	   blue(name), magenta(cfg.type),
-	   yellow(utils.tab2str(cfg.config)))
+	   name, cfg.type,
+	   utils.tab2str(cfg.config))
    end
 
    mapndconfigs(create_nc, root_sys)
@@ -749,7 +743,7 @@ local function preproc_configs(nd, c, s)
       elseif ubx.is_proto(ptr) then
 	 errorf("error: block #%s is a proto block", bfqn)
       end
-      info("resolved # blockref to %s", magenta(bfqn))
+      info("resolved # blockref to %s", bfqn)
       tab[key]=ptr
    end
 
@@ -778,18 +772,18 @@ local function apply_cfg_val(b, name, val, NC)
 	 errorf("invalid node config reference '%s'", val)
       end
       info("nodecfg %s.%s with %s %s",
-	   green(blkfqn), blue(name), yellow(nodecfg),
-	   yellow(utils.tab2str(NC[nodecfg])))
+	   blkfqn, name, nodecfg,
+	   utils.tab2str(NC[nodecfg]))
 
       local ret = ubx.config_assign(blkcfg, NC[nodecfg])
       if ret < 0 then
 	 errorf("failed to assign nodecfg %s to %s: %s",
 		utils.tab2str(NC[nodecfg]),
-		green(blkfqn.."."..blue(name)),
+		blkfqn.."."..name,
 		ubx.retval_tostr[ret])
       end
    else -- regular config
-      info("cfg %s.%s: %s", green(blkfqn), blue(name), yellow(utils.tab2str(val)))
+      info("cfg %s.%s: %s", blkfqn, name, utils.tab2str(val))
       ubx.set_config(b, name, val)
    end
 end

@@ -5,7 +5,6 @@ local utils = require("utils")
 
 local UMF_CHECK_VERBOSE=false
 
-ubx.color=false
 local loglevel = 7
 
 ---

@@ -6,7 +6,6 @@ local ffi = require("ffi")
 
 local LOGLEVEL = ffi.C.UBX_LOGLEVEL_INFO
 local CHECK_VERBOSE = false
-ubx.color=false
 
 local ni
 TestConnection = {}

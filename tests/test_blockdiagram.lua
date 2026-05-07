@@ -3,7 +3,6 @@ local utils=require("utils")
 local ubx=require("ubx")
 local bd = require("blockdiagram")
 
-ubx.color=false
 
 local assert_not_nil = luaunit.assert_not_nil
 local assert_equals = luaunit.assert_equals

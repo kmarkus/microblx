@@ -4,7 +4,6 @@ local bd = require("blockdiagram")
 local ffi = require("ffi")
 
 local LOGLEVEL = ffi.C.UBX_LOGLEVEL_WARN
-ubx.color = false
 
 local ni
 

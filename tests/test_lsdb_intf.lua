@@ -16,7 +16,6 @@ end
 local TEST_DIR = _dir
 local TEST_PLUGIN = TEST_DIR .. "/lsdb_intf_test_plugin.lua"
 
-ubx.color = false
 
 local assert_not_nil = luaunit.assert_not_nil
 local assert_equals = luaunit.assert_equals
