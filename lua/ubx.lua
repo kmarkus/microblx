@@ -12,7 +12,6 @@ local ffi = require("ffi")
 local bit = require("bit")
 local cdata = require("cdata")
 local utils = require("utils")
-local ac = require("ansicolors")
 local time = require("time")
 
 local ts = tostring
@@ -21,18 +20,6 @@ local fmt = string.format
 
 local M = {}
 
---- set to false to disable terminal colors
-M.color = false
-
-local function red(str, bright) if M.color then str = ac.red(str); if bright then str=ac.bright(str) end end return str end
-local function blue(str, bright) if M.color then str = ac.blue(str); if bright then str=ac.bright(str) end end return str end
-local function cyan(str, bright) if M.color then str = ac.cyan(str); if bright then str=ac.bright(str) end end return str end
-local function white(str, bright) if M.color then str = ac.white(str); if bright then str=ac.bright(str) end end return str end
-local function green(str, bright) if M.color then str = ac.green(str); if bright then str=ac.bright(str) end end return str end
-local function yellow(str, bright) if M.color then str = ac.yellow(str); if bright then str=ac.bright(str) end end return str end
-local function magenta(str, bright) if M.color then str = ac.magenta(str); if bright then str=ac.bright(str) end end return str end
-
-M.red=red; M.blue=blue; M.cyan=cyan; M.white=white; M.green=green; M.yellow=yellow; M.magenta=magenta;
 
 ------------------------------------------------------------------------------
 --                           helpers
@@ -270,21 +257,22 @@ function M.is_inoutport(p) return M.is_outport(p) and M.is_inport(p) end
 -- @param level
 -- @node node handle
 -- @src source of log message
--- @str string to log
-local function log(level, node, src, str)
+-- @str string or format string passed to string.format
+-- @... optional format args
+local function log(level, node, src, str, ...)
    if level <= node.loglevel then
-      ubx.__ubx_log(level, node, src, str)
+      ubx.__ubx_log(level, node, src, fmt(str, ...))
    end
 end
 
-local function emerg(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_EMERG, node, src, str) end
-local function alert(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_ALERT, node, src, str) end
-local function crit(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_CRIT, node, src, str) end
-local function err(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_ERR, node, src, str) end
-local function warn(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_WARN, node, src, str) end
-local function notice(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_NOTICE, node, src, str) end
-local function info(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_INFO, node, src, str) end
-local function dbg(node, src, str) M.log(ffi.C.UBX_LOGLEVEL_DEBUG, node, src, str) end
+local function emerg(node, src, str, ...) M.log(ffi.C.UBX_LOGLEVEL_EMERG,  node, src, str, ...) end
+local function alert(node, src, str, ...)  M.log(ffi.C.UBX_LOGLEVEL_ALERT,  node, src, str, ...) end
+local function crit(node, src, str, ...)   M.log(ffi.C.UBX_LOGLEVEL_CRIT,   node, src, str, ...) end
+local function err(node, src, str, ...)    M.log(ffi.C.UBX_LOGLEVEL_ERR,    node, src, str, ...) end
+local function warn(node, src, str, ...)   M.log(ffi.C.UBX_LOGLEVEL_WARN,   node, src, str, ...) end
+local function notice(node, src, str, ...) M.log(ffi.C.UBX_LOGLEVEL_NOTICE, node, src, str, ...) end
+local function info(node, src, str, ...)   M.log(ffi.C.UBX_LOGLEVEL_INFO,   node, src, str, ...) end
+local function dbg(node, src, str, ...)    M.log(ffi.C.UBX_LOGLEVEL_DEBUG,  node, src, str, ...) end
 
 M.log = log
 M.emerg = emerg
@@ -393,15 +381,14 @@ function M.load_module(nd, libfile)
 	    notice(nd, "lua", "module "..modpath.." already loaded")
 	    return modpath
 	 elseif res ~= 0 then
-	    error(red("loading module ", true)..magenta(modpath)..red(" failed", true))
+	    error("loading module "..modpath.." failed")
 	 end
 	 info(nd, "lua", "loaded module "..modpath)
 	 M.ffi_load_types(nd)
 	 return modpath
       end
    end
-   error(red("no module ", true) .. magenta(modfile)..
-	    red(" found under prefixes ", true) .. magenta(concat(prefixes, ', ')))
+   error("no module "..modfile.." found under prefixes "..concat(prefixes, ', '))
 end
 
 --- Node to tab
@@ -527,23 +514,23 @@ function M.num_types(nd) return ubx.ubx_num_types(nd) end
 --- Pretty print a node
 -- @param nd node_info
 function M.node_pp(nd)
-   print(green(M.safe_tostr(nd.name), true))
+   print(M.safe_tostr(nd.name))
 
-   print("  modules:", true)
+   print("  modules:")
    M.modules_foreach(nd,
 		     function (m)
-			print("    "..magenta(M.safe_tostr(m.id))..
-				 " ["..red(M.safe_tostr(m.spdx_license_id)).."]")
+			print("    "..M.safe_tostr(m.id)..
+				 " ["..M.safe_tostr(m.spdx_license_id).."]")
 		     end
    )
 
    print("  types:")
    M.types_foreach(nd,
 		   function (t)
-		      print("    "..magenta(M.safe_tostr(t.name))..
-			       " ["..yellow("size: "..tonumber(t.size))..", "..
-			       red(utils.str_to_hexstr(ffi.string(t.hash, 4))).."] "..
-			       red(M.safe_tostr(t.doc)))
+		      print("    "..M.safe_tostr(t.name)..
+			       " [size: "..tonumber(t.size)..", "..
+			       utils.str_to_hexstr(ffi.string(t.hash, 4)).."] "..
+			       M.safe_tostr(t.doc))
 		   end
    )
 
@@ -574,7 +561,7 @@ local ubx_node_mt = {
       local num_types = M.num_types(nd)
 
       return fmt("%s <node>: #blocks: %d (#cb: %d, #ib: %d), #types: %d",
-		 green(M.safe_tostr(nd.name)), num_cb + num_ib, num_cb, num_ib, num_types)
+		 M.safe_tostr(nd.name), num_cb + num_ib, num_cb, num_ib, num_types)
    end,
    __index = {
       get_name = function (nd) return M.safe_tostr(nd.name) end,
@@ -594,14 +581,6 @@ ffi.metatype("struct ubx_node", ubx_node_mt)
 --                           Block API
 ------------------------------------------------------------------------------
 
-local function block_state_color(sstr)
-   if sstr == 'preinit' then return blue(sstr, true)
-   elseif sstr == 'inactive' then return red(sstr)
-   elseif sstr == 'active' then return green(sstr, true)
-   else
-      error(red("unknown state "..ts(sstr)))
-   end
-end
 
 function M.block_hasattr(b, attr)
    if bit.band(b.attrs, attr) ~= 0 then return true end
@@ -671,20 +650,20 @@ function M.block_pp(b)
    if bt.block_type == 'cblock' then
       local f = "%s [state: %s, steps: %u] (type: %s, prototype: %s, attrs: %s)"
 
-      res[#res+1] = f:format(green(bt.name),
-			     block_state_color(bt.state),
+      res[#res+1] = f:format(bt.name,
+			     bt.state,
 			     bt.stat_num_steps,
 			     bt.block_type,
-			     blue(bt.prototype),
+			     bt.prototype,
 			     table.concat(bt.attrs, ', '))
    elseif bt.block_type == 'iblock' then
       local f = "%s [state: %s, reads: %u, writes: %u] (type: %s, prototype: %s, attrs: %s)"
-      res[#res+1] = f:format(green(bt.name),
-			     block_state_color(bt.state),
+      res[#res+1] = f:format(bt.name,
+			     bt.state,
 			     bt.stat_num_reads,
 			     bt.stat_num_writes,
 			     bt.block_type,
-			     blue(bt.prototype),
+			     bt.prototype,
 			     table.concat(bt.attrs, ', '))
    else
       error("unknown block type "..bt.block_type)
@@ -714,7 +693,7 @@ function M.block_tostr(b)
       bt = b
    end
 
-   return ("%s [%s]"):format(green(bt.name), bt.prototype or "proto")
+   return ("%s [%s]"):format(bt.name, bt.prototype or "proto")
 end
 
 function M.block_port_get (b, n)
@@ -871,15 +850,7 @@ function M.data_tolua(d)
    if d.type.type_class==ubx.TYPE_CLASS_BASIC and len>1 and M.safe_tostr(d.type.name)=='char' then
       res=M.safe_tostr(d.data)
    else
-      local ptrname
-      -- TODO: simplify this and pcall ffi.new. If it fails, the type
-      -- is probably unknown, and running ubx.ffi_load_types may help.
-
-      if d.type.type_class==ubx.TYPE_CLASS_STRUCT then
-	 ptrname = ffi.string(d.type.name).."*"
-      else -- BASIC:
-	 ptrname = ffi.string(d.type.name).."*"
-      end
+      local ptrname = ffi.string(d.type.name).."*"
       local dptr = ffi.new(ptrname, d.data)
 
       if len>1 then
@@ -924,7 +895,6 @@ local function type_to_ctype_str(t, ptr, fixed_len)
    error("__type_to_ctype_str: unknown type_class")
 end
 
--- memoize?
 function M.type_to_ctype(t, ptr, fixed_len)
    local ctstr=type_to_ctype_str(t, ptr, fixed_len)
    return ffi.typeof(ctstr)
@@ -954,7 +924,6 @@ function M.data_to_cdata(d, uselen)
 end
 
 function M.data_resize(d, newlen)
-   -- print("changing len from", tonumber(d.len), " to ", newlen)
    if ubx.ubx_data_resize(d, newlen) == 0 then return true
    else return false end
 end
@@ -999,9 +968,8 @@ function M.data_set(d, val, resize)
 	 M.data_resize(d, #val+1)
 	 d_cdata = M.data_to_cdata(d) -- pointer could have changed in realloc!
       end
-      --ffi.copy(d_cdata, val, #val)
       ffi.copy(d_cdata, val)
-   elseif val_type=='number' then
+   elseif val_type == 'number' then
       if d.len ~= 1 then
 	 if resize then
 	    M.data_resize(d, 1)
@@ -1096,7 +1064,6 @@ end
 function M.set_config(b, name, val)
    local d = ubx.ubx_config_get_data(b, name)
    if d == nil then error("set_config: unknown config '"..name.."'") end
-   -- print("configuring ".. ffi.string(b.name).."."..name.." with value "..utils.tab2str(val))
    return M.data_set(d, val, true)
 end
 
@@ -1148,7 +1115,7 @@ end
 -- @param str table string to load
 -- @return true or false
 -- @return table or error message
-function load_tabstr(str)
+local function load_tabstr(str)
    local tab, msg = load("return "..str, nil, 't', {})
    if not tab then return false, msg end
    return tab()
@@ -1159,7 +1126,7 @@ end
 -- @param str config string
 -- @return true or false
 -- @return value or error message
-function load_confstr(str)
+local function load_confstr(str)
    local function getchr(s, i) return string.char(string.byte(s,i)) end
 
    str=utils.trim(str)
@@ -1203,10 +1170,10 @@ function M.config_totab(c)
 end
 
 function M.config_tabtostr(ctab)
-   return blue(ctab.name, true)
-      .." ["..magenta(ctab.type_name).."] "
-      ..yellow(utils.tab2str(ctab.value))
-      .." "..red("// "..ctab.doc)
+   return ctab.name
+      .." ["..ctab.type_name.."] "
+      ..utils.tab2str(ctab.value)
+      .." // "..ctab.doc
 end
 
 function M.config_tostr(c)
@@ -1235,7 +1202,6 @@ ffi.metatype("struct ubx_config", ubx_config_mt)
 --                              Interactions
 ------------------------------------------------------------------------------
 
---- TODO!
 function M.interaction_read(i, rdat)
    if i.block_state ~= ffi.C.BLOCK_STATE_ACTIVE then
       error("interaction_read: interaction not readable in state "..M.block_state_tostr[i.block_state])
@@ -1390,20 +1356,20 @@ function M.port_tabtostr(pt)
    local doc=""
 
    if pt.in_type_name then
-      in_str = "in: "..magenta(pt.in_type_name)
+      in_str = "in: "..pt.in_type_name
       if pt.in_data_len > 1 then in_str = in_str.."["..ts(pt.in_data_len).."]" end
       in_str = in_str.." #conn: "..ts(#pt.connections.incoming)
    end
 
    if pt.out_type_name then
-      out_str = "out: "..magenta(pt.out_type_name)
+      out_str = "out: "..pt.out_type_name
       if pt.out_data_len > 1 then out_str = out_str.."["..ts(pt.out_data_len).."]" end
       out_str = out_str.." #conn: "..ts(#pt.connections.outgoing)
    end
 
-   if pt.doc then doc = red(" // "..pt.doc) end
+   if pt.doc then doc = " // "..pt.doc end
 
-   return cyan(pt.name, true).." ["..(in_str or "")..(out_str or "").."] "..doc
+   return pt.name.." ["..(in_str or "")..(out_str or "").."] "..doc
 end
 
 function M.port_tostr(port)
@@ -1965,19 +1931,6 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    end
 
    return true
-end
-
-
-function M.port_out_size(p)
-   if p==nil then error("port_out_size: port is nil") end
-   if not M.is_outport(p) then error("port "..M.safe_tostr(p.name).." is not an outport") end
-   return tonumber(p.out_type.size * p.out_data_len)
-end
-
-function M.port_in_size(p)
-   if p==nil then error("port_in_size: port is nil") end
-   if not M.is_inport(p) then error("port_in_size: port "..M.safe_tostr(p.name).." is not an inport") end
-   return tonumber(p.in_type.size * p.in_data_len)
 end
 
 --- Build a table of connections
