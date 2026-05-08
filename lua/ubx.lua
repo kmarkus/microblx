@@ -228,14 +228,24 @@ load_ubx_ffi()
 -- @return `prefixes` table — search prefixes used to load modules
 function M.get_prefix() return core_prefix, prefixes end
 
---- Safely convert a `char*` to a Lua string.
--- Returns `""` if `charptr` is `nil`.
--- @param charptr `char*` or `char[]`
--- @return Lua string
+--- Safely convert a C string to a Lua string, returning `""` for nil.
+--
+-- Use this for pointer fields that may be nil: `ubx_type_t.name`,
+-- `ubx_type_t.doc`, `ubx_port_t.doc`, `ubx_config_t.doc`,
+-- `ubx_block_t.meta_data`, `ubx_module_t.id` / `.spdx_license_id`,
+-- `ubx_type_t.private_data`, and any return value from a C function.
+--
+-- Use `ffi.string()` directly for fixed char-array fields that are
+-- never nil: `ubx_node_t.name`, `ubx_block_t.name`, `ubx_port_t.name`,
+-- `ubx_config_t.name`.
+-- @param charptr `const char*` that may be nil
+-- @return Lua string, `""` for nil
 function M.safe_tostr(charptr)
    if charptr == nil then return "" end
    return ffi.string(charptr)
 end
+
+local safe_tostr = M.safe_tostr
 
 --- Predicates
 -- @section Predicates
@@ -244,18 +254,22 @@ end
 -- @param x value to test
 -- @return boolean
 function M.is_node(x) return ffi.istype("ubx_node_t", x) end
+
 --- Check if x is a `ubx_block_t`.
 -- @param x value to test
 -- @return boolean
 function M.is_block(x) return ffi.istype("ubx_block_t", x) end
+
 --- Check if x is a `ubx_config_t`.
 -- @param x value to test
 -- @return boolean
 function M.is_config(x) return ffi.istype("ubx_config_t", x) end
+
 --- Check if x is a `ubx_port_t`.
 -- @param x value to test
 -- @return boolean
 function M.is_port(x) return ffi.istype("ubx_port_t", x) end
+
 --- Check if x is a `ubx_data_t`.
 -- @param x value to test
 -- @return boolean
@@ -265,30 +279,37 @@ function M.is_data(x) return ffi.istype("ubx_data_t", x) end
 -- @param b `ubx_block_t`
 -- @return boolean
 function M.is_proto(b) assert(M.is_block(b)); return b.prototype == nil end
+
 --- Check if b is an instance (not a prototype).
 -- @param b `ubx_block_t`
 -- @return boolean
 function M.is_instance(b) return not M.is_proto(b) end
+
 --- Check if b is a computation block.
 -- @param b `ubx_block_t`
 -- @return boolean
 function M.is_cblock(b) return M.is_block(b) and b.type==ffi.C.BLOCK_TYPE_COMPUTATION end
+
 --- Check if b is an interaction block.
 -- @param b `ubx_block_t`
 -- @return boolean
 function M.is_iblock(b) return M.is_block(b) and b.type==ffi.C.BLOCK_TYPE_INTERACTION end
+
 --- Check if b is a cblock instance.
 -- @param b `ubx_block_t`
 -- @return boolean
 function M.is_cblock_instance(b) return M.is_cblock(b) and not M.is_proto(b) end
+
 --- Check if b is an iblock instance.
 -- @param b `ubx_block_t`
 -- @return boolean
 function M.is_iblock_instance(b) return M.is_iblock(b) and not M.is_proto(b) end
+
 --- Check if b is a cblock prototype.
 -- @param b `ubx_block_t`
 -- @return boolean
 function M.is_cblock_proto(b) return M.is_cblock(b) and M.is_proto(b) end
+
 --- Check if b is an iblock prototype.
 -- @param b `ubx_block_t`
 -- @return boolean
@@ -298,10 +319,12 @@ function M.is_iblock_proto(b) return M.is_iblock(b) and M.is_proto(b) end
 -- @param p `ubx_port_t`
 -- @return boolean
 function M.is_outport(p) assert(M.is_port(p)); return p.out_type ~= nil end
+
 --- Check if p has an input type (is an inport).
 -- @param p `ubx_port_t`
 -- @return boolean
 function M.is_inport(p) assert(M.is_port(p)); return p.in_type ~= nil end
+
 --- Check if p is both an inport and an outport.
 -- @param p `ubx_port_t`
 -- @return boolean
@@ -465,7 +488,7 @@ end
 -- @param libfile module name or path (`.so` appended if absent)
 -- @return full resolved module path string
 function M.load_module(nd, libfile)
-   local ver = string.sub(M.safe_tostr(ubx.ubx_version()), 1, 3)
+   local ver = string.sub(safe_tostr(ubx.ubx_version()), 1, 3)
    local modfile = "/lib/ubx/"..ver.."/"..libfile
 
    for _,pf in ipairs(prefixes) do
@@ -585,23 +608,23 @@ function M.num_types(nd) return ubx.ubx_num_types(nd) end
 --- Pretty print a node
 -- @param nd node_info
 function M.node_pp(nd)
-   print(M.safe_tostr(nd.name))
+   print(ffi.string(nd.name))
 
    print("  modules:")
    M.modules_foreach(nd,
 		     function (m)
-			print("    "..M.safe_tostr(m.id)..
-				 " ["..M.safe_tostr(m.spdx_license_id).."]")
+			print("    "..safe_tostr(m.id)..
+				 " ["..safe_tostr(m.spdx_license_id).."]")
 		     end
    )
 
    print("  types:")
    M.types_foreach(nd,
 		   function (t)
-		      print("    "..M.safe_tostr(t.name)..
+		      print("    "..safe_tostr(t.name)..
 			       " [size: "..tonumber(t.size)..", "..
 			       utils.str_to_hexstr(ffi.string(t.hash, 4)).."] "..
-			       M.safe_tostr(t.doc))
+			       safe_tostr(t.doc))
 		   end
    )
 
@@ -632,10 +655,10 @@ local ubx_node_mt = {
       local num_types = M.num_types(nd)
 
       return fmt("%s <node>: #blocks: %d (#cb: %d, #ib: %d), #types: %d",
-		 M.safe_tostr(nd.name), num_cb + num_ib, num_cb, num_ib, num_types)
+		 ffi.string(nd.name), num_cb + num_ib, num_cb, num_ib, num_types)
    end,
    __index = {
-      get_name = function (nd) return M.safe_tostr(nd.name) end,
+      get_name = function (nd) return ffi.string(nd.name) end,
       load_module = M.load_module,
       block_create = M.block_create,
       block_unload = M.block_unload,
@@ -690,7 +713,7 @@ end
 -- @return prototype name string, or `false` if `b` is itself a prototype
 function M.block_prototype(b)
    if b.prototype == nil then return false end
-   return M.safe_tostr(b.prototype.name)
+   return ffi.string(b.prototype.name)
 end
 
 --- Bring a block to the given state
@@ -743,14 +766,14 @@ function M.block_totab(b)
    if b==nil then error("NULL block") end
 
    local res = {}
-   res.name = M.safe_tostr(b.name)
+   res.name = ffi.string(b.name)
    res.attrs = block_attr_totab(b)
-   res.meta_data = M.safe_tostr(b.meta_data)
+   res.meta_data = safe_tostr(b.meta_data)
    res.block_type=M.block_type_tostr[b.type]
    res.state = M.block_state_tostr[b.block_state]
 
    if b.prototype ~= nil then
-      res.prototype = M.safe_tostr(b.prototype.name)
+      res.prototype = ffi.string(b.prototype.name)
    else
       res.prototype = false
    end
@@ -934,13 +957,13 @@ function M.do_configure(b, ctab)
 
    local ret = M.block_init(b)
    if ret ~= 0 then
-      error(fmt("do_configure: failed to initalize %s", M.safe_tostr(b.name)))
+      error(fmt("do_configure: failed to initalize %s", ffi.string(b.name)))
    end
 
    for n,v in pairs(deferred) do
       if M.block_config_get(b, n) == nil then
 	 error(fmt("do_configure: block %s has no config %s",
-		   M.safe_tostr(b.name), n))
+		   ffi.string(b.name), n))
       end
       M.set_config(b, n, v)
    end
@@ -987,7 +1010,7 @@ function M.set_config_str(b, name, strval)
    local c = ubx.ubx_config_get(b, name)
    if c == nil then error("set_config_str: unknown config '"..name.."'") end
 
-   if c.value.type.type_class==ubx.TYPE_CLASS_BASIC and M.safe_tostr(c.value.type.name)=='char' then
+   if c.value.type.type_class==ubx.TYPE_CLASS_BASIC and safe_tostr(c.value.type.name)=='char' then
       return M.set_config(b, name, strval)
    end
    return M.set_config(b, name, load_confstr(strval))
@@ -997,8 +1020,8 @@ end
 local ubx_block_mt = {
    __tostring = M.block_tostr,
    __index = {
-      get_name = function (b) return M.safe_tostr(b.name) end,
-      get_meta = function (b) return M.safe_tostr(b.meta_data) end,
+      get_name = function (b) return ffi.string(b.name) end,
+      get_meta = function (b) return safe_tostr(b.meta_data) end,
       get_prototype = function (b) return M.block_prototype(b) end,
       get_block_state = function (b) return M.block_state_tostr[b.block_state] end,
       get_block_type = function (b) return M.block_type_tostr[b.type] end,
@@ -1070,7 +1093,7 @@ function M.__data_alloc(typ, num)
    num = num or 1
    local d = ubx.__ubx_data_alloc(typ, num)
    if d==nil then
-      error("data_alloc: unknown type '"..M.safe_tostr(typ.name).."'")
+      error("data_alloc: unknown type '"..safe_tostr(typ.name).."'")
    end
    ffi.gc(d, function(dat) ubx.ubx_data_free(dat) end)
    return d
@@ -1084,7 +1107,7 @@ end
 function M.data_alloc(nd, type_name, num)
    local t = M.type_get(nd, type_name)
    if t==nil then
-      error(M.safe_tostr(nd.name)..": data_alloc: unknown type '"..M.safe_tostr(type_name).."'")
+      error(ffi.string(nd.name)..": data_alloc: unknown type '"..safe_tostr(type_name).."'")
    end
    return M.__data_alloc(t, num)
 end
@@ -1112,7 +1135,7 @@ function M.ffi_load_types(nd)
 	 local struct_str = preproc(ffi.string(t.private_data))
 	 local ret, err = pcall(ffi.cdef, struct_str)
 	 if ret==false then
-	    error(fmt("loading type %s: %s", M.safe_tostr(t.name), err))
+	    error(fmt("loading type %s: %s", safe_tostr(t.name), err))
 	 end
       end
    end
@@ -1147,8 +1170,8 @@ function M.data_tolua(d)
    local len=tonumber(d.len)
 
    -- detect char arrays
-   if d.type.type_class==ubx.TYPE_CLASS_BASIC and len>1 and M.safe_tostr(d.type.name)=='char' then
-      res=M.safe_tostr(d.data)
+   if d.type.type_class==ubx.TYPE_CLASS_BASIC and len>1 and safe_tostr(d.type.name)=='char' then
+      res=safe_tostr(d.data)
    else
       local ptrname = ffi.string(d.type.name).."*"
       local dptr = ffi.new(ptrname, d.data)
@@ -1320,10 +1343,10 @@ ffi.metatype("struct ubx_data", ubx_data_mt)
 function M.ubx_type_totab(t)
    if t==nil then error("NULL type") end
    local res = {}
-   res.name=M.safe_tostr(t.name)
+   res.name=safe_tostr(t.name)
    res.class=M.type_class_tostr[t.type_class]
    res.size=tonumber(t.size)
-   if t.type_class==ubx.TYPE_CLASS_STRUCT then res.model=M.safe_tostr(t.private_data) end
+   if t.type_class==ubx.TYPE_CLASS_STRUCT then res.model=safe_tostr(t.private_data) end
    return res
 end
 
@@ -1342,8 +1365,8 @@ end
 local ubx_type_mt = {
    __tostring = M.type_tostr,
    __index = {
-      get_name = function (t) return M.safe_tostr(t.name) end,
-      get_type = function (t) return M.safe_tostr(t.doc) end,
+      get_name = function (t) return safe_tostr(t.name) end,
+      get_type = function (t) return safe_tostr(t.doc) end,
       totab = M.ubx_type_totab,
       size = function (t) return tonumber(t.size) end,
       ctype = M.type_to_ctype,
@@ -1380,10 +1403,10 @@ end
 function M.config_totab(c)
    if c == nil then return "NULL config" end
    local res = {}
-   res.name = M.safe_tostr(c.name)
+   res.name = ffi.string(c.name)
 
-   res.doc = M.safe_tostr(c.doc)
-   res.type_name = M.safe_tostr(c.type.name)
+   res.doc = safe_tostr(c.doc)
+   res.type_name = safe_tostr(c.type.name)
    if c.value ~= nil then
       res.value = M.data_tolua(c.value)
    end
@@ -1412,8 +1435,8 @@ end
 local ubx_config_mt = {
    __tostring = M.config_tostr,
    __index = {
-      get_name = function (c) return M.safe_tostr(c.name) end,
-      get_doc = function (c) return M.safe_tostr(c.doc) end,
+      get_name = function (c) return ffi.string(c.name) end,
+      get_doc = function (c) return safe_tostr(c.doc) end,
       set = M.config_set,
       totab = M.config_totab,
       tolua = function (c) return M.data_tolua(c.value) end,
@@ -1557,7 +1580,7 @@ end
 -- @return size in bytes
 function M.port_out_size(p)
    if p==nil then error("port_out_size: port is nil") end
-   if not M.is_outport(p) then error("port "..M.safe_tostr(p.name).." is not an outport") end
+   if not M.is_outport(p) then error("port "..ffi.string(p.name).." is not an outport") end
    return tonumber(p.out_type.size * p.out_data_len)
 end
 
@@ -1566,7 +1589,7 @@ end
 -- @return size in bytes
 function M.port_in_size(p)
    if p==nil then error("port_in_size: port is nil") end
-   if not M.is_inport(p) then error("port_in_size: port "..M.safe_tostr(p.name).." is not an inport") end
+   if not M.is_inport(p) then error("port_in_size: port "..ffi.string(p.name).." is not an inport") end
    return tonumber(p.in_type.size * p.in_data_len)
 end
 
@@ -1581,7 +1604,7 @@ function M.port_conns_totab(p)
    i = 0
    if p.in_interaction ~= nil then
       while p.in_interaction[i] ~= nil do
-	 res.incoming[i+1] = M.safe_tostr(p.in_interaction[i].name)
+	 res.incoming[i+1] = ffi.string(p.in_interaction[i].name)
 	 i=i+1
       end
    end
@@ -1589,7 +1612,7 @@ function M.port_conns_totab(p)
    i = 0
    if p.out_interaction ~= nil then
       while p.out_interaction[i] ~= nil do
-	 res.outgoing[i+1] = M.safe_tostr(p.out_interaction[i].name)
+	 res.outgoing[i+1] = ffi.string(p.out_interaction[i].name)
 	 i=i+1
       end
    end
@@ -1602,15 +1625,15 @@ end
 -- @return table with name, doc, attrs, type info, and connections
 function M.port_totab(p)
    local ptab = {}
-   ptab.name = M.safe_tostr(p.name)
-   ptab.doc = M.safe_tostr(p.doc)
+   ptab.name = ffi.string(p.name)
+   ptab.doc = safe_tostr(p.doc)
    ptab.attrs = tonumber(p.attrs)
    if M.is_inport(p) then
-      ptab.in_type_name = M.safe_tostr(p.in_type.name)
+      ptab.in_type_name = safe_tostr(p.in_type.name)
       ptab.in_data_len = tonumber(p.in_data_len)
    end
    if M.is_outport(p) then
-      ptab.out_type_name = M.safe_tostr(p.out_type.name)
+      ptab.out_type_name = safe_tostr(p.out_type.name)
       ptab.out_data_len = tonumber(p.out_data_len)
    end
    ptab.connections = M.port_conns_totab(p)
@@ -1657,8 +1680,8 @@ local ubx_port_mt = {
    __tostring = M.port_tostr,
    __len = function (p) return tonumber(p.in_data_len), tonumber(p.out_data_len) end,
    __index = {
-      get_name = function (p) return M.safe_tostr(p.name) end,
-      get_doc = function (p) return M.safe_tostr(p.doc) end,
+      get_name = function (p) return ffi.string(p.name) end,
+      get_doc = function (p) return safe_tostr(p.doc) end,
       totab = M.port_totab,
       out_size = M.port_out_size,
       in_size = M.port_in_size,
@@ -1823,7 +1846,7 @@ $blocks
 $conns
 }
 ]], {
-   node=M.safe_tostr(nd.name),
+   node=ffi.string(nd.name),
    blocks=gen_dot_nodes(btab),
    conns=gen_dot_edges(btab),
     })
@@ -1867,7 +1890,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
    p = ffi.cast("ubx_port_t*", p)
    ffi.gc(p, ubx.ubx_port_free)
 
-   local pn = M.safe_tostr(prot.name)..'_inv'
+   local pn = ffi.string(prot.name)..'_inv'
 
    ffi.copy(ffi.cast("char*", p.name), pn, #pn + 1)
 
@@ -1896,7 +1919,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
    -- New port is an out-port?
    local i_p_to_prot
    if p.out_type~=nil then
-      local iname = fmt("PCC%d->%s.%s", pcc_cnt(), M.safe_tostr(block.name), pname)
+      local iname = fmt("PCC%d->%s.%s", pcc_cnt(), ffi.string(block.name), pname)
 
       i_p_to_prot = M.block_create(block.nd, ibtype, iname,
 				   {
@@ -1911,7 +1934,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
       M.block_init(i_p_to_prot)
 
       if M.ports_connect(p, prot, i_p_to_prot) ~= 0 then
-	 error("failed to connect port "..M.safe_tostr(p.name))
+	 error("failed to connect port "..ffi.string(p.name))
       end
       M.block_start(i_p_to_prot)
       info(block.nd, "lua", fmt("port_clone_conn: %s, buffer_len: %d, data_len: %d",
@@ -1921,7 +1944,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
    local i_prot_to_p
 
    if p.in_type ~= nil then -- new port is an in-port?
-      local iname = fmt("PCC%d<-%s.%s", pcc_cnt(), M.safe_tostr(block.name), pname)
+      local iname = fmt("PCC%d<-%s.%s", pcc_cnt(), ffi.string(block.name), pname)
 
       i_prot_to_p = M.block_create(block.nd, ibtype, iname,
 				   { buffer_len = buff_len2,
@@ -1936,7 +1959,7 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 
       if M.ports_connect(prot, p, i_prot_to_p) ~= 0 then
 	 -- TODO disconnect if connected above.
-	 error("failed to connect port"..M.safe_tostr(p.name))
+	 error("failed to connect port"..ffi.string(p.name))
       end
       M.block_start(i_prot_to_p)
       info(block.nd, "lua", fmt("port_clone_conn: %s, buffer_len: %d, data_len: %d",
@@ -2068,8 +2091,8 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    if tgtp ~= nil and srcp ~= nil then
       if srcp.out_type ~= tgtp.in_type then
 	 return false, fmt("port type mismatch:	%s.%s is %s, %s.%s is %s",
-			   srcbn, srcpn, M.safe_tostr(srcp.out_type.name),
-			   tgtbn, tgtpn, M.safe_tostr(tgtp.in_type.name))
+			   srcbn, srcpn, safe_tostr(srcp.out_type.name),
+			   tgtbn, tgtpn, safe_tostr(tgtp.in_type.name))
       end
 
       if srcp.out_data_len ~= tgtp.in_data_len then
@@ -2096,7 +2119,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 
       if srcb == nil then
 	 srcbn = gen_block_uid()
-	 append_ibconfig('type_name', M.safe_tostr(tgtp.in_type.name))
+	 append_ibconfig('type_name', safe_tostr(tgtp.in_type.name))
 	 append_ibconfig('data_len', tonumber(tgtp.in_data_len))
 	 append_ibconfig('buffer_len', 8)
 	 append_ibconfig('mq_id', make_mqname(tgtbn, tgtpn))
@@ -2111,7 +2134,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       -- create tgt iblock
       if tgtb == nil then
 	 tgtbn = gen_block_uid()
-	 append_ibconfig('type_name', M.safe_tostr(srcp.out_type.name))
+	 append_ibconfig('type_name', safe_tostr(srcp.out_type.name))
 	 append_ibconfig('data_len', tonumber(srcp.out_data_len))
 	 append_ibconfig('buffer_len', 8)
 	 append_ibconfig('mq_id', make_mqname(srcbn, srcpn))
@@ -2128,7 +2151,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       -- block.port -> block.port
       ibtype = ibtype or M.get_default_iblock(nd)
       ibconfig.data_len = ibconfig.data_len or tonumber(srcp.out_data_len)
-      ibconfig.type_name = ibconfig.type_name or M.safe_tostr(srcp.out_type.name)
+      ibconfig.type_name = ibconfig.type_name or safe_tostr(srcp.out_type.name)
 
       local ibname = gen_block_uid()
       local ib = M.block_create(nd, ibtype, ibname, ibconfig)
@@ -2178,9 +2201,9 @@ function M.build_conntab(nd)
 
    local function block_conns_totab(b)
       local function port_conns_totab(p)
-	 return	{ [M.safe_tostr(p.name)] = M.port_conns_totab(p) }
+	 return	{ [ffi.string(p.name)] = M.port_conns_totab(p) }
       end
-      res[M.safe_tostr(b.name)] = M.ports_map(b, port_conns_totab)
+      res[ffi.string(b.name)] = M.ports_map(b, port_conns_totab)
    end
 
    M.blocks_map(nd, block_conns_totab, M.is_cblock_instance)
