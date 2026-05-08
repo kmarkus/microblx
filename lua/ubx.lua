@@ -847,6 +847,152 @@ function M.block_config_get (b, n)
 end
 M.config_get = M.block_config_get
 
+--- Call function on all ports of a block and return the result in a table.
+-- @param b block
+-- @param fun function to call on port
+-- @param pred optional predicate function. fun is only called if pred is true.
+-- @return result table.
+function M.ports_map(b, fun, pred)
+   local res={}
+   pred = pred or function() return true end
+   local port_ptr=b.ports
+   while port_ptr~=nil do
+      if pred(port_ptr) then res[#res+1]=fun(port_ptr) end
+      port_ptr=port_ptr.next
+   end
+   return res
+end
+
+--- Call a function on all ports of a block (no return value).
+-- @param b ubx_block_t
+-- @param fun function to call on each ubx_port_t
+-- @param pred optional predicate to filter ports
+function M.ports_foreach(b, fun, pred)
+   pred = pred or function() return true end
+   local port_ptr=b.ports
+   while port_ptr~=nil do
+      if pred(port_ptr) then fun(port_ptr) end
+      port_ptr=port_ptr.next
+   end
+end
+
+--- Call function on all configs of a block and return the result in a table.
+-- @param b block
+-- @param fun function to call on config
+-- @param pred optional predicate function. fun is only called if pred is true.
+-- @return result table.
+function M.configs_map(b, fun, pred)
+   local res={}
+   pred = pred or function() return true end
+   local conf_ptr=b.configs
+   while conf_ptr~=nil do
+      if pred(conf_ptr) then res[#res+1]=fun(conf_ptr) end
+      conf_ptr=conf_ptr.next
+   end
+   return res
+end
+
+--- Set a configuration value by name. **Deprecated** — prefer `config_set`.
+-- @param b `ubx_block_t`
+-- @param name config name string
+-- @param val value to assign (LuaJIT FFI init rules apply)
+function M.set_config(b, name, val)
+   local d = ubx.ubx_config_get_data(b, name)
+   if d == nil then error("set_config: unknown config '"..name.."'") end
+   return M.data_set(d, val, true)
+end
+
+--- Configure a block with a table of `{name=value}` pairs.
+-- @param b `ubx_block_t`
+-- @param ctab table of configuration values
+function M.set_config_tab(b, ctab)
+   for n,v in pairs(ctab) do M.set_config(b, n, v) end
+end
+
+--- Configure a block, handling **dynamically added configs**.
+-- Applies known configs, calls `block_init`, then applies any configs
+-- that only exist after init (e.g. added in the block's `init` hook).
+-- **Requires** block to be in `preinit` state.
+-- @param b `ubx_block_t`
+-- @param ctab `{name=value}` configuration table
+function M.do_configure(b, ctab)
+   local deferred = {}
+
+   local state = b:get_block_state()
+
+   if state ~= 'preinit' then
+      error("do_configure: block not in state preinit but "..state)
+   end
+
+   for n,v in pairs(ctab) do
+      if M.block_config_get(b, n) == nil then
+	 deferred[n] = v
+      else
+	 M.set_config(b, n, v)
+      end
+   end
+
+   local ret = M.block_init(b)
+   if ret ~= 0 then
+      error(fmt("do_configure: failed to initalize %s", M.safe_tostr(b.name)))
+   end
+
+   for n,v in pairs(deferred) do
+      if M.block_config_get(b, n) == nil then
+	 error(fmt("do_configure: block %s has no config %s",
+		   M.safe_tostr(b.name), n))
+      end
+      M.set_config(b, n, v)
+   end
+end
+
+-- safely load a table from a string
+-- @param str table string to load
+-- @return true or false
+-- @return table or error message
+local function load_tabstr(str)
+   local tab, msg = load("return "..str, nil, 't', {})
+   if not tab then return false, msg end
+   return tab()
+end
+
+--- Load a configuration string.
+-- This could be a table, a number or just a string.
+-- @param str config string
+-- @return true or false
+-- @return value or error message
+local function load_confstr(str)
+   local function getchr(s, i) return string.char(string.byte(s,i)) end
+
+   str=utils.trim(str)
+
+   if getchr(str,1) == '{' and getchr(str, #str)== '}' then
+      return load_tabstr(str)
+   end
+
+   local x = tonumber(str)
+   if type(x)=='number' then return x end
+
+   -- last resort: just return the string:
+   return str
+end
+
+--- Set a configuration value from a string.
+-- Parses `strval` as a table (`{...}`), number, or plain string.
+-- For `char`-typed configs the string is assigned directly.
+-- @param b `ubx_block_t`
+-- @param name config name string
+-- @param strval string value
+function M.set_config_str(b, name, strval)
+   local c = ubx.ubx_config_get(b, name)
+   if c == nil then error("set_config_str: unknown config '"..name.."'") end
+
+   if c.value.type.type_class==ubx.TYPE_CLASS_BASIC and M.safe_tostr(c.value.type.name)=='char' then
+      return M.set_config(b, name, strval)
+   end
+   return M.set_config(b, name, load_confstr(strval))
+end
+
 -- add Lua OO methods
 local ubx_block_mt = {
    __tostring = M.block_tostr,
@@ -1228,107 +1374,6 @@ function M.config_set(c, val)
    return M.data_set(c.value, val, true)
 end
 
---- Set a configuration value by name. **Deprecated** — prefer `config_set`.
--- @param b `ubx_block_t`
--- @param name config name string
--- @param val value to assign (LuaJIT FFI init rules apply)
-function M.set_config(b, name, val)
-   local d = ubx.ubx_config_get_data(b, name)
-   if d == nil then error("set_config: unknown config '"..name.."'") end
-   return M.data_set(d, val, true)
-end
-
---- Configure a block with a table of `{name=value}` pairs.
--- @param b `ubx_block_t`
--- @param ctab table of configuration values
-function M.set_config_tab(b, ctab)
-   for n,v in pairs(ctab) do M.set_config(b, n, v) end
-end
-
---- Configure a block, handling **dynamically added configs**.
--- Applies known configs, calls `block_init`, then applies any configs
--- that only exist after init (e.g. added in the block's `init` hook).
--- **Requires** block to be in `preinit` state.
--- @param b `ubx_block_t`
--- @param ctab `{name=value}` configuration table
-function M.do_configure(b, ctab)
-   local deferred = {}
-
-   local state = b:get_block_state()
-
-   if state ~= 'preinit' then
-      error("do_configure: block not in state preinit but "..state)
-   end
-
-   for n,v in pairs(ctab) do
-      if M.block_config_get(b, n) == nil then
-	 deferred[n] = v
-      else
-	 M.set_config(b, n, v)
-      end
-   end
-
-   local ret = M.block_init(b)
-   if ret ~= 0 then
-      error(fmt("do_configure: failed to initalize %s", M.safe_tostr(b.name)))
-   end
-
-   for n,v in pairs(deferred) do
-      if M.block_config_get(b, n) == nil then
-	 error(fmt("do_configure: block %s has no config %s",
-		   M.safe_tostr(b.name), n))
-      end
-      M.set_config(b, n, v)
-   end
-end
-
--- safely load a table from a string
--- @param str table string to load
--- @return true or false
--- @return table or error message
-local function load_tabstr(str)
-   local tab, msg = load("return "..str, nil, 't', {})
-   if not tab then return false, msg end
-   return tab()
-end
-
---- Load a configuration string.
--- This could be a table, a number or just a string.
--- @param str config string
--- @return true or false
--- @return value or error message
-local function load_confstr(str)
-   local function getchr(s, i) return string.char(string.byte(s,i)) end
-
-   str=utils.trim(str)
-
-   if getchr(str,1) == '{' and getchr(str, #str)== '}' then
-      return load_tabstr(str)
-   end
-
-   local x = tonumber(str)
-   if type(x)=='number' then return x end
-
-   -- last resort: just return the string:
-   return str
-end
-
---- Set a configuration value from a string.
--- Parses `strval` as a table (`{...}`), number, or plain string.
--- For `char`-typed configs the string is assigned directly.
--- @param b `ubx_block_t`
--- @param name config name string
--- @param strval string value
-function M.set_config_str(b, name, strval)
-   local c = ubx.ubx_config_get(b, name)
-   if c == nil then error("set_config_str: unknown config '"..name.."'") end
-
-   if c.value.type.type_class==ubx.TYPE_CLASS_BASIC and M.safe_tostr(c.value.type.name)=='char' then
-      return M.set_config(b, name, strval)
-   end
-   return M.set_config(b, name, load_confstr(strval))
-end
-
 --- Convert a `ubx_config_t` to a Lua table.
 -- @param c `ubx_config_t`
 -- @return table `{ name, doc, type_name, value }`
@@ -1652,51 +1697,6 @@ function M.types_foreach(nd, fun, pred)
    end
 end
 
-
---- Call function on all ports of a block and return the result in a table.
--- @param b block
--- @param fun function to call on port
--- @param pred optional predicate function. fun is only called if pred is true.
--- @return result table.
-function M.ports_map(b, fun, pred)
-   local res={}
-   pred = pred or function() return true end
-   local port_ptr=b.ports
-   while port_ptr~=nil do
-      if pred(port_ptr) then res[#res+1]=fun(port_ptr) end
-      port_ptr=port_ptr.next
-   end
-   return res
-end
-
---- Call a function on all ports of a block (no return value).
--- @param b ubx_block_t
--- @param fun function to call on each ubx_port_t
--- @param pred optional predicate to filter ports
-function M.ports_foreach(b, fun, pred)
-   pred = pred or function() return true end
-   local port_ptr=b.ports
-   while port_ptr~=nil do
-      if pred(port_ptr) then fun(port_ptr) end
-      port_ptr=port_ptr.next
-   end
-end
-
---- Call function on all configs of a block and return the result in a table.
--- @param b block
--- @param fun function to call on config
--- @param pred optional predicate function. fun is only called if pred is true.
--- @return result table.
-function M.configs_map(b, fun, pred)
-   local res={}
-   pred = pred or function() return true end
-   local conf_ptr=b.configs
-   while conf_ptr~=nil do
-      if pred(conf_ptr) then res[#res+1]=fun(conf_ptr) end
-      conf_ptr=conf_ptr.next
-   end
-   return res
-end
 
 --- Call a function on every block and collect results.
 -- @param nd ubx_node_t
