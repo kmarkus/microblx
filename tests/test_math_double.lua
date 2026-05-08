@@ -26,7 +26,7 @@ local function launch_math(func, mul, add, data_len)
    if add then cfg.add = add end
 
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "math_double" },
+      imports = { "stdtypes", "lfrb", "math_double" },
       blocks = {
 	 { name = "m1", type = "ubx/math_double" },
       },

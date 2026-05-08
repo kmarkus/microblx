@@ -107,7 +107,7 @@ end
 --- Test merging connections: override=true replaces existing conn
 function TestMerge:TestMergeConnectionsOverride()
    local base = bd.system {
-      imports = { "stdtypes", "random", "lfds_cyclic" },
+      imports = { "stdtypes", "random", "lfrb" },
       blocks = {
 	 { name = "rnd1", type = "ubx/random" },
 	 { name = "rnd2", type = "ubx/random" },

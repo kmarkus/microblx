@@ -47,7 +47,7 @@ end
 ]]
 
 local sys1 = bd.system {
-   imports = { "stdtypes", "ptrig", "ramp_uint64", "lfds_cyclic", "luablock" },
+   imports = { "stdtypes", "ptrig", "ramp_uint64", "lfrb", "luablock" },
    blocks = {
       { name="ramp", type="ubx/ramp_uint64" },
       { name="tester", type="ubx/luablock" },
@@ -104,7 +104,7 @@ local block_dur_us = {
 
 
 local sys2 = bd.system {
-   imports = { "stdtypes", "ptrig", "lfds_cyclic", "luablock" },
+   imports = { "stdtypes", "ptrig", "lfrb", "luablock" },
    blocks = {
       { name="tb1", type="ubx/luablock" },
       { name="tb2", type="ubx/luablock" },
@@ -166,7 +166,7 @@ end
 --
 
 local sys3 = bd.system {
-   imports = { "stdtypes", "trig", "lfds_cyclic", "cconst" },
+   imports = { "stdtypes", "trig", "lfrb", "cconst" },
    blocks = {
       { name="const0", type="ubx/cconst" },
       { name="const1", type="ubx/cconst" },
@@ -279,7 +279,7 @@ end
 -- ptrig multichain
 --
 local sys4 = bd.system {
-   imports = { "stdtypes", "ptrig", "lfds_cyclic", "cconst" },
+   imports = { "stdtypes", "ptrig", "lfrb", "cconst" },
    blocks = {
       { name="const0", type="ubx/cconst" },
       { name="const1", type="ubx/cconst" },
@@ -374,7 +374,7 @@ end
 --
 
 local sys5 = bd.system {
-   imports = { "stdtypes", "ptrig", "ramp_uint64", "lfds_cyclic" },
+   imports = { "stdtypes", "ptrig", "ramp_uint64", "lfrb" },
    blocks = {
       { name="ramp",  type="ubx/ramp_uint64" },
       { name="ptrig", type="ubx/ptrig" },

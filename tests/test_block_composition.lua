@@ -12,7 +12,7 @@ local loglevel = 7
 ---
 
 local leaf = bd.system {
-   imports = { "stdtypes", "random", "lfds_cyclic", "trig" },
+   imports = { "stdtypes", "random", "lfrb", "trig" },
    blocks = {
       { name = "rnd1", type="ubx/random" },
       { name = "rnd2", type="ubx/random" },
@@ -37,7 +37,7 @@ local leaf = bd.system {
 }
 
 local comp1 = bd.system {
-   imports = { "stdtypes", "random", "lfds_cyclic", "trig" },
+   imports = { "stdtypes", "random", "lfrb", "trig" },
 
    subsystems = {
       leaf = utils.deepcopy(leaf),
@@ -67,7 +67,7 @@ local comp1 = bd.system {
 }
 
 local comp2 = bd.system {
-   imports = { "stdtypes", "random", "lfds_cyclic", "trig" },
+   imports = { "stdtypes", "random", "lfrb", "trig" },
 
    subsystems = {
       mid = utils.deepcopy(comp1),
@@ -324,7 +324,7 @@ function TestComp:test_late_config()
    local value = { x=11.1, y=222.2, z=333.3 }
 
    NI = bd.system {
-      imports = { 'stdtypes', 'cconst', 'testtypes', 'lfds_cyclic' },
+      imports = { 'stdtypes', 'cconst', 'testtypes', 'lfrb' },
       blocks = { { name="cconst1", type="ubx/cconst" } },
       configurations = {
 	 { name="cconst1",
@@ -359,7 +359,7 @@ function TestComp:test_late_config2()
    }
 
    NI = bd.system {
-      imports = { 'stdtypes', 'cconst', 'testtypes', 'lfds_cyclic' },
+      imports = { 'stdtypes', 'cconst', 'testtypes', 'lfrb' },
       blocks = { { name="cconst1", type="ubx/cconst" } },
       configurations = {
 	 { name="cconst1",

@@ -22,7 +22,7 @@ end
 function TestConnection:Test_01_Simple()
    local DATA_LEN = 1
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "saturation_double" },
+      imports = { "stdtypes", "lfrb", "saturation_double" },
       blocks = {
 	 { name = "sat1", type = "ubx/saturation_double" },
 	 { name = "sat2", type = "ubx/saturation_double" }

@@ -21,7 +21,7 @@ end
 --- Test that connecting ports with mismatched types fails validation
 function TestConnectionErrors:TestTypeMismatch()
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "ramp_uint32", "ramp_int32" },
+      imports = { "stdtypes", "lfrb", "ramp_uint32", "ramp_int32" },
       blocks = {
 	 { name = "r_uint", type = "ubx/ramp_uint32" },
 	 { name = "r_int", type = "ubx/ramp_int32" },
@@ -49,7 +49,7 @@ end
 --- Test that connecting to a non-existent port fails
 function TestConnectionErrors:TestNonExistentPort()
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "ramp_uint32" },
+      imports = { "stdtypes", "lfrb", "ramp_uint32" },
       blocks = {
 	 { name = "r1", type = "ubx/ramp_uint32" },
 	 { name = "r2", type = "ubx/ramp_uint32" },
@@ -73,7 +73,7 @@ end
 --- Test that connecting to a non-existent block fails validation
 function TestConnectionErrors:TestNonExistentBlock()
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "ramp_uint32" },
+      imports = { "stdtypes", "lfrb", "ramp_uint32" },
       blocks = {
 	 { name = "r1", type = "ubx/ramp_uint32" },
       },
@@ -92,7 +92,7 @@ end
 --- Test fan-out: one output connected to two inputs launches and connects
 function TestConnectionErrors:TestFanOut()
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "saturation_double" },
+      imports = { "stdtypes", "lfrb", "saturation_double" },
       blocks = {
 	 { name = "sat1", type = "ubx/saturation_double" },
 	 { name = "sat2", type = "ubx/saturation_double" },
@@ -124,7 +124,7 @@ end
 --- Test fan-in: two outputs connected to same input
 function TestConnectionErrors:TestFanIn()
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "saturation_double" },
+      imports = { "stdtypes", "lfrb", "saturation_double" },
       blocks = {
 	 { name = "sat1", type = "ubx/saturation_double" },
 	 { name = "sat2", type = "ubx/saturation_double" },
@@ -150,7 +150,7 @@ end
 --- Test that buffer_len config is applied to auto-created iblock
 function TestConnectionErrors:TestBufferLenConfig()
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "saturation_double" },
+      imports = { "stdtypes", "lfrb", "saturation_double" },
       blocks = {
 	 { name = "sat1", type = "ubx/saturation_double" },
 	 { name = "sat2", type = "ubx/saturation_double" },

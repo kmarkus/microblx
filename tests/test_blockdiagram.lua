@@ -72,7 +72,7 @@ end
 
 --- Test launching a simple composition
 local sys1 = bd.system {
-   imports = { "stdtypes", "ramp_uint32", "lfds_cyclic", "luablock" },
+   imports = { "stdtypes", "ramp_uint32", "lfrb", "luablock" },
    blocks = sys1_gen_blocks(),
    connections = sys1_gen_connections(),
    configurations = sys1_gen_configurations(),
@@ -160,7 +160,7 @@ end
 function TestBlockdiagram:test_extern_blocks_valid()
 
    local sys = bd.system {
-      imports = { "stdtypes", "ramp_int32", "lfds_cyclic" },
+      imports = { "stdtypes", "ramp_int32", "lfrb" },
       extern_blocks = { "ext_blk" },
       blocks = {
 	 { name = "r1", type = "ubx/ramp_int32" },
@@ -181,7 +181,7 @@ end
 function TestBlockdiagram:test_extern_blocks_invalid()
 
    local sys = bd.system {
-      imports = { "stdtypes", "ramp_int32", "lfds_cyclic" },
+      imports = { "stdtypes", "ramp_int32", "lfrb" },
       extern_blocks = { "ext_blk" },
       blocks = {
 	 { name = "r1", type = "ubx/ramp_int32" },
@@ -203,7 +203,7 @@ function TestBlockdiagram:test_extern_blocks_launch()
 
    -- first create a node with a "core" block
    local core = bd.system {
-      imports = { "stdtypes", "random", "lfds_cyclic" },
+      imports = { "stdtypes", "random", "lfrb" },
       blocks = {
 	 { name = "core_rnd", type = "ubx/random" },
       },
@@ -217,7 +217,7 @@ function TestBlockdiagram:test_extern_blocks_launch()
 
    -- now load an auxiliary system that connects to the core block
    local aux = bd.system {
-      imports = { "stdtypes", "random", "lfds_cyclic" },
+      imports = { "stdtypes", "random", "lfrb" },
       extern_blocks = { "core_rnd" },
       blocks = {
 	 { name = "aux_rnd", type = "ubx/random" },

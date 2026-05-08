@@ -21,7 +21,7 @@ end
 --- Test P-only controller (scalar)
 function TestPID:TestPOnly()
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "pid" },
+      imports = { "stdtypes", "lfrb", "pid" },
       blocks = {
 	 { name = "pid1", type = "ubx/pid" },
       },
@@ -53,7 +53,7 @@ end
 --- Test PI controller (check integral accumulation)
 function TestPID:TestPI()
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "pid" },
+      imports = { "stdtypes", "lfrb", "pid" },
       blocks = {
 	 { name = "pid1", type = "ubx/pid" },
       },
@@ -90,7 +90,7 @@ end
 --- Test PD controller (check derivative)
 function TestPID:TestPD()
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "pid" },
+      imports = { "stdtypes", "lfrb", "pid" },
       blocks = {
 	 { name = "pid1", type = "ubx/pid" },
       },
@@ -129,7 +129,7 @@ function TestPID:TestVectorPID()
    local data_len = 3
 
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "pid" },
+      imports = { "stdtypes", "lfrb", "pid" },
       blocks = {
 	 { name = "pid1", type = "ubx/pid" },
       },

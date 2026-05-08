@@ -19,7 +19,7 @@ function TestBlockStateErrors:setup()
    ubx.load_module(nd, "stdtypes")
    ubx.load_module(nd, "random")
    ubx.load_module(nd, "luablock")
-   ubx.load_module(nd, "lfds_cyclic")
+   ubx.load_module(nd, "lfrb")
 end
 
 function TestBlockStateErrors:teardown()

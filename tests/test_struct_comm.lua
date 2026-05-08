@@ -66,7 +66,7 @@ function TestStructComm.setupClass()
    ubx.load_module(nd, "stdtypes")
    ubx.load_module(nd, "testtypes")
    ubx.load_module(nd, "luablock")
-   ubx.load_module(nd, "lfds_cyclic")
+   ubx.load_module(nd, "lfrb")
 
    lb1=ubx.block_create(nd, "ubx/luablock", "lb1", { lua_str=lua_testcomp } )
    assert_equals(ubx.block_init(lb1), 0)

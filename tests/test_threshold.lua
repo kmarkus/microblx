@@ -21,7 +21,7 @@ end
 --- Test basic threshold crossing detection
 function TestThreshold:TestBasicThreshold()
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "threshold" },
+      imports = { "stdtypes", "lfrb", "threshold" },
       blocks = {
 	 { name = "thres1", type = "ubx/threshold" },
       },
@@ -83,7 +83,7 @@ end
 --- Test threshold at boundary (exactly equal)
 function TestThreshold:TestBoundaryValue()
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "threshold" },
+      imports = { "stdtypes", "lfrb", "threshold" },
       blocks = {
 	 { name = "thres1", type = "ubx/threshold" },
       },
@@ -117,7 +117,7 @@ end
 --- Test no data on input produces no output change
 function TestThreshold:TestNoData()
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "threshold" },
+      imports = { "stdtypes", "lfrb", "threshold" },
       blocks = {
 	 { name = "thres1", type = "ubx/threshold" },
       },

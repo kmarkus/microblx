@@ -20,7 +20,7 @@ end
 function TestSaturation:TestLen1()
 
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "saturation_double" },
+      imports = { "stdtypes", "lfrb", "saturation_double" },
       blocks = { { name = "satd1", type = "ubx/saturation_double" } },
       configurations = {
 	 { name = "satd1", config = { lower_limits = -10, upper_limits = 3.3 } }
@@ -55,7 +55,7 @@ function TestSaturation:TestLen5()
    local data_len = 5
 
    local sys = bd.system {
-      imports = { "stdtypes", "lfds_cyclic", "saturation_double" },
+      imports = { "stdtypes", "lfrb", "saturation_double" },
       blocks = { { name = "satd1", type = "ubx/saturation_double" } },
       configurations = {
 	 { name = "satd1", config = {

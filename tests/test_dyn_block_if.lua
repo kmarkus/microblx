@@ -24,7 +24,7 @@ function TestDynIF.setupClass()
    ubx.load_module(nd, "stdtypes")
    ubx.load_module(nd, "testtypes")
    ubx.load_module(nd, "luablock")
-   ubx.load_module(nd, "lfds_cyclic")
+   ubx.load_module(nd, "lfrb")
    ubx.load_module(nd, "random")
 end
 
