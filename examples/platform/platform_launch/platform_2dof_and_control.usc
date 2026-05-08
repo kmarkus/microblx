@@ -5,7 +5,7 @@ return bd.system
    imports = {
       "stdtypes",
       "ptrig",
-      "lfds_cyclic",
+      "lfrb",
       "platform_2dof",
       "platform_2dof_control",
       "mqueue"
