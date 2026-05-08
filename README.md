@@ -67,6 +67,25 @@ Running Sphinx v1.8.5
 ...
 ```
 
+### Lua API docs
+
+The Lua binding API docs are generated with
+[ldoc](https://github.com/lunarmodules/LDoc). Building them requires
+`lua-ldoc`, `lua-discount` (for Markdown rendering), and `luajit`:
+
+```bash
+apt install lua-ldoc lua-discount luajit
+```
+
+Then enable and build via CMake:
+
+```bash
+cmake -DBUILD_LUA_DOCS=ON ..
+make doc-lua
+```
+
+The generated HTML is written to `<build>/lua-docs/`.
+
 There is also a [ChangeLog](/ChangeLog.md) which summarizes API
 changes or important features and a high-level
 [roadmap](/docs/dev/roadmap.md).

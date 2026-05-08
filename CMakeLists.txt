@@ -256,6 +256,26 @@ if(BUILD_DOCS)
   add_subdirectory(${CMAKE_SOURCE_DIR}/docs/user)
 endif()
 
+option(BUILD_LUA_DOCS "Build Lua API documentation with ldoc" OFF)
+
+if(BUILD_LUA_DOCS)
+  find_program(LDOC_EXECUTABLE ldoc)
+  find_program(LUAJIT_EXECUTABLE luajit)
+  if(NOT LDOC_EXECUTABLE)
+    message(FATAL_ERROR "ldoc not found. Install lua-ldoc (apt install lua-ldoc lua-discount).")
+  endif()
+  if(NOT LUAJIT_EXECUTABLE)
+    message(FATAL_ERROR "luajit not found. Required to run ldoc with discount markdown.")
+  endif()
+  set(LUA_DOC_DIR ${CMAKE_CURRENT_BINARY_DIR}/lua-docs)
+  add_custom_target(doc-lua
+    COMMAND ${LUAJIT_EXECUTABLE} ${LDOC_EXECUTABLE} --config config.ld --dir ${LUA_DOC_DIR} .
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/docs/lua
+    COMMENT "Building Lua API docs with ldoc into ${LUA_DOC_DIR}"
+    VERBATIM
+  )
+endif()
+
 #
 # tests
 #

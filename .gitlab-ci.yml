@@ -1,6 +1,7 @@
 stages:
   - build
   - test
+  - docs
 
 image: gcc:trixie
 
@@ -119,3 +120,12 @@ examples:
     - pushd examples/C/
     - gcc -Wall -Werror c-launch.c -o c-launch -lubx
     - ./c-launch 1
+
+lua-docs:
+  stage: docs
+  image: gcc:trixie
+  before_script:
+    - apt update && apt -y install lua-ldoc lua-discount
+  script:
+    - cd docs/lua && luajit $(which ldoc) --config config.ld --dir /tmp/lua-docs .
+  allow_failure: true
