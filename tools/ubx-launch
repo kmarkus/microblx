@@ -42,8 +42,6 @@ usage: ubx-launch [OPTION] -c <model file>
   -loglevel N		set global loglevel [0..7]
   -s			log to stderr (in addition to ubx_log)
   -v                    verbose (will log additional, early messages to stderr)
-  -webif [PORT]		create and start webinterface block.
-			the optional port defaults to 8888.
   -dbus                 create and start the dbus interface block.
   -webgraph [PORT]	create and start the webgraph block.
 			the optional port defaults to 8888.
@@ -166,15 +164,6 @@ local nd = model:launch{
 }
 
 _G.nd = nd
-
-if opttab['-webif'] then
-   local port = opttab['-webif'][1] or 8888
-   print("starting up webinterface block (http://localhost:"..ts(port)..")")
-   ubx.load_module(nd, "webif")
-   local webif1=ubx.block_create(nd, "ubx/webif", "webif1", { port=ts(port) })
-   assert(ubx.block_init(webif1)==0)
-   assert(ubx.block_start(webif1)==0)
-end
 
 if opttab['-dbus'] then
    local have_luablock, lbutil = pcall(require, "ubx/luablock-util")

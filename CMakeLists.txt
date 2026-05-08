@@ -198,7 +198,6 @@ add_block_subdir(BLOCK_SKELLETON   "std_blocks/skelleton"   ON)
 add_block_subdir(BLOCK_THRESHOLD   "std_blocks/threshold"   ON)
 add_block_subdir(BLOCK_TRIG        "std_blocks/trig"        ON)
 add_block_subdir(BLOCK_WEBGRAPH    "std_blocks/webgraph"    ON)
-add_block_subdir(BLOCK_WEBIF       "std_blocks/webif"       ON)
 
 
 # examples
@@ -296,7 +295,6 @@ add_custom_target(cppcheck
 		  --suppress=missingIncludeSystem
 		  --suppress=unusedFunction
 		  --suppress=constParameterCallback
-		  --suppress=*:std_blocks/webif/mongoose.c
 		  --suppress=variableScope:libubx/md5.c .
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Running cppcheck..."

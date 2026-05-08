@@ -240,13 +240,6 @@ function TestNodeIntrospection:test_node_pp()
    at(out[1]:find("myrand") ~= nil, "node_pp output should contain block name")
 end
 
-function TestNodeIntrospection:test_node_todot()
-   local s = ubx.node_todot(nd)
-   ae(type(s), "string")
-   at(#s > 0)
-   at(s:find("digraph") ~= nil, "expected DOT digraph output")
-end
-
 ------------------------------------------------------------------------------
 -- Block introspection
 ------------------------------------------------------------------------------

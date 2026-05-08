@@ -2,19 +2,18 @@ Launching a microblx app from C
 ===============================
 
 `c-launch.c` is a tiny example to illustrate how to startup a microblx
-application without Lua in plain C. It will launch a single webif
-block. It can be compiled as follows:
+application without Lua in plain C. It loads the `random` block,
+initialises and starts it, then waits for a SIGINT or an optional
+timeout argument.
 
 ```bash
 $ gcc c-launch.c -o c-launch -lubx
 ```
 
-Run it
+Run it for 1 second:
 
 ```bash
-$ ./c-launch 
-loaded request_handler()
-started system,webif @ http://localhost:8810
+$ ./c-launch 1
+started system
+shutting down
 ```
-
-Browse to the printed link to check it out. `Ctrl-C` to shutdown.

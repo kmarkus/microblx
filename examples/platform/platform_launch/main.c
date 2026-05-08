@@ -1,8 +1,6 @@
 #include <ubx/ubx.h>
 #include <ubx/trig_utils.h>
 
-#define WEBIF_PORT "8810"
-
 #include "ptrig_period.h"
 #include "signal.h"
 
@@ -14,7 +12,6 @@ static const char* modules[] = {
 	"/usr/local/lib/ubx/0.9/ptrig.so",
 	"/usr/local/lib/ubx/0.9/platform_2dof.so",
 	"/usr/local/lib/ubx/0.9/platform_2dof_control.so",
-	"/usr/local/lib/ubx/0.9/webif.so",
 	"/usr/local/lib/ubx/0.9/lfds_cyclic.so",
 };
 
@@ -22,7 +19,7 @@ int main()
 {
 	int ret = EXIT_FAILURE;
 	ubx_node_t nd;
-	ubx_block_t *plat1, *control1, *ptrig1, *webif, *fifo_vel, *fifo_pos;
+	ubx_block_t *plat1, *control1, *ptrig1, *fifo_vel, *fifo_pos;
 
 	/* initalize the node */
 	nd.loglevel = 7;
@@ -49,10 +46,6 @@ int main()
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "fail to create ptrig1");
 		goto out;
 	}
-	if((webif = ubx_block_create(&nd, "ubx/webif", "webif1"))==NULL){
-		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "fail to create webif1");
-		goto out;
-	}
 	/* create iblocks */
 	if((fifo_pos = ubx_block_create(&nd, "ubx/lfds_cyclic", "fifo_pos"))==NULL){
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "fail to create fifo_pos");
@@ -60,12 +53,6 @@ int main()
 	}
 	if((fifo_vel = ubx_block_create(&nd, "ubx/lfds_cyclic", "fifo_vel"))==NULL){
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "fail to create fifo_vel");
-		goto out;
-	}
-
-	/* webif port config */
-	if (cfg_set_char(webif, "port", WEBIF_PORT, strlen(WEBIF_PORT))) {
-		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to configure port_vel");
 		goto out;
 	}
 
@@ -175,11 +162,6 @@ int main()
 	ubx_ports_connect(control1_commanded_vel, plat1_desired_vel, fifo_vel);
 
 	/* init and start blocks */
-	if(ubx_block_init(webif) != 0) {
-		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to init webif");
-		goto out;
-	}
-
 	if(ubx_block_init(plat1) != 0) {
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to init plat1");
 		goto out;
@@ -210,11 +192,6 @@ int main()
 		goto out;
 	}
 
-	if(ubx_block_start(webif) != 0) {
-		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to start webif");
-		goto out;
-	}
-
 	if(ubx_block_start(plat1) != 0) {
 		ubx_log(UBX_LOGLEVEL_ERR, &nd,__func__,  "failed to start plat1");
 		goto out;
@@ -230,7 +207,7 @@ int main()
 		goto out;
 	}
 
-	printf("started system,	webif @ http://localhost:%s\n", WEBIF_PORT);
+	printf("started system\n");
 
 	/* stop on SIGINT (ctrl + c) */
 	ubx_wait_sigint(UINT_MAX);

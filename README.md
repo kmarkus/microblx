@@ -50,7 +50,6 @@ Standard Blocks
 | [luablock](std_blocks/luablock/README.md)                             | c-block   | generic LuaJIT block; implement hooks in Lua                           |
 | [lsdb-intf](std_blocks/lsdb-intf/README.md)                           | c-block   | D-Bus interface to the ubx node                                        |
 | [webgraph](std_blocks/webgraph/README.md)                             | lua block | browser-based React Flow graph of the running node                     |
-| [webif](std_blocks/webif/README.md)                                   | c-block   | HTTP interface (mongoose)                                              |
 | [skelleton](std_blocks/skelleton/README.md)                           | template  | annotated starting point for new blocks                                |
 | [cppdemo](std_blocks/cppdemo/README.md)                               | example   | minimal C++ block example                                              |
 
