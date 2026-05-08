@@ -332,6 +332,7 @@ local function do_load_plugin(name)
    local path = resolve_plugin_path(name)
    local chunk, loaderr = loadfile(path)
    if not chunk then
+      ubx.err(vt.nd, "lsdb-intf", fmt("failed to load plugin '%s': %s", path, loaderr))
       lsdb.throw(err.FAILED, "failed to load plugin '%s': %s", path, loaderr)
    end
    local mod = chunk()
