@@ -289,24 +289,48 @@ M.debug = dbg
 --                           OS API
 ------------------------------------------------------------------------------
 
---- Retrieve the current time using clock_gettime(CLOCK_MONOTONIC).
--- @param ts struct ubx_timespec out parameter (optional)
+--- Retrieve the current time via ubx_gettime.
+-- @param ts optional struct ubx_timespec to fill in-place
 -- @return struct ubx_timespec with current time
-function M.clock_mono_gettime(ts)
+function M.gettime(ts)
    ts = ts or ffi.new("struct ubx_timespec")
    ubx.ubx_gettime(ts)
    return ts
 end
 
---- Sleep for a relative duration using ubx_nanosleep.
--- @param sec seconds to sleep
--- @param nsec nanoseconds to sleep (optional, default 0)
-function M.clock_mono_sleep(sec, nsec)
-   local ts = ffi.new("struct ubx_timespec")
-   ts.sec = sec
-   ts.nsec = nsec or 0
+--- Sleep for a relative duration (yields CPU, not RT-safe).
+-- @param ts_or_sec struct ubx_timespec or seconds as number
+-- @param nsec optional nanoseconds (only when first arg is a number, default 0)
+function M.nanosleep(ts_or_sec, nsec)
+   local ts
+   if ffi.istype("struct ubx_timespec", ts_or_sec) then
+      ts = ts_or_sec
+   else
+      ts = ffi.new("struct ubx_timespec")
+      ts.sec = ts_or_sec
+      ts.nsec = nsec or 0
+   end
    ubx.ubx_nanosleep(ts)
 end
+
+--- Busy-wait for a relative duration (RT-safe, no CPU yield).
+-- @param ts_or_sec struct ubx_timespec or seconds as number
+-- @param nsec optional nanoseconds (only when first arg is a number, default 0)
+function M.nanowait(ts_or_sec, nsec)
+   local ts
+   if ffi.istype("struct ubx_timespec", ts_or_sec) then
+      ts = ts_or_sec
+   else
+      ts = ffi.new("struct ubx_timespec")
+      ts.sec = ts_or_sec
+      ts.nsec = nsec or 0
+   end
+   ubx.ubx_nanowait(ts)
+end
+
+-- deprecated aliases
+M.clock_mono_gettime = M.gettime
+M.clock_mono_sleep = M.nanosleep
 
 local function to_sec(sec, nsec)
    return tonumber(sec)+tonumber(nsec)/time.ns_per_s
@@ -736,6 +760,19 @@ local ubx_block_mt = {
       do_stop = ubx.ubx_block_stop,
       do_cleanup = ubx.ubx_block_cleanup,
       do_step = ubx.ubx_cblock_step,
+
+      is_proto = M.is_proto,
+      is_instance = M.is_instance,
+      is_cblock = M.is_cblock,
+      is_iblock = M.is_iblock,
+      is_cblock_instance = M.is_cblock_instance,
+      is_iblock_instance = M.is_iblock_instance,
+      is_cblock_proto = M.is_cblock_proto,
+      is_iblock_proto = M.is_iblock_proto,
+      has_attr = M.block_hasattr,
+      is_active = M.block_isactive,
+      is_trigger = M.block_istrigger,
+      is_realtime = M.block_isrealtime,
    }
 }
 ffi.metatype("struct ubx_block", ubx_block_mt)
@@ -1265,14 +1302,14 @@ function M.port_read_timed(p, timeout, data)
       data = M.port_alloc_read_sample(p)
    end
 
-   M.clock_mono_gettime(ts_start)
-   M.clock_mono_gettime(ts_cur)
+   M.gettime(ts_start)
+   M.gettime(ts_cur)
 
    while ts_cur.sec - ts_start.sec < timeout do
       local len = ubx.__port_read(p, data)
       if len>0 then return len, data end
-      M.clock_mono_sleep(0, 10*1000^2)
-      M.clock_mono_gettime(ts_cur)
+      M.nanosleep(0, 10*1000^2)
+      M.gettime(ts_cur)
    end
    return -1
 end
@@ -1391,6 +1428,9 @@ local ubx_port_mt = {
       read = M.port_read,
       write_read = M.port_write_read,
       read_timed = M.port_read_timed,
+      is_inport = M.is_inport,
+      is_outport = M.is_outport,
+      is_inoutport = M.is_inoutport,
    },
 }
 ffi.metatype("struct ubx_port", ubx_port_mt)
@@ -1585,6 +1625,12 @@ $conns
     })
 end
 
+local block_uid_cnt = 0
+
+function M.reset_block_uid()
+   block_uid_cnt = 0
+end
+
 local __pcc_cnt=0
 local function pcc_cnt()
    __pcc_cnt=__pcc_cnt+1
@@ -1694,14 +1740,9 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
    return p
 end
 
-local block_uid_cnt = 0
 local function gen_block_uid()
    block_uid_cnt = block_uid_cnt+1
    return fmt("i_%08x", block_uid_cnt)
-end
-
-function M.reset_block_uid()
-   block_uid_cnt = 0
 end
 
 --- connect - universal connect function
