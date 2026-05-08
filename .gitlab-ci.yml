@@ -10,7 +10,6 @@ image: gcc:trixie
     - apt update && apt -y install cmake pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck lua-unit libcmocka-dev libsystemd-dev libmxml-dev lua-compat53 lua-compat53-dev dbus libgpiod-dev libiio-dev libiio-utils libgps-dev gpsd
     - cd /builds/
     - git clone --depth=1 https://github.com/kmarkus/uutils.git
-    - git clone --depth=1 git://liblfds.org/liblfds6.1.1
     - git clone --depth=1 https://github.com/corsix/ffi-reflect.git
     - git clone --depth=1 https://github.com/kmarkus/lsdbus.git
     # install reflect
@@ -18,14 +17,6 @@ image: gcc:trixie
     - cp ffi-reflect/reflect.lua /usr/local/share/lua/5.1/
     # install uutils
     - cd uutils/
-    - make install
-    - cd ..
-    # install liblfds
-    - cd liblfds6.1.1
-    - git -c user.name='gitlab' -c user.email='xxx' am $CI_PROJECT_DIR/liblfds/*.patch
-    - ./bootstrap
-    - ./configure --prefix=/usr/
-    - make -j3
     - make install
     - cd ..
     # install lsdbus
