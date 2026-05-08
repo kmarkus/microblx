@@ -554,50 +554,6 @@ function M.block_get(nd, bname)
    return b
 end
 
---- Return the prototype name of a block instance.
--- @param b `ubx_block_t`
--- @return prototype name string, or `false` if `b` is itself a prototype
-function M.block_prototype(b)
-   if b.prototype == nil then return false end
-   return M.safe_tostr(b.prototype.name)
-end
-
---- Bring a block to the given state
--- @param b block
--- @param tgtstate desired state ('active', 'inactive', 'preinit')
--- @return 0 if OK, nonzero otherwise
-function M.block_tostate(b, tgtstate)
-   local ret
-
-   if b.block_state == tgtstate then return 0 end
-
-   -- starting it up
-   if (b.block_state == ffi.C.BLOCK_STATE_PREINIT and
-       (tgtstate == 'inactive' or tgtstate == 'active')) then
-      ret = M.block_init(b)
-      if ret ~= 0 then return ret end
-   end
-
-   if (b.block_state == ffi.C.BLOCK_STATE_INACTIVE and tgtstate == 'active') then
-      ret = M.block_start(b)
-      if ret ~= 0 then return ret end
-   end
-
-   -- shutting it down
-   if (b.block_state == ffi.C.BLOCK_STATE_ACTIVE and
-       (tgtstate == 'inactive' or tgtstate == 'preinit')) then
-      ret = M.block_stop(b)
-      if ret ~= 0 then return ret end
-   end
-
-   if (b.block_state == ffi.C.BLOCK_STATE_INACTIVE and tgtstate == 'preinit') then
-      ret = M.block_cleanup(b)
-      if ret ~= 0 then return ret end
-   end
-
-   return 0
-end
-
 --- Unload a block: transition to `preinit` then call `ubx_block_rm`.
 -- @param nd `ubx_node_t`
 -- @param name block name string
@@ -727,6 +683,50 @@ end
 -- @return boolean
 function M.block_isrealtime(b)
    return M.block_hasattr(b, ffi.C.BLOCK_ATTR_REALTIME)
+end
+
+--- Return the prototype name of a block instance.
+-- @param b `ubx_block_t`
+-- @return prototype name string, or `false` if `b` is itself a prototype
+function M.block_prototype(b)
+   if b.prototype == nil then return false end
+   return M.safe_tostr(b.prototype.name)
+end
+
+--- Bring a block to the given state
+-- @param b block
+-- @param tgtstate desired state ('active', 'inactive', 'preinit')
+-- @return 0 if OK, nonzero otherwise
+function M.block_tostate(b, tgtstate)
+   local ret
+
+   if b.block_state == tgtstate then return 0 end
+
+   -- starting it up
+   if (b.block_state == ffi.C.BLOCK_STATE_PREINIT and
+       (tgtstate == 'inactive' or tgtstate == 'active')) then
+      ret = M.block_init(b)
+      if ret ~= 0 then return ret end
+   end
+
+   if (b.block_state == ffi.C.BLOCK_STATE_INACTIVE and tgtstate == 'active') then
+      ret = M.block_start(b)
+      if ret ~= 0 then return ret end
+   end
+
+   -- shutting it down
+   if (b.block_state == ffi.C.BLOCK_STATE_ACTIVE and
+       (tgtstate == 'inactive' or tgtstate == 'preinit')) then
+      ret = M.block_stop(b)
+      if ret ~= 0 then return ret end
+   end
+
+   if (b.block_state == ffi.C.BLOCK_STATE_INACTIVE and tgtstate == 'preinit') then
+      ret = M.block_cleanup(b)
+      if ret ~= 0 then return ret end
+   end
+
+   return 0
 end
 
 local function block_attr_totab(b)
