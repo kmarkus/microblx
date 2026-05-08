@@ -134,4 +134,5 @@ pages:
       - public
   only:
     - master
+    - dev
   allow_failure: true
