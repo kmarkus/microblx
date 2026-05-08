@@ -1142,8 +1142,6 @@ ubx_block_t *ubx_block_create(ubx_node_t *nd, const char *type, const char *name
  * This will unregister a block and free it's data. The block must be
  * in BLOCK_STATE_PREINIT state.
  *
- * TODO: fail if not in state PREINIT.
- *
  * @param ni
  * @param block_type
  * @param name

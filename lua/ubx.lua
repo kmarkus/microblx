@@ -1840,8 +1840,11 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
       M.block_init(i_prot_to_p)
 
       if M.ports_connect(prot, p, i_prot_to_p) ~= 0 then
-	 -- TODO disconnect if connected above.
-	 error("failed to connect port"..ffi.string(p.name))
+	 if i_p_to_prot then
+	    M.ports_disconnect(p, prot, i_p_to_prot)
+	    M.block_unload(block.nd, ffi.string(i_p_to_prot.name))
+	 end
+	 error("failed to connect port "..ffi.string(p.name))
       end
       M.block_start(i_prot_to_p)
       info(block.nd, "lua", fmt("port_clone_conn: %s, buffer_len: %d, data_len: %d",

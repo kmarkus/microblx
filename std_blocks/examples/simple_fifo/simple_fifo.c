@@ -143,10 +143,7 @@ static void fifo_write(ubx_block_t *i, const ubx_data_t *msg)
 		bbi->type = msg->type;
 	}
 
-	/* enough space?
-	 * TODO: continue here:
-	 *  - add an overrun policy: 'drop' or 'overwrite'
-	 */
+	/* enough space? */
 	empty = empty_space(bbi);
 
 	if (empty < len) {
