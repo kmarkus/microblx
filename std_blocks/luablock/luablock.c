@@ -330,7 +330,7 @@ void luablock_step(ubx_block_t *b)
 	}
 	__call_hook(b, "step", 0, 0);
  out:
-	/* TODO: fix this. realloc could have changed port addr */
+	/* re-fetch: exec_str could have triggered a port add/rm, invalidating p_exec_str */
 	if (len > 0) {
 		p_exec_str = ubx_port_get(b, "exec_str");
 		write_int(p_exec_str, &ret);
