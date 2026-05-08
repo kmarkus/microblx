@@ -2,7 +2,7 @@ Launching a microblx app from C
 ===============================
 
 `c-launch.c` is a tiny example to illustrate how to startup a microblx
-application without Lua in plain C. It loads the `random` block,
+application without Lua in plain C. It loads the `rand_double` block,
 initialises and starts it, then waits for a SIGINT or an optional
 timeout argument.
 

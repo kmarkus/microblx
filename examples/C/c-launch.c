@@ -23,12 +23,12 @@ int main(int argc, char **argv)
 	if(ubx_module_load(&nd, "/usr/local/lib/ubx/0.9/stdtypes.so") != 0)
 		goto out;
 
-	/* load the random block */
-	if(ubx_module_load(&nd, "/usr/local/lib/ubx/0.9/random.so") != 0)
+	/* load the rand_double block */
+	if(ubx_module_load(&nd, "/usr/local/lib/ubx/0.9/rand_double.so") != 0)
 		goto out;
 
-	/* create a random block */
-	if((rand1 = ubx_block_create(&nd, "ubx/random", "rand1"))==NULL)
+	/* create a rand_double block */
+	if((rand1 = ubx_block_create(&nd, "ubx/rand_double", "rand1"))==NULL)
 		goto out;
 
 	/* init and start the block */
