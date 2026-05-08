@@ -433,4 +433,133 @@ function TestLsdbIntf:test_plugin_startup_config()
                "plugin from startup config should appear in ListPlugins")
 end
 
+---
+--- Plugin error handling: malformed / invalid plugins
+---
+
+TestLsdbIntfPluginErrors = {}
+
+local function write_tmpfile(content)
+   local path = os.tmpname() .. ".lua"
+   local f = assert(io.open(path, 'w'))
+   f:write(content)
+   f:close()
+   return path
+end
+
+function TestLsdbIntfPluginErrors:setUp()
+   if not lsdb_available then luaunit.skip("lsdbus not available") end
+end
+
+local function create_pm_node(suffix)
+   local nd, blk, bus, _, pm = create_node("tpe_" .. suffix)
+   return nd, blk, bus, pm
+end
+
+function TestLsdbIntfPluginErrors:test_syntax_error()
+   local nd, blk, bus, pm = create_pm_node("syntax")
+   local path = write_tmpfile("this is not valid lua ][")
+   -- error must name the file and include the actual Lua parse error
+   assert_error_msg_contains(path,
+      function() pm('LoadPlugin', path) end)
+   assert_error_msg_contains("failed to load plugin",
+      function() pm('LoadPlugin', path) end)
+   ubx.block_stop(blk); ubx.block_cleanup(blk); ubx.node_rm(nd)
+   os.remove(path)
+end
+
+function TestLsdbIntfPluginErrors:test_returns_nil()
+   local nd, blk, bus, pm = create_pm_node("retnil")
+   local path = write_tmpfile("return nil")
+   assert_error_msg_contains("must return a table with an init() function",
+      function() pm('LoadPlugin', path) end)
+   ubx.block_stop(blk); ubx.block_cleanup(blk); ubx.node_rm(nd)
+   os.remove(path)
+end
+
+function TestLsdbIntfPluginErrors:test_returns_non_table()
+   local nd, blk, bus, pm = create_pm_node("retstr")
+   local path = write_tmpfile('return "oops"')
+   assert_error_msg_contains("must return a table with an init() function",
+      function() pm('LoadPlugin', path) end)
+   ubx.block_stop(blk); ubx.block_cleanup(blk); ubx.node_rm(nd)
+   os.remove(path)
+end
+
+function TestLsdbIntfPluginErrors:test_missing_init()
+   local nd, blk, bus, pm = create_pm_node("noinit")
+   local path = write_tmpfile("return {}")
+   assert_error_msg_contains("must return a table with an init() function",
+      function() pm('LoadPlugin', path) end)
+   ubx.block_stop(blk); ubx.block_cleanup(blk); ubx.node_rm(nd)
+   os.remove(path)
+end
+
+function TestLsdbIntfPluginErrors:test_init_not_function()
+   local nd, blk, bus, pm = create_pm_node("initnotfn")
+   local path = write_tmpfile("return { init = 42 }")
+   assert_error_msg_contains("must return a table with an init() function",
+      function() pm('LoadPlugin', path) end)
+   ubx.block_stop(blk); ubx.block_cleanup(blk); ubx.node_rm(nd)
+   os.remove(path)
+end
+
+function TestLsdbIntfPluginErrors:test_init_returns_nil()
+   local nd, blk, bus, pm = create_pm_node("initnil")
+   local path = write_tmpfile("return { init = function() return nil end }")
+   assert_error_msg_contains("init() must return { path=string, intf=table }",
+      function() pm('LoadPlugin', path) end)
+   ubx.block_stop(blk); ubx.block_cleanup(blk); ubx.node_rm(nd)
+   os.remove(path)
+end
+
+function TestLsdbIntfPluginErrors:test_init_returns_non_table()
+   local nd, blk, bus, pm = create_pm_node("initnontab")
+   local path = write_tmpfile('return { init = function() return "bad" end }')
+   assert_error_msg_contains("init() must return { path=string, intf=table }",
+      function() pm('LoadPlugin', path) end)
+   ubx.block_stop(blk); ubx.block_cleanup(blk); ubx.node_rm(nd)
+   os.remove(path)
+end
+
+function TestLsdbIntfPluginErrors:test_init_missing_path()
+   local nd, blk, bus, pm = create_pm_node("nopath")
+   local path = write_tmpfile(
+      "return { init = function() return { intf = {} } end }")
+   assert_error_msg_contains("init() must return { path=string, intf=table }",
+      function() pm('LoadPlugin', path) end)
+   ubx.block_stop(blk); ubx.block_cleanup(blk); ubx.node_rm(nd)
+   os.remove(path)
+end
+
+function TestLsdbIntfPluginErrors:test_init_missing_intf()
+   local nd, blk, bus, pm = create_pm_node("nointf")
+   local path = write_tmpfile(
+      'return { init = function() return { path = "/x" } end }')
+   assert_error_msg_contains("init() must return { path=string, intf=table }",
+      function() pm('LoadPlugin', path) end)
+   ubx.block_stop(blk); ubx.block_cleanup(blk); ubx.node_rm(nd)
+   os.remove(path)
+end
+
+function TestLsdbIntfPluginErrors:test_init_path_not_string()
+   local nd, blk, bus, pm = create_pm_node("badpath")
+   local path = write_tmpfile(
+      "return { init = function() return { path = 99, intf = {} } end }")
+   assert_error_msg_contains("init() must return { path=string, intf=table }",
+      function() pm('LoadPlugin', path) end)
+   ubx.block_stop(blk); ubx.block_cleanup(blk); ubx.node_rm(nd)
+   os.remove(path)
+end
+
+function TestLsdbIntfPluginErrors:test_init_intf_not_table()
+   local nd, blk, bus, pm = create_pm_node("badintf")
+   local path = write_tmpfile(
+      'return { init = function() return { path = "/x", intf = "bad" } end }')
+   assert_error_msg_contains("init() must return { path=string, intf=table }",
+      function() pm('LoadPlugin', path) end)
+   ubx.block_stop(blk); ubx.block_cleanup(blk); ubx.node_rm(nd)
+   os.remove(path)
+end
+
 if not _RUNNER then os.exit(luaunit.LuaUnit.run()) end
