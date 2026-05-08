@@ -116,7 +116,7 @@ lua-docs:
   stage: docs
   image: gcc:trixie
   before_script:
-    - apt update && apt -y install lua-ldoc lua-discount
+    - apt update && apt -y install luajit lua-ldoc lua-discount
   script:
     - cd docs/lua && luajit $(which ldoc) --config config.ld --dir /tmp/lua-docs .
   allow_failure: true
