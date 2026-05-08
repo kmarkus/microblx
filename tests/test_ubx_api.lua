@@ -222,6 +222,24 @@ function TestNodeIntrospection:test_node_totab()
    at(t.blocks["myrand"].block_type == "cblock")
 end
 
+function TestNodeIntrospection:test_node_totab_modules()
+   local t = ubx.node_totab(nd)
+   ann(t.modules)
+   at(#t.modules >= 2, "expected at least stdtypes and random modules")
+   ann(t.modules[1].id)
+   ann(t.modules[1].license)
+end
+
+function TestNodeIntrospection:test_node_pp()
+   local out = {}
+   local orig = print
+   print = function(s) out[#out+1] = s end
+   ubx.node_pp(nd)
+   print = orig
+   ae(#out, 1)
+   at(out[1]:find("myrand") ~= nil, "node_pp output should contain block name")
+end
+
 function TestNodeIntrospection:test_node_todot()
    local s = ubx.node_todot(nd)
    ae(type(s), "string")
@@ -262,6 +280,16 @@ function TestBlockIntrospection:test_block_totab_prototype_field()
    ae(t_proto.prototype, false)
 end
 
+function TestBlockIntrospection:test_block_pp()
+   local out = {}
+   local orig = print
+   print = function(s) out[#out+1] = s end
+   ubx.block_pp(b_rand)
+   print = orig
+   ae(#out, 1)
+   at(out[1]:find("myrand") ~= nil, "block_pp output should contain block name")
+end
+
 ------------------------------------------------------------------------------
 -- Port introspection
 ------------------------------------------------------------------------------
@@ -281,7 +309,8 @@ function TestPortIntrospection:test_port_tostr()
    local p = ubx.block_port_get(b_rand, "rnd")
    local s = ubx.port_tostr(p)
    ae(type(s), "string")
-   at(#s > 0)
+   at(s:find("rnd") ~= nil, "port_tostr output should contain port name")
+   at(s:find("out_type_name") ~= nil, "port_tostr output should contain type name field")
 end
 
 function TestPortIntrospection:test_port_totab()
@@ -319,7 +348,7 @@ function TestConfigIntrospection:test_config_tostr()
    local c = ubx.block_config_get(b_rand, "min_max_config")
    local s = ubx.config_tostr(c)
    ae(type(s), "string")
-   at(#s > 0)
+   at(s:find("min_max_config") ~= nil, "config_tostr output should contain config name")
 end
 
 function TestConfigIntrospection:test_config_totab()

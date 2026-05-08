@@ -13,6 +13,7 @@ local bit = require("bit")
 local cdata = require("cdata")
 local utils = require("utils")
 local time = require("time")
+local pt = require("prettytable")
 
 local ts = tostring
 local concat = table.concat
@@ -513,22 +514,25 @@ end
 
 --- Convert a node to a Lua table.
 -- @param nd `ubx_node_t`
--- @return table `{ types={[name]=tab,...}, blocks={[name]=tab,...} }`
+-- @return table `{ modules={...}, types={[name]=tab,...}, blocks={[name]=tab,...} }`
 function M.node_totab(nd)
-   local types = {}
-   local blocks = {}
+   local modules, types, blocks = {}, {}, {}
 
-   M.types_foreach(nd,
-		   function (_t)
-		      local t = M.ubx_type_totab(_t)
-		      types[t.name] = t end)
+   M.modules_foreach(nd, function(m)
+      modules[#modules+1] = { id=safe_tostr(m.id), license=safe_tostr(m.spdx_license_id) }
+   end)
 
-   M.blocks_map(nd,
-		function (_b)
-		   local b = M.block_totab(_b)
-		   blocks[b.name] = b end)
+   M.types_foreach(nd, function(_t)
+      local t = M.ubx_type_totab(_t)
+      types[t.name] = t
+   end)
 
-   return { types=types, blocks=blocks }
+   M.blocks_map(nd, function(_b)
+      local b = M.block_totab(_b)
+      blocks[b.name] = b
+   end)
+
+   return { modules=modules, types=types, blocks=blocks }
 end
 
 
@@ -607,46 +611,7 @@ function M.num_types(nd) return ubx.ubx_num_types(nd) end
 
 --- Pretty print a node
 -- @param nd node_info
-function M.node_pp(nd)
-   print(ffi.string(nd.name))
-
-   print("  modules:")
-   M.modules_foreach(nd,
-		     function (m)
-			print("    "..safe_tostr(m.id)..
-				 " ["..safe_tostr(m.spdx_license_id).."]")
-		     end
-   )
-
-   print("  types:")
-   M.types_foreach(nd,
-		   function (t)
-		      print("    "..safe_tostr(t.name)..
-			       " [size: "..tonumber(t.size)..", "..
-			       utils.str_to_hexstr(ffi.string(t.hash, 4)).."] "..
-			       safe_tostr(t.doc))
-		   end
-   )
-
-   print("  prototypes:")
-   M.blocks_map(nd,
-		function (b)
-		   print("    "..M.block_tostr(b))
-		end, M.is_proto)
-
-   print("  iblocks:")
-   M.blocks_map(nd,
-		function (b)
-		   print("    "..M.block_tostr(b))
-		end, M.is_iblock_instance)
-
-   print("  cblocks:")
-   M.blocks_map(nd,
-		function (b)
-		   print("    "..M.block_tostr(b))
-		end, M.is_cblock_instance)
-
-end
+function M.node_pp(nd) print(pt.tostr(M.node_totab(nd))) end
 
 -- add Lua OO methods
 local ubx_node_mt = {
@@ -791,49 +756,9 @@ function M.block_totab(b)
    return res
 end
 
---- Pretty-print a block (multi-line, with configs and ports).
--- @param b `ubx_block_t` or block table
--- @return multi-line string
-function M.block_pp(b)
-   local res = {}
-   local bt
-
-   if M.is_block(b) then bt = M.block_totab(b) else bt = b end
-
-   if bt.block_type == 'cblock' then
-      local f = "%s [state: %s, steps: %u] (type: %s, prototype: %s, attrs: %s)"
-
-      res[#res+1] = f:format(bt.name,
-			     bt.state,
-			     bt.stat_num_steps,
-			     bt.block_type,
-			     bt.prototype,
-			     table.concat(bt.attrs, ', '))
-   elseif bt.block_type == 'iblock' then
-      local f = "%s [state: %s, reads: %u, writes: %u] (type: %s, prototype: %s, attrs: %s)"
-      res[#res+1] = f:format(bt.name,
-			     bt.state,
-			     bt.stat_num_reads,
-			     bt.stat_num_writes,
-			     bt.block_type,
-			     bt.prototype,
-			     table.concat(bt.attrs, ', '))
-   else
-      error("unknown block type "..bt.block_type)
-   end
-
-   if #bt.configs > 0 then
-      res[#res+1] = ("  configs:")
-      utils.foreach(function(c) res[#res+1] = "    "..M.config_tabtostr(c) end, bt.configs)
-   end
-
-   if #bt.ports > 0 then
-      res[#res+1] = ("  ports:")
-      utils.foreach(function(p) res[#res+1] = "    "..M.port_tabtostr(p) end, bt.ports)
-   end
-
-   return table.concat(res, '\n')
-end
+--- Pretty-print a block.
+-- @param b `ubx_block_t`
+function M.block_pp(b) print(pt.tostr(M.block_totab(b))) end
 
 --- Convert a block to a short one-line string.
 -- @param b `ubx_block_t` or block table
@@ -1413,23 +1338,10 @@ function M.config_totab(c)
    return res
 end
 
---- Convert a config table to a human-readable string.
--- @param ctab config table (from config_totab)
--- @return string
-function M.config_tabtostr(ctab)
-   return ctab.name
-      .." ["..ctab.type_name.."] "
-      ..utils.tab2str(ctab.value)
-      .." // "..ctab.doc
-end
-
 --- Convert a config to a human-readable string.
 -- @param c ubx_config_t
 -- @return string
-function M.config_tostr(c)
-   local ctab = M.config_totab(c)
-   return M.config_tabtostr(ctab)
-end
+function M.config_tostr(c) return pt.tostr(M.config_totab(c)) end
 
 -- add Lua OO methods
 local ubx_config_mt = {
@@ -1640,40 +1552,10 @@ function M.port_totab(p)
    return ptab
 end
 
---- Convert a port table to a human-readable string.
--- @param pt port table (from port_totab)
--- @return string
-function M.port_tabtostr(pt)
-   assert(type(pt) == 'table')
-
-   local in_str=""
-   local out_str=""
-   local doc=""
-
-   if pt.in_type_name then
-      in_str = "in: "..pt.in_type_name
-      if pt.in_data_len > 1 then in_str = in_str.."["..ts(pt.in_data_len).."]" end
-      in_str = in_str.." #conn: "..ts(#pt.connections.incoming)
-   end
-
-   if pt.out_type_name then
-      out_str = "out: "..pt.out_type_name
-      if pt.out_data_len > 1 then out_str = out_str.."["..ts(pt.out_data_len).."]" end
-      out_str = out_str.." #conn: "..ts(#pt.connections.outgoing)
-   end
-
-   if pt.doc then doc = " // "..pt.doc end
-
-   return pt.name.." ["..(in_str or "")..(out_str or "").."] "..doc
-end
-
 --- Convert a port to a human-readable string.
 -- @param port ubx_port_t
 -- @return string
-function M.port_tostr(port)
-   local p = M.port_totab(port)
-   return M.port_tabtostr(p)
-end
+function M.port_tostr(port) return pt.tostr(M.port_totab(port)) end
 
 -- add Lua OO methods
 local ubx_port_mt = {
