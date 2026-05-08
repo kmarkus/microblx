@@ -24,9 +24,59 @@ This file tracks user visible API changes
   installed from `https://github.com/corsix/ffi-reflect`.
 - add `liblfq`: a minimal and portable lock-free queue based on
   Vyukovs algorithm. lfds currently doesn't run on aarch64|arm64 and
-  this implementation provdes a simple yet efficient replacement.
+  this implementation provides a simple yet efficient replacement.
+- add `ubx/lfrb`: hard-RT lock-free ring buffer iblock based on
+  `liblfq`. On platforms where `lfds_cyclic` is unavailable (aarch64)
+  this is the default connection iblock.
+- `lfds_cyclic`: temporarily disabled while `liblfds` is unavailable
+  upstream; use `lfrb` as a drop-in replacement.
+- `ubx.lua`: auto-detects whether `lfrb` or `lfds_cyclic` is available
+  and selects the available one as the default connection iblock.
 - switch to `cmake`
 - replace `lua-filesystem` with ffi implementation
+
+New blocks:
+
+- `ubx/gpio`: Linux GPIO block via `libgpiod` v2
+- `ubx/iio`, `ubx/iio_buf`: Linux IIO (ADC/DAC/IMU/sensors) via `libiio`
+- `ubx/gps`: GPS block via `gpsd` shared memory interface
+- `ubx/math_float`: element-wise `math.h` functions for the `float` type
+  (complement to the existing `ubx/math_double`)
+- `webgraph`: browser-based React Flow graph of the running node;
+  `ubx-launch` gained a `-webgraph [PORT]` option (default port 8888)
+
+Removals:
+
+- `webif` block **removed** — superseded by `webgraph` (visual graph) and
+  `lsdb-intf` (programmatic control). The `ubx-launch -webif` option is
+  gone; use `-webgraph` instead.
+- `ubx.lua`: **removed** `M.node_todot` (Graphviz DOT output), which was
+  only used internally by `webif`.
+- `ubx.lua`: **removed** `M.color` flag and all color-related helpers;
+  `ansicolors` is no longer a dependency of `ubx.lua`. Colorized output
+  is now handled per-tool where needed.
+
+Other changes:
+
+- `ubx.lua`: added OO predicate methods on `ubx_block_t`: `is_cblock`,
+  `is_iblock`, `is_proto`, `is_instance`, `is_active`, `is_trigger`,
+  `is_realtime` and composite variants. Added direction predicates on
+  `ubx_port_t`: `is_inport`, `is_outport`, `is_inoutport`.
+- `luablock`: added built-in self-triggering support via the `trigger`
+  (set to `1` to enable) and `period` (float, seconds) configs, removing
+  the need for a separate `ptrig` in non-RT use-cases.
+- `ptrig`: new `sleep_mode` config — `0` (default): OS sleep via
+  `clock_nanosleep`; `1`: busy-wait using `ubx_nanowait`.
+- `lsdb-intf`: added plugin support; Lua modules loaded at init time can
+  extend the D-Bus interface with new methods. `ubx.info`, `ubx.warn`,
+  `ubx.err` etc. are available in the plugin context. `ClearNode` gained
+  a `keeplist` parameter to exclude specific blocks from removal.
+- `ubx-dbus`: added colorized pretty-print output for node info (`-i`)
+  and per-block info (`-i BLOCK`).
+- `ubx-modinfo`: added standalone color output with the `-c` flag.
+- `blockdiagram`: added `extern_blocks` support — blocks listed there are
+  expected to exist in the node already and will not be created or
+  destroyed by the blockdiagram launch/cleanup logic.
 
 ## 0.9.2
 
