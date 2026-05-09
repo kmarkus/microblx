@@ -645,9 +645,9 @@ in the respective block and otherwise compiled out without any overhead.
 To view the log messages, you need to run the ``ubx-log`` tool in a
 separate window.
 
-**Important**: The maximum total log message length (including is by
-default set to 120 by default), so make sure to keep log message short
-and sweet (or increase the length for your build).
+**Important**: The maximum total log message length is 127 characters
+(``UBX_LOG_MSG_MAXLEN``), so keep messages short or increase the limit
+for your build.
 
 Note that the old (non-rt) macros ``ERR``, ``ERR2``, ``MSG`` and ``DBG``
 are deprecated and shall not be used anymore.
@@ -741,11 +741,10 @@ Launch block using ubx-launch
 
 .. code:: sh
 
-   $ ubx-ilaunch -webif -c myblock.usc
+   $ ubx-launch -webgraph -c myblock.usc
 
-Run ``ubx-launch -h`` for full options.
-
-Browse to http://localhost:8888
+Run ``ubx-launch -h`` for full options. Browse to
+``http://localhost:8888`` to see the running block graph.
 
 
 Block Interface Guidelines

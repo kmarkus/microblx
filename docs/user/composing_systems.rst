@@ -53,11 +53,19 @@ minimal example:
 					    -- the #<blockname> directive will
 					    -- be resolved to an actual
 					    -- reference to the respective
-					    -- block once instantiated
-					    { b="#x1", num_steps=1, measure=0 },
-					    { b="#y1", num_steps=1, measure=0 } } } }
+					    -- block once instantiated.
+					    -- every=N triggers the block only
+					    -- every N-th step (default: 1).
+					    { b="#x1", num_steps=1, every=1, measure=0 },
+					    { b="#y1", num_steps=1, every=2, measure=0 } } } }
 	   },
 	}
+
+``ptrig`` additionally supports ``affinity`` (CPU list), ``stacksize``,
+``thread_name``, ``autostop_steps``, and ``sleep_mode`` (0=OS sleep,
+1=busy-wait). See the `trig/ptrig block README
+<https://gitlab.com/kmarkus/microblx/-/blob/master/std_blocks/trig/README.md>`_
+for the full configuration reference.
 
 
 Lua blocks
@@ -82,6 +90,18 @@ there is no need to manually import the ``luablock`` module, create a
 ``ubx/luablock`` instance, or configure ``lua_file`` with an absolute
 path.
 
+Alternatively, short blocks can be defined inline using the
+``lua_str`` config instead of ``lua_file``.
+
+Luablocks support built-in self-triggering via the ``thread`` and
+``period`` configs — no separate ``ptrig`` is required for non-RT
+use-cases:
+
+.. code:: lua
+
+   { name="myblk", type="luablock:myluablock",
+     config = { thread=1, period=100 } }  -- period in milliseconds
+
 
 Launching
 ~~~~~~~~~
@@ -93,12 +113,12 @@ example
 .. code:: sh
 	  
    $ cd /usr/local/share/ubx/examples/usc/pid/
-   $ ubx-launch -webif -c pid_test.usc,ptrig_nrt.usc
+   $ ubx-launch -webgraph -c pid_test.usc,ptrig_nrt.usc
    ...
 
-will launch the given system composition and in addition create and
-configure a web server block to allow the system to be introspected
-via browser.
+will launch the given system composition and additionally start the
+``webgraph`` block. Browse to ``http://localhost:8888`` to see a
+live graph of blocks and connections.
 
 Unless the ``-nostart`` option is provided, all blocks will be
 initialized, configured and started. ``ubx-launch`` handles this in
@@ -343,7 +363,7 @@ For example, consider the example in
 
 .. code:: sh
 	  
-	  ubx-launch -webif -c deep_composition.usc,ptrig.usc
+	  ubx-launch -webgraph -c deep_composition.usc,ptrig.usc
 
 
 **Note**: unlike merging from within the usc using an unnamed

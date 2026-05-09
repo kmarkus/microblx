@@ -279,15 +279,15 @@ The file is launched with the command
 
 .. code:: bash
 
-   ubx-ilaunch -c platform_2dof_and_control.usc
+   ubx-launch -c platform_2dof_and_control.usc
 
-or
+or with the live graph view:
 
 .. code:: bash
 
-   ubx-ilaunch -webif -c platform_2dof_and_control.usc
+   ubx-launch -webgraph -c platform_2dof_and_control.usc
 
-to enable the *web interface* at `localhost:8888 <localhost:8888>`__ .
+Browse to ``http://localhost:8888`` to see the running system.
 
 To show the position and velocity signal, use the ``ubx-mq`` tool:
 

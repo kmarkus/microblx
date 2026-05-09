@@ -135,28 +135,23 @@ Then:
 .. code:: sh
 
    $ cd /usr/local/share/ubx/examples/usc/pid/
-   $ ubx-launch -webif -c pid_test.usc,ptrig_nrt.usc
+   $ ubx-launch -webgraph -c pid_test.usc,ptrig_nrt.usc
    merging ptrig_nrt.usc into pid_test.usc
    core_prefix: /usr/local
    prefixes:    /usr, /usr/local
-   starting up webinterface block (http://localhost:8888)
-   loaded request_handler()
 
-The `ubx-log` window will show a number messages from the
-instantiation of the application. The last lines will be about the
-blocks that were started.
+The ``ubx-log`` window will show messages from the instantiation of
+the application. The last lines will be about the blocks that were
+started.
 
-Use the webif block
-~~~~~~~~~~~~~~~~~~~
+Use the webgraph block
+~~~~~~~~~~~~~~~~~~~~~~
 
-The cmdline arg ``-webif`` instructed ``ubx-launch`` to create a web
-interface block. This block is useful for debugging and introspecting
-the application. Browser to http://localhost:8888 and explore:
-
-1. clicking on the node graph will show the connections
-2. clicking on blocks will show their interface
-3. start the ``file_log1`` block to enable logging
-4. start the ``ptrig1`` block to start the system.
+The ``-webgraph`` flag instructs ``ubx-launch`` to create and start a
+``webgraph`` block. Browse to ``http://localhost:8888`` (or a custom
+port via ``-webgraph PORT``) to see a live React Flow graph of the
+running node: blocks, ports, and connections are shown and update in
+real time.
 
 
 Examining data-flow
