@@ -3,7 +3,7 @@
 microblx: hard realtime function blocks
 =======================================
 
-[![CI](https://github.com/kmarkus/microblx/actions/workflows/ci.yml/badge.svg)](https://github.com/kmarkus/microblx/actions)
+[![pipeline status](https://gitlab.com/kmarkus/microblx/badges/master/pipeline.svg)](https://gitlab.com/kmarkus/microblx/-/pipelines)
 [![Documentation status](https://readthedocs.org/projects/microblx/badge/?version=latest)](http://microblx.readthedocs.io/?badge=latest)
 
 Microblx is a lightweight and hard real-time safe function block
@@ -27,31 +27,45 @@ Main features:
 - **no HAL**: no arbitrary abstractions, just "configurable" POSIX
 - **minimal**: tiny memory footprint, few dependencies, embedded-friendly
 
-Standard Blocks
----------------
+Quickstart
+----------
 
-| Block                                                                 | Type      | Description                                                            |
-|-----------------------------------------------------------------------|-----------|------------------------------------------------------------------------|
-| [ubx/cconst, ubx/iconst](std_blocks/const/README.md)                  | c/i-block | constant value of any registered type                                  |
-| [ubx/hexdump](std_blocks/hexdump/README.md)                           | i-block   | hex-dump written data to stdout (debug)                                |
-| [ubx/lfrb](std_blocks/lfrb/README.md)                                 | i-block   | hard-RT lock-free ring buffer                                          |
-| [ubx/lfds_cyclic](std_blocks/lfds_cyclic/README.md)                   | i-block   | hard-RT lock-free cyclic (overwriting) buffer                          |
-| [mqueue](std_blocks/mqueue/README.md)                                 | i-block   | POSIX message queue inter-process communication                        |
-| [ubx/math\_double, ubx/math\_float](std_blocks/math_double/README.md) | c-block   | element-wise math.h function (sin, sqrt, …) with optional scale/offset |
-| [ubx/pid](std_blocks/pid/README.md)                                   | c-block   | discrete-time PID controller                                           |
-| [ubx/ramp\_\*](std_blocks/ramp/README.md)                             | c-block   | ramp signal generator (double, float, int8/16/32/64)                   |
-| [ubx/rand\_\*](std_blocks/rand/README.md)                             | c-block   | random number generator (double, float, uint32, int32)                 |
-| [ubx/saturation\_\*](std_blocks/saturation/README.md)                 | c-block   | element-wise signal clamp                                              |
-| [ubx/threshold](std_blocks/threshold/README.md)                       | c-block   | threshold detector with crossing events                                |
-| [ubx/trig, ubx/ptrig](std_blocks/trig/README.md)                      | trigger   | passive and pthread-based triggers with timing stats                   |
-| [ubx/gpio](std_blocks/gpio/README.md)                                 | c-block   | Linux GPIO via libgpiod v2                                             |
-| [ubx/gps](std_blocks/gps/README.md)                                   | c-block   | GPS via gpsd shared memory interface                                   |
-| [ubx/iio, ubx/iio_buf](std_blocks/iio/README.md)                      | c-block   | Linux IIO (ADC/DAC/IMU/sensor) via libiio                              |
-| [luablock](std_blocks/luablock/README.md)                             | c-block   | generic LuaJIT block; implement hooks in Lua                           |
-| [lsdb-intf](std_blocks/lsdb-intf/README.md)                           | c-block   | D-Bus interface to the ubx node                                        |
-| [webgraph](std_blocks/webgraph/README.md)                             | lua block | browser-based React Flow graph of the running node                     |
-| [skelleton](std_blocks/skelleton/README.md)                           | template  | annotated starting point for new blocks                                |
-| [cppdemo](std_blocks/cppdemo/README.md)                               | example   | minimal C++ block example                                              |
+Install core dependencies (Debian/Ubuntu):
+
+```bash
+apt install cmake pkg-config luajit libluajit-5.1-dev uthash-dev \
+    libsystemd-dev libmxml-dev
+```
+
+Install Lua source dependencies:
+
+```bash
+git clone --depth=1 https://github.com/kmarkus/uutils.git
+git clone --depth=1 https://github.com/corsix/ffi-reflect.git
+cd uutils && sudo make install && cd ..
+sudo install -d /usr/local/share/lua/5.1/
+sudo cp ffi-reflect/reflect.lua /usr/local/share/lua/5.1/
+```
+
+Build and install microblx:
+
+```bash
+git clone https://gitlab.com/kmarkus/microblx.git
+cd microblx && mkdir build && cd build
+cmake ..
+make -j$(nproc)
+sudo make install && sudo ldconfig
+```
+
+Run an example:
+
+```bash
+ubx-launch -t 3 -c examples/usc/threshold.usc
+```
+
+For optional hardware blocks (`ubx/gpio`, `ubx/iio`, `ubx/gps`) install
+`libgpiod-dev`, `libiio-dev libiio-utils`, or `libgps-dev gpsd`
+respectively before building. See the full [install docs](https://microblx.readthedocs.io) for details.
 
 Documentation
 -------------
@@ -85,9 +99,8 @@ make doc-lua
 
 The generated HTML is written to `<build>/lua-docs/`.
 
-There is also a [ChangeLog](/ChangeLog.md) which summarizes API
-changes or important features and a high-level
-[roadmap](/docs/dev/roadmap.md).
+There is also a [ChangeLog](/ChangeLog.md) which summarizes API changes
+and important features.
 
 Getting help
 ------------
@@ -99,6 +112,32 @@ mailing list:
 
 It is possible to subscribe by email by sending a mail to
 `microblx+subscribe@googlegroups.com`
+
+Standard Blocks
+---------------
+
+| Block                                                                 | Type      | Description                                                            |
+|-----------------------------------------------------------------------|-----------|------------------------------------------------------------------------|
+| [ubx/cconst, ubx/iconst](std_blocks/const/README.md)                  | c/i-block | constant value of any registered type                                  |
+| [ubx/hexdump](std_blocks/hexdump/README.md)                           | i-block   | hex-dump written data to stdout (debug)                                |
+| [ubx/lfrb](std_blocks/lfrb/README.md)                                 | i-block   | hard-RT lock-free ring buffer                                          |
+| [ubx/lfds_cyclic](std_blocks/lfds_cyclic/README.md)                   | i-block   | hard-RT lock-free cyclic (overwriting) buffer                          |
+| [mqueue](std_blocks/mqueue/README.md)                                 | i-block   | POSIX message queue inter-process communication                        |
+| [ubx/math\_double, ubx/math\_float](std_blocks/math_double/README.md) | c-block   | element-wise math.h function (sin, sqrt, …) with optional scale/offset |
+| [ubx/pid](std_blocks/pid/README.md)                                   | c-block   | discrete-time PID controller                                           |
+| [ubx/ramp\_\*](std_blocks/ramp/README.md)                             | c-block   | ramp signal generator (double, float, int8/16/32/64)                   |
+| [ubx/rand\_\*](std_blocks/rand/README.md)                             | c-block   | random number generator (double, float, uint32, int32)                 |
+| [ubx/saturation\_\*](std_blocks/saturation/README.md)                 | c-block   | element-wise signal clamp                                              |
+| [ubx/threshold](std_blocks/threshold/README.md)                       | c-block   | threshold detector with crossing events                                |
+| [ubx/trig, ubx/ptrig](std_blocks/trig/README.md)                      | trigger   | passive and pthread-based triggers with timing stats                   |
+| [ubx/gpio](std_blocks/gpio/README.md)                                 | c-block   | Linux GPIO via libgpiod v2                                             |
+| [ubx/gps](std_blocks/gps/README.md)                                   | c-block   | GPS via gpsd shared memory interface                                   |
+| [ubx/iio, ubx/iio_buf](std_blocks/iio/README.md)                      | c-block   | Linux IIO (ADC/DAC/IMU/sensor) via libiio                              |
+| [luablock](std_blocks/luablock/README.md)                             | c-block   | generic LuaJIT block; implement hooks in Lua                           |
+| [lsdb-intf](std_blocks/lsdb-intf/README.md)                           | c-block   | D-Bus interface to the ubx node                                        |
+| [webgraph](std_blocks/webgraph/README.md)                             | lua block | browser-based React Flow graph of the running node                     |
+| [skelleton](std_blocks/skelleton/README.md)                           | template  | annotated starting point for new blocks                                |
+| [cppdemo](std_blocks/cppdemo/README.md)                               | example   | minimal C++ block example                                              |
 
 Related Projects
 ----------------
@@ -126,7 +165,7 @@ requirements are met:
   anything).
 
 - the preferred ways of submitting patches is via the mailing list. If
-  you must, a github merge request is OK too.
+  you must, a gitlab merge request is OK too.
 
 - please don't forget to add a line
   `Signed-off-by: Random J Developer <random@developer.example.org>`

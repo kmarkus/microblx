@@ -3,7 +3,7 @@ ChangeLog
 
 This file tracks user visible API changes
 
-## 0.9.3
+## 1.0.0
 
 - `ubx_time`: **API change** - replaced `ubx_nanosleep(int flags, struct
   ubx_timespec *ts)` with two new functions that take relative durations:
