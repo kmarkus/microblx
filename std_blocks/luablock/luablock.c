@@ -205,6 +205,10 @@ int init_lua_state(struct ubx_block *b,
 
 	ret = 0;
  out:
+	if (ret != 0 && inf->L) {
+		lua_close(inf->L);
+		inf->L = NULL;
+	}
 	return ret;
 }
 
@@ -274,9 +278,16 @@ int luablock_init(ubx_block_t *b)
 	goto out;
 
  out_free2:
-	free(inf->exec_str_buff);
+	if (inf->L) {
+		lua_close(inf->L);
+		inf->L = NULL;
+	}
+	ubx_data_free(inf->exec_str_buff);
  out_free1:
+	if (inf->use_thread)
+		pthread_mutex_destroy(&inf->mutex);
 	free(inf);
+	b->private_data = NULL;
  out:
 	return ret;
 }
