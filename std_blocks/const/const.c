@@ -2,8 +2,6 @@
  * A generic constant value c- and i-block
  */
 
-#define DEBUG
-
 #include <stdio.h>
 #include <stdlib.h>
 

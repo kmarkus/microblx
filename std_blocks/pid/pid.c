@@ -43,7 +43,7 @@ int pid_init(ubx_block_t *b)
 	/* config data_len */
 	len = cfg_getptr_long(b, "data_len", &data_len);
 	if (len < 0)
-		goto out;
+		goto out_free;
 
 	inf->data_len = (len > 0) ? *data_len : 1;
 
@@ -51,40 +51,43 @@ int pid_init(ubx_block_t *b)
 	if (ubx_inport_resize(inf->ports.msr, inf->data_len) ||
 	    ubx_inport_resize(inf->ports.des, inf->data_len) ||
 	    ubx_outport_resize(inf->ports.out, inf->data_len)) {
-		goto out;
+		goto out_free;
 	}
 
 	/* Kp */
 	len = cfg_getptr_double(b, "Kp", &inf->kp);
 	if (len < 0)
-		goto out;
+		goto out_free;
 
 	if (len > 0 && len != inf->data_len) {
 		ubx_err(b, "EINVALID_CONFIG_LEN: Kp: actual: %lu, expected %lu",
 			len, inf->data_len);
-		goto out;
+		ret = EINVALID_CONFIG_LEN;
+		goto out_free;
 	}
 
 	/* Ki */
 	len = cfg_getptr_double(b, "Ki", &inf->ki);
 	if (len < 0)
-		goto out;
+		goto out_free;
 
 	if (len > 0 && len != inf->data_len) {
 		ubx_err(b, "EINVALID_CONFIG_LEN: Ki: actual: %lu, expected %lu",
 			len, inf->data_len);
-		goto out;
+		ret = EINVALID_CONFIG_LEN;
+		goto out_free;
 	}
 
 	/* Kd */
 	len = cfg_getptr_double(b, "Kd", &inf->kd);
 	if (len < 0)
-		goto out;
+		goto out_free;
 
 	if (len > 0 && len != inf->data_len) {
 		ubx_err(b, "EINVALID_CONFIG_LEN: Kd: actual: %lu, expected %lu",
 			len, inf->data_len);
-		goto out;
+		ret = EINVALID_CONFIG_LEN;
+		goto out_free;
 	}
 
 	/* allocate buffers */
@@ -99,20 +102,24 @@ int pid_init(ubx_block_t *b)
 	if (! (inf->out && inf->msr && inf->des && inf->err &&
 	       inf->err_prev && inf->integ && inf->deriv)) {
 		ubx_err(b, "EOUTOFMEM: failed to allocate buffers");
-		goto out_err;
+		ret = EOUTOFMEM;
+		goto out_free_bufs;
 	}
 
 	ret=0;
 	goto out;
 
-out_err:
-	if (inf->out) free(inf->out);
-	if (inf->msr) free(inf->msr);
-	if (inf->des) free(inf->des);
-	if (inf->err) free(inf->err);
-	if (inf->err_prev) free(inf->err_prev);
-	if (inf->integ) free(inf->integ);
-	if (inf->deriv) free(inf->deriv);
+out_free_bufs:
+	free(inf->out);
+	free(inf->msr);
+	free(inf->des);
+	free(inf->err);
+	free(inf->err_prev);
+	free(inf->integ);
+	free(inf->deriv);
+out_free:
+	free(inf);
+	b->private_data = NULL;
 out:
 	return ret;
 }

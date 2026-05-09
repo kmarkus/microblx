@@ -138,6 +138,12 @@ int mqueue_init(ubx_block_t *i)
 		goto out_free_info;
 	}
 
+	if (ret >= NAME_MAX+1) {
+		ubx_err(i, "mqueue name truncated (mq_id too long): /ubx_%s_%li_%s",
+			hexhash, inf->data_len, inf->mq_id);
+		goto out_free_info;
+	}
+
 	/* blocking mode */
 	len = cfg_getptr_uint32(i, "blocking", &val);
 	if (len < 0) {

@@ -68,7 +68,6 @@ int sat_init(ubx_block_t *b)
 	struct sat_info *inf;
 
 	b->private_data = calloc(1, sizeof(struct sat_info));
-	inf = (struct sat_info *)b->private_data;
 
 	if (b->private_data == NULL) {
 		ubx_err(b, "EOUTOFMEM: allocating sat_info failed");
@@ -88,7 +87,8 @@ int sat_init(ubx_block_t *b)
 	if (len != inf->data_len) {
 		ubx_err(b, "EINVALID_CONFIG_LEN: %s is %lu but data_len is %lu",
 			LOWER_LIMITS, len, inf->data_len);
-		return -1;
+		ret = EINVALID_CONFIG_LEN;
+		goto out_free;
 	}
 
 	/* upper */
@@ -97,7 +97,8 @@ int sat_init(ubx_block_t *b)
 	if (len != inf->data_len) {
 		ubx_err(b, "EINVALID_CONFIG_LEN: %s is %lu but data_len is %lu",
 			UPPER_LIMITS, len, inf->data_len);
-		return -1;
+		ret = EINVALID_CONFIG_LEN;
+		goto out_free;
 	}
 
 	/* allocate memory for out value */
@@ -113,14 +114,19 @@ int sat_init(ubx_block_t *b)
 
 	/* resize ports */
 	if (ubx_inport_resize(inf->pin, inf->data_len) ||
-	    ubx_outport_resize(inf->pout, inf->data_len) != 0)
-		return -1;
+	    ubx_outport_resize(inf->pout, inf->data_len) != 0) {
+		ret = EINVALID_PORT_LEN;
+		goto out_free_val;
+	}
 
 	ret = 0;
 	goto out;
 
+out_free_val:
+	free(inf->val);
 out_free:
 	free(b->private_data);
+	b->private_data = NULL;
 out:
 	return ret;
 }
