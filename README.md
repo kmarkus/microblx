@@ -97,7 +97,8 @@ cmake -DBUILD_LUA_DOCS=ON ..
 make doc-lua
 ```
 
-The generated HTML is written to `<build>/lua-docs/`.
+The generated HTML is written to `<build>/lua-docs/`. The latest
+built docs are also available on [GitLab Pages](https://kmarkus.gitlab.io/microblx).
 
 There is also a [ChangeLog](/ChangeLog.md) which summarizes API changes
 and important features.
@@ -164,8 +165,8 @@ requirements are met:
   installing) and static checking (`make cppcheck`, shouldn't output
   anything).
 
-- the preferred ways of submitting patches is via the mailing list. If
-  you must, a gitlab merge request is OK too.
+- patches can be submitted via the mailing list or as a gitlab merge
+  request.
 
 - please don't forget to add a line
   `Signed-off-by: Random J Developer <random@developer.example.org>`
