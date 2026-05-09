@@ -34,7 +34,7 @@ int verbose=0;
 
 #define inf(fmt, ...) if (verbose) printf(fmt, __VA_ARGS__);
 
-void print_usage(const char *progname)
+static void print_usage(const char *progname)
 {
 	fprintf(stderr,
 		"Usage: %s [-c capacity] [-t threads] [-o operations] [-h]\n"
@@ -46,7 +46,7 @@ void print_usage(const char *progname)
 		progname);
 }
 
-void *writer_thread(void *arg)
+static void *writer_thread(void *arg)
 {
 	int id = *(int *)arg;
 	for (int i = 0; i < num_operations; ++i) {
@@ -82,7 +82,7 @@ void *writer_thread(void *arg)
 	return NULL;
 }
 
-void *reader_thread(void *arg)
+static void *reader_thread(void *arg)
 {
 	int id = *(int *)arg;
 	for (int i = 0; i < num_operations; ++i) {

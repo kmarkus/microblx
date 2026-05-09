@@ -37,7 +37,7 @@ const char *loglevel_color[] = {
 	YEL, CYN, WHT, MAG
 };
 
-void log_data(logc_info_t *inf, int color)
+static void log_data(logc_info_t *inf, int color)
 {
 	struct ubx_log_msg *msg;
 	int ret;
@@ -119,8 +119,8 @@ struct uin_info {
  *
  * @return:		0 - success, non-zero -errno on failure
  */
-int start_inotify(struct uin_info *inf, const char *path, const char *file,
-		  int flags, uint32_t mask)
+static int start_inotify(struct uin_info *inf, const char *path, const char *file,
+			 int flags, uint32_t mask)
 {
 	int ret = 0;
 
@@ -165,7 +165,7 @@ out:
  *			0 - event not detected
  *			-ve value, -errno in case of error
  */
-int check_inotify(struct uin_info *inf)
+static int check_inotify(struct uin_info *inf)
 {
 	int ret = 0;
 	ssize_t nr;
@@ -215,7 +215,7 @@ struct ubx_log_info {
  *
  * @param inf:	log client local data
  */
-int lc_init(struct ubx_log_info *inf)
+static int lc_init(struct ubx_log_info *inf)
 {
 	int ret = EOUTOFMEM;
 
@@ -299,7 +299,7 @@ out:
  *
  * @param inf:	log client local data
  */
-int check_new_shm(struct ubx_log_info *inf, int show_old, int color)
+static int check_new_shm(struct ubx_log_info *inf, int show_old, int color)
 {
 	int ret = 0;
 	int retries = REOPEN_RETRY_NUM;
@@ -345,12 +345,12 @@ int check_new_shm(struct ubx_log_info *inf, int show_old, int color)
 	return ret;
 }
 
-ssize_t ngetc (char *c)
+static ssize_t ngetc(char *c)
 {
 	return read (0, c, 1);
 }
 
-void print_help(char **argv)
+static void print_help(char **argv)
 {
 	printf("usage:\n");
 	printf(" %s [options]\n", argv[0]);

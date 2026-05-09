@@ -14,7 +14,7 @@ set(UBX_LUABLOCK_DIR ${CMAKE_INSTALL_DATADIR}/ubx/blocks/${VERSION_MAJOR}.${VERS
 set(UBX_MOD_CFLAGS -fvisibility=hidden)
 set(UBX_TOCARR ${CMAKE_SOURCE_DIR}/tools/ubx-tocarr)
 
-add_compile_options(-W -Wextra -Wall -Werror)
+add_compile_options(-W -Wextra -Wall -Werror -Wshadow -Wformat-security -Wnull-dereference)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)

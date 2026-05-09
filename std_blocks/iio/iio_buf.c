@@ -414,9 +414,9 @@ static void iio_buf_step(ubx_block_t *b)
 			struct iio_buf_entry *e = &inf->entries[g->entry_idx[j]];
 
 			/* take the most recent (last) sample from the buffer */
-			void *last = NULL;
-			for (void *p = iio_buffer_first(g->buf, e->ch);
-			     p < iio_buffer_end(g->buf);
+			char *last = NULL;
+			for (char *p = iio_buffer_first(g->buf, e->ch);
+			     p < (char *)iio_buffer_end(g->buf);
 			     p += iio_buffer_step(g->buf))
 				last = p;
 

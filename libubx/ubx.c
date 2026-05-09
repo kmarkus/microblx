@@ -401,7 +401,7 @@ void ubx_node_rm(ubx_node_t *nd)
 	memset((char*) nd->name, 0, UBX_NODE_NAME_MAXLEN);
 }
 
-int ubx_block_check(ubx_node_t *nd, ubx_block_t *b)
+static int ubx_block_check(ubx_node_t *nd, ubx_block_t *b)
 {
 	if (!b) {
 		logf_err(nd, "NULL block");

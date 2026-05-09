@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
+#include "ubx_utils.h"
 
 /**
  * Wait for SIGINT for some time
