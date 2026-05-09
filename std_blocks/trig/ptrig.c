@@ -406,6 +406,33 @@ int ptrig_init(ubx_block_t *b)
 		goto out_err;
 	}
 
+#ifdef CONFIG_PTHREAD_SETAFFINITY
+	/* cpu affinity (set on attr so it is validated before thread starts) */
+	const int *aff;
+	len = cfg_getptr_int(b, "affinity", &aff);
+	assert(len>=0);
+
+	if (len > 0) {
+		cpu_set_t cpuset;
+		CPU_ZERO(&cpuset);
+
+		for (int i=0; i<len; i++) {
+			ubx_info(b, "setting affinity to CPU core %i",	aff[i]);
+			CPU_SET(aff[i], &cpuset);
+		}
+
+		ret = pthread_attr_setaffinity_np(&inf->attr, sizeof(cpu_set_t), &cpuset);
+
+		if (ret != 0) {
+			ubx_err(b, "pthread_attr_setaffinity_np failed: %s", strerror(ret));
+			ret = -1;
+			goto out_err;
+		}
+	} else {
+		ubx_debug(b, "setting no thread affinity");
+	}
+#endif
+
 	/* create thread */
 	ret = pthread_create(&inf->tid, &inf->attr, thread_startup, b);
 
@@ -423,33 +450,6 @@ int ptrig_init(ubx_block_t *b)
 
 	if (pthread_setname_np(inf->tid, threadname))
 		ubx_err(b, "failed to set thread_name to %s", threadname);
-#endif
-
-#ifdef CONFIG_PTHREAD_SETAFFINITY
-	/* cpu affinity */
-	const int *aff;
-	len = cfg_getptr_int(b, "affinity", &aff);
-	assert(len>=0);
-
-	if (len > 0) {
-		cpu_set_t cpuset;
-		CPU_ZERO(&cpuset);
-
-		for (int i=0; i<len; i++) {
-			ubx_info(b, "setting affinity to CPU core %i",	aff[i]);
-			CPU_SET(aff[i], &cpuset);
-		}
-
-		ret = pthread_setaffinity_np(inf->tid, sizeof(cpu_set_t), &cpuset);
-
-		if (ret != 0) {
-			ubx_err(b, "pthread_setaffinity_np failed: %s", strerror(ret));
-			ret = -1;
-			goto out_err;
-		}
-	} else {
-		ubx_debug(b, "setting no thread affinity");
-	}
 #endif
 
 	/* OK */
@@ -502,7 +502,11 @@ void ptrig_stop(ubx_block_t *b)
 
 	/* wait some time for thread to shutdown cleanly */
 	for (int i=THREAD_STOP_RETRIES; i>=0; i--) {
-		if (inf->thread_state == THREAD_INACTIVE)
+		uint32_t state;
+		pthread_mutex_lock(&inf->mutex);
+		state = inf->thread_state;
+		pthread_mutex_unlock(&inf->mutex);
+		if (state == THREAD_INACTIVE)
 			return;
 		usleep(THREAD_STOP_TIMEOUT_US);
 	}
