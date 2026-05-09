@@ -22,9 +22,7 @@ def_cfg_getptr_fun(cfg_getptr_triggee, struct ubx_triggee);
 
 void tstat_init2(struct ubx_tstat *ts, const char *block_name, const char *chain_id)
 {
-	strncpy(ts->id, block_name, UBX_TSTAT_ID_MAXLEN);
-
-	snprintf(ts->id, UBX_TSTAT_ID_MAXLEN, "%s%s%s",
+	snprintf(ts->id, UBX_TSTAT_ID_MAXLEN + 1, "%s%s%s",
 		 (chain_id == NULL) ? "" : chain_id,
 		 (chain_id == NULL) ? "" : ",",
 		 block_name);
@@ -407,7 +405,7 @@ static char* tstats_build_filename(const char *name, const char *profile_path)
 		goto out_free;
 	}
 
-	ret = snprintf(filename, len, "%s/%s.tstats", profile_path, n);
+	ret = snprintf(filename, len + 1, "%s/%s.tstats", profile_path, n);
 
 	if (ret < 0)
 		goto out_err;

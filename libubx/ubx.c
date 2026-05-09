@@ -702,8 +702,7 @@ ubx_type_t *ubx_type_get_by_hash(ubx_node_t *nd, const uint8_t *hash)
 	ubx_type_t *type = NULL, *tmptype = NULL;
 
 	HASH_ITER(hh, nd->types, type, tmptype) {
-		if (strncmp((char *)type->hash,
-			    (char *)hash, UBX_TYPE_HASH_LEN) == 0)
+		if (memcmp(type->hash, hash, UBX_TYPE_HASH_LEN) == 0)
 			return type;
 	}
 	return NULL;
@@ -1337,7 +1336,8 @@ int ubx_ports_connect(ubx_port_t *out_port, ubx_port_t *in_port, const ubx_block
 
 	if (in_port->in_data_len != out_port->out_data_len) {
 		logf_err(iblock->nd, "EINVALID_PORT_LEN: in: %lu, out: %lu",
-			 in_port->in_data_len, in_port->out_data_len);
+			 in_port->in_data_len, out_port->out_data_len);
+		return EINVALID_PORT_LEN;
 	}
 
 	if (iblock->type != BLOCK_TYPE_INTERACTION) {
