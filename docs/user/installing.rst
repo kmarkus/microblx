@@ -7,22 +7,59 @@ Building from source
 Dependencies
 ~~~~~~~~~~~~
 
-Make sure to install the following dependencies
+**Mandatory** (apt):
 
-- uthash (apt: ``uthash-dev``)
-- cmake
-- luajit (>=v2.0.0) (apt: ``luajit`` and ``libluajit-5.1-dev``)
+.. code:: sh
 
-The following must be installed from source (see instructions below):
+   apt install cmake pkg-config luajit libluajit-5.1-dev uthash-dev \
+       libsystemd-dev libmxml-dev
 
-- ``ffi-reflect`` ffi reflection module `ffi-reflect git <https://github.com/corsix/ffi-reflect>`_
-- ``uutils`` Lua utilities `uutils git <https://github.com/kmarkus/uutils>`_
+**Mandatory** (from source):
 
+- ``ffi-reflect``: ffi reflection module — `ffi-reflect git <https://github.com/corsix/ffi-reflect>`_
+- ``uutils``: Lua utilities — `uutils git <https://github.com/kmarkus/uutils>`_
 
-Optionally, to run the tests:
+**Optional blocks** — install the corresponding dependencies before
+building to enable these blocks:
 
-- ``lua-unit`` (apt: ``lua-unit``, `git
-  <https://github.com/bluebird75/luaunit>`_) (to run the tests)
+.. list-table::
+   :header-rows: 1
+   :widths: 20 30 50
+
+   * - Block
+     - Dependency
+     - How to install
+   * - ``lsdb-intf``
+     - lsdbus (from source)
+     - ``git clone https://github.com/kmarkus/lsdbus.git``; see below
+   * - ``webgraph``
+     - lua-socket, json.lua
+     - ``apt install lua-socket lua-json``
+   * - ``ubx/gps``
+     - libgps
+     - ``apt install libgps-dev gpsd``
+   * - ``ubx/gpio``
+     - libgpiod >= 2.0
+     - ``apt install libgpiod-dev``
+   * - ``ubx/iio``, ``ubx/iio_buf``
+     - libiio >= 0.21
+     - ``apt install libiio-dev libiio-utils``
+
+``lsdb-intf`` also requires enabling at cmake time:
+``cmake -DBLOCK_LSDB_INTF=ON ..``
+
+Install ``lsdbus`` from source:
+
+.. code:: sh
+
+   git clone https://github.com/kmarkus/lsdbus.git
+   cd lsdbus && mkdir build && cd build
+   cmake .. -DCONFIG_LUA_VER=jit
+   make -j$(nproc) && sudo make install
+
+**Optional** (testing):
+
+- ``lua-unit`` (apt: ``lua-unit``, `git <https://github.com/bluebird75/luaunit>`_)
 
 Building
 ~~~~~~~~
