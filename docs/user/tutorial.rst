@@ -550,6 +550,6 @@ Some suggestions for next steps:
   * *compile time*: (example `ramp block block
     <https://github.com/kmarkus/microblx/blob/master/std_blocks/ramp/ramp.c>`_)
       
-  * *run-time*: (examples: most iblocks, e.g. `lfds_cyclic
-    <https://github.com/kmarkus/microblx/blob/master/std_blocks/lfds_buffers/lfds_cyclic.c>`_)
+  * *run-time*: (examples: most iblocks, e.g. `lfrb
+    <https://gitlab.com/kmarkus/microblx/-/blob/master/std_blocks/lfrb/lfrb.c>`_)
       

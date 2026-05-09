@@ -23,7 +23,7 @@ minimal example:
 	{
 	   -- import microblx modules
 	   imports = {
-	      "stdtypes", "ptrig", "lfds_cyclic", "myblocks",
+	      "stdtypes", "ptrig", "lfrb", "myblocks",
 	   },
 
 	   -- describe which blocks to instantiate
@@ -158,12 +158,12 @@ The following example shows how to create ports among cblock ports:
 
 .. code:: lua
 
-   { src="blkA.portX", tgt="blkB.portY", type="lfds_cyclic", config = { ... }
+   { src="blkA.portX", tgt="blkB.portY", type="lfrb", config = { ... }
 
 - both ``src`` and ``tgt`` are of the form ``CBLOCK.PORT``. Both
   blocks and ports must exist.
 - ``type`` specifies the type of iblock to create for the
-  connection. If unset it defaults to ``ubx/lfds_cyclic``
+  connection. If unset it defaults to ``ubx/lfrb``
 - ``config`` is the optional configuration to apply to the newly
   created iblock. The configs ``type_name`` and ``data_len`` are set
   automatically unless specified.
@@ -221,7 +221,7 @@ needs to connect to blocks from the already running core composition.
 
 	return bd.system
 	{
-	    imports = { "stdtypes", "lfds_cyclic", "myblocks" },
+	    imports = { "stdtypes", "lfrb", "myblocks" },
 
 	    extern_blocks = { "core_sensor", "core_actuator" },
 

@@ -56,18 +56,8 @@ by adding ``-fvisibility=hidden`` to ``CFLAGS``.
 Running microblx
 ----------------
 
-``blockXY``.so or ``liblfds611.so.0``: cannot open shared object file: No such file or directory
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-There seems to be a `bug
-<https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=684981>`_ in some
-versions of libtool which leads to the ld cache not being updated. You
-can manually fix this by running
-
-.. code:: sh
-
-   $ sudo ldconfig
-
+``blockXY``.so: cannot open shared object file: No such file or directory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Often this means that the location of the shared object file is not in
 the library search path. If you installed to a non-standard location,
@@ -77,8 +67,8 @@ try adding it to ``LD_LIBRARY_PATH``, e.g.
 
    $ export LD_LIBRARY_PATH=/usr/local/lib/
 
-It would be better to install stuff in a standard location such as
-``/usr/local/``.
+Alternatively run ``sudo ldconfig`` after installing to a standard
+location such as ``/usr/local/``.
 
 
 luablock: “error object is not a string”
