@@ -279,7 +279,7 @@ if(BUILD_LUA_DOCS)
     message(FATAL_ERROR "luajit not found. Required to run ldoc with discount markdown.")
   endif()
   set(LUA_DOC_DIR ${CMAKE_CURRENT_BINARY_DIR}/lua-docs)
-  add_custom_target(doc-lua
+  add_custom_target(doc-lua ALL
     COMMAND ${LUAJIT_EXECUTABLE} ${LDOC_EXECUTABLE} --config config.ld --dir ${LUA_DOC_DIR} .
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/docs/lua
     COMMENT "Building Lua API docs with ldoc into ${LUA_DOC_DIR}"
