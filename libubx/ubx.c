@@ -2363,11 +2363,11 @@ void __port_write(const ubx_port_t *port, const ubx_data_t *data)
 }
 
 /**
- * ubx_version - return git-describe version string
+ * ubx_git_version - return git-describe version string
  *
  * @return git describe version string (e.g. "v0.9.2-154-gabcdef") or "unknown"
  */
-const char *ubx_version(void)
+const char *ubx_git_version(void)
 {
 	return GIT_VERSION;
 }

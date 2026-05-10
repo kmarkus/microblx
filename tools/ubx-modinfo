@@ -307,7 +307,7 @@ end
 local opttab = utils.proc_args(arg)
 
 if opttab['-version'] then
-   print("microblx "..ubx.version())
+   print("microblx "..ubx.git_version().." (modver "..ubx.mod_version()..")")
    os.exit(0)
 end
 

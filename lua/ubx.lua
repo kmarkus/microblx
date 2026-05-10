@@ -248,6 +248,18 @@ end
 
 local safe_tostr = M.safe_tostr
 
+--- Return the git-describe version string of the microblx library.
+-- @return version string, e.g. `"v0.9.2-154-gabcdef"` or `"unknown"`
+function M.git_version()
+   return ffi.string(ubx.ubx_git_version())
+end
+
+--- Return the module directory version string (MAJOR.MINOR).
+-- @return module version string, e.g. `"0.9"`
+function M.mod_version()
+   return ffi.string(ubx.ubx_mod_version())
+end
+
 --- Predicates
 -- @section Predicates
 
@@ -2010,12 +2022,6 @@ function M.build_conntab(nd)
 
    M.blocks_map(nd, block_conns_totab, M.is_cblock_instance)
    return res
-end
-
---- Return the git-describe version string of the microblx library.
--- @return version string, e.g. `"v0.9.2-154-gabcdef"` or `"unknown"`
-function M.version()
-   return ffi.string(ubx.ubx_version())
 end
 
 return M
