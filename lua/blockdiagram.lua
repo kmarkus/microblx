@@ -150,9 +150,9 @@ local function mapconfigs(func, root_sys) return mapobj_bf(func, root_sys, 'conf
 local function mapndconfigs(func, root_sys) return mapobj_bf(func, root_sys, 'node_configurations') end
 local function mapimports(func, root_sys) return mapobj_bf(func, root_sys, 'imports') end
 
----
+--
 --- Model
----
+--
 local AnySpec=umf.AnySpec
 local NumberSpec=umf.NumberSpec
 local StringSpec=umf.StringSpec
@@ -422,10 +422,7 @@ local function resolve_refs(root_sys)
       end, root_sys)
 end
 
---- system_populate_meta
--- populate the meta data of a system
--- can be called multiple times
--- @param system
+-- system_populate_meta: populate the meta data of a system
 local function system_populate_meta(self)
    mapsys(
       function(s,n,p)
@@ -546,11 +543,11 @@ local function load(fn, file_type)
 end
 
 
----
+--
 --- late checking
----
+--
 
---- check for unconnected input ports
+-- check for unconnected input ports
 local function lc_unconn_inports(nd, res)
    local function blk_chk_unconn_inports(b)
       ubx.ports_foreach(b,
@@ -696,14 +693,12 @@ local function create_blocks(nd, root_sys)
 end
 
 
----
+--
 --- configuration handling
----
+--
 
---- Instantiate ubx_data for all node configurations incl. subsystems
+-- Instantiate ubx_data for all node configurations incl. subsystems
 -- NCs defined higher in the composition tree override lower ones.
--- @param root_sys root system
--- @return table of initialized config-name=ubx_data tuples
 local function build_nodecfg_tab(nd, root_sys)
    local NC = {}
 
@@ -967,7 +962,6 @@ end
 -- @param self targed of the merge
 -- @param sys system which to merge into self
 -- @param override if true (default) then merge by overriding existing values
--- @param verbose log merge operations
 function system.merge(self, sys, override)
    if override == nil then override = true end
 
