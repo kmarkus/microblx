@@ -248,7 +248,7 @@ end
 --- list all modules found in the current path
 local function modules_list()
    local _,prefixes = ubx.get_prefix()
-   local ver = string.sub(ubx.safe_tostr(ubx.version()), 1, 3)
+   local ver = ubx.mod_version()
 
    for _,prefix in ipairs(prefixes) do
       local modpath = prefix.."/lib/ubx/"..ver.."/"
@@ -307,7 +307,7 @@ end
 local opttab = utils.proc_args(arg)
 
 if opttab['-version'] then
-   print("microblx "..ubx.git_version())
+   print("microblx "..ubx.version())
    os.exit(0)
 end
 

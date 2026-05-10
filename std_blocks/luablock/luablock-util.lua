@@ -40,7 +40,7 @@ function M.create(nd, block, name, tgtstate, active)
    fn = utils.file_exists(block) and block
 
    if not fn then
-      local ver = string.sub(ubx.safe_tostr(ubx.version()), 1, 3)
+      local ver = ubx.mod_version()
 
       for _, d in ipairs(M.DEFAULT_PREFIXES) do
 	 local f = d .. "/" .. ver .. "/" .. block .. ".lua"

@@ -489,7 +489,7 @@ end
 -- @param libfile module name or path (`.so` appended if absent)
 -- @return full resolved module path string
 function M.load_module(nd, libfile)
-   local ver = string.sub(safe_tostr(ubx.ubx_version()), 1, 3)
+   local ver = safe_tostr(ubx.ubx_mod_version())
    local modfile = "/lib/ubx/"..ver.."/"..libfile
 
    for _,pf in ipairs(prefixes) do
@@ -2014,8 +2014,8 @@ end
 
 --- Return the git-describe version string of the microblx library.
 -- @return version string, e.g. `"v0.9.2-154-gabcdef"` or `"unknown"`
-function M.git_version()
-   return ffi.string(ubx.ubx_git_version())
+function M.version()
+   return ffi.string(ubx.ubx_version())
 end
 
 return M
