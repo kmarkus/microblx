@@ -422,7 +422,7 @@ Enum fields are represented as numbers in Lua. When setting a config
 value from Lua or a USC model, symbolic string values are accepted and
 converted automatically by the LuaJIT FFI:
 
-.. code:: lua
+.. code:: text
 
    -- numeric and symbolic forms are equivalent:
    { name=”blk”, config = { color = 2 } }
@@ -444,7 +444,7 @@ converted automatically by the LuaJIT FFI:
 members.  A ``cdata.struct2tab`` hook (see `cdata.struct2tab hooks`_)
 can be registered to expose only the active member:
 
-.. code:: lua
+.. code:: text
 
    cdata.struct2tab[“union test_variant”] = function(cd)
        return tonumber(cd.i)   -- expose only integer member
@@ -469,7 +469,7 @@ as well:
 
 Setting this type in a USC configuration works the same way:
 
-.. code:: lua
+.. code:: text
 
    { name=”blk”, config = { value = { i=42, selector=0 } } }
 
@@ -489,7 +489,7 @@ integer:
 
 As with named enums, symbolic strings are accepted in USC configs:
 
-.. code:: lua
+.. code:: text
 
    { name=”blk”, config = { value = { kind=”KIND_FLOAT”, value=3.14 } } }
 
@@ -502,7 +502,7 @@ For any named struct or union, a custom Lua→table converter can be
 installed in the ``cdata.struct2tab`` table.  The key must include the
 C type keyword (``”struct foo”`` or ``”union bar”``):
 
-.. code:: lua
+.. code:: text
 
    local cdata = require “cdata”
 

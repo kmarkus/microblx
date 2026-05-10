@@ -514,7 +514,7 @@ Lastly, we need to init and start all the blocks. For example, for the
 
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 188-192,223-226
+   :lines: 185-189,205-209
 
 The same applies to all other blocks.
 
@@ -525,7 +525,7 @@ terminate, we can use ``ubx_wait_sigint`` to wait for the user to type
 
 .. literalinclude:: ../../examples/platform/platform_launch/main.c
    :language: c
-   :lines: 236,237
+   :lines: 213,214
 
 Note that we have to link against pthread library, so the
 *Makefile.am* has to be modified accordingly:
