@@ -30,9 +30,7 @@ local fmt = string.format
 local M = {}
 
 
--- ----------------------------------------------------------------------------
 --                           helpers
--- ----------------------------------------------------------------------------
 
 -- preprocess a C string
 -- currently this means stripping out all preprocessor directives
@@ -341,9 +339,7 @@ function M.is_inport(p) assert(M.is_port(p)); return p.in_type ~= nil end
 -- @return boolean
 function M.is_inoutport(p) return M.is_outport(p) and M.is_inport(p) end
 
--- ----------------------------------------------------------------------------
 --                           LOGGING API
--- ----------------------------------------------------------------------------
 
 -- @section Logging
 
@@ -380,9 +376,7 @@ M.info = info
 M.debug = dbg
 
 
--- ----------------------------------------------------------------------------
 --                           OS API
--- ----------------------------------------------------------------------------
 
 -- @section OS
 
@@ -458,9 +452,7 @@ local ubx_timespec_mt = {
 ffi.metatype("struct ubx_timespec", ubx_timespec_mt)
 
 
--- ----------------------------------------------------------------------------
 --                           Node API
--- ----------------------------------------------------------------------------
 
 -- @section Node
 
@@ -643,9 +635,7 @@ local ubx_node_mt = {
 ffi.metatype("struct ubx_node", ubx_node_mt)
 
 
--- ----------------------------------------------------------------------------
 --                           Block API
--- ----------------------------------------------------------------------------
 
 -- @section Block
 
@@ -992,9 +982,7 @@ local ubx_block_mt = {
 }
 ffi.metatype("struct ubx_block", ubx_block_mt)
 
--- ----------------------------------------------------------------------------
 --                           Data type handling
--- ----------------------------------------------------------------------------
 
 -- @section Data
 
@@ -1305,9 +1293,7 @@ local ubx_type_mt = {
 ffi.metatype("struct ubx_type", ubx_type_mt)
 
 
--- ----------------------------------------------------------------------------
 --                           Config handling
--- ----------------------------------------------------------------------------
 
 -- @section Config
 
@@ -1364,9 +1350,7 @@ local ubx_config_mt = {
 ffi.metatype("struct ubx_config", ubx_config_mt)
 
 
--- ----------------------------------------------------------------------------
 --                              Interactions
--- ----------------------------------------------------------------------------
 
 -- @section Interaction
 
@@ -1399,9 +1383,7 @@ function M.interaction_write(i, wdat)
    i.write(i, wdat)
 end
 
--- ----------------------------------------------------------------------------
 --                   Port reading and writing
--- ----------------------------------------------------------------------------
 
 -- @section Port
 
@@ -1581,9 +1563,7 @@ local ubx_port_mt = {
 ffi.metatype("struct ubx_port", ubx_port_mt)
 
 
--- ----------------------------------------------------------------------------
 --                   Useful stuff: foreach, pretty printing
--- ----------------------------------------------------------------------------
 
 -- @section Iterators
 
