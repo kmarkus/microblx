@@ -1,3 +1,4 @@
 /* config.h.in - Template for the config.h file */
 
 #define VERSION "@PROJECT_VERSION@"
+#define GIT_VERSION "@GIT_VERSION@"

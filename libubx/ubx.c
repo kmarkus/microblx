@@ -2372,3 +2372,13 @@ const char *ubx_version(void)
 	return VERSION;
 }
 
+/**
+ * ubx_git_version - return git-describe version string
+ *
+ * @return git describe version string (e.g. "v0.9.2-154-gabcdef") or "unknown"
+ */
+const char *ubx_git_version(void)
+{
+	return GIT_VERSION;
+}
+

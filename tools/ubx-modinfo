@@ -121,6 +121,7 @@ global parameters:
    -p MOD1,MOD2     list of depending modules to preload
                     (stdtypes loaded by default)
    -h               show help
+   -version         print version and exit
 ]])
 end
 
@@ -304,6 +305,11 @@ if #arg < 1 then
 end
 
 local opttab = utils.proc_args(arg)
+
+if opttab['-version'] then
+   print("microblx "..ubx.git_version())
+   os.exit(0)
+end
 
 if opttab['-h'] then
    usage(); os.exit(0)

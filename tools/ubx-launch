@@ -71,7 +71,7 @@ local checks
 local loglevel
 
 if opttab['-version'] then
-   print("microblx "..ubx.safe_tostr(ubx.version()))
+   print("microblx "..ubx.git_version())
    os.exit(0)
 end
 

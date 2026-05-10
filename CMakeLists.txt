@@ -6,6 +6,18 @@ set(VERSION_PATCH 2)
 
 project(microblx VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}" LANGUAGES C CXX)
 
+# git-describe version string embedded at configure time
+execute_process(
+  COMMAND git describe --tags --dirty
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_VERSION
+  ERROR_QUIET
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+if(NOT GIT_VERSION)
+  set(GIT_VERSION "unknown")
+endif()
+
 include(GNUInstallDirs)
 
 # module install path

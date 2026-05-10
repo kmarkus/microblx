@@ -133,5 +133,6 @@ void __ubx_log(const int level, const ubx_node_t *nd, const char *src, const cha
 /* misc helpers */
 const char *block_state_tostr(unsigned int state);
 const char *ubx_version(void);
+const char *ubx_git_version(void);
 
 #endif /* UBX_CORE_H */

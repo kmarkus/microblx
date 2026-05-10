@@ -2012,4 +2012,10 @@ function M.build_conntab(nd)
    return res
 end
 
+--- Return the git-describe version string of the microblx library.
+-- @return version string, e.g. `"v0.9.2-154-gabcdef"` or `"unknown"`
+function M.git_version()
+   return ffi.string(ubx.ubx_git_version())
+end
+
 return M
