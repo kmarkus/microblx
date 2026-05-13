@@ -21,16 +21,17 @@ Both support multiple trigger chains, per-block timing statistics, and runtime c
 
 ## Configuration — ptrig only
 
-| field             | type                  | description                                             |
-|-------------------|-----------------------|---------------------------------------------------------|
-| `period`          | `struct ptrig_period` | trigger period `{ sec, usec }` (required)               |
-| `sched_priority`  | `int`                 | pthread priority                                        |
-| `sched_policy`    | `char`                | `SCHED_OTHER`, `SCHED_FIFO`, or `SCHED_RR`             |
-| `affinity`        | `int[]`               | list of CPUs for pthread affinity                       |
-| `stacksize`       | `size_t`              | thread stack size                                       |
-| `thread_name`     | `char`                | thread name shown in debuggers (default: block name)    |
-| `autostop_steps`  | `int64_t`             | stop automatically after N steps                        |
-| `sleep_mode`      | `int`                 | 0=OS sleep (default), 1=busy-wait                       |
+| field             | type                    | description                                             |
+|-------------------|-------------------------|---------------------------------------------------------|
+| `period`          | `struct ptrig_period`   | trigger period `{ sec, usec }` (required)               |
+| `sched_policy`    | `char`                  | scheduling policy: `SCHED_OTHER` (default), `SCHED_FIFO`, `SCHED_RR`, `SCHED_DEADLINE` (Linux ≥ 3.14) |
+| `sched_priority`  | `int`                   | thread priority; unused with `SCHED_DEADLINE`           |
+| `sched_deadline`  | `struct ptrig_deadline` | `SCHED_DEADLINE` parameters `{ runtime_ns, deadline_ns, period_ns }`; `deadline_ns` and `period_ns` default to the `period` config value when 0 (Linux ≥ 3.14) |
+| `affinity`        | `int[]`                 | list of CPUs for pthread affinity                       |
+| `stacksize`       | `size_t`                | thread stack size                                       |
+| `thread_name`     | `char`                  | thread name shown in debuggers (default: block name)    |
+| `autostop_steps`  | `int64_t`               | stop automatically after N steps                        |
+| `sleep_mode`      | `int`                   | 0=OS sleep (default), 1=busy-wait; ignored with `SCHED_DEADLINE` |
 
 ## Ports — common
 
@@ -41,7 +42,36 @@ Both support multiple trigger chains, per-block timing statistics, and runtime c
 
 ## Ports — ptrig only
 
-| port       | direction | type                  | description                          |
-|------------|-----------|-----------------------|--------------------------------------|
-| `shutdown` | in        | `int`                 | write any value to stop the thread   |
-| `period`   | in        | `struct ptrig_period` | change the trigger period at runtime |
+| port                 | direction | type                    | description                                                        |
+|----------------------|-----------|-------------------------|--------------------------------------------------------------------|
+| `shutdown`           | in        | `int`                   | write any value to stop the thread                                 |
+| `period`             | in        | `struct ptrig_period`   | change the trigger period at runtime                               |
+| `sched_deadline`     | in        | `struct ptrig_deadline` | update `SCHED_DEADLINE` parameters at runtime (Linux ≥ 3.14)      |
+| `deadline_throt_cnt` | out       | `uint64_t`              | cumulative count of SCHED_DEADLINE budget overruns (Linux ≥ 4.16) |
+
+## SCHED_DEADLINE
+
+When `sched_policy` is set to `"SCHED_DEADLINE"`, ptrig uses the Linux
+EDF scheduler instead of the standard POSIX priority-based policies.
+Three timing parameters must be provided via the `sched_deadline` config:
+
+- **`runtime_ns`** — worst-case execution time (WCET) budget per period in nanoseconds (mandatory)
+- **`deadline_ns`** — relative deadline in nanoseconds; 0 = use `period_ns`
+- **`period_ns`** — scheduling period in nanoseconds; 0 = derive from the `period` config
+
+The kernel enforces `runtime_ns ≤ deadline_ns ≤ period_ns`; ptrig validates
+this at init and logs a clear error if the constraint is violated.
+
+When active, `sched_yield(2)` replaces the normal sleep after each chain
+trigger — this signals the kernel that the current job activation is done
+and lets it replenish the budget at the next period boundary. `sleep_mode`
+is therefore ignored.
+
+If the chain execution exceeds `runtime_ns`, the kernel throttles the thread
+for the remainder of the period and (on Linux ≥ 4.16) sends `SIGXCPU`. ptrig
+catches this signal, logs a warning, and increments the counter on the
+`deadline_throt_cnt` output port so applications can monitor overruns.
+
+> **Note:** `SCHED_DEADLINE` requires `CAP_SYS_NICE` (typically run as
+> root or with the capability granted). Combining it with CPU pinning via
+> `affinity` is strongly recommended to avoid EDF interference across cores.

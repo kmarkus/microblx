@@ -63,7 +63,11 @@ minimal example:
 
 ``ptrig`` additionally supports ``affinity`` (CPU list), ``stacksize``,
 ``thread_name``, ``autostop_steps``, and ``sleep_mode`` (0=OS sleep,
-1=busy-wait). See the `trig/ptrig block README
+1=busy-wait). The ``sched_policy`` field accepts ``SCHED_OTHER``
+(default), ``SCHED_FIFO``, ``SCHED_RR``, and ``SCHED_DEADLINE`` (Linux
+≥ 3.14); for ``SCHED_DEADLINE`` a ``sched_deadline`` config of type
+``struct ptrig_deadline`` is required (see the README for details). See
+the `trig/ptrig block README
 <https://gitlab.com/kmarkus/microblx/-/blob/master/std_blocks/trig/README.md>`_
 for the full configuration reference.
 

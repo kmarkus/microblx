@@ -9,7 +9,8 @@ local LOGLEVEL = ffi.C.UBX_LOGLEVEL_INFO
 
 local assert_true = luaunit.assert_true
 local assert_equals = luaunit.assert_equals
-local assert_true = luaunit.assert_true
+local assert_not_nil = luaunit.assert_not_nil
+local assert_not_equals = luaunit.assert_not_equals
 
 TestPtrig = {}
 
@@ -417,5 +418,97 @@ function TestPtrig:TestPeriodPort()
 	       "expected <5 steps at 500ms period, got " .. steps_slow)
 end
 
+
+--
+-- SCHED_DEADLINE tests
+--
+
+local DEADLINE_ND_OPTS = { loglevel = ffi.C.UBX_LOGLEVEL_WARN }
+
+local function make_deadline_node(name)
+   local nd = ubx.node_create(name, DEADLINE_ND_OPTS)
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "ptrig")
+   return nd
+end
+
+-- Config-validation tests: ptrig_handle_config fails before pthread_create,
+-- so no thread is created and no root privilege is needed.
+
+function TestPtrig:TestDeadlineConfigMissingParam()
+   local nd = make_deadline_node("dl_cfg_missing")
+   local b = ubx.block_create(nd, "ubx/ptrig", "pt",
+      { period = {sec=0, usec=1000}, sched_policy = "SCHED_DEADLINE" })
+   assert_not_nil(b)
+   assert_not_equals(ubx.block_tostate(b, 'inactive'), 0,
+      "init should fail without sched_deadline config")
+   assert_equals(b.block_state, ffi.C.BLOCK_STATE_PREINIT)
+   ubx.node_rm(nd)
+end
+
+function TestPtrig:TestDeadlineConfigZeroRuntime()
+   local nd = make_deadline_node("dl_cfg_zero_rt")
+   local b = ubx.block_create(nd, "ubx/ptrig", "pt", {
+      period         = { sec=0, usec=1000 },
+      sched_policy   = "SCHED_DEADLINE",
+      sched_deadline = { runtime_ns=0, deadline_ns=0, period_ns=0 },
+   })
+   assert_not_nil(b)
+   assert_not_equals(ubx.block_tostate(b, 'inactive'), 0,
+      "init should fail with runtime_ns=0")
+   assert_equals(b.block_state, ffi.C.BLOCK_STATE_PREINIT)
+   ubx.node_rm(nd)
+end
+
+function TestPtrig:TestDeadlineConfigConstraintViolation()
+   local nd = make_deadline_node("dl_cfg_constraint")
+   local b = ubx.block_create(nd, "ubx/ptrig", "pt", {
+      period         = { sec=0, usec=1000 },
+      sched_policy   = "SCHED_DEADLINE",
+      sched_deadline = { runtime_ns=900000, deadline_ns=500000, period_ns=1000000 },
+   })
+   assert_not_nil(b)
+   assert_not_equals(ubx.block_tostate(b, 'inactive'), 0,
+      "init should fail when runtime_ns > deadline_ns")
+   assert_equals(b.block_state, ffi.C.BLOCK_STATE_PREINIT)
+   ubx.node_rm(nd)
+end
+
+-- Functional test: ptrig with SCHED_DEADLINE config runs and steps correctly.
+-- If the process lacks CAP_SYS_NICE the block still runs (sched_setattr logs
+-- an error but does not abort), so this test passes regardless of privilege.
+-- Root/CAP_SYS_NICE is required for the scheduling policy to actually take effect.
+local sys_dl = bd.system {
+   imports = { "stdtypes", "ptrig", "ramp_uint64", "lfrb" },
+   blocks = {
+      { name="ramp",  type="ubx/ramp_uint64" },
+      { name="ptrig", type="ubx/ptrig" },
+   },
+   configurations = {
+      { name="ramp", config = { start=0, slope=1 } },
+      { name="ptrig", config = {
+         period         = { sec=0, usec=10000 },  -- 10ms / 100Hz
+         sched_policy   = "SCHED_DEADLINE",
+         sched_deadline = { runtime_ns=5000000 },  -- 5ms WCET; deadline/period from 'period'
+         chain0         = { { b="#ramp" } },
+      }},
+   },
+}
+
+function TestPtrig:TestDeadlineRuns()
+   local nd = sys_dl:launch{ nostart=true, loglevel=LOGLEVEL, nodename='TestDeadlineRuns' }
+   local p_ramp = ubx.port_clone_conn(nd:b("ramp"), "out", 1)
+
+   sys_dl:startup(nd)
+   ubx.clock_mono_sleep(0, 500000000)  -- 500ms
+   nd:b("ptrig"):do_stop()
+
+   local cnt, val = p_ramp:read()
+   assert_true(cnt > 0, "no ramp value received")
+   assert_true(val:tolua() > 10,
+      "expected >10 steps in 500ms at 10ms period, got " .. tostring(val:tolua()))
+
+   ubx.node_rm(nd)
+end
 
 if not _RUNNER then os.exit( luaunit.LuaUnit.run() ) end

@@ -5,10 +5,16 @@ set(MOD_BUILD_DIR ${CMAKE_BINARY_DIR}/std_blocks/${MOD_NAME})
 
 file(MAKE_DIRECTORY ${MOD_BUILD_DIR}/types)
 
-set(MOD_HDRS ${MOD_SRC_DIR}/types/ptrig_period.h)
-set(MOD_HDRS_GEN ${MOD_BUILD_DIR}/types/ptrig_period.h.hexarr)
+set(MOD_HDRS
+  ${MOD_SRC_DIR}/types/ptrig_period.h
+  ${MOD_SRC_DIR}/types/ptrig_deadline.h)
 
-generate_hexarr(${MOD_SRC_DIR}/types/ptrig_period.h ${MOD_BUILD_DIR}/types/ptrig_period.h.hexarr)
+set(MOD_HDRS_GEN
+  ${MOD_BUILD_DIR}/types/ptrig_period.h.hexarr
+  ${MOD_BUILD_DIR}/types/ptrig_deadline.h.hexarr)
+
+generate_hexarr(${MOD_SRC_DIR}/types/ptrig_period.h   ${MOD_BUILD_DIR}/types/ptrig_period.h.hexarr)
+generate_hexarr(${MOD_SRC_DIR}/types/ptrig_deadline.h ${MOD_BUILD_DIR}/types/ptrig_deadline.h.hexarr)
 
 set(COMMON_SRCS ${MOD_SRC_DIR}/common.c ${MOD_SRC_DIR}/common.h )
 
@@ -36,7 +42,7 @@ set_target_properties(ptrig
   POSITION_INDEPENDENT_CODE ON
   PREFIX ""
   OUTPUT_NAME "ptrig"
-  PUBLIC_HEADER ${MOD_HDRS}
+  PUBLIC_HEADER "${MOD_HDRS}"
 )
 
 install(
