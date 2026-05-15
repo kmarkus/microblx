@@ -840,6 +840,7 @@ int ubx_data_resize(ubx_data_t *d, long newlen)
 {
 	int ret = EOUTOFMEM;
 	void *ptr;
+	long oldlen = d->len;
 	size_t newsz = (size_t)newlen * d->type->size;
 
 	ptr = realloc(d->data, newsz);
@@ -848,6 +849,12 @@ int ubx_data_resize(ubx_data_t *d, long newlen)
 
 	d->data = ptr;
 	d->len = newlen;
+
+	if (newlen > oldlen) {
+		size_t oldsz = (size_t)oldlen * d->type->size;
+		memset((char *)d->data + oldsz, 0, newsz - oldsz);
+	}
+
 	ret = 0;
  out:
 	return ret;
