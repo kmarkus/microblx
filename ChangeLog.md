@@ -77,6 +77,12 @@ Other changes:
 - `blockdiagram`: added `extern_blocks` support — blocks listed there are
   expected to exist in the node already and will not be created or
   destroyed by the blockdiagram launch/cleanup logic.
+- `ubx-log`: added syslog forwarding (`-s`) — messages are tee'd to
+  syslog in addition to stdout; facility selectable via `-f LOCAL<n>`
+  (LOCAL0–LOCAL7, default LOCAL0). Added daemon mode (`-d`, requires
+  `-s`; needs `libdaemon` at build time) — properly daemonizes via
+  `libdaemon`, writes a PID file at `/run/ubx-log.pid`, and prevents
+  duplicate instances.
 
 ## 0.9.2
 

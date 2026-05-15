@@ -45,6 +45,19 @@ building to enable these blocks:
      - libiio >= 0.21
      - ``apt install libiio-dev libiio-utils``
 
+**Optional tools** — extend ``ubx-log`` with additional features:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 30 50
+
+   * - Tool / feature
+     - Dependency
+     - How to install
+   * - ``ubx-log -d`` (daemon mode)
+     - libdaemon
+     - ``apt install libdaemon-dev``
+
 ``lsdb-intf`` also requires enabling at cmake time:
 ``cmake -DBLOCK_LSDB_INTF=ON ..``
 

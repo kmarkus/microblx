@@ -7,10 +7,18 @@
  */
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <syslog.h>
 #include <termios.h>
 #include <sys/inotify.h>
+
+#ifdef HAVE_LIBDAEMON
+# include <libdaemon/dfork.h>
+# include <libdaemon/dpid.h>
+#endif
 
 #include "ubx.h"
 #include "rtlog_client.h"
@@ -37,11 +45,51 @@ const char *loglevel_color[] = {
 	YEL, CYN, WHT, MAG
 };
 
+/* syslog priority values for UBX log levels (values are identical) */
+static const int syslog_prio[] = {
+	LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERR,
+	LOG_WARNING, LOG_NOTICE, LOG_INFO, LOG_DEBUG
+};
+
+static int use_syslog = 0;
+static int syslog_facility = LOG_LOCAL0;
+static int daemon_mode = 0;
+static volatile sig_atomic_t quit = 0;
+static struct termios orig_tp;
+static int orig_tp_saved = 0;
+
+static void sig_handler(int sig)
+{
+	(void)sig;
+	quit = 1;
+}
+
+/*
+ * diag_log - write a diagnostic message to stderr (normal mode) or syslog
+ * (daemon mode, where stderr is /dev/null)
+ */
+static __attribute__((format(printf, 3, 4)))
+void diag_log(int prio, int color, const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	if (daemon_mode) {
+		vsyslog(prio, fmt, ap);
+	} else {
+		if (color) fprintf(stderr, "%s", RED);
+		vfprintf(stderr, fmt, ap);
+		if (color) fprintf(stderr, "%s", RESET);
+	}
+	va_end(ap);
+}
+
 static void log_data(logc_info_t *inf, int color)
 {
 	struct ubx_log_msg *msg;
 	int ret;
 	const char *level_str;
+	int prio;
 
 	ret = logc_read_frame(inf, (volatile log_frame_t **)&msg);
 	switch (ret) {
@@ -49,9 +97,14 @@ static void log_data(logc_info_t *inf, int color)
 		break;
 
 	case NEW_DATA:
-		level_str = (msg->level > UBX_LOGLEVEL_DEBUG ||
-			     msg->level < UBX_LOGLEVEL_EMERG) ?
-			"INVALID" : loglevel_str[msg->level];
+		if (msg->level > UBX_LOGLEVEL_DEBUG ||
+		    msg->level < UBX_LOGLEVEL_EMERG) {
+			level_str = "INVALID";
+			prio = LOG_ERR;
+		} else {
+			level_str = loglevel_str[msg->level];
+			prio = syslog_prio[msg->level];
+		}
 
 		if (color)
 			fprintf(stdout, GRN "[%li.%06li] " YEL "%s %s%s: %s\n" RESET,
@@ -65,14 +118,12 @@ static void log_data(logc_info_t *inf, int color)
 				msg->src, level_str, msg->msg);
 
 		fflush(stdout);
+
+		if (use_syslog)
+			syslog(prio, "%s %s: %s", msg->src, level_str, msg->msg);
 		break;
 	}
 }
-
-#define ERRC(color, fmt, args...) ( fprintf(stderr, "%s", (color==1) ? RED : ""), \
-				    fprintf(stderr, fmt, ##args),		  \
-				    fprintf(stderr, "%s", (color==1) ? RESET : "") )
-
 
 const char* sepstr = "--------------------------------------------------------------------------------\n";
 #define SEP(color) fprintf(stderr, "%s%s%s", (color==1) ? MAG : "", sepstr, (color==1) ? RESET : "")
@@ -253,8 +304,8 @@ static int lc_init(struct ubx_log_info *inf)
 		if (ret == ENOENT) {
 			int done = 0;
 
-			fprintf(stderr, "waiting for %s to appear\n",
-				LOG_SHM_FILENAME);
+			diag_log(LOG_INFO, 0, "waiting for %s to appear\n",
+				 LOG_SHM_FILENAME);
 			while(!done) {
 				done = check_inotify(inf->uininf);
 				if (done < 0) {
@@ -313,7 +364,8 @@ static int check_new_shm(struct ubx_log_info *inf, int show_old, int color)
 		break;
 
 	case 1:
-		ERRC(color, "ubx log shm recreation/truncation detected - reopening\n");
+		diag_log(LOG_INFO, color,
+			 "ubx log shm recreation/truncation detected - reopening\n");
 
 		while(retries-- >= 0) {
 				logc_close(inf->lcinf);
@@ -327,7 +379,7 @@ static int check_new_shm(struct ubx_log_info *inf, int show_old, int color)
 		}
 
 		if (ret != 0) {
-			fprintf(stderr, "logc_init failed reinitialize\n");
+			diag_log(LOG_ERR, color, "logc_init failed reinitialize\n");
 			break;
 		}
 
@@ -337,8 +389,9 @@ static int check_new_shm(struct ubx_log_info *inf, int show_old, int color)
 		break;
 
 	default:
-		fprintf(stderr, "error %d ocurred checking inotify: %s\n",
-			ret, strerror(-ret));
+		diag_log(LOG_ERR, color,
+			 "error %d ocurred checking inotify: %s\n",
+			 ret, strerror(-ret));
 		break;
 	}
 
@@ -350,15 +403,45 @@ static ssize_t ngetc(char *c)
 	return read (0, c, 1);
 }
 
+/*
+ * parse_facility - parse a syslog LOCAL facility name (LOCAL0..LOCAL7)
+ *
+ * @param s:	facility name string
+ * @return:	LOG_LOCAL* constant, or -1 on invalid input
+ */
+static int parse_facility(const char *s)
+{
+	static const int facilities[] = {
+		LOG_LOCAL0, LOG_LOCAL1, LOG_LOCAL2, LOG_LOCAL3,
+		LOG_LOCAL4, LOG_LOCAL5, LOG_LOCAL6, LOG_LOCAL7
+	};
+	char *end;
+	long n;
+
+	if (strncmp(s, "LOCAL", 5) != 0)
+		return -1;
+
+	n = strtol(s + 5, &end, 10);
+	if (*end != '\0' || n < 0 || n > 7)
+		return -1;
+
+	return facilities[n];
+}
+
 static void print_help(char **argv)
 {
 	printf("usage:\n");
 	printf(" %s [options]\n", argv[0]);
 	printf("   show ubx log messages\n\n");
 	printf("Options:\n");
-	printf("  -N    don't use colors\n");
-	printf("  -O    don't show old messages upon startup\n");
-	printf("  -h    show this help and exit\n");
+	printf("  -N         don't use colors\n");
+	printf("  -O         don't show old messages upon startup\n");
+	printf("  -s         forward messages to syslog (in addition to stdout)\n");
+	printf("  -f LOCAL<n> syslog facility LOCAL0..LOCAL7 (default: LOCAL0)\n");
+#ifdef HAVE_LIBDAEMON
+	printf("  -d         run as daemon (requires -s; implies -O is recommended)\n");
+#endif
+	printf("  -h         show this help and exit\n");
 }
 
 int main(int argc, char **argv)
@@ -368,7 +451,11 @@ int main(int argc, char **argv)
 	struct termios tp;
 	char c;
 
-	while ((opt = getopt(argc, argv, "ONh")) != -1) {
+	while ((opt = getopt(argc, argv, "ONhsf:"
+#ifdef HAVE_LIBDAEMON
+			     "d"
+#endif
+			     )) != -1) {
 		switch (opt) {
 		case 'N':
 			color = 0;
@@ -376,6 +463,22 @@ int main(int argc, char **argv)
 		case 'O':
 			show_old = 0;
 			break;
+		case 's':
+			use_syslog = 1;
+			break;
+		case 'f':
+			syslog_facility = parse_facility(optarg);
+			if (syslog_facility < 0) {
+				fprintf(stderr, "invalid facility '%s': expected LOCAL0..LOCAL7\n",
+					optarg);
+				exit(EXIT_FAILURE);
+			}
+			break;
+#ifdef HAVE_LIBDAEMON
+		case 'd':
+			daemon_mode = 1;
+			break;
+#endif
 		case 'h':
 		default: /* '?' */
 			print_help(argv);
@@ -383,6 +486,59 @@ int main(int argc, char **argv)
 		}
 	}
 
+	if (daemon_mode && !use_syslog) {
+		fprintf(stderr, "daemon mode requires syslog forwarding (-s)\n");
+		exit(EXIT_FAILURE);
+	}
+
+#ifdef HAVE_LIBDAEMON
+	if (daemon_mode) {
+		pid_t pid;
+
+		daemon_pid_file_ident = "ubx-log";
+
+		if (daemon_pid_file_is_running() >= 0) {
+			fprintf(stderr, "ubx-log daemon is already running\n");
+			exit(EXIT_FAILURE);
+		}
+
+		daemon_retval_init();
+
+		pid = daemon_fork();
+		if (pid < 0) {
+			daemon_retval_done();
+			fprintf(stderr, "daemon_fork failed: %m\n");
+			exit(EXIT_FAILURE);
+		}
+
+		if (pid > 0) {
+			/* parent: wait for daemon to signal it started */
+			ret = daemon_retval_wait(10);
+			exit(ret < 0 ? EXIT_FAILURE : EXIT_SUCCESS);
+		}
+
+		/* daemon child: create PID file, then release parent */
+		if (daemon_pid_file_create() < 0) {
+			syslog(LOG_ERR, "failed to create PID file: %m");
+			daemon_retval_send(1);
+			exit(EXIT_FAILURE);
+		}
+
+		/*
+		 * Signal the parent that startup succeeded. lc_init may
+		 * block waiting for the shm, so we release the parent first
+		 * and let the daemon wait in the background.
+		 */
+		daemon_retval_send(0);
+		color = 0;
+	}
+#endif
+
+	if (use_syslog)
+		openlog("ubx-log", LOG_PID, syslog_facility);
+
+	signal(SIGTERM, sig_handler);
+	signal(SIGINT, sig_handler);
 
 	inf = calloc(1, sizeof(struct ubx_log_info));
 	if (inf == NULL) {
@@ -392,17 +548,21 @@ int main(int argc, char **argv)
 	inf->lcinf = NULL;
 	inf->uininf = NULL;
 
-	/* make stdin nonblocking */
-	fcntl (STDIN_FILENO, F_SETFL, O_NONBLOCK);
+	if (!daemon_mode) {
+		/* make stdin nonblocking */
+		fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
 
-	/* turn echo off */
-	if (tcgetattr(STDIN_FILENO, &tp) == -1)
-		fprintf(stderr, "tcgetattr: %m");
-
-	tp.c_lflag &= ~ECHO;
-
-	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &tp) == -1)
-		fprintf(stderr, "tcsetattr: %m");
+		/* turn echo off, saving original settings for restoration on exit */
+		if (tcgetattr(STDIN_FILENO, &orig_tp) == 0) {
+			orig_tp_saved = 1;
+			tp = orig_tp;
+			tp.c_lflag &= ~ECHO;
+			if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &tp) == -1)
+				fprintf(stderr, "tcsetattr: %m");
+		} else {
+			fprintf(stderr, "tcgetattr: %m");
+		}
+	}
 
 	ret = lc_init(inf);
 	if (ret != 0)
@@ -411,19 +571,18 @@ int main(int argc, char **argv)
 	if(show_old)
 		logc_seek_to_oldest(inf->lcinf);
 
-	while (1) {
+	while (!quit) {
 		/* check for create shm event */
 		ret = check_new_shm(inf, show_old, color);
 		if (ret != 0)
-			goto out_free;
+			goto out_close;
 
 		ret = logc_has_data(inf->lcinf);
 		switch (ret) {
 		case NO_DATA:
-			if (ngetc(&c) > 0) {
-				if (c=='\n') {
+			if (!daemon_mode && ngetc(&c) > 0) {
+				if (c == '\n')
 					SEP(color);
-				}
 			}
 
 			usleep(100000);
@@ -434,18 +593,19 @@ int main(int argc, char **argv)
 			break;
 
 		case OVERRUN:
-			ERRC(color, "OVERRUN - reset read side\n");
+			diag_log(LOG_WARNING, color, "OVERRUN - reset read side\n");
 			logc_reset_read(inf->lcinf);
 			break;
 
 		case ERROR:
-			ERRC(color, "ERROR checking for data\n");
+			diag_log(LOG_ERR, color, "ERROR checking for data\n");
 			logc_reset_read(inf->lcinf);
 			usleep(100000);
 			break;
 		}
 	}
 
+out_close:
 	logc_close(inf->lcinf);
 	close(inf->uininf->infd);
 
@@ -457,5 +617,14 @@ out_free:
 	free(inf);
 
 out:
+	if (orig_tp_saved)
+		tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_tp);
+#ifdef HAVE_LIBDAEMON
+	if (daemon_mode)
+		daemon_pid_file_remove();
+#endif
+	if (use_syslog)
+		closelog();
+
 	return ret;
 }

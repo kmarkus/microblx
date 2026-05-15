@@ -236,6 +236,13 @@ add_type_subdir(TYPE_TESTTYPES "std_types/testtypes" ON)
 
 add_executable(ubx-log tools/ubx-log.c)
 target_link_libraries(ubx-log PRIVATE rt rtlog_client)
+pkg_check_modules(LIBDAEMON libdaemon)
+if(LIBDAEMON_FOUND)
+  target_compile_definitions(ubx-log PRIVATE HAVE_LIBDAEMON)
+  target_compile_options(ubx-log PRIVATE ${LIBDAEMON_CFLAGS_OTHER})
+  target_include_directories(ubx-log PRIVATE ${LIBDAEMON_INCLUDE_DIRS})
+  target_link_libraries(ubx-log PRIVATE ${LIBDAEMON_LIBRARIES})
+endif()
 install(TARGETS ubx-log RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 add_executable(ubx-time-test tools/ubx-time-test.c)
