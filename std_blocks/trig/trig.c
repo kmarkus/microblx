@@ -75,8 +75,10 @@ int trig_init(ubx_block_t *b)
 
 	inf->num_chains = common_init_chains(b, &inf->chains);
 
-	if (inf->num_chains <= 0)
+	if (inf->num_chains <= 0) {
+		free(b->private_data);
 		return -1;
+	}
 
 	return 0;
 }

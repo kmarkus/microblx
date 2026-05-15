@@ -618,6 +618,7 @@ int ptrig_init(ubx_block_t *b)
 	goto out;
 
  out_err:
+	common_cleanup(b, &inf->chains);
 	free(b->private_data);
  out:
 	return ret;
