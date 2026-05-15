@@ -179,4 +179,90 @@ function TestDataInit:test_data_resize()
    -- ubx.data_free(d)
 end
 
+-- Integer cdata input. data_set accepts int8..int64 / uint8..uint64
+-- cdata as scalar input and lets LuaJIT FFI convert to the target
+-- ctype on assignment (truncation / widening / signed-unsigned),
+-- mirroring the Lua-number path.
+
+function TestDataInit:test_cdata_uint64_into_uint64()
+   local d=ubx.data_alloc(nd, "uint64_t")
+   ubx.data_set(d, ffi.new("uint64_t", 0xdeadbeef))
+   local p = ffi.cast("uint64_t*", d.data)
+   assert_equals(0xdeadbeefULL, p[0])
+end
+
+function TestDataInit:test_cdata_int64_into_int64()
+   local d=ubx.data_alloc(nd, "int64_t")
+   ubx.data_set(d, ffi.new("int64_t", -42))
+   local p = ffi.cast("int64_t*", d.data)
+   assert_equals(-42LL, p[0])
+end
+
+function TestDataInit:test_cdata_uint64_into_double()
+   -- this is the microblx test_set_get_config case: a JSON 42 decoded
+   -- as 42ULL must be assignable to a double slot.
+   local d=ubx.data_alloc(nd, "double")
+   ubx.data_set(d, ffi.new("uint64_t", 42))
+   local p = ffi.cast("double*", d.data)
+   assert_equals(42, p[0])
+end
+
+function TestDataInit:test_cdata_int64_into_int()
+   local d=ubx.data_alloc(nd, "int")
+   ubx.data_set(d, ffi.new("int64_t", -1234))
+   local p = ffi.cast("int*", d.data)
+   assert_equals(-1234, p[0])
+end
+
+function TestDataInit:test_cdata_uint64_into_uint32()
+   local d=ubx.data_alloc(nd, "uint32_t")
+   ubx.data_set(d, ffi.new("uint64_t", 0xcafebabe))
+   local p = ffi.cast("uint32_t*", d.data)
+   assert_equals(0xcafebabe, tonumber(p[0]))
+end
+
+function TestDataInit:test_cdata_truncates_into_byte()
+   -- 0x1FF -> 0xFF, mirroring the Lua-number truncation behavior
+   local d=ubx.data_alloc(nd, "uint8_t")
+   ubx.data_set(d, ffi.new("uint64_t", 0x1FF))
+   local p = ffi.cast("uint8_t*", d.data)
+   assert_equals(0xFF, p[0])
+end
+
+function TestDataInit:test_cdata_int8_round_trip()
+   local d=ubx.data_alloc(nd, "int8_t")
+   ubx.data_set(d, ffi.new("int8_t", -5))
+   local p = ffi.cast("int8_t*", d.data)
+   assert_equals(-5, p[0])
+end
+
+function TestDataInit:test_cdata_into_zero_data_resizes()
+   local d=ubx.data_alloc(nd, "uint32_t", 0)
+   ubx.data_set(d, ffi.new("uint64_t", 99), true)
+   local p = ffi.cast("uint32_t*", d.data)
+   assert_equals(99, tonumber(p[0]))
+   assert_equals(1, tonumber(d.len))
+end
+
+function TestDataInit:test_cdata_into_zero_data_no_resize_errors()
+   local d=ubx.data_alloc(nd, "uint32_t", 0)
+   local ok, err = pcall(ubx.data_set, d, ffi.new("uint64_t", 99))
+   lu.assert_false(ok)
+   lu.assert_str_contains(err, "can't assign scalar")
+end
+
+function TestDataInit:test_non_numeric_cdata_rejected()
+   local d=ubx.data_alloc(nd, "uint32_t")
+   local ok, err = pcall(ubx.data_set, d, ffi.new("double", 1.5))
+   lu.assert_false(ok)
+   lu.assert_str_contains(err, "don't know how to assign")
+end
+
+function TestDataInit:test_pointer_cdata_rejected()
+   local d=ubx.data_alloc(nd, "uint32_t")
+   local ok, err = pcall(ubx.data_set, d, ffi.new("void *", nil))
+   lu.assert_false(ok)
+   lu.assert_str_contains(err, "don't know how to assign")
+end
+
 if not _RUNNER then os.exit( lu.LuaUnit.run() ) end

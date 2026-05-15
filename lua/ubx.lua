@@ -1178,8 +1178,28 @@ function M.data_resize(d, newlen)
    else return false end
 end
 
+-- Numeric integer cdata types accepted as scalar input to data_set.
+-- LuaJIT FFI handles the actual conversion to the target ctype on
+-- assignment (truncation / widening / signed-unsigned), matching the
+-- Lua-number path.
+local numeric_cdata_ctypes = {
+   ffi.typeof("int8_t"),   ffi.typeof("uint8_t"),
+   ffi.typeof("int16_t"),  ffi.typeof("uint16_t"),
+   ffi.typeof("int32_t"),  ffi.typeof("uint32_t"),
+   ffi.typeof("int64_t"),  ffi.typeof("uint64_t"),
+}
+
+local function is_numeric_cdata(v)
+   for i = 1, #numeric_cdata_ctypes do
+      if ffi.istype(numeric_cdata_ctypes[i], v) then return true end
+   end
+   return false
+end
+
 --- Assign a value to a `ubx_data_t`.
--- Accepts Lua tables, strings, and numbers; follows LuaJIT FFI init rules.
+-- Accepts Lua tables, strings, numbers, and integer cdata
+-- (`int8_t`..`int64_t` / `uint8_t`..`uint64_t`); follows LuaJIT FFI
+-- init rules.
 -- @param d `ubx_data_t`
 -- @param val value to assign
 -- @param resize *optional* if `true`, resize the buffer to fit `val`
@@ -1220,13 +1240,13 @@ function M.data_set(d, val, resize)
 	 d_cdata = M.data_to_cdata(d) -- pointer could have changed in realloc!
       end
       ffi.copy(d_cdata, val)
-   elseif val_type == 'number' then
+   elseif val_type == 'number' or (val_type == 'cdata' and is_numeric_cdata(val)) then
       if d.len ~= 1 then
 	 if resize then
 	    M.data_resize(d, 1)
 	    d_cdata = M.data_to_cdata(d)
 	 else
-	    error("data_set: can't assign scalar number to array of len "..
+	    error("data_set: can't assign scalar to array of len "..
 		     tostring(d.len).. ". set resize flag?"..tostring(resize))
 	 end
       end
@@ -1451,8 +1471,9 @@ function M.port_write(p, wval)
    assert(p, "invalid port")
    if M.is_data(wval) then
       ubx.__port_write(p, wval)
-   elseif type(wval) == 'cdata' then
-      error("port_write: invalid cdata. expected ubx_data, got "..ffi.typeof(wval))
+   elseif type(wval) == 'cdata' and not is_numeric_cdata(wval) then
+      error("port_write: invalid cdata. expected ubx_data_t or numeric cdata, got "..
+	    tostring(ffi.typeof(wval)))
    else
       local sample = M.port_alloc_write_sample(p)
       sample:set(wval)
