@@ -68,8 +68,8 @@ local function def_loggers(nd, src)
    end
 end
 
-local function errorf(name, format, ...)
-   error(fmt(format, ...))
+local function errorf(format, ...)
+   error(fmt(format, ...), 2)
 end
 
 --- Return the block table identified by bfqn at the level of sys
