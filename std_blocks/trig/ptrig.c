@@ -685,6 +685,21 @@ void ptrig_cleanup(ubx_block_t *b)
 
 	inf->state = BLOCK_STATE_PREINIT;
 
+	/* wait for the thread to park in pthread_cond_wait (mirrors the
+	 * poll in ptrig_stop) so cancellation lands at a known
+	 * cancellation point rather than mid file-I/O in
+	 * common_write_stats, which would race with the upcoming
+	 * common_cleanup that frees inf->chains. */
+	for (int i = THREAD_STOP_RETRIES; i >= 0; i--) {
+		uint32_t ts;
+		pthread_mutex_lock(&inf->mutex);
+		ts = inf->thread_state;
+		pthread_mutex_unlock(&inf->mutex);
+		if (ts == THREAD_INACTIVE)
+			break;
+		usleep(THREAD_STOP_TIMEOUT_US);
+	}
+
 	ret = pthread_cancel(inf->tid);
 
 	if (ret != 0)
