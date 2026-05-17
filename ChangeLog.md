@@ -76,6 +76,12 @@ Other changes:
   trigger. A `sched_deadline` in-port allows updating the parameters
   at runtime. See `std_blocks/trig/README.md` for details.
   New example: `examples/usc/pid/ptrig_deadline.usc`.
+- `ptrig`: `sleep_mode != 0` with `SCHED_DEADLINE` is now a hard init
+  error; `sched_setattr` failure properly stops the block.
+- `ptrig`: `SIGXCPU` overrun delivery restricted to the DEADLINE
+  thread; fixes spurious node teardown via `ubx_wait_sigint`.
+- `ubx_wait_sigint`: retry `sigtimedwait` on `EINTR`.
+- `examples/usc/pid/run-pid.sh`: unified nrt/rt/deadline launcher.
 - `ptrig`: new `sleep_mode` config — `0` (default): OS sleep via
   `clock_nanosleep`; `1`: busy-wait using `ubx_nanowait`.
 - `lsdb-intf`: added plugin support; Lua modules loaded at init time can
