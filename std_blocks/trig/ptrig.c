@@ -180,8 +180,9 @@ static int ptrig_deadline_make_attr(ubx_block_t *b, const struct ptrig_inf *inf,
 	sched_period_ns = dl->period_ns   ?: period_ns;
 	deadline_ns     = dl->deadline_ns ?: sched_period_ns;
 
-	if (runtime_ns == 0) {
-		ubx_err(b, "sched_deadline.runtime_ns must be > 0");
+	if (runtime_ns < 1024) {
+		ubx_err(b, "sched_deadline.runtime_ns %" PRIu64 " below kernel minimum of 1024ns",
+			runtime_ns);
 		return -1;
 	}
 
@@ -250,12 +251,24 @@ void *thread_startup(void *arg)
 			.sa_handler = sigxcpu_handler,
 			.sa_flags   = 0,
 		};
+		sigset_t sigxcpu_set;
+		sigemptyset(&sigxcpu_set);
+		sigaddset(&sigxcpu_set, SIGXCPU);
+
 		sigemptyset(&sa.sa_mask);
 		if (sigaction(SIGXCPU, &sa, NULL) != 0)
 			ubx_err(b, "sigaction(SIGXCPU) failed: %s", strerror(errno));
 
-		if (sched_setattr(0, &inf->deadline_attr, 0) != 0)
+		/* unblock SIGXCPU on this thread; the creating thread blocked it
+		 * so that only the ptrig thread receives overrun signals */
+		pthread_sigmask(SIG_UNBLOCK, &sigxcpu_set, NULL);
+
+		if (sched_setattr(0, &inf->deadline_attr, 0) != 0) {
 			ubx_err(b, "sched_setattr failed: %s", strerror(errno));
+			__ptrig_stop(b);
+			b->block_state = BLOCK_STATE_INACTIVE;
+			goto out;
+		}
 	}
 
 	while (1) {
@@ -367,9 +380,11 @@ static int ptrig_deadline_config(ubx_block_t *b, struct ptrig_inf *inf)
 		return -1;
 	}
 
-	if (inf->sleep_mode != 0)
-		ubx_warn(b, "sleep_mode=%d ignored with SCHED_DEADLINE (using sched_yield)",
-			 inf->sleep_mode);
+	if (inf->sleep_mode != 0) {
+		ubx_err(b, "sleep_mode=%d is incompatible with SCHED_DEADLINE (must be 0)",
+			inf->sleep_mode);
+		return -1;
+	}
 
 	if (ptrig_deadline_make_attr(b, inf, dl_cfg, &inf->deadline_attr) != 0)
 		return -1;
@@ -573,6 +588,12 @@ int ptrig_init(ubx_block_t *b)
 	len = cfg_getptr_int(b, "affinity", &aff);
 	assert(len>=0);
 
+	if (len > 0 && inf->use_deadline) {
+		ubx_warn(b, "affinity with SCHED_DEADLINE requires the affinity mask "
+			 "to match a cpuset root domain (see cpuset(7) with "
+			 "sched_load_balance=0); sched_setattr will fail with EPERM otherwise.");
+	}
+
 	if (len > 0) {
 		cpu_set_t cpuset;
 		CPU_ZERO(&cpuset);
@@ -593,6 +614,15 @@ int ptrig_init(ubx_block_t *b)
 		ubx_debug(b, "setting no thread affinity");
 	}
 #endif
+
+	/* block SIGXCPU on this (creating) thread so it is inherited by the new
+	 * thread; thread_startup unblocks it again after installing the handler */
+	if (inf->use_deadline) {
+		sigset_t sigxcpu_set;
+		sigemptyset(&sigxcpu_set);
+		sigaddset(&sigxcpu_set, SIGXCPU);
+		pthread_sigmask(SIG_BLOCK, &sigxcpu_set, NULL);
+	}
 
 	/* create thread */
 	ret = pthread_create(&inf->tid, &inf->attr, thread_startup, b);

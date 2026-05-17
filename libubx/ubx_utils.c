@@ -15,7 +15,6 @@
 int ubx_wait_sigint(unsigned int timeout_s)
 {
 	sigset_t set;
-	sigset_t oldset;
 	struct timespec timeout;
 
 	sigemptyset(&set);
@@ -23,15 +22,17 @@ int ubx_wait_sigint(unsigned int timeout_s)
 	timeout.tv_sec = timeout_s;
 	timeout.tv_nsec = 0;
 
-	if (sigprocmask(SIG_BLOCK, &set, &oldset) < 0) {
+	if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
 		perror("sigprocmask");
 		return -1;
 	}
 
-	if (sigtimedwait(&set, NULL, &timeout) < 0)
-		return errno;
+	int ret;
+	do {
+		ret = sigtimedwait(&set, NULL, &timeout);
+	} while (ret < 0 && errno == EINTR);
 
-	return 0;
+	return (ret < 0) ? errno : 0;
 }
 
 /**
