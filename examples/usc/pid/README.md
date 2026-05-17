@@ -14,26 +14,30 @@ core_prefix: /usr/local
 prefixes:    /usr, /usr/local
 ```
 
-**Real-time version**
+**Real-time version (`SCHED_FIFO`) and SCHED_DEADLINE version**
 
-To run this this version addition priviledges are required. The
-easiest way to add these is by granting the luajit binary the
-`cap_sys_nice` capability (beware that the following will grant this
-to all potential luajit users):
-
-```sh
-sudo setcap cap_sys_nice+ep `which luajit`
-```
-
-After this, the demo can be started as above but by merging the
-`ptrig_rt.usc` usc file:
+Both require `CAP_SYS_NICE`. Use the `run-pid.sh` helper, which
+grants it via `sudo capsh` with ambient capabilities so the
+session bus and `-dbus` keep working:
 
 ```sh
-$ ubx-launch -c pid_test.usc,ptrig_rt.usc
-merging ptrig_rt.usc into pid_test.usc
-core_prefix: /usr/local
-prefixes:    /usr, /usr/local
+$ ./run-pid.sh rt        # SCHED_FIFO
+$ ./run-pid.sh deadline  # SCHED_DEADLINE
 ```
+
+Do **not** use `setcap cap_sys_nice+ep` on the luajit binary — file
+capabilities set the `AT_SECURE` flag on exec, which causes sd-bus to
+ignore session-bus environment variables and breaks `-dbus`.
+
+**SCHED_DEADLINE: CPU affinity and cpusets**
+
+`ptrig_deadline.usc` does not pin the thread by default. A DEADLINE
+thread's `cpus_allowed` mask must be a superset of its scheduling root
+domain. Without cpuset isolation the only root domain covers all
+online CPUs, so setting `affinity` to a CPU subset makes
+`sched_setattr` fail with `EPERM`. To pin EDF tasks to a subset,
+create a cpuset partition (`cpuset.cpus` + `cpuset.sched_load_balance=0`,
+see `cpuset(7)`) first, then add `affinity` to match.
 
 **Examining exported signals**
 

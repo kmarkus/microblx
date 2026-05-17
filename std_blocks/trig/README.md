@@ -72,6 +72,18 @@ for the remainder of the period and (on Linux ≥ 4.16) sends `SIGXCPU`. ptrig
 catches this signal, logs a warning, and increments the counter on the
 `deadline_throt_cnt` output port so applications can monitor overruns.
 
-> **Note:** `SCHED_DEADLINE` requires `CAP_SYS_NICE` (typically run as
-> root or with the capability granted). Combining it with CPU pinning via
-> `affinity` is strongly recommended to avoid EDF interference across cores.
+> **Note:** `SCHED_DEADLINE` requires `CAP_SYS_NICE`. Do not use
+> `setcap cap_sys_nice+ep` on the interpreter — file capabilities set
+> the `AT_SECURE` bit on exec, which causes sd-bus to ignore
+> session-bus environment variables and breaks `-dbus`. Grant the
+> capability via `sudo capsh` with ambient capabilities instead (see
+> `examples/usc/pid/run-pid.sh` for a working example); this does not
+> require any file capability on the binary.
+>
+> **CPU affinity:** A DEADLINE thread's `cpus_allowed` mask must be a
+> superset of its scheduling root domain. Without cpuset isolation the
+> only root domain covers all online CPUs, so combining `affinity` with
+> `SCHED_DEADLINE` will fail with `EPERM`. To pin EDF tasks to a CPU
+> subset, create an isolated cpuset partition (`cpuset.cpus` plus
+> `cpuset.sched_load_balance=0`, see `cpuset(7)`) so a matching root
+> domain exists; the `affinity` config can then be set accordingly.

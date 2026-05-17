@@ -1,0 +1,35 @@
+-- -*- mode: lua; -*-
+--
+-- SCHED_DEADLINE ptrig variant for the PID example.
+--
+-- Requires CAP_SYS_NICE (run as root or grant cap_sys_nice to luajit).
+--
+-- runtime_ns (200 µs) is the WCET budget per period; adjust to the
+-- measured worst-case execution time of the trigger chain.
+-- deadline_ns and period_ns default to the period value (1 ms) when 0.
+--
+-- Note: the 'affinity' config is intentionally omitted. A DEADLINE
+-- thread's CPU mask must match its scheduling root domain — without
+-- an isolated cpuset partition (cpuset.cpus + sched_load_balance=0,
+-- see cpuset(7)) the only root domain covers all online CPUs, so
+-- setting 'affinity' here makes sched_setattr fail with EPERM.
+
+return bd.system {
+   imports = { "stdtypes", "ptrig" },
+
+   blocks = {
+      { name="ptrig_1", type="ubx/ptrig" },
+   },
+
+   configurations = {
+      { name="ptrig_1", config = {
+	   sched_policy = 'SCHED_DEADLINE',
+	   sched_deadline = { runtime_ns=60*1000 },
+	   period = {sec=0, usec=1000},
+	   tstats_mode=1,
+	   tstats_profile_path="/tmp",
+	   chain0={
+	      { b="#controller/trig_1" } } }
+      },
+   }
+}

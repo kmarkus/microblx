@@ -65,6 +65,17 @@ Other changes:
 - `luablock`: added built-in self-triggering support via the `trigger`
   (set to `1` to enable) and `period` (float, seconds) configs, removing
   the need for a separate `ptrig` in non-RT use-cases.
+- `ptrig`: added `SCHED_DEADLINE` support (Linux ≥ 3.14). Set
+  `sched_policy` to `"SCHED_DEADLINE"` and provide `sched_deadline =
+  { runtime_ns, deadline_ns, period_ns }` — `deadline_ns` and
+  `period_ns` default to the `period` config when zero. The kernel
+  enforces `runtime_ns ≤ deadline_ns ≤ period_ns`; ptrig validates
+  this at init. Budget overruns are caught via `SIGXCPU` (Linux ≥
+  4.16), logged, and counted on the new `deadline_throt_cnt` output
+  port. `sched_yield(2)` replaces the normal sleep after each
+  trigger. A `sched_deadline` in-port allows updating the parameters
+  at runtime. See `std_blocks/trig/README.md` for details.
+  New example: `examples/usc/pid/ptrig_deadline.usc`.
 - `ptrig`: new `sleep_mode` config — `0` (default): OS sleep via
   `clock_nanosleep`; `1`: busy-wait using `ubx_nanowait`.
 - `lsdb-intf`: added plugin support; Lua modules loaded at init time can
