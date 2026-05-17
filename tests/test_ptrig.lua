@@ -127,7 +127,9 @@ local sys2 = bd.system {
 }
 
 
-local eps = 0.15 -- 15%
+local min_eps = 0.15 -- 15%: the sleep must have actually happened
+local max_eps = 0.50 -- 50%: loose upper bound; OS wakeup latency on SCHED_OTHER
+                     -- is non-deterministic so this only catches obviously broken tstats
 
 function TestPtrig:TestTstats()
 
@@ -139,10 +141,10 @@ function TestPtrig:TestTstats()
 		  res.id..
 		     ": tstat.min ("..min_us.. " lower than allowed minimal dur ("..
 		     block_dur_us[res.id]..")")
-      assert_true(max_us < block_dur_us[res.id]*(1+eps),
+      assert_true(max_us < block_dur_us[res.id]*(1+max_eps),
 		  res.id..
 		     ": tstat.max ("..max_us..") larger than allowed max dur ("..
-		     block_dur_us[res.id]*(1+eps)..")")
+		     block_dur_us[res.id]*(1+max_eps)..")")
    end
 
    local nd = sys2:launch{ nostart=true, loglevel=LOGLEVEL, nodename='sys2' }
@@ -475,9 +477,7 @@ function TestPtrig:TestDeadlineConfigConstraintViolation()
 end
 
 -- Functional test: ptrig with SCHED_DEADLINE config runs and steps correctly.
--- If the process lacks CAP_SYS_NICE the block still runs (sched_setattr logs
--- an error but does not abort), so this test passes regardless of privilege.
--- Root/CAP_SYS_NICE is required for the scheduling policy to actually take effect.
+-- Requires CAP_SYS_NICE (run via run_tests.sh which grants it through capsh).
 local sys_dl = bd.system {
    imports = { "stdtypes", "ptrig", "ramp_uint64", "lfrb" },
    blocks = {
