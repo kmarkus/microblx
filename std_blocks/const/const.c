@@ -11,6 +11,7 @@
 #define DATA_LEN	"data_len"
 #define VALUE		"value"
 #define OUT		"out"
+#define IN		"in"
 
 #ifdef BUILD_IBLOCK
 const char iconst_meta[] = "{ doc='const value i-block', realtime=true }";
@@ -29,7 +30,8 @@ struct const_info {
 	const void *value;
 	long data_len;
 
-	const ubx_data_t *data;
+	ubx_data_t *data;
+	ubx_port_t *p_in;
 #ifndef BUILD_IBLOCK
 	ubx_port_t *p_out;
 #endif
@@ -90,6 +92,13 @@ static int const_init(ubx_block_t *b)
 		goto out_free;
 #endif
 
+	/* add port 'in' to update the value at runtime */
+	ret = ubx_inport_add(b, IN, "update the const value at runtime", 0,
+			     type_name, inf->data_len);
+
+	if (ret != 0)
+		goto out_free;
+
 	/* all good */
 	ret = 0;
 	goto out;
@@ -118,6 +127,10 @@ static int const_start(ubx_block_t *b)
 	inf->p_out = ubx_port_get(b, OUT);
 	assert(inf->p_out != NULL);
 #endif
+	/* cache in port */
+	inf->p_in = ubx_port_get(b, IN);
+	assert(inf->p_in != NULL);
+
 	return 0;
 }
 
@@ -137,6 +150,9 @@ static long const_read(ubx_block_t *i, ubx_data_t *data)
 			__func__, data->len, inf->data_len);
 	}
 
+	/* check for a new value on 'in' to update the held constant */
+	__port_read(inf->p_in, inf->data);
+
 	memcpy(data->data, inf->data->data, data_size(data));
 	return inf->data_len;
 }
@@ -144,6 +160,10 @@ static long const_read(ubx_block_t *i, ubx_data_t *data)
 void const_step(ubx_block_t *b)
 {
 	struct const_info *inf = (struct const_info *)b->private_data;
+
+	/* check for a new value on 'in' to update the held constant */
+	__port_read(inf->p_in, inf->data);
+
 	__port_write(inf->p_out, inf->data);
 }
 #endif /* BUILD_IBLOCK */
@@ -153,6 +173,7 @@ void const_cleanup(ubx_block_t *b)
 #ifndef BUILD_IBLOCK
 	ubx_port_rm(b, OUT);
 #endif
+	ubx_port_rm(b, IN);
 	ubx_config_rm(b, VALUE);
 	free(b->private_data);
 }

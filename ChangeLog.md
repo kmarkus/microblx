@@ -78,6 +78,10 @@ Other changes:
   New example: `examples/usc/pid/ptrig_deadline.usc`.
 - `ptrig`: `sleep_mode != 0` with `SCHED_DEADLINE` is now a hard init
   error; `sched_setattr` failure properly stops the block.
+- `cconst`/`iconst`: added an `in` port (same type and length as the
+  held value) to update the initially configured value at runtime. The
+  c-block reads `in` once at the start of `step()`; the i-block reads
+  it once at the start of `read()` before copying the value out.
 - `ptrig`: `SIGXCPU` overrun delivery restricted to the DEADLINE
   thread; fixes spurious node teardown via `ubx_wait_sigint`.
 - `ubx_wait_sigint`: retry `sigtimedwait` on `EINTR`.
