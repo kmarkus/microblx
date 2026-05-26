@@ -3,6 +3,20 @@ set(MOD_NAME trig)
 set(MOD_SRC_DIR ${CMAKE_SOURCE_DIR}/std_blocks/${MOD_NAME})
 set(MOD_BUILD_DIR ${CMAKE_BINARY_DIR}/std_blocks/${MOD_NAME})
 
+include(CheckCSourceCompiles)
+
+check_c_source_compiles("
+#define _GNU_SOURCE
+#include <pthread.h>
+int main(void) { struct sched_attr a; (void)a.size; return 0; }
+" HAVE_STRUCT_SCHED_ATTR)
+
+check_c_source_compiles("
+#define _GNU_SOURCE
+#include <sched.h>
+int main(void) { return SCHED_FLAG_DL_OVERRUN; }
+" HAVE_SCHED_FLAG_DL_OVERRUN)
+
 file(MAKE_DIRECTORY ${MOD_BUILD_DIR}/types)
 
 set(MOD_HDRS
@@ -36,6 +50,13 @@ add_library(ptrig MODULE  ${MOD_SRC_DIR}/ptrig.c ${COMMON_SRCS} ${MOD_HDRS_GEN})
 target_include_directories(ptrig PRIVATE ${CMAKE_SOURCE_DIR}/libubx/ ${MOD_BUILD_DIR} )
 target_compile_options(ptrig PRIVATE ${UBX_MODE_CFLAGS})
 target_link_libraries(ptrig PRIVATE ubx)
+
+if(HAVE_STRUCT_SCHED_ATTR)
+  target_compile_definitions(ptrig PRIVATE HAVE_STRUCT_SCHED_ATTR)
+endif()
+if(HAVE_SCHED_FLAG_DL_OVERRUN)
+  target_compile_definitions(ptrig PRIVATE HAVE_SCHED_FLAG_DL_OVERRUN)
+endif()
 
 set_target_properties(ptrig
   PROPERTIES

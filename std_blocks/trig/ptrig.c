@@ -23,6 +23,34 @@
 
 #include <pthread.h>
 #include <limits.h>	/* PTHREAD_STACK_MIN */
+#include <sys/syscall.h>
+
+/* Fall back to a local definition when the toolchain headers don't supply
+ * struct sched_attr (older glibc / older kernel headers). Detected by CMake. */
+#ifndef HAVE_STRUCT_SCHED_ATTR
+struct sched_attr {
+	uint32_t size;
+	uint32_t sched_policy;
+	uint64_t sched_flags;
+	int32_t  sched_nice;
+	uint32_t sched_priority;
+	uint64_t sched_runtime;
+	uint64_t sched_deadline;
+	uint64_t sched_period;
+	uint32_t sched_util_min;
+	uint32_t sched_util_max;
+};
+#endif
+
+#ifndef HAVE_SCHED_FLAG_DL_OVERRUN
+#define SCHED_FLAG_DL_OVERRUN	0x4
+#endif
+
+/* sched_setattr(2) has no glibc wrapper before 2.41; always go via syscall. */
+static int __ubx_sched_setattr(pid_t pid, struct sched_attr *attr, unsigned int flags)
+{
+	return (int)syscall(SYS_sched_setattr, pid, attr, flags);
+}
 
 #include "ubx.h"
 #include "trig_utils.h"
@@ -213,7 +241,7 @@ static int ptrig_deadline_apply(ubx_block_t *b, struct ptrig_inf *inf,
 	if (ptrig_deadline_make_attr(b, inf, dl, &sa) != 0)
 		return -1;
 
-	if (sched_setattr(0, &sa, 0) != 0) {
+	if (__ubx_sched_setattr(0, &sa, 0) != 0) {
 		ubx_err(b, "sched_setattr failed: %s", strerror(errno));
 		return -1;
 	}
@@ -263,7 +291,7 @@ void *thread_startup(void *arg)
 		 * so that only the ptrig thread receives overrun signals */
 		pthread_sigmask(SIG_UNBLOCK, &sigxcpu_set, NULL);
 
-		if (sched_setattr(0, &inf->deadline_attr, 0) != 0) {
+		if (__ubx_sched_setattr(0, &inf->deadline_attr, 0) != 0) {
 			ubx_err(b, "sched_setattr failed: %s", strerror(errno));
 			__ptrig_stop(b);
 			b->block_state = BLOCK_STATE_INACTIVE;
