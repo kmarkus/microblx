@@ -12,7 +12,10 @@ local ffi = require("ffi")
 
 local has_json, json = pcall(require, "cjson")
 if not has_json then has_json, json = pcall(require, "json") end
-if not has_json then error("test_udpsink: no json module (cjson or json) found") end
+if not has_json then
+   io.stderr:write("WARNING: test_udpsink: skipping (no cjson or json module found)\n")
+   return
+end
 
 local LOGLEVEL = ffi.C.UBX_LOGLEVEL_WARN
 

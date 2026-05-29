@@ -8,7 +8,7 @@ image: gcc:trixie
 
 .setup_deps:
   before_script:
-    - apt update && apt -y install cmake pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck lua-unit libcmocka-dev libsystemd-dev libmxml-dev lua-compat53 lua-compat53-dev dbus libgpiod-dev libiio-dev libiio-utils libgps-dev gpsd libcap2-bin
+    - apt update && apt -y install cmake pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck lua-unit libcmocka-dev libsystemd-dev libmxml-dev lua-compat53 lua-compat53-dev dbus libgpiod-dev libiio-dev libiio-utils libgps-dev gpsd libcap2-bin lua-json
     - cd /builds/
     - git clone --depth=1 https://github.com/kmarkus/uutils.git
     - git clone --depth=1 https://github.com/corsix/ffi-reflect.git
