@@ -4,16 +4,9 @@
 
 #undef UBX_DEBUG
 
-#define CONFIG_PTHREAD_SETNAME
-#define CONFIG_PTHREAD_SETAFFINITY
-
-#ifdef CONFIG_PTHREAD_SETNAME
- #define _GNU_SOURCE
-#endif
-
-#ifdef HAVE_CONFIG_H
- #include "config.h"
-#endif
+/* CONFIG_PTHREAD_SETNAME, CONFIG_PTHREAD_SETAFFINITY, and _GNU_SOURCE are
+ * defined by the build system when the respective GNU extensions are available
+ * (see CMakeLists.txt). */
 
 #include <stdio.h>
 #include <stdlib.h>

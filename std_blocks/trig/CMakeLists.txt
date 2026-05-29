@@ -4,6 +4,7 @@ set(MOD_SRC_DIR ${CMAKE_SOURCE_DIR}/std_blocks/${MOD_NAME})
 set(MOD_BUILD_DIR ${CMAKE_BINARY_DIR}/std_blocks/${MOD_NAME})
 
 include(CheckCSourceCompiles)
+include(CheckSymbolExists)
 
 check_c_source_compiles("
 #define _GNU_SOURCE
@@ -16,6 +17,12 @@ check_c_source_compiles("
 #include <sched.h>
 int main(void) { return SCHED_FLAG_DL_OVERRUN; }
 " HAVE_SCHED_FLAG_DL_OVERRUN)
+
+set(CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
+set(CMAKE_REQUIRED_LIBRARIES pthread)
+check_symbol_exists(pthread_setaffinity_np "pthread.h" HAVE_PTHREAD_SETAFFINITY_NP)
+unset(CMAKE_REQUIRED_DEFINITIONS)
+unset(CMAKE_REQUIRED_LIBRARIES)
 
 file(MAKE_DIRECTORY ${MOD_BUILD_DIR}/types)
 
@@ -56,6 +63,12 @@ if(HAVE_STRUCT_SCHED_ATTR)
 endif()
 if(HAVE_SCHED_FLAG_DL_OVERRUN)
   target_compile_definitions(ptrig PRIVATE HAVE_SCHED_FLAG_DL_OVERRUN)
+endif()
+if(HAVE_PTHREAD_SETNAME_NP)
+  target_compile_definitions(ptrig PRIVATE CONFIG_PTHREAD_SETNAME _GNU_SOURCE)
+endif()
+if(HAVE_PTHREAD_SETAFFINITY_NP)
+  target_compile_definitions(ptrig PRIVATE CONFIG_PTHREAD_SETAFFINITY)
 endif()
 
 set_target_properties(ptrig
