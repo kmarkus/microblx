@@ -37,6 +37,16 @@ This file tracks user visible API changes
 
 New blocks:
 
+- `udpsink`: JSON-over-UDP streaming sink for live plotting with
+  [PlotJuggler](https://plotjuggler.io). Implemented as a plain
+  `ubx/luablock` (no core extension); the port set and UDP destination
+  are declared via `lua_str`. Timestamps use a connected `ts` input port
+  when present, otherwise `ubx_gettime()`. Supports RT/NRT decoupling:
+  run the sink on the luablock self-trigger (`thread=1`, `period`) at a
+  lower rate than the producers and size connection buffers accordingly.
+  Per-port pending/grace slots align frames across non-atomically filled
+  buffers. See `std_blocks/udpsink/README.md`.
+
 - `ubx/gpio`: Linux GPIO block via `libgpiod` v2
 - `ubx/iio`, `ubx/iio_buf`: Linux IIO (ADC/DAC/IMU/sensors) via `libiio`
 - `ubx/gps`: GPS block via `gpsd` shared memory interface
@@ -65,6 +75,9 @@ Other changes:
 - `luablock`: added built-in self-triggering support via the `trigger`
   (set to `1` to enable) and `period` (float, seconds) configs, removing
   the need for a separate `ptrig` in non-RT use-cases.
+- `luablock`: the self-trigger thread is named after the block using
+  `pthread_setname_np`; availability is detected at build time via CMake
+  `check_symbol_exists` and applied as a `PRIVATE` compile definition.
 - `ptrig`: added `SCHED_DEADLINE` support (Linux ≥ 3.14). Set
   `sched_policy` to `"SCHED_DEADLINE"` and provide `sched_deadline =
   { runtime_ns, deadline_ns, period_ns }` — `deadline_ns` and
