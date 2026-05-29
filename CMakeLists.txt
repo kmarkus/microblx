@@ -209,6 +209,7 @@ add_block_subdir(BLOCK_SATURATION  "std_blocks/saturation"  ON)
 add_block_subdir(BLOCK_SKELLETON   "std_blocks/skelleton"   ON)
 add_block_subdir(BLOCK_THRESHOLD   "std_blocks/threshold"   ON)
 add_block_subdir(BLOCK_TRIG        "std_blocks/trig"        ON)
+add_block_subdir(BLOCK_UDPSINK     "std_blocks/udpsink"     ON)
 add_block_subdir(BLOCK_WEBGRAPH    "std_blocks/webgraph"    ON)
 
 

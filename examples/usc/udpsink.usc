@@ -1,0 +1,100 @@
+
+-- udpsink demo: stream a bundle of mathematical functions as JSON
+-- over UDP, ready for PlotJuggler's "UDP Server" input on port 9870.
+--
+--           RT / low-latency (100 Hz ptrig)    :  NRT / best-effort
+--                                              :   (udpsink thread,
+--   /------\    /-----\                        :       10 Hz)
+--   | ramp |--->| sin |---+--->[buf 16]\       :
+--   \------/    \-----/        \        \      :  /---------\
+--      |        /-----\         \  [buf16]+----:->| udpsink |--udp/json-->
+--      +------->| cos |----------+--------/    :  \---------/    PlotJuggler
+--      |        \-----/         /[buf16]/      :
+--      +------->| tan |--->[buf16]              :
+--      |        \-----/                        :
+--      +---------------->[buf 16]--> sink.ts    (ramp drives the time axis)
+--           /---------\                        :
+--           | trigger |  (drives ramp/sin/cos/tan only)
+--           \---------/                        :
+--
+-- This decouples the RT producer side from the best-effort network side.
+-- The ptrig runs ramp/sin/cos/tan at 100 Hz; udpsink is NOT in that chain
+-- but self-triggers on the luablock's own thread at 10 Hz (thread=1,
+-- period=100). The deep connection buffers (buffer_len=16) hold the ~10
+-- samples that pile up between sink steps; each step drains them all (one
+-- datagram per sample), so the slow socket sends add no latency to the RT
+-- chain. "luablock:udpsink" loads udpsink.lua from the blocks search path
+-- and its lua_str declares the input ports and UDP destination.
+--
+-- The ramp feeds sink.ts: a connected "ts" port is used as the JSON
+-- timestamp instead of the sink's own clock (which, decoupled, would
+-- stamp every sample at the 10 Hz read time). Select "ts" as the
+-- timestamp field in PlotJuggler.
+--
+-- Open PlotJuggler -> Streaming -> UDP Server -> port 9870, then
+--   ubx-launch -t 10 -c examples/usc/udpsink.usc
+-- Or watch the raw datagrams:  nc -u -l 9870
+
+return bd.system
+{
+   imports = {
+      "stdtypes",
+      "ptrig",
+      "lfds_cyclic",
+      "ramp_double",
+      "math_double",
+   },
+
+   blocks = {
+      { name="ramp",    type="ubx/ramp_double" },
+      { name="sin",     type="ubx/math_double" },
+      { name="cos",     type="ubx/math_double" },
+      { name="tan",     type="ubx/math_double" },
+      { name="sink",    type="luablock:udpsink" },
+      { name="trigger", type="ubx/ptrig" },
+   },
+
+   configurations = {
+      { name="ramp", config = { slope = 0.02 } },
+      { name="sin",  config = { func = "sin" } },
+      { name="cos",  config = { func = "cos" } },
+      { name="tan",  config = { func = "tan", mul = 0.2 } }, -- damp the asymptotes
+
+      { name="sink",
+	config = {
+	   thread = 1,
+	   period = 100, -- msec: self-trigger at 10 Hz, off the ptrig
+
+	   lua_str = [[
+	      ports = { ts="double", sin="double", cos="double", tan="double" }
+	      host  = "127.0.0.1"
+	      port  = 9870
+	   ]],
+	}
+      },
+
+      { name="trigger",
+	config = {
+	   period = { sec=0, usec=10000 }, -- 100 Hz
+	   chain0 = {
+	      { b="#ramp" },
+	      { b="#sin"  },
+	      { b="#cos"  },
+	      { b="#tan"  },
+	   }
+	}
+      },
+   },
+
+   connections = {
+      { src="ramp.out", tgt="sin.x" },
+      { src="ramp.out", tgt="cos.x" },
+      { src="ramp.out", tgt="tan.x" },
+
+      -- deep buffers absorb the 100->10 Hz rate gap (see header)
+      { src="ramp.out", tgt="sink.ts",  config = { buffer_len = 16 } },
+      { src="sin.y",    tgt="sink.sin", config = { buffer_len = 16 } },
+      { src="cos.y",    tgt="sink.cos", config = { buffer_len = 16 } },
+      { src="tan.y",    tgt="sink.tan", config = { buffer_len = 16 } },
+   },
+}
