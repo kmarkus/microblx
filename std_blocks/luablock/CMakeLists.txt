@@ -16,6 +16,11 @@ target_include_directories(${MOD_NAME}
 
 target_compile_options(${MOD_NAME} PRIVATE ${UBX_MOD_CFLAGS} )
 
+# name the self-trigger thread after the block (see luablock_start)
+if(HAVE_PTHREAD_SETNAME_NP)
+  target_compile_definitions(${MOD_NAME} PRIVATE CONFIG_PTHREAD_SETNAME _GNU_SOURCE)
+endif()
+
 set_target_properties(${MOD_NAME}
   PROPERTIES
   POSITION_INDEPENDENT_CODE ON

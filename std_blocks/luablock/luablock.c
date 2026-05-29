@@ -4,6 +4,9 @@
 
 #undef UBX_DEBUG
 
+/* CONFIG_PTHREAD_SETNAME and _GNU_SOURCE are defined by the build system
+ * when pthread_setname_np() is available (see CMakeLists.txt). */
+
 #include <lauxlib.h>
 #include <lualib.h>
 #include <lua.h>
@@ -309,6 +312,10 @@ int luablock_start(ubx_block_t *b)
 			inf->thread_running = 0;
 			return -1;
 		}
+#ifdef CONFIG_PTHREAD_SETNAME
+		if (pthread_setname_np(inf->tid, b->name))
+			ubx_err(b, "failed to set thread name to %s", b->name);
+#endif
 		ubx_info(b, "started self-trigger thread, period %d ms", inf->period_ms);
 	}
 

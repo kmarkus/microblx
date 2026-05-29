@@ -57,6 +57,14 @@ else()
   include_directories(${UTHASH_INCLUDE_DIRS})
 endif()
 
+# pthread_setname_np (GNU extension) for naming block threads
+include(CheckSymbolExists)
+set(CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
+set(CMAKE_REQUIRED_LIBRARIES pthread)
+check_symbol_exists(pthread_setname_np "pthread.h" HAVE_PTHREAD_SETNAME_NP)
+unset(CMAKE_REQUIRED_DEFINITIONS)
+unset(CMAKE_REQUIRED_LIBRARIES)
+
 #
 # libubx
 #
