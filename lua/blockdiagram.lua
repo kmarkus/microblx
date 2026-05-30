@@ -1092,14 +1092,21 @@ function system.launch(self, t)
 					  dumpable=t.dumpable })
 
    def_loggers(nd, "launch")
-   import_modules(nd, s)
-   create_blocks(nd, s)
-   _NC = build_nodecfg_tab(nd, s)
-   configure_blocks(nd, s, _NC)
-   connect_blocks(nd, s)
-   late_checks(t, nd)
 
-   if not t.nostart then system.startup(s, nd) end
+   local ok, err = pcall(function()
+      import_modules(nd, s)
+      create_blocks(nd, s)
+      _NC = build_nodecfg_tab(nd, s)
+      configure_blocks(nd, s, _NC)
+      connect_blocks(nd, s)
+      late_checks(t, nd)
+      if not t.nostart then system.startup(s, nd) end
+   end)
+
+   if not ok then
+      if not t.nd then ubx.node_rm(nd) end
+      error(err, 0)
+   end
 
    return nd
 end
