@@ -504,11 +504,11 @@ function TestPtrig:TestDeadlineRuns()
    nd:b("ptrig"):do_stop()
 
    local cnt, val = p_ramp:read()
+   ubx.node_rm(nd)
+
    assert_true(cnt > 0, "no ramp value received")
    assert_true(val:tolua() > 10,
       "expected >10 steps in 500ms at 10ms period, got " .. tostring(val:tolua()))
-
-   ubx.node_rm(nd)
 end
 
 if not _RUNNER then os.exit( luaunit.LuaUnit.run() ) end
