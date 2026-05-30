@@ -341,6 +341,7 @@ function M.is_inoutport(p) return M.is_outport(p) and M.is_inport(p) end
 
 --                           LOGGING API
 
+--- Logging
 -- @section Logging
 
 --- Log a message via rtlog.
@@ -378,6 +379,7 @@ M.debug = dbg
 
 --                           OS API
 
+--- Clock and time
 -- @section OS
 
 --- Retrieve the current time via `ubx_gettime`.
@@ -454,6 +456,7 @@ ffi.metatype("struct ubx_timespec", ubx_timespec_mt)
 
 --                           Node API
 
+--- Node
 -- @section Node
 
 --- Remove a node manually.
@@ -637,6 +640,7 @@ ffi.metatype("struct ubx_node", ubx_node_mt)
 
 --                           Block API
 
+--- Block
 -- @section Block
 
 --- Check if a block has a given attribute flag set.
@@ -984,6 +988,7 @@ ffi.metatype("struct ubx_block", ubx_block_mt)
 
 --                           Data type handling
 
+--- Data
 -- @section Data
 
 --- Return the total byte size of a `ubx_data_t` (`d.len * type.size`).
@@ -1315,6 +1320,7 @@ ffi.metatype("struct ubx_type", ubx_type_mt)
 
 --                           Config handling
 
+--- Config
 -- @section Config
 
 --- Check if a configuration value is null (zero-length `ubx_data_t`).
@@ -1372,6 +1378,7 @@ ffi.metatype("struct ubx_config", ubx_config_mt)
 
 --                              Interactions
 
+--- Interaction
 -- @section Interaction
 
 --- Read from an interaction block.
@@ -1405,6 +1412,7 @@ end
 
 --                   Port reading and writing
 
+--- Port
 -- @section Port
 
 --- Allocate a `ubx_data_t` sized for reading from a port.
@@ -1586,6 +1594,7 @@ ffi.metatype("struct ubx_port", ubx_port_mt)
 
 --                   Useful stuff: foreach, pretty printing
 
+--- Iterators
 -- @section Iterators
 
 --- Call a function on every known type.
