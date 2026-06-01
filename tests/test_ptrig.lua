@@ -476,6 +476,18 @@ function TestPtrig:TestDeadlineConfigConstraintViolation()
    ubx.node_rm(nd)
 end
 
+-- SCHED_DEADLINE is rejected in non-initial user namespaces regardless of
+-- CAP_SYS_NICE, so rootless containers (podman/docker) can't run this test.
+-- The init userns has uid_map "0 0 4294967295"; anything else is a child ns.
+local function in_root_userns()
+   local f = io.open("/proc/self/uid_map", "r")
+   if not f then return true end
+   local line = f:read("*l"); f:close()
+   local inner, outer, len = (line or ""):match("^%s*(%d+)%s+(%d+)%s+(%d+)")
+   return inner == "0" and outer == "0"
+          and tonumber(len) and tonumber(len) > 1000000
+end
+
 -- Functional test: ptrig with SCHED_DEADLINE config runs and steps correctly.
 -- Requires CAP_SYS_NICE (run via run_tests.sh which grants it through capsh).
 local sys_dl = bd.system {
@@ -496,6 +508,8 @@ local sys_dl = bd.system {
 }
 
 function TestPtrig:TestDeadlineRuns()
+   luaunit.skipIf(not in_root_userns(),
+      "SCHED_DEADLINE not available in rootless user namespace")
    local nd = sys_dl:launch{ nostart=true, loglevel=LOGLEVEL, nodename='TestDeadlineRuns' }
    local p_ramp = ubx.port_clone_conn(nd:b("ramp"), "out", 1)
 
