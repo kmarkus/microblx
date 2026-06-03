@@ -36,7 +36,10 @@ int ubx_wait_sigint(unsigned int timeout_s)
 }
 
 /**
- * replace char  in string
+ * char_replace - replace all occurrences of a character in a string
+ * @param s string to modify in place
+ * @param find character to search for
+ * @param rep replacement character
  */
 void char_replace(char *s, const char find, const char rep)
 {

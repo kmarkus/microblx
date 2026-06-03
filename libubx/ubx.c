@@ -90,8 +90,8 @@ const char *get_typename(const ubx_data_t *data)
 /**
  * ubx_module_load - load a module in a node.
  *
- * @param ni
- * @param lib
+ * @param nd node to load module into
+ * @param lib name of module library to load
  *
  * @return 0 if Ok, non-zero otherwise.
  */
@@ -187,10 +187,10 @@ ubx_module_t *ubx_module_get(ubx_node_t *nd, const char *lib)
 }
 
 /**
- * ubx_module_close - close a module from a node.
+ * ubx_module_cleanup - run cleanup hook of a module.
  *
- * @param ni node_info
- * @param lib name of module library to unload
+ * @param nd node containing the module
+ * @param lib name of module library to clean up
  */
 static void ubx_module_cleanup(ubx_node_t *nd, const char *lib)
 {
@@ -231,7 +231,7 @@ static void ubx_module_close(ubx_node_t *nd, const char *lib)
 /**
  * ubx_module_unload - unload a module from a node.
  *
- * @param ni node_info
+ * @param nd node to unload module from
  * @param lib name of module library to unload
  */
 void ubx_module_unload(ubx_node_t *nd, const char *lib)
@@ -242,9 +242,11 @@ void ubx_module_unload(ubx_node_t *nd, const char *lib)
 
 
 /**
- * initalize node_info
+ * ubx_node_init - initialize node_info
  *
- * @param ni
+ * @param nd node to initialize
+ * @param name node name
+ * @param attrs node attributes
  *
  * @return 0 if ok, -1 otherwise.
  */
@@ -301,11 +303,11 @@ int ubx_node_init(ubx_node_t *nd, const char *name, uint32_t attrs)
 }
 
 /**
- * ubx_node_clear
+ * ubx_node_clear - clear all blocks from a node
  *
  * Stop, cleanup and remove all block instances of the given node.
  *
- * @param ni
+ * @param nd node to clear
  */
 void ubx_node_clear(ubx_node_t *nd)
 {
@@ -347,7 +349,7 @@ void ubx_node_clear(ubx_node_t *nd)
  * This function will run ubx_node_clear and then unload all
  * modules. The node is empty but still valid afterwards.
  *
- * @param ni
+ * @param nd node to cleanup
  */
 void ubx_node_cleanup(ubx_node_t *nd)
 {
@@ -385,12 +387,12 @@ void ubx_node_cleanup(ubx_node_t *nd)
 }
 
 /**
- * ubx_node_rm - cleanup an destroy a node
+ * ubx_node_rm - cleanup and destroy a node
  *
  * calls ubx_node_cleanup and frees node member memory. Must be
  * reinitialized with ubx_node_init before reusing.
  *
- * @param ni
+ * @param nd node to remove
  */
 void ubx_node_rm(ubx_node_t *nd)
 {
@@ -419,8 +421,8 @@ static int ubx_block_check(ubx_node_t *nd, ubx_block_t *b)
 /**
  * __block_register - register a block with a node
  *
- * @ni: node to register with
- * @block: block to register
+ * @param nd node to register with
+ * @param block block to register
  */
 static int __block_register(ubx_node_t *nd, ubx_block_t *block)
 {
@@ -451,8 +453,8 @@ static int __block_register(ubx_node_t *nd, ubx_block_t *block)
  * node_info. In contrast to runtime blocks, this expects simple { 0 }
  * terminated arrays for configs and ports.
  *
- * @param ni
- * @param block
+ * @param nd node to register block with
+ * @param prot prototype block to register
  *
  * @return 0 if Ok, < 0 otherwise.
  */
@@ -542,12 +544,12 @@ out_err:
 }
 
 /**
- * Retrieve a block by name
+ * ubx_block_get - retrieve a block by name
  *
- * @param ni
- * @param name
+ * @param nd node to search in
+ * @param name block name to find
  *
- * @return ubx_block_t*
+ * @return ubx_block_t* or NULL if not found
  */
 ubx_block_t *ubx_block_get(ubx_node_t *nd, const char *name)
 {
@@ -564,9 +566,8 @@ out:
 /**
  * ubx_block_unregister - unregister a block and free its memory.
  *
- * @param ni
- * @param type
- * @param name
+ * @param nd node to unregister block from
+ * @param name block name to unregister
  *
  * @return 0 if OK, -1 otherwise
  */
@@ -593,10 +594,10 @@ int ubx_block_unregister(ubx_node_t *nd, const char *name)
 /**
  * ubx_type_register - register a type with a node.
  *
- * @param ni
- * @param type
+ * @param nd node to register type with
+ * @param type type to register
  *
- * @return
+ * @return 0 if OK, error code otherwise
  */
 int ubx_type_register(ubx_node_t *nd, ubx_type_t *type)
 {
@@ -646,10 +647,10 @@ int ubx_type_register(ubx_node_t *nd, ubx_type_t *type)
  * Should we add use count handling and only succeed unloading when
  * not used?
  *
- * @param ni
- * @param name
+ * @param nd node to unregister type from
+ * @param name type name to unregister
  *
- * @return type
+ * @return pointer to unregistered type or NULL if not found
  */
 ubx_type_t *ubx_type_unregister(ubx_node_t *nd, const char *name)
 {
@@ -671,8 +672,8 @@ ubx_type_t *ubx_type_unregister(ubx_node_t *nd, const char *name)
 /**
  * ubx_type_get - find a ubx_type by name.
  *
- * @param ni
- * @param name
+ * @param nd node to search in
+ * @param name type name to find
  *
  * @return pointer to ubx_type or NULL if not found.
  */
@@ -693,7 +694,7 @@ out:
 /**
  * ubx_type_get_by_hash
  *
- * @param ni node_info
+ * @param nd node to search in
  * @param hash binary hash array of TYPE_HASH_LEN+1 size
  * @return ubx_type_t* or NULL if not found
  */
@@ -709,10 +710,10 @@ ubx_type_t *ubx_type_get_by_hash(ubx_node_t *nd, const uint8_t *hash)
 }
 
 /**
- * ubx_type_get_by_hash
+ * ubx_type_get_by_hashstr
  *
  * lookup a ubx type by its type hash
- * @param ni
+ * @param nd node to search in
  * @param hashstr zero terminated hex string of TYPE_HASHSTR_LEN+1 size
  * @return ubx_type_t* or NULL if not found
  */
@@ -763,8 +764,8 @@ void ubx_type_hashstr(const ubx_type_t *t, char *buf)
  *
  * This type should be free'd using the ubx_data_free function.
  *
- * @type: ubx_type_t to be allocated
- * @array_len: array length of data. Can be 0.
+ * @param typ ubx_type_t to allocate for
+ * @param array_len array length of data, can be 0
  *
  * @return ubx_data_t* or NULL in case of error.
  */
@@ -804,9 +805,9 @@ out:
  *
  * This type should be free'd using the ubx_data_free function.
  *
- * @param ni
- * @param typename
- * @param array_len
+ * @param nd node to look up type in
+ * @param typname type name string
+ * @param array_len array length of data
  *
  * @return ubx_data_t* or NULL in case of error.
  */
@@ -862,10 +863,9 @@ int ubx_data_resize(ubx_data_t *d, long newlen)
 
 
 /**
- * Free a previously allocated ubx_data_t type.
+ * Free a previously allocated ubx_data_t.
  *
- * @param ni
- * @param d
+ * @param d ubx_data_t to free
  */
 void ubx_data_free(ubx_data_t *d)
 {
@@ -914,7 +914,7 @@ int ubx_num_modules(ubx_node_t *nd)
 /**
  * ubx_port_free - free port data
  *
- * @param p port pointer
+ * @param p port pointer to free
  */
 void ubx_port_free(ubx_port_t *p)
 {
@@ -925,7 +925,7 @@ void ubx_port_free(ubx_port_t *p)
 }
 
 /**
- * ubx_config_free_data - free a config's extra memory
+ * ubx_config_free - free a config's extra memory
  *
  * @param c config whose data to free
  */
@@ -945,7 +945,7 @@ static void ubx_config_free(ubx_config_t *c)
  * @param config
  * @param data ubx_data_t to assign
  *
- * @return 0 if OK, ETYPE_MISMATCH fpr mismatching types
+ * @return 0 if OK, ETYPE_MISMATCH for mismatching types
  */
 int ubx_config_assign(ubx_config_t *c, ubx_data_t *d)
 {
@@ -965,10 +965,7 @@ int ubx_config_assign(ubx_config_t *c, ubx_data_t *d)
  *
  * The block should have been previously unregistered.
  *
- * @param block_type
- * @param name
- *
- * @return
+ * @param b block to free
  */
 void ubx_block_free(ubx_block_t *b)
 {
@@ -1089,9 +1086,9 @@ out_free:
 /**
  * ubx_block_create - create a new block
  *
- * @ni node info
- * @block_type type of block to create
- * @param name
+ * @param nd node to create block in
+ * @param type prototype block type to clone
+ * @param name name of new block
  *
  * @return the newly created block or NULL
  */
@@ -1148,9 +1145,8 @@ ubx_block_t *ubx_block_create(ubx_node_t *nd, const char *type, const char *name
  * This will unregister a block and free it's data. The block must be
  * in BLOCK_STATE_PREINIT state.
  *
- * @param ni
- * @param block_type
- * @param name
+ * @param nd node to remove block from
+ * @param name block name to remove
  *
  * @return 0 if ok, error code otherwise.
  */
@@ -1192,8 +1188,8 @@ int ubx_block_rm(ubx_node_t *nd, const char *name)
  *
  * grow/shrink the array if necessary.
  *
- * @param arr
- * @param newblock
+ * @param arr array to add block to
+ * @param newblock block to add
  *
  * @return < 0 in case of error, 0 otherwise.
  */
@@ -1256,8 +1252,8 @@ out:
 /**
  * ubx_port_connect_out - connect a port out channel to an iblock.
  *
- * @param p
- * @param iblock
+ * @param p port to connect
+ * @param iblock block to connect to
  *
  * @return  < 0 in case of error, 0 otherwise.
  */
@@ -1283,8 +1279,8 @@ out:
 /**
  * ubx_port_connect_in - connect a port in channel to an iblock.
  *
- * @param p
- * @param iblock
+ * @param p port to connect
+ * @param iblock block to connect to
  *
  * @return < 0 in case of error, 0 otherwise.
  */
@@ -1310,9 +1306,9 @@ out:
 /**
  * ubx_ports_connect - connect two ports with an iblock
  *
- * @out_port output port
- * @in_port input port
- * @iblock iblock to use for connection
+ * @param out_port output port
+ * @param in_port input port
+ * @param iblock iblock to use for connection
  *
  * @return < 0  in case of error, 0 otherwise.
  */
@@ -1368,8 +1364,8 @@ out:
 /**
  * ubx_port_disconnect_out - disconnect port out channel from interaction.
  *
- * @param out_port
- * @param iblock
+ * @param out_port port to disconnect
+ * @param iblock block to disconnect from
  *
  * @return < 0 in case of error, 0 otherwise.
  */
@@ -1397,8 +1393,8 @@ out:
 /**
  * ubx_port_disconnect_in - disconnect port in channel from interaction.
  *
- * @param out_port
- * @param iblock
+ * @param in_port port to disconnect
+ * @param iblock block to disconnect from
  *
  * @return < 0 in case of error, 0 otherwise.
  */
@@ -1425,9 +1421,9 @@ out:
 /**
  * ubx_ports_disconnect - disconnect two ports
  *
- * @out_port output port to disconnect
- * @in_port input port to disconnect
- * @iblock iblock used for connection
+ * @param out_port output port to disconnect
+ * @param in_port input port to disconnect
+ * @param iblock iblock used for connection
  *
  * Note that the iblock itself is not touched
  *
@@ -1477,8 +1473,8 @@ out:
 /**
  * ubx_config_get - retrieve a configuration type by name.
  *
- * @param b
- * @param name
+ * @param b block to search in
+ * @param name config name to find
  *
  * @return ubx_config_t pointer or NULL if not found.
  */
@@ -1573,12 +1569,15 @@ long ubx_config_data_len(const ubx_block_t *b, const char *cfg_name)
 
 
 /**
- * ubx_config_add - internal version with already resolved type
+ * __ubx_config_add - internal version with already resolved type
  *
- * @param b
- * @param name
- * @param doc
- * @param type_name
+ * @param b block to add config to
+ * @param name config name
+ * @param doc config documentation string
+ * @param type resolved type pointer
+ * @param min minimum array length
+ * @param max maximum array length
+ * @param attrs config attributes
  *
  * @return 0 if Ok, !=0 otherwise.
  */
@@ -1654,13 +1653,13 @@ out:
  *
  * this version allows setting min/max and attrs too.
  *
- * @b
- * @name
- * @doc
- * @type_name
- * @min
- * @max
- * @attrs
+ * @param b block to add config to
+ * @param name config name
+ * @param doc config documentation
+ * @param type_name type name for config
+ * @param min minimum value
+ * @param max maximum value
+ * @param attrs attributes for config
  *
  * @return 0 if Ok, !=0 otherwise.
  */
@@ -1695,10 +1694,10 @@ int ubx_config_add2(ubx_block_t *b,
 /**
  * ubx_config_add - add a new config to a block.
  *
- * @b
- * @name
- * @doc
- * @type_name
+ * @param b block to add config to
+ * @param name config name
+ * @param doc config documentation
+ * @param type_name type name for config
  *
  * @return 0 if Ok, !=0 otherwise.
  */
@@ -1714,8 +1713,8 @@ int ubx_config_add(ubx_block_t *b,
 /**
  * ubx_config_rm - remove a config from a block and free it.
  *
- * @b block from which to remove config
- * @name name of config to remove
+ * @param b block from which to remove config
+ * @param name name of config to remove
  *
  * @return < 0 in case of error, 0 otherwise.
  */
@@ -1789,13 +1788,14 @@ static int check_minmax(const ubx_block_t *b, const int checklate)
 /**
  * __ubx_port_add - internal version with resolved types
  *
- * @b
- * @name
- * @doc
- * @in_type
- * @in_data_len
- * @out_type
- * @out_data_len
+ * @param b block to add port to
+ * @param name port name
+ * @param doc port documentation string
+ * @param attrs port attributes
+ * @param in_type resolved input type pointer
+ * @param in_data_len input array length
+ * @param out_type resolved output type pointer
+ * @param out_data_len output array length
  *
  * @return < 0 in case of error, 0 otherwise.
  */
@@ -1861,15 +1861,16 @@ out:
 }
 
 /**
- * ubx_port_add - a port to a block instance and resolve types.
+ * ubx_port_add - add a port to a block instance and resolve types.
  *
- * @param b
- * @param name
- * @param doc
- * @param in_type_name
- * @param in_data_len
- * @param out_type_name
- * @param out_data_len
+ * @param b block to add port to
+ * @param name port name
+ * @param doc port documentation
+ * @param attrs port attributes
+ * @param in_type_name input type name
+ * @param in_data_len input data length
+ * @param out_type_name output type name
+ * @param out_data_len output data length
  *
  * @return < 0 in case of error, 0 otherwise.
  */
@@ -1908,10 +1909,12 @@ int ubx_port_add(ubx_block_t *b,
 /**
  * ubx_outport_add - add an output port
  *
- * @param b
- * @param name
- * @param out_type_name
- * @param out_data_len
+ * @param b block to add port to
+ * @param name port name
+ * @param doc port documentation string
+ * @param attrs port attributes
+ * @param out_type_name output type name
+ * @param out_data_len output array length
  * @return < 0 in case of error, 0 otherwise
  */
 int ubx_outport_add(ubx_block_t *b, const char *name, const char *doc, uint32_t attrs,
@@ -1962,10 +1965,12 @@ int ubx_outport_resize(struct ubx_port *p, long len)
 /**
  * ubx_inport_add - add an input-port
  *
- * @param b
- * @param name
- * @param in_type_name
- * @param in_data_len
+ * @param b block to add port to
+ * @param name port name
+ * @param doc port documentation string
+ * @param attrs port attributes
+ * @param in_type_name input type name
+ * @param in_data_len input array length
  * @return < 0 in case of error, 0 otherwise
  */
 int ubx_inport_add(ubx_block_t *b, const char *name, const char *doc, uint32_t attrs,
@@ -1977,10 +1982,10 @@ int ubx_inport_add(ubx_block_t *b, const char *name, const char *doc, uint32_t a
 /**
  * ubx_port_rm - remove a port from a block.
  *
- * @param b
- * @param name
+ * @param b block to remove port from
+ * @param name name of port to remove
  *
- * @return
+ * @return 0 if OK, error code otherwise
  */
 int ubx_port_rm(ubx_block_t *b, const char *name)
 {
@@ -2007,8 +2012,8 @@ int ubx_port_rm(ubx_block_t *b, const char *name)
 /**
  * ubx_port_get - retrieve a block port by name
  *
- * @param b
- * @param name
+ * @param b block to search in
+ * @param name port name to find
  *
  * @return port pointer or NULL
  */
@@ -2036,10 +2041,9 @@ ubx_port_t *ubx_port_get(const ubx_block_t *b, const char *name)
 
 
 /**
- * ubx_block_init - initalize a function block.
+ * ubx_block_init - initialize a function block.
  *
- * @param ni
- * @param b
+ * @param b block to initialize
  *
  * @return 0 if state was changed, non-zero otherwise.
  */
@@ -2093,8 +2097,7 @@ int ubx_block_init(ubx_block_t *b)
 /**
  * ubx_block_start - start a function block.
  *
- * @param ni
- * @param b
+ * @param b block to start
  *
  * @return 0 if state was changed, non-zero otherwise.
  */
@@ -2144,10 +2147,9 @@ int ubx_block_start(ubx_block_t *b)
 /**
  * ubx_block_stop - stop a function block
  *
- * @param ni
- * @param b
+ * @param b block to stop
  *
- * @return
+ * @return 0 if OK, error code otherwise
  */
 int ubx_block_stop(ubx_block_t *b)
 {
@@ -2183,8 +2185,7 @@ int ubx_block_stop(ubx_block_t *b)
 /**
  * ubx_block_cleanup - bring function block back to preinit state.
  *
- * @param ni
- * @param b
+ * @param b block to cleanup
  *
  * @return 0 if state was changed, non-zero otherwise.
  */
@@ -2220,9 +2221,9 @@ int ubx_block_cleanup(ubx_block_t *b)
 }
 
 /**
- * Step a cblock
+ * ubx_cblock_step - step a computation block
  *
- * @param b
+ * @param b block to step
  *
  * @return 0 if OK, else -1
  */
@@ -2262,7 +2263,7 @@ out:
 
 
 /**
- * @brief
+ * __port_read - read data from a port
  *
  * @param port port from which to read
  * @param data ubx_data_t to store result

@@ -116,9 +116,8 @@ out_err:
  * struct ubx_chain data structures. To be run in start hook.
  *
  * @b: block from which to retrieve configs
- * @ubx_chain: pointer pointer to ubx_chain. The pointer will be assigned to
- * 	       allocated memory which must be freed using @common_cleanup.
- * @num_chains: the number of trigger lists to create
+ * @chain: pointer to array of ubx_chain structs to configure
+ * @num_chains: the number of trigger chains to configure
  * @return 0 if OK, < 0 otherwise
  */
 int common_config_chains(const ubx_block_t *b, struct ubx_chain *chain, int num_chains)

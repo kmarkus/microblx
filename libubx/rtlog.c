@@ -108,7 +108,7 @@ struct log_shm_inf inf;
  *  - aligned memory accesses are guaranteed atomic on most architectures
  *  - we only have one writer
  *
- * This be portable, this should use gcc atomic ops.
+ * To be portable, this should use gcc atomic ops.
  *
  * @param inc new write pointer offset (bytes)
  */

@@ -674,8 +674,8 @@ local function import_modules(nd, s)
 end
 
 --- Instantiate blocks
---- @param nd ubx_node into which to instantiate the blocks
---- @param root_sys system
+-- @param nd ubx_node into which to instantiate the blocks
+-- @param root_sys system
 local function create_blocks(nd, root_sys)
    mapblocks(
       function(b,i,p)

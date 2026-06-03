@@ -50,10 +50,10 @@ M.struct2tab['struct ubx_block']=function(b) return ffi.string(b.name) end
 
 local num_format_spec="%.3f"
 
---- Convert a FFI cdata to a Lua table.
--- @param cd FFI cdata to convert Lua
--- @param don'refct, don't use (internal recursive param)
--- @param table
+--- Convert a FFI cdata to a Lua value.
+-- @param cd FFI cdata to convert to Lua
+-- @param refct internal recursive parameter, don't use
+-- @return Lua value (number, string, or table)
 function M.tolua(cd, refct)
    local res
 
@@ -124,7 +124,7 @@ end
 
 --- Destructure a refct into a Lua table.
 -- @param refct reflect ctype
--- @result lua table
+-- @return lua table
 function M.refct_destruct(refct)
    local res
 
@@ -181,6 +181,7 @@ end
 
 --- Flatten table and subtable keys.
 -- @param t table to flatten
+-- @param prefix optional key prefix string
 -- @return table of {key="x.y.z", value="number|string"}
 function M.flatten_keys(t, prefix)
    --- Add key to prefix.

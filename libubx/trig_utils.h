@@ -65,7 +65,7 @@ void tstat_update(struct ubx_tstat *stats,
 void tstat_log(const ubx_block_t *b, const struct ubx_tstat *stats);
 
 /**
- * tstat_fwrite - write a ubx_stat to the give FILE
+ * tstat_fwrite - write a ubx_tstat to the given FILE
  * @fp FILE to write to
  * @stats ubx_tstat to write
  * @return 0 if OK, !=0 otherwise
@@ -77,7 +77,7 @@ int tstat_fwrite(FILE *fp, struct ubx_tstat *stats);
  * struct ubx_chain
  *
  * This data-structure holds all information require to trigger a
- * sequential list of blocks and aquire timing statistics. It must be
+ * sequential list of blocks and acquire timing statistics. It must be
  * initialized and cleaned up with ubx_chain_init and _cleanup (s.b).
  *
  * @triggees: pointer to an ubx_triggee array, i.e. the array of blocks to trigger
@@ -131,9 +131,9 @@ int ubx_chain_init(struct ubx_chain* chain,
 		   double tstats_output_rate);
 
 /**
- * chain_cleanup - release allocated resources
+ * ubx_chain_cleanup - release allocated resources
  *
- * this free resouces allocated by ubx_chain_init such as tstat
+ * this frees resources allocated by ubx_chain_init such as tstat
  * buffers.
  *
  * @chain: ubx_chain to cleanup
@@ -176,10 +176,10 @@ void ubx_chain_tstats_output(ubx_block_t *b, struct ubx_chain *chain);
 FILE* ubx_tstats_fopen(ubx_block_t *b, const char *profile_path);
 
 /**
- * ubx_chain_tstats_write
+ * ubx_chain_tstats_fwrite
  *
  * write all tstats of the given chain to a file called
- * "<profile_path>/<chain_id>.tsats"
+ * "<profile_path>/<chain_id>.tstats"
  *
  * @b parent block for logging
  * @fp FILE to write chain to

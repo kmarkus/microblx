@@ -285,8 +285,7 @@ out:
 /**
  * logc_dataptr_get - get a pointer to the frame payload.
  *
- * @param frame frame for which calculate the payload ptr
- * @param inf local data
+ * @param frame frame for which to calculate the payload ptr
  * @return pointer to the frame payload
  */
 void *logc_dataptr_get(volatile log_frame_t *frame)

@@ -113,7 +113,7 @@ __attribute__ ((visibility("default"))) void __ubx_cleanup_module(ubx_node_t *nd
 /**
  * struct ubx_proto_port
  * @doc: docstring
- * @name: name of prototype (i.e. it's type)
+ * @name: port name
  * @attrs: port attributes (currently unused)
  * @out_type_name: name of output type
  * @in_type_name: name of input type
@@ -154,13 +154,13 @@ typedef struct ubx_proto_block {
 	void (*cleanup)(struct ubx_block *b);
 
 	union {
-		/* COMP_TYPE_COMPUTATION */
+		/* BLOCK_TYPE_COMPUTATION */
 		struct {
 			void (*step)(struct ubx_block *cblock);
 			unsigned long stat_num_steps;
 		};
 
-		/* COMP_TYPE_INTERACTION */
+		/* BLOCK_TYPE_INTERACTION */
 		struct {
 			long (*read)(struct ubx_block *iblock,
 				     ubx_data_t *value);

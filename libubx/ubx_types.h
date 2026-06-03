@@ -83,7 +83,7 @@ struct ubx_log_msg;
 /**
  * type classes
  *
- * @TYPE_CLASS_BASIC: primivitve C type
+ * @TYPE_CLASS_BASIC: primitive C type
  * @TYPE_CLASS_STRUCT: C struct type
  *
  * currently only BASIC and STRUCT are used
@@ -295,14 +295,14 @@ enum {
  * @start: start hook
  * @stop: stop hook
  * @cleanup: cleanup hook
- * @step: step hook (only BLOCK_TYPE_COMPUTATION only)
+ * @step: step hook (only for BLOCK_TYPE_COMPUTATION)
  * @stat_num_steps: step count statistics (only BLOCK_TYPE_COMPUTATION)
  * @read: read hook (only BLOCK_TYPE_INTERACTION)
  * @write: write hook (only BLOCK_TYPE_INTERACTION)
  * @stat_num_reads: read count statistics (only BLOCK_TYPE_INTERACTION)
- * @stat_num_writes: wrte count statistics (only BLOCK_TYPE_INTERACTION)
+ * @stat_num_writes: write count statistics (only BLOCK_TYPE_INTERACTION)
  * @private_data: pointer to block instance state
- * @hh UT_hash_handle
+ * @hh: UT_hash_handle
  */
 typedef struct ubx_block {
 	const char name[UBX_BLOCK_NAME_MAXLEN + 1];
@@ -326,13 +326,13 @@ typedef struct ubx_block {
 	void (*cleanup)(struct ubx_block *b);
 
 	union {
-		/* COMP_TYPE_COMPUTATION */
+		/* BLOCK_TYPE_COMPUTATION */
 		struct {
 			void (*step)(struct ubx_block *cblock);
 			unsigned long stat_num_steps;
 		};
 
-		/* COMP_TYPE_INTERACTION */
+		/* BLOCK_TYPE_INTERACTION */
 		struct {
 			long (*read)(struct ubx_block *iblock,
 				     ubx_data_t *value);
@@ -355,7 +355,7 @@ typedef struct ubx_block {
  * @handle: dlopen handle
  * @init: module init function
  * @cleanup: module cleanup function
- * @spdx_license_id: pointer to SDPX license id string
+ * @spdx_license_id: pointer to SPDX license id string
  * @hh: UT_hash_handle
  */
 typedef struct ubx_module {
@@ -420,7 +420,7 @@ struct ubx_timespec {
 
 /**
  * struct ubx_log_msg - ubx log message
- * @level: log level (%UBX_LL_ERR, ...)
+ * @level: log level (UBX_LOGLEVEL_ERR, ...)
  * @ts: timestamp taken at time of logging
  * @src: source of log message (typically block or node name)
  * @msg: log message

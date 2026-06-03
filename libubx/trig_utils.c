@@ -180,7 +180,7 @@ static void tstats_output_throttled(struct ubx_chain *chain, uint64_t now)
 /**
  * trig_single_block
  *
- * trigger a single block considering every and	num_steps
+ * trigger a single block considering every and num_steps
  * @t ubx_triggee to trigger
  * @return 0: OK, <0: error stepping
  */
@@ -202,7 +202,7 @@ out:
 /**
  * trig_stats_perblock
  *
- * trigger the given chain and aquire per-block statistics
+ * trigger the given chain and acquire per-block statistics
  */
 static int trig_stats_perblock(struct ubx_chain *chain)
 {
@@ -245,7 +245,7 @@ static int trig_stats_perblock(struct ubx_chain *chain)
 /**
  * trig_stats_global
  *
- * trigger the given chain and aquire (only) global statistics
+ * trigger the given chain and acquire (only) global statistics
  */
 static int trig_stats_global(struct ubx_chain *chain)
 {
@@ -283,7 +283,7 @@ static int trig_stats_global(struct ubx_chain *chain)
 /**
  * trig_stats_disabled
  *
- * trigger the given chain but don't aquire any stats
+ * trigger the given chain but don't acquire any stats
  */
 static int trig_stats_disabled(struct ubx_chain *chain)
 {
@@ -376,10 +376,10 @@ void ubx_chain_tstats_output(ubx_block_t *b, struct ubx_chain *chain)
 /**
  * tstats_build_filename - construct a tstats log file name
  *
- * sanitze name, append .tstats and prepend profile path.
+ * sanitize name, append .tstats and prepend profile path.
  *
  * @name base file name
- * @profile path
+ * @profile_path path to prepend
  * @return filename, must be freed by caller!
  */
 static char* tstats_build_filename(const char *name, const char *profile_path)
