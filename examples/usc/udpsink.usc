@@ -40,7 +40,7 @@ return bd.system
    imports = {
       "stdtypes",
       "ptrig",
-      "lfds_cyclic",
+      "lfrb",
       "ramp_double",
       "math_double",
    },
