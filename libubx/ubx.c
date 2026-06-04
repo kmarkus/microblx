@@ -315,7 +315,19 @@ void ubx_node_clear(ubx_node_t *nd)
 
 	logf_debug(nd, "node %s", nd->name);
 
-	/* stop all blocks */
+	/* stop active (thread-owning) blocks first, so that no
+	 * trigger thread is stepping the passive blocks stopped
+	 * below */
+	HASH_ITER(hh, nd->blocks, b, btmp) {
+		if (b->block_state == BLOCK_STATE_ACTIVE &&
+		    (b->attrs & BLOCK_ATTR_ACTIVE)) {
+			logf_debug(nd, "stopping active block %s", b->name);
+			if (ubx_block_stop(b) != 0)
+				logf_err(nd, "failed to stop block %s", b->name);
+		}
+	}
+
+	/* stop remaining blocks */
 	HASH_ITER(hh, nd->blocks, b, btmp) {
 		if (b->block_state == BLOCK_STATE_ACTIVE) {
 			logf_debug(nd, "stopping block %s", b->name);

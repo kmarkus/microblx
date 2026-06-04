@@ -420,6 +420,61 @@ function TestPtrig:TestPeriodPort()
 	       "expected <5 steps at 500ms period, got " .. steps_slow)
 end
 
+-- node_rm must stop active (thread-owning) blocks like ptrig before
+-- the passive blocks they trigger. Otherwise the trigger thread keeps
+-- stepping already stopped blocks ("cblock_step: block not active").
+-- The probe block is created before the ptrig (i.e. earlier in hash
+-- order) and its stop hook records whether the trigger was already
+-- stopped at that point.
+local probe_lua_str = [[
+local ubx = require("ubx")
+local ffi = require("ffi")
+
+function stop(b)
+   b = ffi.cast("ubx_block_t*", b)
+   local trig = ubx.block_get(b.nd, "trigger")
+   local f = assert(io.open("%s", "w"))
+   if trig.block_state == ffi.C.BLOCK_STATE_ACTIVE then
+      f:write("trigger-still-active")
+   else
+      f:write("ok")
+   end
+   f:close()
+end
+]]
+
+function TestPtrig:TestNodeRmStopsTriggersFirst()
+   local resfile = os.tmpname()
+
+   local sys6 = bd.system {
+      imports = { "stdtypes", "ptrig", "luablock" },
+      blocks = {
+	 -- probe first: under hash-order stopping it would be
+	 -- stopped before the trigger
+	 { name="probe",   type="ubx/luablock" },
+	 { name="trigger", type="ubx/ptrig" },
+      },
+      configurations = {
+	 { name="probe", config = { lua_str = string.format(probe_lua_str, resfile) } },
+	 { name="trigger", config = {
+	      period = { sec=0, usec=1000 },
+	      chain0 = { { b="#probe" } }
+	 }},
+      },
+   }
+
+   local nd = sys6:launch{ loglevel=LOGLEVEL, nodename='TestNodeRmStopsTriggersFirst' }
+   ubx.clock_mono_sleep(0, 50000000) -- 50ms
+   ubx.node_rm(nd)
+
+   local f = assert(io.open(resfile, "r"))
+   local res = f:read("*a")
+   f:close()
+   os.remove(resfile)
+
+   assert_equals(res, "ok")
+end
+
 
 --
 -- SCHED_DEADLINE tests
