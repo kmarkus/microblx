@@ -163,6 +163,7 @@ int logc_init(logc_info_t *inf,
 	if (inf->buf_ptr == MAP_FAILED) {
 		ret = errno;
 		DBG("mmap failed: %s", strerror(errno));
+		close(inf->shm_fd);
 		goto out;
 	}
 

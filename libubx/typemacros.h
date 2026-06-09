@@ -56,7 +56,7 @@ long FUNCNAME ## _array(const ubx_port_t* p, TYPENAME* val, const long len) \
 									\
 	if (len > p->in_data_len) {					\
 		ubx_err(p->block, "%s: EINVALID_DATA_LEN: data: %lu, port: %lu", \
-			__func__, p->in_data_len, len);			\
+			__func__, len, p->in_data_len);			\
 		return EINVALID_DATA_LEN;				\
 	}								\
 									\
@@ -108,7 +108,7 @@ int FUNCNAME ## _array(const ubx_port_t *p, const TYPENAME *val, const long len)
 									\
 	if (len > p->out_data_len) {					\
 		ubx_err(p->block, "%s: EINVALID_DATA_LEN: data: %lu, port: %lu", \
-			__func__, p->out_data_len, len);		\
+			__func__, len, p->out_data_len);		\
 		return EINVALID_DATA_LEN;				\
 	}								\
 									\

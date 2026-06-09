@@ -39,9 +39,10 @@ void __ubx_log(const int level, const ubx_node_t *nd, const char *src, const cha
 	msg.level = level;
 
 	strncpy(msg.src, src, UBX_BLOCK_NAME_MAXLEN);
+	msg.src[UBX_BLOCK_NAME_MAXLEN] = '\0';
 
 	va_start(args, fmt);
-	vsnprintf(msg.msg, UBX_LOG_MSG_MAXLEN, fmt, args);
+	vsnprintf(msg.msg, sizeof(msg.msg), fmt, args);
 	va_end(args);
 
 	if (!nd->log) {
