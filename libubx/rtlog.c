@@ -149,6 +149,7 @@ static void ubx_log_shm(const struct ubx_node *nd, const struct ubx_log_msg *msg
 int ubx_log_init(struct ubx_node *nd)
 {
 	int ret = -1;
+	int need_init = 1;
 	struct stat sb;
 
 	nd->log_data = NULL;
@@ -158,8 +159,17 @@ int ubx_log_init(struct ubx_node *nd)
 
 	inf.frame_size = sizeof(struct ubx_log_msg);
 
-	/* allocate shared mem */
-	inf.shm_fd = shm_open(LOG_SHM_FILENAME, O_CREAT | O_RDWR, 0640);
+	/* allocate shared mem. Try to create it first (O_EXCL), so
+	 * that only the creator initializes the spinlock and write
+	 * offset. Re-initializing the lock of an existing segment
+	 * would corrupt it if another process is logging. */
+	inf.shm_fd = shm_open(LOG_SHM_FILENAME,
+			      O_CREAT | O_EXCL | O_RDWR, 0640);
+
+	if (inf.shm_fd == -1 && errno == EEXIST) {
+		need_init = 0;
+		inf.shm_fd = shm_open(LOG_SHM_FILENAME, O_RDWR, 0640);
+	}
 
 	if (inf.shm_fd == -1) {
 		fprintf(stderr, "%s: shm_open failed: %m\n", __func__);
@@ -168,7 +178,7 @@ int ubx_log_init(struct ubx_node *nd)
 
 	/* check if we need to adjust size, otherwise leave it */
 	if (fstat(inf.shm_fd, &sb) != 0) {
-		fprintf(stderr, "%s: shm_open failed: %m\n", __func__);
+		fprintf(stderr, "%s: fstat shm failed: %m\n", __func__);
 		goto out_unlink;
 	}
 
@@ -179,6 +189,8 @@ int ubx_log_init(struct ubx_node *nd)
 			fprintf(stderr, "%s: resizing shm failed: %m\n", __func__);
 			goto out_unlink;
 		}
+		/* resized: header is in an unknown state */
+		need_init = 1;
 	}
 
 	inf.buf_ptr = mmap(0, inf.shm_size,
@@ -191,8 +203,11 @@ int ubx_log_init(struct ubx_node *nd)
 		goto out_unlink;
 	}
 
-	pthread_spin_init(&inf.buf_ptr->wlock, PTHREAD_PROCESS_SHARED);
-	inf.frame_size = sizeof(struct ubx_log_msg);
+	if (need_init) {
+		pthread_spin_init(&inf.buf_ptr->wlock, PTHREAD_PROCESS_SHARED);
+		inf.buf_ptr->w.wrap_off = 0;
+	}
+
 	nd->log = ubx_log_shm;
 
 	ret = 0;
