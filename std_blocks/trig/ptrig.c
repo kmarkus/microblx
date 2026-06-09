@@ -669,7 +669,7 @@ int ptrig_init(ubx_block_t *b)
 	goto out;
 
  out_err:
-	common_cleanup(b, &inf->chains);
+	common_cleanup(b, &inf->chains, (inf->num_chains > 0) ? inf->num_chains : 0);
 	free(b->private_data);
  out:
 	return ret;
@@ -766,7 +766,7 @@ void ptrig_cleanup(ubx_block_t *b)
 	/* even though we call ubx_chain_init in start, it is OK to do
 	 * this in cleanup only since start calls realloc which will
 	 * just resize to the current size */
-	common_cleanup(b, &inf->chains);
+	common_cleanup(b, &inf->chains, inf->num_chains);
 	free(b->private_data);
 }
 

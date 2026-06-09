@@ -104,7 +104,7 @@ int common_init_chains(ubx_block_t *b, struct ubx_chain **chain)
 	return num_chains;
 
 out_err:
-	common_cleanup(b, chain);
+	common_cleanup(b, chain, 0);
 	return ret;
 
 }
@@ -216,7 +216,7 @@ void common_unconfig(struct ubx_chain *chains, int num_chains)
 }
 
 /* undo common_init (for cleanup hook) */
-void common_cleanup(ubx_block_t *b, struct ubx_chain **chains)
+void common_cleanup(ubx_block_t *b, struct ubx_chain **chains, int num_chains)
 {
 	ubx_config_t *c = NULL, *ctmp = NULL;
 
@@ -224,6 +224,11 @@ void common_cleanup(ubx_block_t *b, struct ubx_chain **chains)
 	DL_FOREACH_SAFE(b->configs, c, ctmp) {
 		if (cfg_is_dyn(c))
 			ubx_config_rm(b, c->name);
+	}
+
+	if (*chains != NULL) {
+		for (int i = 0; i < num_chains; i++)
+			ubx_chain_cleanup(&(*chains)[i]);
 	}
 
 	free(*chains);

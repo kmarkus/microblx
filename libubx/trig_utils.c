@@ -143,6 +143,7 @@ int ubx_chain_init(struct ubx_chain *chain,
 void ubx_chain_cleanup(struct ubx_chain *chain)
 {
 	free(chain->blk_tstats);
+	chain->blk_tstats = NULL;
 }
 
 
@@ -357,6 +358,9 @@ void ubx_chain_tstats_log(ubx_block_t *b, struct ubx_chain *chain)
 
 void ubx_chain_tstats_output(ubx_block_t *b, struct ubx_chain *chain)
 {
+	if (chain->p_tstats == NULL)
+		return;
+
 	switch (chain->tstats_mode) {
 	case TSTATS_DISABLED:
 		return;

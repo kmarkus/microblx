@@ -13,4 +13,4 @@ void common_read_actchain(const ubx_block_t *b,
 			  int *actchain);
 
 void common_unconfig(struct ubx_chain *chains, int num_chains);
-void common_cleanup(ubx_block_t *b, struct ubx_chain **chain);
+void common_cleanup(ubx_block_t *b, struct ubx_chain **chain, int num_chains);

@@ -107,7 +107,7 @@ void trig_stop(ubx_block_t *b)
 void trig_cleanup(ubx_block_t *b)
 {
 	struct block_info *inf = (struct block_info *)b->private_data;
-	common_cleanup(b, &inf->chains);
+	common_cleanup(b, &inf->chains, inf->num_chains);
 	free(b->private_data);
 }
 
