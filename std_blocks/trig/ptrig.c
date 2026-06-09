@@ -386,6 +386,13 @@ void *thread_startup(void *arg)
 	pthread_exit(NULL);
 }
 
+/* exact match of a (possibly not NUL-terminated) char config against s */
+static int cfg_strmatch(const char *cfg, long len, const char *s)
+{
+	size_t n = strnlen(cfg, len);
+	return n == strlen(s) && strncmp(cfg, s, n) == 0;
+}
+
 /* Called from ptrig_handle_config to parse and validate the sched_deadline
  * config and fill inf->deadline_attr. */
 static int ptrig_deadline_config(ubx_block_t *b, struct ptrig_inf *inf)
@@ -474,20 +481,20 @@ int ptrig_handle_config(ubx_block_t *b)
 
 	char stackbuf[32] = "default";
 	if (stacksize != NULL)
-		snprintf(stackbuf, sizeof(stackbuf), "0x%zu", *stacksize);
+		snprintf(stackbuf, sizeof(stackbuf), "%#zx", *stacksize);
 
 	/* schedpolicy */
 	len = cfg_getptr_char(b, "sched_policy", &schedpol_str);
 	assert(len >= 0);
 
 	if (len > 0) {
-		if (strncmp(schedpol_str, "SCHED_OTHER", len) == 0) {
+		if (cfg_strmatch(schedpol_str, len, "SCHED_OTHER")) {
 			schedpol = SCHED_OTHER;
-		} else if (strncmp(schedpol_str, "SCHED_FIFO", len) == 0) {
+		} else if (cfg_strmatch(schedpol_str, len, "SCHED_FIFO")) {
 			schedpol = SCHED_FIFO;
-		} else if (strncmp(schedpol_str, "SCHED_RR", len) == 0) {
+		} else if (cfg_strmatch(schedpol_str, len, "SCHED_RR")) {
 			schedpol = SCHED_RR;
-		} else if (strncmp(schedpol_str, "SCHED_DEADLINE", len) == 0) {
+		} else if (cfg_strmatch(schedpol_str, len, "SCHED_DEADLINE")) {
 			schedpol = SCHED_DEADLINE;
 		} else {
 			ubx_err(b, "sched_policy config: illegal value %s",
@@ -638,15 +645,20 @@ int ptrig_init(ubx_block_t *b)
 
 	/* block SIGXCPU on this (creating) thread so it is inherited by the new
 	 * thread; thread_startup unblocks it again after installing the handler */
+	sigset_t oldmask;
 	if (inf->use_deadline) {
 		sigset_t sigxcpu_set;
 		sigemptyset(&sigxcpu_set);
 		sigaddset(&sigxcpu_set, SIGXCPU);
-		pthread_sigmask(SIG_BLOCK, &sigxcpu_set, NULL);
+		pthread_sigmask(SIG_BLOCK, &sigxcpu_set, &oldmask);
 	}
 
 	/* create thread */
 	ret = pthread_create(&inf->tid, &inf->attr, thread_startup, b);
+
+	/* restore the creating thread's mask */
+	if (inf->use_deadline)
+		pthread_sigmask(SIG_SETMASK, &oldmask, NULL);
 
 	if (ret != 0) {
 		ubx_err(b, "pthread_create failed: %s", strerror(ret));
