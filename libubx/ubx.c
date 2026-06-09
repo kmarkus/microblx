@@ -267,9 +267,16 @@ int ubx_node_init(ubx_node_t *nd, const char *name, uint32_t attrs)
 		goto out;
 	}
 
+	if (strlen(name) > UBX_NODE_NAME_MAXLEN) {
+		logf_err(nd, "node name %s too long (max: %u)",
+			 name, UBX_NODE_NAME_MAXLEN);
+		goto out;
+	}
+
 	logf_notice(nd, "node_init: %s, loglevel: %u", name, nd->loglevel);
 
 	strncpy((char*)nd->name, name, UBX_NODE_NAME_MAXLEN);
+	((char*)nd->name)[UBX_NODE_NAME_MAXLEN] = '\0';
 
 	if (attrs & ND_DUMPABLE) {
 		if (prctl(PR_SET_DUMPABLE, 1, 0, 0, 0) != 0) {
@@ -502,8 +509,14 @@ int ubx_block_register(ubx_node_t *nd, struct ubx_proto_block *prot)
 	/* needs to be set here for ubx_port/config_add */
 	newb->nd = nd;
 
-	if (prot->meta_data)
+	if (prot->meta_data) {
 		newb->meta_data = strdup(prot->meta_data);
+		if (newb->meta_data == NULL) {
+			logf_err(nd, "EOUTOFMEM: failed to alloc meta_data");
+			ret = EOUTOFMEM;
+			goto out_err;
+		}
+	}
 
 	newb->init = prot->init;
 	newb->start = prot->start;
@@ -1222,11 +1235,12 @@ static int array_block_add(const ubx_block_t ***arr, const ubx_block_t *newblock
 		for (tmpb = *arr, newlen = 2; *tmpb != NULL; tmpb++, newlen++)
 			;
 
-	*arr = realloc(*arr, sizeof(ubx_block_t *) * newlen);
-	if (*arr == NULL) {
+	tmpb = realloc(*arr, sizeof(ubx_block_t *) * newlen);
+	if (tmpb == NULL) {
 		ret = EOUTOFMEM;
 		goto out;
 	}
+	*arr = tmpb;
 
 	(*arr)[newlen - 2] = newblock;
 	(*arr)[newlen - 1] = NULL;
@@ -1364,8 +1378,10 @@ int ubx_ports_connect(ubx_port_t *out_port, ubx_port_t *in_port, const ubx_block
 	if (ret != 0)
 		goto out;
 	ret = ubx_port_connect_in(in_port, iblock);
-	if (ret != 0)
+	if (ret != 0) {
+		ubx_port_disconnect_out(out_port, iblock);
 		goto out;
+	}
 
 	ret = 0;
 out:
@@ -1649,12 +1665,20 @@ static int __ubx_config_add(ubx_block_t *b,
 
 	cnew->type = type;
 	cnew->value = __ubx_data_alloc(type, 0);
+
+	if (cnew->value == NULL) {
+		ubx_err(b, "EOUTOFMEM: failed to alloc config %s value", name);
+		ret = EOUTOFMEM;
+		goto out_free;
+	}
+
 	cnew->block = b;
 
 	DL_APPEND(b->configs, cnew);
 	return 0;
 
 out_free:
+	free((char *)cnew->doc);
 	free(cnew);
 out:
 	return ret;
@@ -1828,6 +1852,12 @@ static int __ubx_port_add(ubx_block_t *b,
 		return EENTEXISTS;
 	}
 
+	if (in_data_len < 0 || out_data_len < 0) {
+		ubx_err(b, "port_add %s: negative data len (in: %ld, out: %ld)",
+			name, in_data_len, out_data_len);
+		return EINVALID_PORT_LEN;
+	}
+
 	pnew = calloc(1, sizeof(struct ubx_port));
 
 	if (pnew == NULL) {
@@ -1951,6 +1981,10 @@ int ubx_inport_resize(struct ubx_port *p, long len)
 			p->name, block_state_tostr(p->block->block_state));
 		return -1;
 	}
+	if (len <= 0) {
+		ubx_err(p->block, "inport_resize %s: invalid len %ld", p->name, len);
+		return EINVALID_PORT_LEN;
+	}
 	p->in_data_len = len;
 	return 0;
 }
@@ -1969,6 +2003,10 @@ int ubx_outport_resize(struct ubx_port *p, long len)
 		ubx_err(p->block, "outport_resize %s: can't resize block in state %s",
 			p->name, block_state_tostr(p->block->block_state));
 		return -1;
+	}
+	if (len <= 0) {
+		ubx_err(p->block, "outport_resize %s: invalid len %ld", p->name, len);
+		return EINVALID_PORT_LEN;
 	}
 	p->out_data_len = len;
 	return 0;
