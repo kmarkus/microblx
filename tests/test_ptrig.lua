@@ -543,6 +543,16 @@ local function in_root_userns()
           and tonumber(len) and tonumber(len) > 1000000
 end
 
+-- probe whether SCHED_DEADLINE is actually permitted (also needs
+-- CAP_SYS_NICE, e.g. when run outside the run_tests.sh capsh wrapper).
+-- chrt(1) is used to avoid altering this process' scheduling policy.
+local function deadline_permitted()
+   if not in_root_userns() then return false end
+   local r = os.execute("chrt -d --sched-runtime 1000000 --sched-deadline 10000000 " ..
+			"--sched-period 10000000 0 true >/dev/null 2>&1")
+   return r == 0 or r == true
+end
+
 -- Functional test: ptrig with SCHED_DEADLINE config runs and steps correctly.
 -- Requires CAP_SYS_NICE (run via run_tests.sh which grants it through capsh).
 local sys_dl = bd.system {
@@ -563,8 +573,8 @@ local sys_dl = bd.system {
 }
 
 function TestPtrig:TestDeadlineRuns()
-   luaunit.skipIf(not in_root_userns(),
-      "SCHED_DEADLINE not available in rootless user namespace")
+   luaunit.skipIf(not deadline_permitted(),
+      "SCHED_DEADLINE not permitted (needs CAP_SYS_NICE in root userns)")
    local nd = sys_dl:launch{ nostart=true, loglevel=LOGLEVEL, nodename='TestDeadlineRuns' }
    local p_ramp = ubx.port_clone_conn(nd:b("ramp"), "out", 1)
 
