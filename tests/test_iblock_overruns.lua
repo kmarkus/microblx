@@ -98,6 +98,29 @@ function TestIblockOverruns:TestLfrbOverruns()
    check_overruns("ubx/lfrb")
 end
 
+--- lfrb with buffer_len=1: overwrite semantics, no spinning/hanging
+function TestIblockOverruns:TestLfrbBufferLen1()
+   setup_node("TestLfrbBufLen1", "lfrb")
+
+   local ib = create_ib("ubx/lfrb", {
+      type_name = "int", buffer_len = 1, loglevel_overruns = -1 })
+
+   local wdat = ubx.data_alloc(nd, "int", 1)
+   local rdat = ubx.data_alloc(nd, "int", 1)
+
+   for v = 1, 100 do
+      -- double write: second overwrites the first
+      ubx.data_set(wdat, v)
+      ubx.interaction_write(ib, wdat)
+      ubx.data_set(wdat, v + 1000)
+      ubx.interaction_write(ib, wdat)
+
+      assert_equals(tonumber(ubx.interaction_read(ib, rdat)), 1)
+      assert_equals(rdat:tolua(), v + 1000)
+      assert_equals(tonumber(ubx.interaction_read(ib, rdat)), 0)
+   end
+end
+
 function TestIblockOverruns:TestLfrbAllowPartial()
    setup_node("TestLfrbPartial", "lfrb")
    check_allow_partial("ubx/lfrb")

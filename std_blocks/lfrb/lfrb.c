@@ -11,6 +11,13 @@
 #include "ubx.h"
 #include "lfq.h"
 
+/*
+ * bound for spinning on transiently empty/full queues. The window in
+ * which a concurrent read/write holds an element is a few
+ * instructions, so this is generous.
+ */
+#define LFRB_SPIN_RETRIES	1000
+
 char lfrb_meta[] =
 	"{ doc='lock-free ring buffer, buffered in process communication"
 	"  description=[["
@@ -236,15 +243,16 @@ void lfrb_write(ubx_block_t *i, const ubx_data_t *msg)
 		}
 	}
 
-	while (1) {
+	for (int retries = LFRB_SPIN_RETRIES; ; retries--) {
 		ret = lfq_dequeue(&inf->freeq, (void**) &elem);
 
-		if (ret == -ENODATA) {
-			ret = lfq_dequeue(&inf->usedq, (void**) &elem);
+		if (ret == 0)
+			break;
 
-			if (ret == -ENODATA)
-				continue;
+		/* freeq empty: steal the oldest used element */
+		ret = lfq_dequeue(&inf->usedq, (void**) &elem);
 
+		if (ret == 0) {
 			inf->overruns++;
 
 			write_ulong(inf->p_overruns, &inf->overruns);
@@ -252,9 +260,23 @@ void lfrb_write(ubx_block_t *i, const ubx_data_t *msg)
 			if (inf->loglevel_overruns >= 0)
 				ubx_block_log(inf->loglevel_overruns, i, "buffer overrun: #%ld", inf->overruns);
 
+			break;
 		}
 
-		break; /* we have an element */
+		if (retries <= 0) {
+			/* both queues transiently empty: concurrent
+			 * reads/writes hold all elements. Drop the
+			 * sample rather than spinning forever. */
+			inf->overruns++;
+
+			write_ulong(inf->p_overruns, &inf->overruns);
+
+			if (inf->loglevel_overruns >= 0)
+				ubx_block_log(inf->loglevel_overruns, i,
+					      "buffer overrun (sample dropped): #%ld",
+					      inf->overruns);
+			goto out;
+		}
 	}
 
 	len = data_size(msg);
@@ -263,7 +285,19 @@ void lfrb_write(ubx_block_t *i, const ubx_data_t *msg)
 
 	ubx_debug(i, "%s: %s: copied %ld bytes into elem %p", __func__, i->name, len, elem);
 
-	lfq_enqueue(&inf->usedq, elem);
+	/* -ENOSPC can only be transient (usedq can hold all elements) */
+	for (int retries = LFRB_SPIN_RETRIES; ; retries--) {
+		ret = lfq_enqueue(&inf->usedq, elem);
+
+		if (ret == 0)
+			break;
+
+		if (retries <= 0) {
+			ubx_err(i, "%s: failed to enqueue elem to usedq: %s",
+				__func__, strerror(-ret));
+			break;
+		}
+	}
 
  out:
 	return;
@@ -305,10 +339,20 @@ long lfrb_read(ubx_block_t *i, ubx_data_t *msg)
 
 	memcpy(msg->data, elem->data, readsz);
 
-	ret = lfq_enqueue(&inf->freeq, elem);
-	if (ret != 0)
-		ubx_err(i, "%s: failed to enqueue read elem to freeq: %s",
-			__func__, strerror(-ret));
+	/* -ENOSPC can only be transient (freeq can hold all elements),
+	 * so retry: giving up would leak the element from the pool */
+	for (int retries = LFRB_SPIN_RETRIES; ; retries--) {
+		ret = lfq_enqueue(&inf->freeq, elem);
+
+		if (ret == 0)
+			break;
+
+		if (retries <= 0) {
+			ubx_err(i, "%s: failed to enqueue read elem to freeq: %s",
+				__func__, strerror(-ret));
+			break;
+		}
+	}
 
 	return readlen;
 }
