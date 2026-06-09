@@ -142,6 +142,7 @@ struct ptrig_inf {
 
 	uint32_t state;		/* desired state requested by main */
 	uint32_t thread_state;	/* actual state reported by thread */
+	int shutdown;		/* request thread to exit (for cleanup) */
 
 	pthread_mutex_t mutex;
 	pthread_cond_t active_cond;
@@ -296,8 +297,13 @@ void *thread_startup(void *arg)
 
 		pthread_mutex_lock(&inf->mutex);
 
-		while (inf->state != BLOCK_STATE_ACTIVE) {
-
+		if (inf->state != BLOCK_STATE_ACTIVE && !inf->shutdown) {
+			/*
+			 * going inactive: flush stats once. This must
+			 * happen before setting THREAD_INACTIVE,
+			 * since stop() unconfigures the chains after
+			 * observing that state.
+			 */
 			common_output_stats(b, inf->chains, inf->num_chains);
 			common_log_stats(b, inf->chains, inf->num_chains);
 
@@ -305,10 +311,18 @@ void *thread_startup(void *arg)
 
 			if (ret)
 				ubx_err(b, "failed to write tstats to profile_path: %d", ret);
+		}
 
+		while (inf->state != BLOCK_STATE_ACTIVE && !inf->shutdown) {
 			inf->thread_state = THREAD_INACTIVE;
 			pthread_cond_wait(&inf->active_cond, &inf->mutex);
 		}
+
+		if (inf->shutdown) {
+			pthread_mutex_unlock(&inf->mutex);
+			goto out;
+		}
+
 		inf->thread_state = THREAD_ACTIVE;
 		pthread_mutex_unlock(&inf->mutex);
 
@@ -383,6 +397,9 @@ void *thread_startup(void *arg)
 	}
 
  out:
+	pthread_mutex_lock(&inf->mutex);
+	inf->thread_state = THREAD_INACTIVE;
+	pthread_mutex_unlock(&inf->mutex);
 	pthread_exit(NULL);
 }
 
@@ -725,19 +742,21 @@ void ptrig_stop(ubx_block_t *b)
 
 	__ptrig_stop(b);
 
-	/* wait some time for thread to shutdown cleanly */
+	/* wait for the thread to park, then release the chain
+	 * resources. On timeout skip the unconfig, as the thread may
+	 * still be using the chains (cleanup will release them). */
 	for (int i=THREAD_STOP_RETRIES; i>=0; i--) {
 		uint32_t state;
 		pthread_mutex_lock(&inf->mutex);
 		state = inf->thread_state;
 		pthread_mutex_unlock(&inf->mutex);
-		if (state == THREAD_INACTIVE)
+		if (state == THREAD_INACTIVE) {
+			common_unconfig(inf->chains, inf->num_chains);
 			return;
+		}
 		usleep(THREAD_STOP_TIMEOUT_US);
 	}
 	ubx_warn(b, "timeout waiting for pthread to stop");
-
-	common_unconfig(inf->chains, inf->num_chains);
 }
 
 void ptrig_cleanup(ubx_block_t *b)
@@ -746,33 +765,20 @@ void ptrig_cleanup(ubx_block_t *b)
 
 	struct ptrig_inf *inf = (struct ptrig_inf *)b->private_data;
 
-	inf->state = BLOCK_STATE_PREINIT;
+	/* request thread shutdown and wake it up. The thread checks
+	 * the flag with the mutex held before waiting, so the signal
+	 * cannot get lost. */
+	pthread_mutex_lock(&inf->mutex);
+	inf->shutdown = 1;
+	pthread_cond_signal(&inf->active_cond);
+	pthread_mutex_unlock(&inf->mutex);
 
-	/* wait for the thread to park in pthread_cond_wait (mirrors the
-	 * poll in ptrig_stop) so cancellation lands at a known
-	 * cancellation point rather than mid file-I/O in
-	 * common_write_stats, which would race with the upcoming
-	 * common_cleanup that frees inf->chains. */
-	for (int i = THREAD_STOP_RETRIES; i >= 0; i--) {
-		uint32_t ts;
-		pthread_mutex_lock(&inf->mutex);
-		ts = inf->thread_state;
-		pthread_mutex_unlock(&inf->mutex);
-		if (ts == THREAD_INACTIVE)
-			break;
-		usleep(THREAD_STOP_TIMEOUT_US);
-	}
-
-	ret = pthread_cancel(inf->tid);
-
-	if (ret != 0)
-		ubx_err(b, "pthread_cancel failed: %s", strerror(ret));
-
-	/* join */
 	ret = pthread_join(inf->tid, NULL);
 	if (ret != 0)
 		ubx_err(b, "pthread_join failed: %s", strerror(ret));
 
+	pthread_mutex_destroy(&inf->mutex);
+	pthread_cond_destroy(&inf->active_cond);
 	pthread_attr_destroy(&inf->attr);
 
 	/* even though we call ubx_chain_init in start, it is OK to do

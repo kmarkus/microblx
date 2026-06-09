@@ -591,4 +591,48 @@ function TestPtrig:TestDeadlineRuns()
       "expected >10 steps in 500ms at 10ms period, got " .. tostring(v))
 end
 
+--
+-- start/stop cycles: chain resources are released on stop and
+-- reallocated on start; cleanup shuts the thread down cleanly
+--
+local sys_cycle = bd.system {
+   imports = { "stdtypes", "ptrig", "ramp_uint64" },
+   blocks = {
+      { name="ramp",  type="ubx/ramp_uint64" },
+      { name="ptrig", type="ubx/ptrig" },
+   },
+   configurations = {
+      { name="ramp", config = { start=0, slope=1 } },
+      { name="ptrig", config = {
+	   period      = { sec=0, usec=1000 },  -- 1ms
+	   tstats_mode = 2,                     -- per-block: blk_tstats alloc'd
+	   chain0      = { { b="#ramp" } },
+      }},
+   },
+}
+
+function TestPtrig:TestStartStopCycles()
+   local nd = sys_cycle:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
+				nodename='TestStartStopCycles' }
+   local ptrig = nd:b("ptrig")
+   local ramp = nd:b("ramp")
+
+   sys_cycle:startup(nd)
+
+   local prev = 0
+   for cycle = 1, 3 do
+      ubx.clock_mono_sleep(0, 50000000)  -- 50ms
+      assert_equals(ptrig:do_stop(), 0)
+
+      local steps = tonumber(ramp.stat_num_steps)
+      assert_true(steps > prev, "ramp did not step in cycle " .. cycle)
+      prev = steps
+
+      assert_equals(ptrig:do_start(), 0)
+   end
+
+   assert_equals(ptrig:do_stop(), 0)
+   ubx.node_rm(nd)
+end
+
 if not _RUNNER then os.exit( luaunit.LuaUnit.run() ) end
