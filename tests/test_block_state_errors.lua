@@ -130,4 +130,16 @@ function TestBlockStateErrors:TestNumBlocks()
    assert_equals(ib1, ib0)
 end
 
+--- Test block name length limits: 63 chars OK, 64 rejected
+function TestBlockStateErrors:test_block_name_maxlen()
+   local name63 = string.rep("x", 63)
+   local b = ubx.block_create(nd, "ubx/random", name63)
+   assert_not_nil(b)
+   assert_equals(ubx.safe_tostr(b.name), name63)
+
+   local name64 = string.rep("x", 64)
+   local ok = pcall(ubx.block_create, nd, "ubx/random", name64)
+   assert_equals(ok, false)
+end
+
 if not _RUNNER then os.exit(lu.LuaUnit.run()) end

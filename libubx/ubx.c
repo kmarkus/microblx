@@ -562,7 +562,10 @@ int ubx_block_register(ubx_node_t *nd, struct ubx_proto_block *prot)
 		}
 	}
 
-	return __block_register(nd, newb);
+	ret = __block_register(nd, newb);
+	if (ret != 0)
+		goto out_err;
+	return 0;
 out_err:
 	ubx_block_free(newb);
 	return ret;
@@ -867,7 +870,21 @@ int ubx_data_resize(ubx_data_t *d, long newlen)
 	int ret = EOUTOFMEM;
 	void *ptr;
 	long oldlen = d->len;
-	size_t newsz = (size_t)newlen * d->type->size;
+	size_t newsz;
+
+	if (newlen < 0)
+		return EINVALID_ARG;
+
+	/* realloc(p, 0) frees p but returns NULL, so handle this
+	 * explicitly to avoid leaving d->data dangling */
+	if (newlen == 0) {
+		free(d->data);
+		d->data = NULL;
+		d->len = 0;
+		return 0;
+	}
+
+	newsz = (size_t)newlen * d->type->size;
 
 	ptr = realloc(d->data, newsz);
 	if (ptr == NULL)
@@ -1123,6 +1140,12 @@ ubx_block_t *ubx_block_create(ubx_node_t *nd, const char *type, const char *name
 
 	if (name == NULL) {
 		logf_err(nd, "block_create: name is NULL");
+		goto out;
+	}
+
+	if (strlen(name) > UBX_BLOCK_NAME_MAXLEN) {
+		logf_err(nd, "block_create: name %s too long (max: %u)",
+			 name, UBX_BLOCK_NAME_MAXLEN);
 		goto out;
 	}
 

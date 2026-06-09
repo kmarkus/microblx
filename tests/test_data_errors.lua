@@ -119,4 +119,30 @@ function TestDataErrors:test_data_oo_methods()
    assert_false(d:isnull())
 end
 
+--- Test resizing to zero and back works (no dangling buffer)
+function TestDataErrors:test_data_resize_zero()
+   local d = ubx.data_alloc(nd, "unsigned int", 4)
+   ubx.data_set(d, { 1, 2, 3, 4 })
+
+   assert_true(ubx.data_resize(d, 0))
+   assert_equals(tonumber(d.len), 0)
+   assert_true(d:isnull())
+
+   assert_true(ubx.data_resize(d, 3))
+   assert_equals(tonumber(d.len), 3)
+
+   -- realloc'ed area must be zeroed
+   assert_equals(ubx.data_tolua(d), { 0, 0, 0 })
+
+   ubx.data_set(d, { 7, 8, 9 })
+   assert_equals(ubx.data_tolua(d), { 7, 8, 9 })
+end
+
+--- Test that a negative resize fails
+function TestDataErrors:test_data_resize_negative()
+   local d = ubx.data_alloc(nd, "unsigned int", 2)
+   assert_false(ubx.data_resize(d, -1))
+   assert_equals(tonumber(d.len), 2)
+end
+
 if not _RUNNER then os.exit(lu.LuaUnit.run()) end
