@@ -26,7 +26,9 @@
 long FUNCNAME ## _array(const ubx_port_t* p, TYPENAME* val, const long len) \
 {								   \
 	ubx_data_t data;					   \
-	static ubx_type_t *type = NULL;				   \
+	/* type cache shared across threads: use atomic accesses */	\
+	static ubx_type_t *type_cache = NULL;				\
+	ubx_type_t *type = __atomic_load_n(&type_cache, __ATOMIC_RELAXED); \
 								   \
 	if (p == NULL || p->block == NULL) {			   \
 		ERR("invalid input port");			   \
@@ -52,6 +54,7 @@ long FUNCNAME ## _array(const ubx_port_t* p, TYPENAME* val, const long len) \
 				__func__, QUOTE(TYPENAME), p->name, p->in_type->name); \
 			return ETYPE_MISMATCH;				\
 		}							\
+		__atomic_store_n(&type_cache, type, __ATOMIC_RELAXED);	\
 	}								\
 									\
 	if (len > p->in_data_len) {					\
@@ -78,7 +81,9 @@ long FUNCNAME(const ubx_port_t* p, TYPENAME* val)			\
 int FUNCNAME ## _array(const ubx_port_t *p, const TYPENAME *val, const long len) \
 {									\
 	ubx_data_t data;						\
-	static ubx_type_t *type = NULL;					\
+	/* type cache shared across threads: use atomic accesses */	\
+	static ubx_type_t *type_cache = NULL;				\
+	ubx_type_t *type = __atomic_load_n(&type_cache, __ATOMIC_RELAXED); \
 									\
 	if (p == NULL || p->block == NULL) {				\
 		ERR("invalid output port");				\
@@ -104,6 +109,7 @@ int FUNCNAME ## _array(const ubx_port_t *p, const TYPENAME *val, const long len)
 				__func__, QUOTE(TYPENAME), p->name, p->out_type->name); \
 			return ETYPE_MISMATCH;				\
 		}							\
+		__atomic_store_n(&type_cache, type, __ATOMIC_RELAXED);	\
 	}								\
 									\
 	if (len > p->out_data_len) {					\
@@ -131,7 +137,9 @@ long FUNCNAME(const ubx_block_t *b,					\
 	      const TYPENAME **valptr)					\
 {									\
 	const ubx_config_t *c;						\
-	static ubx_type_t *type = NULL;					\
+	/* type cache shared across threads: use atomic accesses */	\
+	static ubx_type_t *type_cache = NULL;				\
+	ubx_type_t *type = __atomic_load_n(&type_cache, __ATOMIC_RELAXED); \
 									\
 	c = ubx_config_get(b, cfg_name);				\
 									\
@@ -155,6 +163,7 @@ long FUNCNAME(const ubx_block_t *b,					\
 				__func__, QUOTE(TYPENAME), cfg_name, c->type->name); \
 			return ETYPE_MISMATCH;				\
 		}							\
+		__atomic_store_n(&type_cache, type, __ATOMIC_RELAXED);	\
 	}								\
 									\
 	return ubx_config_get_data_ptr(b, cfg_name, (void **) valptr);	\
@@ -168,7 +177,9 @@ int FUNCNAME(const ubx_block_t *b,					\
 {									\
 	int ret;							\
 	const ubx_config_t *c;						\
-	static ubx_type_t *type = NULL;					\
+	/* type cache shared across threads: use atomic accesses */	\
+	static ubx_type_t *type_cache = NULL;				\
+	ubx_type_t *type = __atomic_load_n(&type_cache, __ATOMIC_RELAXED); \
 									\
 	c = ubx_config_get(b, cfg_name);				\
 									\
@@ -190,6 +201,7 @@ int FUNCNAME(const ubx_block_t *b,					\
 				__func__, QUOTE(TYPENAME), cfg_name, c->type->name); \
 			return ETYPE_MISMATCH;				\
 		}							\
+		__atomic_store_n(&type_cache, type, __ATOMIC_RELAXED);	\
 	}								\
 									\
 	ret = ubx_data_resize(c->value, len);				\
