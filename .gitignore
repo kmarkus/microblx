@@ -28,3 +28,7 @@ libubx/ubx0.pc
 libubx/ubxrtl0.pc
 tools/ubx-log
 .aider*
+build*/
+.cache/
+*.tstats
+test-results*.xml
