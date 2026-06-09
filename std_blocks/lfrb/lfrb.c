@@ -107,6 +107,7 @@ int lfrb_init(ubx_block_t *i)
 	inf->data_len = (len > 0) ? *val : 1;
 
 	len = cfg_getptr_char(i, "type_name", &type_name);
+	assert(len > 0);
 
 	inf->type = ubx_type_get(i->nd, type_name);
 
@@ -155,6 +156,7 @@ int lfrb_init(ubx_block_t *i)
 
 		if (ret != 0) {
 			ubx_debug(i, "%s: failed to enqueue elem #%d in freeq: %s", __func__, n, strerror(-ret));
+			free(elem);
 			goto out_free_elem;
 		}
 	}

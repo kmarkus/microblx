@@ -204,21 +204,24 @@ long mqueue_read(ubx_block_t *i, ubx_data_t *data)
 	}
 
 	inf = (struct mqueue_info *)i->private_data;
+
+	if (inf->type != data->type) {
+		ubx_err(i, "invalid message type %s", data->type->name);
+		return ETYPE_MISMATCH;
+	}
+
 	size = data_size(data);
 	ret = mq_receive(inf->mqd, (char *)data->data, size, NULL);
 
-	if (ret <= 0 && errno != EAGAIN) { /* error */
+	if (ret < 0) {
+		if (errno == EAGAIN) /* empty queue */
+			return 0;
 		ubx_err(i, "mq_receive %s failed: %s", i->name, strerror(errno));
 		inf->cnt_recv_err++;
-		goto out;
-	} else if (ret <= 0 && errno == EAGAIN) { /* empty queue */
-		ret = 0;
-		goto out;
+		return ret;
 	}
 
-	ret /= data->type->size;
- out:
-	return ret;
+	return ret / data->type->size;
 }
 
 void mqueue_write(ubx_block_t *i, const ubx_data_t *data)
