@@ -50,8 +50,19 @@ int lfq_enqueue(lfq_t *q, void *element)
 	lfq_slot_t *slots = q->slots;
 
 	while (1) {
-		uint64_t head = atomic_load_explicit(&q->head, memory_order_relaxed);
+		uint64_t head = atomic_load_explicit(&q->head, memory_order_acquire);
 		uint64_t tail = atomic_load_explicit(&q->tail, memory_order_relaxed);
+
+		/*
+		 * tail never overtakes head, so a negative difference
+		 * means the snapshot is stale (a concurrent enqueue
+		 * advanced head between the two loads): retry. The
+		 * head load is an acquire to keep the tail load from
+		 * being reordered before it, which could overestimate
+		 * the fill level.
+		 */
+		if ((int64_t)(head - tail) < 0)
+			continue;
 
 		/* this check is only necessary because we want to
 		 * support queue size 1 */

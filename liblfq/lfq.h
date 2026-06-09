@@ -32,6 +32,11 @@ void lfq_free(lfq_t *q);
 
 /**
  * @brief Enqueue an element into the lock-free queue.
+ *
+ * Note that -ENOSPC can be transient: a concurrent dequeue may not
+ * yet have released its slot. Callers that know the queue cannot be
+ * logically full must retry.
+ *
  * @param q pointer to the queue
  * @param pointer to element to enqueue
  * @return 0 on success, -ENOSPC if the queue is full.
@@ -40,6 +45,10 @@ int lfq_enqueue(lfq_t *q, void *element);
 
 /**
  * @brief Dequeue an element from the lock-free queue.
+ *
+ * Likewise, -ENODATA can be transient if a concurrent enqueue has
+ * not yet completed.
+ *
  * @param q pointer to the queue
  * @param pointer[out] pointer to element pointer for storing dequeued element
  * @return 0 on success, -ENODATA if the queue is empty.
