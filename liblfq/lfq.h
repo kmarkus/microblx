@@ -9,7 +9,6 @@
 
 typedef struct {
     size_t capacity;
-    size_t logical_capacity;
     struct lfq_slot *slots;
     _Atomic uint64_t head;
     _Atomic uint64_t tail;
@@ -33,9 +32,10 @@ void lfq_free(lfq_t *q);
 /**
  * @brief Enqueue an element into the lock-free queue.
  *
- * Note that -ENOSPC can be transient: a concurrent dequeue may not
- * yet have released its slot. Callers that know the queue cannot be
- * logically full must retry.
+ * Note that for capacity >= 2, -ENOSPC can be transient: a
+ * concurrent dequeue may not yet have released its slot. Callers
+ * that know the queue cannot be logically full must retry. For
+ * capacity == 1 (single-slot mailbox) full/empty answers are exact.
  *
  * @param q pointer to the queue
  * @param pointer to element to enqueue
@@ -46,8 +46,8 @@ int lfq_enqueue(lfq_t *q, void *element);
 /**
  * @brief Dequeue an element from the lock-free queue.
  *
- * Likewise, -ENODATA can be transient if a concurrent enqueue has
- * not yet completed.
+ * Likewise, for capacity >= 2, -ENODATA can be transient if a
+ * concurrent enqueue has not yet completed.
  *
  * @param q pointer to the queue
  * @param pointer[out] pointer to element pointer for storing dequeued element

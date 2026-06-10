@@ -1,5 +1,5 @@
-/* This is a simple implementation of Vyukov's algorithm adapted to
- * support capacity == 1.
+/* This is a simple implementation of Vyukov's algorithm extended to
+ * support capacity == 1 via a single-slot atomic mailbox.
  *
  * Copyright (C) 2025 Markus Klotzbuecher <mk@mkio.de>*
  * SPDX-License-Identifier: MPL-2.0
@@ -14,20 +14,31 @@ typedef struct lfq_slot {
 	_Atomic(void *) data;
 } lfq_slot_t;
 
+/*
+ * "empty" marker for the capacity == 1 mailbox. The address of a
+ * private static is used (rather than NULL) so that enqueueing NULL
+ * elements remains legal.
+ */
+static char lfq_empty_sentinel;
+#define LFQ_EMPTY ((void *)&lfq_empty_sentinel)
+
 int lfq_init(lfq_t *q, size_t capacity)
 {
 	if (!q || capacity < 1)
 		return -EINVAL;
 
-	q->logical_capacity = capacity;
-	q->capacity = capacity == 1 ? 2 : capacity;
+	q->capacity = capacity;
 
 	q->slots = calloc(q->capacity, sizeof(lfq_slot_t));
 	if (!q->slots)
 		return -ENOMEM;
 
-	for (size_t i = 0; i < q->capacity; ++i)
-		atomic_store(&q->slots[i].seq, i);
+	if (capacity == 1) {
+		atomic_store(&q->slots[0].data, LFQ_EMPTY);
+	} else {
+		for (size_t i = 0; i < q->capacity; ++i)
+			atomic_store(&q->slots[i].seq, i);
+	}
 
 	atomic_store(&q->head, 0);
 	atomic_store(&q->tail, 0);
@@ -39,7 +50,6 @@ void lfq_free(lfq_t *q)
 	if (q && q->slots) {
 		free(q->slots);
 		q->slots = NULL;
-		q->logical_capacity = 0;
 		q->capacity = 0;
 	}
 }
@@ -49,26 +59,24 @@ int lfq_enqueue(lfq_t *q, void *element)
 	const size_t capacity = q->capacity;
 	lfq_slot_t *slots = q->slots;
 
+	/*
+	 * capacity 1: single-slot mailbox. The whole queue state is
+	 * one atomic pointer, so full/empty answers are exact.
+	 */
+	if (capacity == 1) {
+		void *expected = LFQ_EMPTY;
+
+		if (atomic_compare_exchange_strong_explicit(
+			    &slots[0].data, &expected, element,
+			    memory_order_release,
+			    memory_order_relaxed))
+			return 0;
+
+		return -ENOSPC;
+	}
+
 	while (1) {
-		uint64_t head = atomic_load_explicit(&q->head, memory_order_acquire);
-		uint64_t tail = atomic_load_explicit(&q->tail, memory_order_relaxed);
-
-		/*
-		 * tail never overtakes head, so a negative difference
-		 * means the snapshot is stale (a concurrent enqueue
-		 * advanced head between the two loads): retry. The
-		 * head load is an acquire to keep the tail load from
-		 * being reordered before it, which could overestimate
-		 * the fill level.
-		 */
-		if ((int64_t)(head - tail) < 0)
-			continue;
-
-		/* this check is only necessary because we want to
-		 * support queue size 1 */
-		if (head - tail >= q->logical_capacity)
-			return -ENOSPC;
-
+		uint64_t head = atomic_load_explicit(&q->head, memory_order_relaxed);
 		lfq_slot_t *slot = &slots[head % capacity];
 		uint64_t seq = atomic_load_explicit(&slot->seq, memory_order_acquire);
 		intptr_t diff = (intptr_t)seq - (intptr_t)head;
@@ -92,6 +100,17 @@ int lfq_dequeue(lfq_t *q, void **element)
 {
 	const size_t capacity = q->capacity;
 	lfq_slot_t *slots = q->slots;
+
+	if (capacity == 1) {
+		void *e = atomic_exchange_explicit(&slots[0].data, LFQ_EMPTY,
+						   memory_order_acq_rel);
+
+		if (e == LFQ_EMPTY)
+			return -ENODATA;
+
+		*element = e;
+		return 0;
+	}
 
 	while (1) {
 		uint64_t tail = atomic_load_explicit(&q->tail, memory_order_relaxed);
