@@ -19,10 +19,9 @@
 #define LFRB_SPIN_RETRIES	1000
 
 char lfrb_meta[] =
-	"{ doc='lock-free ring buffer, buffered in process communication"
-	"  description=[["
-	"		 This version is stongly typed and should be preferred"
-	"                This microblx iblock based on the minimal liblfq library"
+	"{ doc='lock-free ring buffer, buffered in-process communication',"
+	"  description=[[ This version is strongly typed and should be preferred."
+	"                 This microblx iblock is based on the minimal liblfq library. ]],"
 	"  version=0.1,"
 	"  hard_real_time=true,"
 	"}";
