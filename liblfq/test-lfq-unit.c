@@ -255,6 +255,56 @@ static void test_mpmc_mailbox_exact(void **state)
 	assert_int_equal(run_shuttle(1), 0);
 }
 
+/*
+ * SPSC FIFO ordering: with a single producer and a single consumer,
+ * elements must be dequeued in exactly the order they were enqueued.
+ */
+#define ORDER_ITERS 100000
+
+static void *order_producer(void *arg)
+{
+	lfq_t *q = arg;
+
+	for (uintptr_t i = 1; i <= ORDER_ITERS;) {
+		if (lfq_enqueue(q, (void *)i) == 0)
+			i++;
+	}
+	return NULL;
+}
+
+static void run_spsc_order(size_t capacity)
+{
+	lfq_t q;
+	pthread_t tid;
+	void *e;
+
+	assert_int_equal(lfq_init(&q, capacity), 0);
+	assert_int_equal(pthread_create(&tid, NULL, order_producer, &q), 0);
+
+	for (uintptr_t expect = 1; expect <= ORDER_ITERS;) {
+		if (lfq_dequeue(&q, &e) != 0)
+			continue;
+		assert_int_equal((uintptr_t)e, expect);
+		expect++;
+	}
+
+	assert_int_equal(pthread_join(tid, NULL), 0);
+	assert_int_equal(lfq_dequeue(&q, &e), -ENODATA);
+	lfq_free(&q);
+}
+
+static void test_spsc_order_cap1(void **state)
+{
+	(void)state;
+	run_spsc_order(1);
+}
+
+static void test_spsc_order_cap4(void **state)
+{
+	(void)state;
+	run_spsc_order(4);
+}
+
 int main(void)
 {
 	const struct CMUnitTest tests[] = {
@@ -264,6 +314,8 @@ int main(void)
 		cmocka_unit_test(test_null_element),
 		cmocka_unit_test(test_mpmc_conservation),
 		cmocka_unit_test(test_mpmc_mailbox_exact),
+		cmocka_unit_test(test_spsc_order_cap1),
+		cmocka_unit_test(test_spsc_order_cap4),
 	};
 
 	return cmocka_run_group_tests(tests, NULL, NULL);

@@ -61,13 +61,26 @@ test:
     - export JUNIT_OUTPUT=test-results.xml
     - mkdir -p /run/dbus
     - dbus-run-session --config-file tests/dbus-test.conf -- ./run_tests.sh
-    # run lfq tests
+    # run lfq tests (default cap 4 and the single-slot mailbox path)
     - test-lfq
+    - test-lfq -c 1 -t 8 -o 50000
     - test-lfq-unit
   artifacts:
     when: always
     reports:
       junit: test-results.xml
+
+# run the lock-free queue tests under ThreadSanitizer
+test-lfq-tsan:
+  stage: test
+  before_script:
+    - apt update && apt -y install libcmocka-dev
+  script:
+    - gcc -fsanitize=thread -g -O1 -Iliblfq liblfq/test-lfq-unit.c liblfq/lfq.c -lcmocka -lpthread -o tsan-lfq-unit
+    - ./tsan-lfq-unit
+    - gcc -fsanitize=thread -g -O1 -Iliblfq liblfq/test-lfq.c liblfq/lfq.c -lpthread -o tsan-lfq
+    - ./tsan-lfq -c 1 -t 4 -o 20000
+    - ./tsan-lfq -c 4 -t 4 -o 20000
 
 examples:
   stage: test
