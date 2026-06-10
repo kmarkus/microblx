@@ -1,0 +1,131 @@
+#!/bin/bash
+# Show schedstat for all threads of ubx-launch with scheduling policy.
+# Samples repeatedly to find the worst-case on-CPU time per period for
+# SCHED_DEADLINE threads, which is the correct basis for sizing runtime_ns.
+#
+# Usage: ubx-schedstat [-h] [-n COUNT] [WINDOW_S [PERIOD_HZ]]
+
+usage() {
+    cat <<EOF
+usage: $(basename "$0") [OPTIONS] [WINDOW_S [PERIOD_HZ]]
+
+Show schedstat for all threads of a running ubx-launch process.
+When PERIOD_HZ is given, tracks the worst-case on-CPU time per period
+across COUNT windows — use the reported max as runtime_ns baseline.
+
+Arguments:
+  WINDOW_S    duration of each sample window in seconds (default: 1)
+  PERIOD_HZ   ptrig trigger rate in Hz; enables per-period budget analysis
+
+Options:
+  -n COUNT    number of sample windows to collect (default: 1)
+  -h          show this help and exit
+
+Columns:
+  CPU_NS_TOTAL   cumulative on-CPU nanoseconds since thread start; excludes
+                 time blocked or sleeping — exactly what CBS charges against
+                 runtime_ns
+  DELTA_CPU_NS   CPU time consumed during this sample window
+  AVG_NS/PERIOD  DELTA_CPU_NS / periods_in_window  (requires PERIOD_HZ)
+  MAX_NS/PERIOD  worst-case avg/period seen so far across all windows
+
+Budget derivation (no arbitrary multiplier):
+  Run for many windows under realistic worst-case load. The reported
+  MAX_NS/PERIOD converges toward the empirical WCET. Use that value
+  directly as runtime_ns, plus a small guard (e.g. +20%) for unobserved
+  worst cases. No fixed multiplier needed.
+
+Examples:
+  $(basename "$0") 1 1000          # single 1s window, 1kHz ptrig
+  $(basename "$0") -n 60 1 1000    # 60 windows of 1s = 1min WCET search
+EOF
+}
+
+COUNT=1
+while getopts "hn:" opt; do
+    case $opt in
+        h) usage; exit 0 ;;
+        n) COUNT=$OPTARG ;;
+        *) usage >&2; exit 1 ;;
+    esac
+done
+shift $(( OPTIND - 1 ))
+
+WINDOW_S=${1:-1}
+PERIOD_HZ=${2:-}
+
+decode_policy() {
+    case $1 in
+        0) echo "OTHER" ;; 1) echo "FIFO" ;; 2) echo "RR" ;;
+        6) echo "DL"    ;; *) echo "?$1"  ;;
+    esac
+}
+
+read_schedstat() {   # usage: read_schedstat <pid> <array_name>
+    local pid=$1 arr=$2 tid c s
+    for tid in $(ls /proc/$pid/task/ 2>/dev/null); do
+        read c _ s < /proc/$pid/task/$tid/schedstat 2>/dev/null || continue
+        eval "${arr}_cpu[$tid]=$c"
+        eval "${arr}_sw[$tid]=$s"
+    done
+}
+
+pid=$(pgrep -f 'luajit.*ubx-launch' | head -1)
+[ -z "$pid" ] && { echo "error: ubx-launch not running" >&2; exit 1; }
+
+echo "PID: $pid  window: ${WINDOW_S}s  count: ${COUNT}"
+[ -n "$PERIOD_HZ" ] && echo "periods per window: $(( WINDOW_S * PERIOD_HZ ))"
+
+declare -A max_ns_per_period
+
+for window in $(seq 1 "$COUNT"); do
+    declare -A snap_cpu snap_sw
+    for tid in $(ls /proc/$pid/task/ 2>/dev/null); do
+        read c _ s < /proc/$pid/task/$tid/schedstat 2>/dev/null || continue
+        snap_cpu[$tid]=$c
+        snap_sw[$tid]=$s
+    done
+
+    sleep "$WINDOW_S"
+
+    [ "$COUNT" -gt 1 ] && printf "\n-- window %d/%d --\n" "$window" "$COUNT"
+
+    printf "%-8s  %-7s  %-16s  %16s  %14s" TID POLICY COMM CPU_NS_TOTAL DELTA_CPU_NS
+    [ -n "$PERIOD_HZ" ] && printf "  %14s  %14s" AVG_NS/PERIOD MAX_NS/PERIOD
+    echo
+
+    for tid in $(ls /proc/$pid/task/ 2>/dev/null); do
+        comm=$(cat /proc/$pid/task/$tid/comm 2>/dev/null) || continue
+        policy=$(awk '{sub(/.*\) /,""); print $39}' /proc/$pid/task/$tid/stat 2>/dev/null)
+        read cpu_ns _ < /proc/$pid/task/$tid/schedstat 2>/dev/null || continue
+
+        delta_cpu=$(( cpu_ns - ${snap_cpu[$tid]:-0} ))
+
+        printf "%-8s  %-7s  %-16s  %16s  %14s" \
+            "$tid" "$(decode_policy "$policy")" "$comm" "$cpu_ns" "$delta_cpu"
+
+        if [ "$policy" = "6" ] && [ -n "$PERIOD_HZ" ] && [ "$delta_cpu" -gt 0 ]; then
+            periods=$(( WINDOW_S * PERIOD_HZ ))
+            avg_ns=$(( delta_cpu / periods ))
+            cur_max=${max_ns_per_period[$tid]:-0}
+            [ "$avg_ns" -gt "$cur_max" ] && max_ns_per_period[$tid]=$avg_ns
+            printf "  %14s  %14s" "$avg_ns" "${max_ns_per_period[$tid]}"
+        fi
+        echo
+    done
+
+    unset snap_cpu snap_sw
+    declare -A snap_cpu snap_sw
+done
+
+if [ -n "$PERIOD_HZ" ] && [ "${#max_ns_per_period[@]}" -gt 0 ]; then
+    echo ""
+    echo "Empirical WCET summary (worst window across $COUNT × ${WINDOW_S}s):"
+    for tid in "${!max_ns_per_period[@]}"; do
+        comm=$(cat /proc/$pid/task/$tid/comm 2>/dev/null)
+        max=${max_ns_per_period[$tid]}
+        suggested=$(( max + max / 5 ))   # +20% guard for unobserved worst cases
+        printf "  TID %-8s %-16s  max_ns/period: %6d  suggested runtime_ns (+20%%): %d\n" \
+            "$tid" "$comm" "$max" "$suggested"
+    done
+fi
