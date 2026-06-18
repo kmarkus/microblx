@@ -77,6 +77,11 @@ Commands
   -w  --write=BLOCK:PORT:VALUE    write a value to a port
   -r  --read=BLOCK:PORT           read from a port
   -R  --read-mon=BLOCK:PORT       read continuously from a port
+  -W  --write-read=BLOCK:PORT:VALUE[:STEP]
+                                  write VALUE to the in-out port BLOCK:PORT and
+                                  read the result back from the same port. If
+                                  STEP is true, step BLOCK in between (default
+                                  false)
   -l  --load-usc=USC              load an usc model
   -C  --clear=[KEEPLIST]          clear all blocks except the dbus block.
                                   KEEPLIST is an optional colon-separated list
@@ -232,7 +237,14 @@ local function format_block_info(info)
          local dir, type_str
          if p.in_type_name and p.out_type_name then
             dir = "[in/out]"
-            type_str = fmt("%s[%d]", p.in_type_name, p.in_data_len)
+            if p.in_type_name == p.out_type_name and p.in_data_len == p.out_data_len then
+               type_str = fmt("%s[%d]", p.in_type_name, p.in_data_len)
+            else
+               -- distinct in/out types: show both as in->out
+               type_str = fmt("%s[%d]->%s[%d]",
+                              p.in_type_name, p.in_data_len,
+                              p.out_type_name, p.out_data_len)
+            end
          elseif p.in_type_name then
             dir = "[in]    "
             type_str = fmt("%s[%d]", p.in_type_name, p.in_data_len)
@@ -458,6 +470,23 @@ if opts.write then
    handled = true
 end
 
+if opts.write_read then
+   local p = get_proxy(ndname)
+   local args = split(opts.write_read)
+   if #args < 3 then
+      errexit(1, "invalid arg: %s, expected BLOCK:PORT:VALUE[:STEP]", opts.write_read)
+   end
+   local blk, port = args[1], args[2]
+   local do_step = args[4] == "true" or args[4] == "1"
+   local v = str2lua(args[3])
+   -- prime the read connection first so a value produced by the step is captured
+   p('Read', blk, port)
+   p('Write', blk, port, lsdb.tovariant(v))
+   if do_step then p('Trigger', { blk }) end
+   print(pt.tostr(p('Read', blk, port)))
+   handled = true
+end
+
 if opts.load_usc then
    local p = get_proxy(ndname)
    local ext = string.match(opts.load_usc, "^.+%.(.+)$")
@@ -527,6 +556,11 @@ Examples:
 
   # read from a port
   ubx-dbus --read=myblock:myport
+
+  # write to an in-out port and read the result back in one shot
+  ubx-dbus --write-read=myblock:io:42
+  # ... stepping the block in between
+  ubx-dbus --write-read=myblock:io:42:true
 
   # load a USC model
   ubx-dbus --load-usc=mymodel.usc

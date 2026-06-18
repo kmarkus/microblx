@@ -51,6 +51,13 @@ $ ubx-dbus -i thres
 }
 ```
 
+A port is reported as an **in-out** port when it carries both an `in_type_name`
+and an `out_type_name` (e.g. the `luablock`'s `exec_str` port). `GetBlockInfo`
+returns both fields and the `ubx-dbus -i BLOCK` pretty-printer tags such ports
+with `[in/out]`; in-only ports show `[in]` and out-only ports `[out]`. No
+special client handling is required — direction is derived from which type
+fields are present.
+
 ### Change block state
 
 ```sh
@@ -122,6 +129,23 @@ $ ubx-dbus -w thres:in:1 && ubx-dbus -t thres
 
 # falling (dir=0)
 $ ubx-dbus -w thres:in:0 && ubx-dbus -t thres
+```
+
+### Write and read back in one shot
+
+`-W` (`--write-read`) is a convenience for in-out ports: it writes a value to a
+port and reads the result back from the *same* port in a single call.
+
+```sh
+$ ubx-dbus -W myblock:io:42
+```
+
+The spec is `BLOCK:PORT:VALUE[:STEP]`. `STEP` is an optional boolean
+(`true`/`false`, default `false`); when `true` the block is stepped between the
+write and the read so a freshly computed result is captured:
+
+```sh
+$ ubx-dbus -W myblock:io:42:true
 ```
 
 ### Clear a node

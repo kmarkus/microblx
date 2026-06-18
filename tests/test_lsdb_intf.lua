@@ -15,6 +15,7 @@ if _dir:sub(1,1) ~= '/' then
 end
 local TEST_DIR = _dir
 local TEST_PLUGIN = TEST_DIR .. "/lsdb_intf_test_plugin.lua"
+local INOUT_BLOCK = TEST_DIR .. "/lsdb_intf_inout_block.lua"
 
 
 local assert_not_nil = luaunit.assert_not_nil
@@ -42,6 +43,32 @@ return bd.system {
 
 local function make_thres_usc(name, threshold)
    return fmt(THRES_USC, name, name, tostring(threshold))
+end
+
+-- USC instantiating a luablock with a single in-out port (see
+-- lsdb_intf_inout_block.lua). %s is replaced by the block name twice.
+local INOUT_USC = [[
+return bd.system {
+   imports = { "stdtypes", "luablock" },
+   blocks = {
+      { name = "%s", type = "ubx/luablock" },
+   },
+   configurations = {
+      { name = "%s", config = { lua_file = "]] .. INOUT_BLOCK .. [[" } },
+   },
+}
+]]
+
+local function make_inout_usc(name)
+   return fmt(INOUT_USC, name, name)
+end
+
+--- return the port table named `pname` from a GetBlockInfo result, or nil
+local function find_port(info, pname)
+   for _, p in ipairs(info.ports or {}) do
+      if p.name == pname then return p end
+   end
+   return nil
 end
 
 --- write a value to the threshold's "in" port, trigger and
@@ -206,6 +233,49 @@ function TestLsdbIntf:test_get_block_info()
    assert_not_nil(info)
    assert_equals(info.name, "t1")
    assert_equals(info.prototype, "ubx/threshold")
+end
+
+--- in-out ports must be reported with both in and out type info
+function TestLsdbIntf:test_get_block_info_inout_port()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_blkinfo_inout")
+
+   local sys = bd.load_str(make_inout_usc("io1"), 'lua')
+   sys:launch{ nd=_nd }
+
+   local info = _proxy('GetBlockInfo', "io1")
+   assert_not_nil(info)
+
+   local p = find_port(info, "io")
+   assert_not_nil(p, "block should expose an 'io' port")
+
+   -- a port carrying both directions is an in-out port
+   assert_equals(p.in_type_name, "int32_t")
+   assert_equals(p.out_type_name, "int32_t")
+end
+
+---
+--- write-read convenience (the RPC sequence ubx-dbus --write-read performs)
+---
+
+function TestLsdbIntf:test_write_read()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_wr")
+
+   -- io1 echoes its in-out port "io" on step (see lsdb_intf_inout_block.lua)
+   local sys = bd.load_str(make_inout_usc("io1"), 'lua')
+   sys:launch{ nd=_nd }
+
+   -- mirror ubx-dbus --write-read: prime read, write, optionally step, read
+   local function write_read(blk, port, val, step)
+      _proxy('Read', blk, port)
+      _proxy('Write', blk, port, lsdb.tovariant(val))
+      if step then _proxy('Trigger', { blk }) end
+      return _proxy('Read', blk, port)
+   end
+
+   -- with step the echoed value is read back from the same port
+   assert_equals(write_read("io1", "io", 42, true), 42)
+   -- without stepping there is no result yet on the out side
+   assert_equals(write_read("io1", "io", 7, false), false)
 end
 
 ---
