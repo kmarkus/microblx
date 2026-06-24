@@ -6,6 +6,14 @@ set(VERSION_PATCH 2)
 
 project(microblx VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}" LANGUAGES C CXX)
 
+# Default to an optimized build (-O2 -g) when no build type was
+# selected. Without this a plain 'cmake ..' compiles at -O0. Users can
+# still override, e.g. -DCMAKE_BUILD_TYPE=Debug.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
+      "Build type (default: RelWithDebInfo)" FORCE)
+endif()
+
 # git-describe version string embedded at configure time
 execute_process(
   COMMAND git describe --tags --dirty
