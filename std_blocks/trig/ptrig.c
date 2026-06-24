@@ -69,6 +69,7 @@ ubx_proto_port_t ptrig_ports[] = {
 	{ .name = "tstats", .out_type_name = "struct ubx_tstat", .doc = "out port for timing statistics" },
 	{ .name = "shutdown", .in_type_name = "int", .doc = "input port for stopping ptrig" },
 	{ .name = "period", .in_type_name = "struct ptrig_period", .doc = "dynamically change the trigger period" },
+	{ .name = "period_ns", .in_type_name = "int64_t", .doc = "dynamically change the trigger period [ns]" },
 	{ .name = "sched_deadline", .in_type_name = "struct ptrig_deadline",
 	  .doc = "update SCHED_DEADLINE parameters at runtime" },
 	{ .name = "deadline_throt_cnt", .out_type_name = "uint64_t",
@@ -91,6 +92,7 @@ static void __ptrig_stop(ubx_block_t *b);
 
 ubx_proto_config_t ptrig_config[] = {
 	{ .name = "period", .type_name = "struct ptrig_period", .doc = "trigger period in { sec, usec }", },
+	{ .name = "period_ns", .type_name = "int64_t", .max = 1, .doc = "trigger period [ns] (mutually exclusive with 'period')", },
 	{ .name = "stacksize", .type_name = "size_t", .doc = "stacksize as per pthread_attr_setstacksize(3)" },
 	{ .name = "sched_priority", .type_name = "int", .doc = "thread priority (unused with SCHED_DEADLINE)" },
 	{ .name = "sched_policy", .type_name = "char", .doc = "scheduling policy: SCHED_OTHER (default), SCHED_FIFO, SCHED_RR, SCHED_DEADLINE (Linux>=3.14)" },
@@ -147,7 +149,7 @@ struct ptrig_inf {
 	pthread_mutex_t mutex;
 	pthread_cond_t active_cond;
 
-	const struct ptrig_period *period;
+	uint64_t period_ns;	/* canonical trigger period in nanoseconds */
 
 	struct ubx_chain *chains;
 	int num_chains;
@@ -159,6 +161,7 @@ struct ptrig_inf {
 
 	ubx_port_t *p_actchain;
 	ubx_port_t *p_period;
+	ubx_port_t *p_period_ns;
 
 	int use_deadline;
 	struct sched_attr deadline_attr;
@@ -193,13 +196,10 @@ static int ptrig_deadline_make_attr(ubx_block_t *b, const struct ptrig_inf *inf,
 				    const struct ptrig_deadline *dl,
 				    struct sched_attr *out)
 {
-	uint64_t period_ns, runtime_ns, deadline_ns, sched_period_ns;
-
-	period_ns = (uint64_t)inf->period->sec * NSEC_PER_SEC +
-		    (uint64_t)inf->period->usec * NSEC_PER_USEC;
+	uint64_t runtime_ns, deadline_ns, sched_period_ns;
 
 	runtime_ns      = dl->runtime_ns;
-	sched_period_ns = dl->period_ns   ?: period_ns;
+	sched_period_ns = dl->period_ns   ?: inf->period_ns;
 	deadline_ns     = dl->deadline_ns ?: sched_period_ns;
 
 	if (runtime_ns < 1024) {
@@ -265,8 +265,8 @@ void *thread_startup(void *arg)
 	b = (ubx_block_t *) arg;
 	inf = (struct ptrig_inf *)b->private_data;
 
-	period.sec = inf->period->sec;
-	period.nsec = inf->period->usec * NSEC_PER_USEC;
+	period.sec = inf->period_ns / NSEC_PER_SEC;
+	period.nsec = inf->period_ns % NSEC_PER_SEC;
 
 	if (inf->use_deadline) {
 		struct sigaction sa = {
@@ -344,6 +344,12 @@ void *thread_startup(void *arg)
 		if (read_ptrig_period(inf->p_period, &port_period) > 0) {
 			period.sec = port_period.sec;
 			period.nsec = port_period.usec * NSEC_PER_USEC;
+		}
+
+		int64_t port_period_ns;
+		if (read_int64(inf->p_period_ns, &port_period_ns) > 0) {
+			period.sec = port_period_ns / NSEC_PER_SEC;
+			period.nsec = port_period_ns % NSEC_PER_SEC;
 		}
 
 		if (ubx_chain_trigger(&inf->chains[inf->actchain]) != 0)
@@ -468,12 +474,29 @@ int ptrig_handle_config(ubx_block_t *b)
 	}
 	inf->sleep_fn = (inf->sleep_mode == 0) ? ubx_nanosleep : ubx_nanowait;
 
-	/* period */
-	len = cfg_getptr_ptrig_period(b, "period", &inf->period);
+	/* period / period_ns: exactly one of the two must be configured */
+	const struct ptrig_period *period;
+	const int64_t *period_ns;
+	long len_period_ns;
+
+	len = cfg_getptr_ptrig_period(b, "period", &period);
 	assert(len >= 0);
 
-	if (len == 0) {
-		ubx_err(b, "mandatory config 'period' unconfigured");
+	len_period_ns = cfg_getptr_int64(b, "period_ns", &period_ns);
+	assert(len_period_ns >= 0);
+
+	if (len > 0 && len_period_ns > 0) {
+		ubx_err(b, "configs 'period' and 'period_ns' are mutually exclusive");
+		goto out;
+	}
+
+	if (len > 0) {
+		inf->period_ns = (uint64_t)period->sec * NSEC_PER_SEC +
+				 (uint64_t)period->usec * NSEC_PER_USEC;
+	} else if (len_period_ns > 0) {
+		inf->period_ns = (uint64_t)*period_ns;
+	} else {
+		ubx_err(b, "mandatory config 'period' or 'period_ns' unconfigured");
 		goto out;
 	}
 
@@ -526,9 +549,9 @@ int ptrig_handle_config(ubx_block_t *b)
 		if (ptrig_deadline_config(b, inf) != 0)
 			goto out;
 
-		ubx_info(b, "period %lus:%luus, policy SCHED_DEADLINE, "
+		ubx_info(b, "period %" PRIu64 "ns, policy SCHED_DEADLINE, "
 			 "runtime %lluns, deadline %lluns, sched_period %lluns, stacksize %s",
-			 inf->period->sec, inf->period->usec,
+			 inf->period_ns,
 			 (unsigned long long)inf->deadline_attr.sched_runtime,
 			 (unsigned long long)inf->deadline_attr.sched_deadline,
 			 (unsigned long long)inf->deadline_attr.sched_period,
@@ -568,8 +591,8 @@ int ptrig_handle_config(ubx_block_t *b)
 			goto out;
 		}
 
-		ubx_info(b, "period %lus:%luus, policy %s, prio %d, stacksize %s, sleep_mode %s",
-			 inf->period->sec, inf->period->usec,
+		ubx_info(b, "period %" PRIu64 "ns, policy %s, prio %d, stacksize %s, sleep_mode %s",
+			 inf->period_ns,
 			 schedpol_tostr(schedpol),
 			 sched_param.sched_priority,
 			 stackbuf, sleep_mode_tostr(inf->sleep_mode));
@@ -602,6 +625,9 @@ int ptrig_init(ubx_block_t *b)
 
 	inf->p_period = ubx_port_get(b, "period");
 	assert(inf->p_period != NULL);
+
+	inf->p_period_ns = ubx_port_get(b, "period_ns");
+	assert(inf->p_period_ns != NULL);
 
 	inf->p_deadline = ubx_port_get(b, "sched_deadline");
 	assert(inf->p_deadline != NULL);

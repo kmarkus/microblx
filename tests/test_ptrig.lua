@@ -420,6 +420,123 @@ function TestPtrig:TestPeriodPort()
 	       "expected <5 steps at 500ms period, got " .. steps_slow)
 end
 
+-- Guard the seconds term of the period->ns conversion. All other tests
+-- use sec=0, so a dropped/miss-scaled 'sec' field (e.g. period_ns becoming
+-- 0 -> busy loop) would otherwise go unnoticed. With a 1s period only the
+-- immediate startup trigger fits into the run window.
+local sys_sec = bd.system {
+   imports = { "stdtypes", "ptrig", "ramp_uint64" },
+   blocks = {
+      { name="ramp",  type="ubx/ramp_uint64" },
+      { name="ptrig", type="ubx/ptrig" },
+   },
+   configurations = {
+      { name="ramp", config = { start=0, slope=1 } },
+      { name="ptrig", config = {
+	 period = { sec=1, usec=0 },  -- 1s
+	 chain0 = { { b="#ramp" } }
+      }},
+   },
+}
+
+function TestPtrig:TestPeriodSeconds()
+   local nd = sys_sec:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
+			      nodename='TestPeriodSeconds' }
+   local ramp = nd:b("ramp")
+
+   sys_sec:startup(nd)
+   ubx.clock_mono_sleep(0, 700000000)  -- 700ms < 1s period
+   nd:b("ptrig"):do_stop()
+
+   local steps = tonumber(ramp.stat_num_steps)
+   ubx.node_rm(nd)
+
+   -- exactly the startup trigger is expected; a broken sec conversion
+   -- (period_ns ~ 0) would yield thousands of steps in 700ms
+   assert_true(steps >= 1, "expected the startup trigger, got " .. steps .. " steps")
+   assert_true(steps <= 5, "1s period yielded " .. steps ..
+	       " steps in 700ms (sec term of period not honoured?)")
+end
+
+--
+-- period_ns config: int64_t nanosecond alternative to 'period'
+--
+
+local sys_ns = bd.system {
+   imports = { "stdtypes", "ptrig", "ramp_uint64", "lfrb" },
+   blocks = {
+      { name="ramp",  type="ubx/ramp_uint64" },
+      { name="ptrig", type="ubx/ptrig" },
+   },
+   configurations = {
+      { name="ramp", config = { start=0, slope=1 } },
+      { name="ptrig", config = {
+	 period_ns = 20000000,  -- 20ms / 50 Hz, via int64 ns config
+	 chain0 = { { b="#ramp" } }
+      }},
+   },
+}
+
+function TestPtrig:TestPeriodNsConfig()
+   local nd = sys_ns:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
+			     nodename='TestPeriodNsConfig' }
+   local ramp = nd:b("ramp")
+
+   sys_ns:startup(nd)
+   ubx.clock_mono_sleep(0, 500000000)  -- 500ms
+   nd:b("ptrig"):do_stop()
+
+   local steps = tonumber(ramp.stat_num_steps)
+   ubx.node_rm(nd)
+
+   assert_true(steps > 10,
+	       "expected >10 steps at 20ms period_ns, got " .. steps)
+end
+
+-- 'period' and 'period_ns' are mutually exclusive: init must fail.
+function TestPtrig:TestPeriodConfigConflict()
+   local nd = ubx.node_create("period_conflict",
+			      { loglevel = ffi.C.UBX_LOGLEVEL_ERR })
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "ptrig")
+   local b = ubx.block_create(nd, "ubx/ptrig", "pt",
+      { period = { sec=0, usec=1000 }, period_ns = 1000000 })
+   assert_not_nil(b)
+   assert_not_equals(ubx.block_tostate(b, 'inactive'), 0,
+      "init should fail when both period and period_ns are set")
+   assert_equals(b.block_state, ffi.C.BLOCK_STATE_PREINIT)
+   ubx.node_rm(nd)
+end
+
+-- the period_ns input port adopts a new period on the fly, like 'period'
+function TestPtrig:TestPeriodNsPort()
+   local nd = sys_ns:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
+			     nodename='TestPeriodNsPort' }
+   local p_period_ns = ubx.port_clone_conn(nd:b("ptrig"), "period_ns")
+   local ramp = nd:b("ramp")
+
+   sys_ns:startup(nd)
+
+   -- run at 20ms for 500ms
+   ubx.clock_mono_sleep(0, 500000000)
+   local steps_fast = tonumber(ramp.stat_num_steps)
+
+   -- switch to 500ms period via the period_ns port
+   p_period_ns:write(500000000)
+
+   -- run another 500ms at slow rate
+   ubx.clock_mono_sleep(0, 500000000)
+   local steps_slow = tonumber(ramp.stat_num_steps) - steps_fast
+
+   nd:b("ptrig"):do_stop()
+   ubx.node_rm(nd)
+
+   assert_true(steps_fast > 10,
+	       "expected >10 steps at 20ms period_ns, got " .. steps_fast)
+   assert_true(steps_slow < 5,
+	       "expected <5 steps at 500ms period_ns, got " .. steps_slow)
+end
+
 -- node_rm must stop active (thread-owning) blocks like ptrig before
 -- the passive blocks they trigger. Otherwise the trigger thread keeps
 -- stepping already stopped blocks ("cblock_step: block not active").
