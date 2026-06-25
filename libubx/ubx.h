@@ -148,10 +148,12 @@ typedef struct ubx_proto_block {
 	struct ubx_proto_config *configs;
 	struct ubx_proto_port *ports;
 
+	int (*preinit)(struct ubx_block *b);
 	int (*init)(struct ubx_block *b);
 	int (*start)(struct ubx_block *b);
 	void (*stop)(struct ubx_block *b);
 	void (*cleanup)(struct ubx_block *b);
+	void (*preexit)(struct ubx_block *b);
 
 	union {
 		/* BLOCK_TYPE_COMPUTATION */

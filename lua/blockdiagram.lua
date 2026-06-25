@@ -814,16 +814,22 @@ end
 
 --- Configure the previously unconfigured configs
 --
--- This function is to be called after init and is intended to
+-- This function is to be called after preinit/init and is intended to
 -- configure dynamically added configs. Thus, it will ignore all
--- configurations that are not in the nonexist table
+-- configurations that are not in the nonexist table.
+--
+-- It is run twice: once after `preinit` (tolerant=true, for configs
+-- created by preinit hooks; configs created later by init are left
+-- untouched) and once after `init` (tolerant=false, where every
+-- remaining nonexist config must now exist).
 --
 -- @param cfg config table
 -- @param b ubx_block_t
 -- @param NC global config table
 -- @param configured table to remember already configured block-configs
 -- @param nonexist table to remember nonexisting configurations
-local function reapply_config(cfg, b, NC, configured, nonexist)
+-- @param tolerant if true, silently skip configs that still don't exist
+local function reapply_config(cfg, b, NC, configured, nonexist, tolerant)
    for name,val in pairs(cfg.config) do
       local cfgfqn = cfg._tgt._fqn..'.'..name
 
@@ -833,6 +839,9 @@ local function reapply_config(cfg, b, NC, configured, nonexist)
       if nonexist[cfgfqn] == nil then goto continue end
 
       if ubx.block_config_get(b, name) == nil then
+	 -- not created yet; in the tolerant pass it may still be
+	 -- created by the init hook, so leave it for the final pass
+	 if tolerant then goto continue end
 	 errorf("block %s [%s] has no config '%s'", cfg._tgt._fqn, cfg._tgt.type, name)
 	 nonexist[cfgfqn] = false
 	 goto continue
@@ -889,6 +898,37 @@ local function configure_blocks(nd, root_sys, NC)
 	 apply_config(cfg, b, NC, configured, nonexist)
       end, root_sys)
 
+   -- run the preinit hooks (extend the interface based on static
+   -- config); blocks stay in state 'preinit'
+   mapblocks(
+      function(btab,i,p)
+	 local b = get_ubx_block(nd, btab)
+	 info("preinit block %s", safets(b.name))
+	 local ret = ubx.block_preinit(b)
+	 if ret ~= 0 then
+	    errorf("failed to preinit block %s: %d", btab.name, tonumber(ret))
+	 end
+      end, root_sys)
+
+   -- apply configs created by the preinit hooks (tolerant: configs
+   -- only created later by init are left for the final pass)
+   mapconfigs(
+      function(cfg, i)
+	 local b = get_ubx_block(nd, cfg._tgt)
+	 if b == nil then
+	    errorf("error: config %s for block %s: no such block found", cfg._fqn, cfg.name)
+	 end
+
+	 local bstate = b:get_block_state()
+	 if bstate ~= 'preinit' then
+	    warn("reapplying preinit configs: block %s not in state preinit but %s",
+		 cfg._tgt._fqn, bstate)
+	    return
+	 end
+
+	 reapply_config(cfg, b, NC, configured, nonexist, true)
+      end, root_sys)
+
    -- initialize all blocks (brings them to state 'inactive')
    mapblocks(
       function(btab,i,p)
@@ -900,7 +940,7 @@ local function configure_blocks(nd, root_sys, NC)
 	 end
       end, root_sys)
 
-   -- reapply configurations to blocks
+   -- reapply configurations to blocks (configs created by init)
    mapconfigs(
       function(cfg, i)
 	 local b = get_ubx_block(nd, cfg._tgt)
@@ -916,7 +956,7 @@ local function configure_blocks(nd, root_sys, NC)
 	    return
 	 end
 
-	 reapply_config(cfg, b, NC, configured, nonexist)
+	 reapply_config(cfg, b, NC, configured, nonexist, false)
       end, root_sys)
 
    -- check that all initially non-existing configs were configured

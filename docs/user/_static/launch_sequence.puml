@@ -1,0 +1,74 @@
+@startuml
+' microblx block bring-up / tear-down sequence.
+' Regenerate the SVG with:  plantuml -tsvg launch_sequence.puml
+title block bring-up / tear-down: framework calls & block hooks
+
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 30
+
+participant "Deployment / libubx\n(ubx-launch, tooling)" as FW
+participant "Block instance\n(author's hooks)" as B
+
+== instantiate ==
+FW -> B : ubx_block_create()
+note over B : clone prototype configs & ports\nstate = preinit
+
+== configure + extend interface  (still preinit) ==
+FW -> FW : apply_config (pass 1)\nconfigs that exist now (static / meta)
+FW -[#green]> B : preinit()
+note over B #ccffcc
+  read pass-1 configs
+  create dynamic configs
+  add / resize ports (legal: still preinit)
+end note
+FW -> FW : apply_config (pass 2)\npopulate configs created in preinit()
+
+== init ==
+FW -> B : init()
+note over B
+  read all configs
+  add / resize remaining ports (still preinit)
+end note
+note over B : state = inactive
+FW -> FW : reapply_config (pass 3)\npopulate configs created in init()
+
+== connect ==
+FW -> FW : connect_blocks\nwire ports via interaction blocks
+
+== start ==
+FW -> B : start()
+note over B
+  open sockets / devices
+  cache port pointers
+end note
+note over B : state = active
+
+== run (per trigger) ==
+loop each activation
+  FW -> B : step()
+  B -> B : read() / write() ports
+end
+
+== stop ==
+FW -> B : stop()
+note over B : release runtime resources\nstate = inactive
+
+== cleanup ==
+FW -> B : cleanup()
+note over B : undo init() (free init-time resources)\nstate = preinit
+
+== destroy ==
+FW -[#green]> B : preexit()
+note over B #ccffcc
+  undo preinit():
+  free private data allocated there
+  (ports / configs are freed by the framework)
+end note
+FW -> B : ubx_block_rm()
+
+legend bottom
+  green = preinit / preexit hooks
+  black FW->B = init / start / step / stop / cleanup hooks
+  FW->FW = framework-internal steps (config application, connect)
+endlegend
+@enduml

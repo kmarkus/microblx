@@ -36,10 +36,12 @@ void ubx_block_free(ubx_block_t *b);
 int ubx_block_rm(ubx_node_t *nd, const char *name);
 
 /* lifecycle hooks */
+int ubx_block_preinit(ubx_block_t *b);
 int ubx_block_init(ubx_block_t *b);
 int ubx_block_start(ubx_block_t *b);
 int ubx_block_stop(ubx_block_t *b);
 int ubx_block_cleanup(ubx_block_t *b);
+void ubx_block_preexit(ubx_block_t *b);
 int ubx_cblock_step(ubx_block_t *b);
 
 /* modules and registration */

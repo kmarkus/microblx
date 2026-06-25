@@ -858,8 +858,9 @@ function M.set_config_tab(b, ctab)
 end
 
 --- Configure a block, handling **dynamically added configs**.
--- Applies known configs, calls `block_init`, then applies any configs
--- that only exist after init (e.g. added in the block's `init` hook).
+-- Applies known configs, runs `block_preinit`, applies configs created
+-- by the preinit hook, calls `block_init`, then applies any configs that
+-- only exist after init (e.g. added in the block's `init` hook).
 -- **Requires** block to be in `preinit` state.
 -- @param b `ubx_block_t`
 -- @param ctab `{name=value}` configuration table
@@ -872,6 +873,7 @@ function M.do_configure(b, ctab)
       error("do_configure: block not in state preinit but "..state)
    end
 
+   -- apply the configs that exist after cloning (static / meta)
    for n,v in pairs(ctab) do
       if M.block_config_get(b, n) == nil then
 	 deferred[n] = v
@@ -880,11 +882,26 @@ function M.do_configure(b, ctab)
       end
    end
 
-   local ret = M.block_init(b)
+   -- run preinit; it may create configs from the values just applied
+   local ret = M.block_preinit(b)
+   if ret ~= 0 then
+      error(fmt("do_configure: failed to preinit %s", ffi.string(b.name)))
+   end
+
+   -- apply configs created by preinit (those that now exist)
+   for n,v in pairs(deferred) do
+      if M.block_config_get(b, n) ~= nil then
+	 M.set_config(b, n, v)
+	 deferred[n] = nil
+      end
+   end
+
+   ret = M.block_init(b)
    if ret ~= 0 then
       error(fmt("do_configure: failed to initalize %s", ffi.string(b.name)))
    end
 
+   -- apply the remaining configs, created by init
    for n,v in pairs(deferred) do
       if M.block_config_get(b, n) == nil then
 	 error(fmt("do_configure: block %s has no config %s",
@@ -964,10 +981,12 @@ local ubx_block_mt = {
       config_add = ubx.ubx_config_add,
       config_rm = ubx.ubx_config_rm,
 
+      do_preinit = ubx.ubx_block_preinit,
       do_init = ubx.ubx_block_init,
       do_start = ubx.ubx_block_start,
       do_stop = ubx.ubx_block_stop,
       do_cleanup = ubx.ubx_block_cleanup,
+      do_preexit = ubx.ubx_block_preexit,
       do_step = ubx.ubx_cblock_step,
 
       is_proto = M.is_proto,
