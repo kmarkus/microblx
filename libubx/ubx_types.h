@@ -288,13 +288,16 @@ enum {
  * @ports: head ptr to double linked list of ports
  * @configs: head ptr to double linked list of configurations
  * @block_state: current state in block life cycle FSM
+ * @preinited: set once the preinit hook has run (and not yet preexit'ed)
  * @prototype: pointer to prototype block (if any)
  * @nd: parent ubx_node
  * @loglevel: ptr to loglevel config (if it exists)
+ * @preinit: preinit hook (extend interface based on static config, optional)
  * @init: init hook
  * @start: start hook
  * @stop: stop hook
  * @cleanup: cleanup hook
+ * @preexit: preexit hook (undo preinit additions, optional)
  * @step: step hook (only for BLOCK_TYPE_COMPUTATION)
  * @stat_num_steps: step count statistics (only BLOCK_TYPE_COMPUTATION)
  * @read: read hook (only BLOCK_TYPE_INTERACTION)
@@ -311,6 +314,7 @@ typedef struct ubx_block {
 	uint32_t attrs;
 	uint16_t type;
 	uint16_t block_state;
+	uint8_t preinited;
 
 	ubx_port_t *ports;
 	ubx_config_t *configs;
@@ -320,10 +324,12 @@ typedef struct ubx_block {
 
 	const int *loglevel;
 
+	int (*preinit)(struct ubx_block *b);
 	int (*init)(struct ubx_block *b);
 	int (*start)(struct ubx_block *b);
 	void (*stop)(struct ubx_block *b);
 	void (*cleanup)(struct ubx_block *b);
+	void (*preexit)(struct ubx_block *b);
 
 	union {
 		/* BLOCK_TYPE_COMPUTATION */

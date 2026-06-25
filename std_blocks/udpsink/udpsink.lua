@@ -14,8 +14,9 @@
 --
 -- One input port is created per `ports` entry (key = port name / JSON
 -- key, value = registered ubx type name). The ports are added in the
--- `init` hook, which runs before connect_blocks, so they exist by the
--- time the USC connections are wired up.
+-- `preinit` hook -- the life-cycle step meant for extending the block
+-- interface -- so they exist by the time the USC connections are wired
+-- up.
 --
 -- No core extension is required: no custom block type, no struct type
 -- registration -- just the stock luablock and its lua_str/lua_file
@@ -78,7 +79,7 @@ end
 --
 -- Config (`ports`, `host`, `port`) arrives as globals set by lua_str.
 
-function init(b)
+function preinit(b)
    b = ffi.cast("ubx_block_t*", b)
    local nd = b.nd
 

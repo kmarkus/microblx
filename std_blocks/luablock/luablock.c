@@ -56,11 +56,13 @@ struct luablock_info {
 };
 
 const char *predef_hooks =
+	"function preinit(b) return true end\n"
 	"function init(b) return true end\n"
 	"function start(b) return true end\n"
 	"function step(b) end\n"
 	"function stop(b) end\n"
-	"function cleanup(b) end\n";
+	"function cleanup(b) end\n"
+	"function preexit(b) end\n";
 
 /**
  * @brief: call a hook with fname.
@@ -216,7 +218,13 @@ int init_lua_state(struct ubx_block *b,
 }
 
 
-int luablock_init(ubx_block_t *b)
+/*
+ * preinit: set up the lua_State, load lua_file/lua_str and run the
+ * `preinit` hook. Done here (and not in init) so a Lua `preinit` hook
+ * can extend the block interface (add ports/configs) based on the
+ * static config, before the regular config is applied and `init` runs.
+ */
+int luablock_preinit(ubx_block_t *b)
 {
 	const char *lua_file = NULL;
 	const char *lua_str = NULL;
@@ -272,7 +280,7 @@ int luablock_init(ubx_block_t *b)
 	if (init_lua_state(b, lua_file, lua_str) != 0)
 		goto out_free2;
 
-	ret = call_hook(b, "init", 0, 1);
+	ret = call_hook(b, "preinit", 0, 1);
 	if (ret != 0)
 		goto out_free2;
 
@@ -293,6 +301,11 @@ int luablock_init(ubx_block_t *b)
 	b->private_data = NULL;
  out:
 	return ret;
+}
+
+int luablock_init(ubx_block_t *b)
+{
+	return call_hook(b, "init", 0, 1);
 }
 
 int luablock_start(ubx_block_t *b)
@@ -373,9 +386,18 @@ void luablock_stop(ubx_block_t *b)
 
 void luablock_cleanup(ubx_block_t *b)
 {
+	call_hook(b, "cleanup", 0, 0);
+}
+
+/*
+ * preexit: run the `preexit` hook and tear down the lua_State and
+ * everything allocated in preinit (counterpart of luablock_preinit).
+ */
+void luablock_preexit(ubx_block_t *b)
+{
 	struct luablock_info *inf = (struct luablock_info *)b->private_data;
 
-	call_hook(b, "cleanup", 0, 0);
+	call_hook(b, "preexit", 0, 0);
 	lua_close(inf->L);
 
 	if (inf->use_thread)
@@ -395,11 +417,13 @@ ubx_proto_block_t lua_comp = {
 	.ports = lua_ports,
 
 	/* ops */
+	.preinit = luablock_preinit,
 	.init = luablock_init,
 	.start = luablock_start,
 	.step = luablock_step,
 	.stop = luablock_stop,
 	.cleanup = luablock_cleanup,
+	.preexit = luablock_preexit,
 };
 
 int lua_init(ubx_node_t *nd)

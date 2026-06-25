@@ -518,10 +518,12 @@ int ubx_block_register(ubx_node_t *nd, struct ubx_proto_block *prot)
 		}
 	}
 
+	newb->preinit = prot->preinit;
 	newb->init = prot->init;
 	newb->start = prot->start;
 	newb->stop = prot->stop;
 	newb->cleanup = prot->cleanup;
+	newb->preexit = prot->preexit;
 
 	switch (prot->type) {
 	case BLOCK_TYPE_COMPUTATION:
@@ -1077,10 +1079,12 @@ static ubx_block_t *ubx_block_clone(ubx_block_t *prot, const char *name)
 	newb->attrs = prot->attrs;
 	newb->meta_data = NULL;
 
+	newb->preinit = prot->preinit;
 	newb->init = prot->init;
 	newb->start = prot->start;
 	newb->stop = prot->stop;
 	newb->cleanup = prot->cleanup;
+	newb->preexit = prot->preexit;
 
 	switch (prot->type) {
 	case BLOCK_TYPE_COMPUTATION:
@@ -1222,6 +1226,9 @@ int ubx_block_rm(ubx_node_t *nd, const char *name)
 		ret = EWRONG_STATE;
 		goto out;
 	}
+
+	/* undo preinit additions before freeing */
+	ubx_block_preexit(b);
 
 	if (ubx_block_unregister(nd, name) != 0)
 		logf_err(nd, "block %s failed to unregister", name);
@@ -2114,6 +2121,52 @@ ubx_port_t *ubx_port_get(const ubx_block_t *b, const char *name)
 
 
 /**
+ * ubx_block_preinit - run the preinit hook of a function block.
+ *
+ * The preinit hook lets a block extend its interface (add/resize
+ * ports, create dynamic configs) based on its static configuration,
+ * before the regular configuration is applied and init is run. It is
+ * idempotent and a no-op for blocks without a preinit hook. The block
+ * stays in BLOCK_STATE_PREINIT. ubx_block_init() calls this
+ * automatically, so it only needs to be called explicitly when extra
+ * configuration must be applied to preinit-created configs before init
+ * (as the deployment does between its config passes).
+ *
+ * @param b block to preinit
+ *
+ * @return 0 on success, non-zero otherwise.
+ */
+int ubx_block_preinit(ubx_block_t *b)
+{
+	int ret;
+
+	if (b == NULL)
+		return EINVALID_BLOCK;
+
+	if (b->block_state != BLOCK_STATE_PREINIT) {
+		ubx_err(b, "preinit: not in state preinit (but %s)",
+			block_state_tostr(b->block_state));
+		return EWRONG_STATE;
+	}
+
+	if (b->preinited || b->preinit == NULL) {
+		b->preinited = 1;
+		return 0;
+	}
+
+	ubx_debug(b, __func__);
+
+	ret = b->preinit(b);
+	if (ret != 0) {
+		ubx_err(b, "preinit failed");
+		return ret;
+	}
+
+	b->preinited = 1;
+	return 0;
+}
+
+/**
  * ubx_block_init - initialize a function block.
  *
  * @param b block to initialize
@@ -2144,6 +2197,11 @@ int ubx_block_init(ubx_block_t *b)
 		ret = EWRONG_STATE;
 		goto out;
 	}
+
+	/* ensure the preinit hook has run (no-op if already done) */
+	ret = ubx_block_preinit(b);
+	if (ret != 0)
+		goto out;
 
 	ret = check_minmax(b, 0);
 
@@ -2291,6 +2349,39 @@ int ubx_block_cleanup(ubx_block_t *b)
 
  out:
 	return ret;
+}
+
+/**
+ * ubx_block_preexit - run the preexit hook of a function block.
+ *
+ * Counterpart of ubx_block_preinit: gives a block the chance to undo
+ * what its preinit hook added (e.g. free private data allocated there).
+ * Ports and configs are freed by the framework regardless, so a purely
+ * declarative preinit needs no preexit. Called automatically on block
+ * removal. The block must be in BLOCK_STATE_PREINIT.
+ *
+ * @param b block to preexit
+ */
+void ubx_block_preexit(ubx_block_t *b)
+{
+	if (b == NULL)
+		return;
+
+	if (!b->preinited)
+		return;
+
+	if (b->block_state != BLOCK_STATE_PREINIT) {
+		ubx_err(b, "preexit: not in state preinit (but %s)",
+			block_state_tostr(b->block_state));
+		return;
+	}
+
+	ubx_debug(b, __func__);
+
+	if (b->preexit != NULL)
+		b->preexit(b);
+
+	b->preinited = 0;
 }
 
 /**

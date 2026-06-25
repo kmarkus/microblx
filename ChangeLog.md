@@ -5,6 +5,20 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `libubx`: added optional `preinit`/`preexit` life-cycle hooks
+  (`ubx_proto_block_t` / `ubx_block_t`). `preinit` runs while the block
+  is in state `preinit` (before the regular config is applied and before
+  `init`), letting a block extend its interface (add/resize ports,
+  create configs) based on its static configuration. `preexit` is its
+  teardown counterpart, run on block removal. New API:
+  `ubx_block_preinit()` and `ubx_block_preexit()`; `ubx_block_init()`
+  runs `preinit` automatically. The change is purely additive and
+  backwards compatible (blocks recompile against the new headers). The
+  deployment (`blockdiagram`) now applies configuration in an extra pass
+  between `preinit` and `init` so that configs created by `preinit` can
+  be set before `init` reads them. The hooks are also available to
+  `luablock` (Lua `preinit`/`preexit` functions) and via the Lua API
+  (`block_preinit`/`block_preexit`).
 - `ubx_time`: **API change** - replaced `ubx_nanosleep(int flags, struct
   ubx_timespec *ts)` with two new functions that take relative durations:
   `ubx_nanosleep(const struct ubx_timespec *dur)` which yields the CPU

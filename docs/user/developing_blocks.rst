@@ -137,10 +137,12 @@ blocks behavior. All are optional.
 
 .. code:: c
 
+   int rnd_preinit(ubx_block_t *b);
    int rnd_init(ubx_block_t *b);
    int rnd_start(ubx_block_t *b);
    void rnd_stop(ubx_block_t *b);
    void rnd_cleanup(ubx_block_t *b);
+   void rnd_preexit(ubx_block_t *b);
    void rnd_step(ubx_block_t *b);
 
 These functions will be called according to the microblx block
@@ -151,13 +153,29 @@ life-cycle finite state machine:
 
    Block lifecycle FSM
 
-They are typically used for the following:
+The ``preinit`` and ``init`` hooks both run while the block is in
+state ``preinit`` (so both may add or resize ports), but the
+deployment applies configuration *between* them: ``preinit`` sees only
+the static configuration, whereas ``init`` also sees the values of any
+configs that ``preinit`` created. This lets a block grow its interface
+in two dependent steps (see the launch sequence in
+:doc:`composing_systems`). ``ubx_block_init`` runs ``preinit``
+automatically, so a block that does not stage configuration need only
+implement ``init``.
 
-- ``init``: initialize the block, allocate memory, drivers: check if the device exists. Return zero if OK, non-zero otherwise.
-- ``start``: become operational, open/enable device, carry out last checks. Cache pointers to ports, apply configurations.
-- ``step``: read from ports, compute, write to ports
-- ``stop``: stop/close device. stop is often not used.
-- ``cleanup``: free all memory, release all resources.
+The hooks are typically used for the following:
+
+.. csv-table::
+   :header: "hook", "typical use"
+   :widths: 10, 60
+
+   ``preinit``, "extend the interface (add/resize ports, create configs) based on the static config values"
+   ``init``, "allocate memory and resources, open and initialize the device; check that it exists. Return zero if OK, non-zero otherwise"
+   ``start``, "become operational: enable the device, carry out last checks, cache port pointers, apply runtime configuration"
+   ``step``, "read from ports, compute, write to ports"
+   ``stop``, "disable the device (often not used)"
+   ``cleanup``, "deinitialize, close, free all memory and resources allocated in ``init``"
+   ``preexit``, "undo what ``preinit`` added (mostly unnecessary: ports and configs are freed by the framework; only needed to release private data allocated in ``preinit``)"
 
 Storing block local state
 ~~~~~~~~~~~~~~~~~~~~~~~~~

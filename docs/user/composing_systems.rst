@@ -131,6 +131,17 @@ earlier versions, there was ``start`` directive to list the blocks to
 be started, however now this information is obtained by means of the
 block attributes ``BLOCK_ATTR_ACTIVE`` and ``BLOCK_ATTR_TRIGGER``.)
 
+The following sequence diagram shows the order in which the deployment
+calls the block hooks and applies configuration. Note in particular
+how configuration is applied in several passes so that a ``preinit``
+or ``init`` hook can extend the block interface based on configuration
+values (see also the block life-cycle FSM in :doc:`developing_blocks`):
+
+.. figure:: _static/launch_sequence.svg
+   :alt: Block bring-up / tear-down sequence
+
+   Block bring-up and tear-down sequence
+
 
 Node configs
 ~~~~~~~~~~~~

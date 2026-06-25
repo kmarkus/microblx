@@ -1,0 +1,23 @@
+@startuml
+' microblx block life-cycle FSM.
+' Regenerate the SVG with:  plantuml -tsvg life_cycle.puml
+hide empty description
+title microblx block life-cycle
+
+[*] --> preinit : <color:RoyalBlue>ubx_block_create()</color>\n<color:RoyalBlue>apply_config #1 (static / meta)</color>\n<color:DarkGreen>preinit()</color>
+
+preinit --> inactive : <color:RoyalBlue>apply_config #2 (preinit-created)</color>\n<color:DarkGreen>init()</color>\n<color:RoyalBlue>reapply_config #3 (init-created)</color>
+inactive --> preinit  : <color:DarkGreen>cleanup()</color>
+
+inactive --> active : <color:DarkGreen>start()</color>
+active --> inactive : <color:DarkGreen>stop()</color>
+
+preinit --> [*] : <color:DarkGreen>preexit()</color>\n<color:RoyalBlue>ubx_block_rm()</color>
+
+active : <color:DarkGreen>step()  /  read() / write()</color>
+
+legend bottom
+  <color:RoyalBlue>**blue**</color> = framework / external step (API call, config apply)
+  <color:DarkGreen>**green**</color> = block hook (transition effect, never entry/exit)
+endlegend
+@enduml
