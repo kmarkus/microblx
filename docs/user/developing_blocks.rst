@@ -177,6 +177,14 @@ The hooks are typically used for the following:
    ``cleanup``, "deinitialize, close, free all memory and resources allocated in ``init``"
    ``preexit``, "undo what ``preinit`` added (mostly unnecessary: ports and configs are freed by the framework; only needed to release private data allocated in ``preinit``)"
 
+.. note::
+
+   In most cases ``preinit`` and ``preexit`` are **not** required: a
+   block with a fixed interface only implements ``init``..``cleanup``.
+   They are mainly for blocks with a very dynamic interface, whose
+   ports or configs depend on configuration values (e.g. one port per
+   configured channel).
+
 Storing block local state
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
