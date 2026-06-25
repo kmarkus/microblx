@@ -259,14 +259,17 @@ void *thread_startup(void *arg)
 	ubx_block_t *b;
 	struct ptrig_inf *inf;
 	struct ptrig_period port_period;
-	struct ubx_timespec start, now, period, remaining;
+	struct ubx_timespec now_ts, remaining;
+	uint64_t next = 0;		/* absolute deadline of the next period [ns] */
+	uint64_t now_ns;
+	uint64_t cur_period_ns;		/* current period [ns], may change at runtime */
+	int rearm = 1;			/* (re)initialize the deadline on (re)activation */
 	sig_atomic_t last_deadline_overrun_cnt = 0;
 
 	b = (ubx_block_t *) arg;
 	inf = (struct ptrig_inf *)b->private_data;
 
-	period.sec = inf->period_ns / NSEC_PER_SEC;
-	period.nsec = inf->period_ns % NSEC_PER_SEC;
+	cur_period_ns = inf->period_ns;
 
 	if (inf->use_deadline) {
 		struct sigaction sa = {
@@ -316,6 +319,9 @@ void *thread_startup(void *arg)
 		while (inf->state != BLOCK_STATE_ACTIVE && !inf->shutdown) {
 			inf->thread_state = THREAD_INACTIVE;
 			pthread_cond_wait(&inf->active_cond, &inf->mutex);
+			/* we slept: rearm the deadline on re-activation so
+			 * we don't try to "catch up" the idle interval */
+			rearm = 1;
 		}
 
 		if (inf->shutdown) {
@@ -326,11 +332,15 @@ void *thread_startup(void *arg)
 		inf->thread_state = THREAD_ACTIVE;
 		pthread_mutex_unlock(&inf->mutex);
 
-		ret = ubx_gettime(&start);
-
-		if (ret) {
-			ubx_err(b, "ubx_gettime failed: %s", strerror(errno));
-			goto out;
+		if (rearm) {
+			/* (re)anchor the absolute deadline grid to now */
+			ret = ubx_gettime(&now_ts);
+			if (ret) {
+				ubx_err(b, "ubx_gettime failed: %s", strerror(errno));
+				goto out;
+			}
+			next = ubx_ts_to_ns(&now_ts);
+			rearm = 0;
 		}
 
 		common_read_actchain(b, inf->p_actchain, inf->num_chains, &inf->actchain);
@@ -342,15 +352,13 @@ void *thread_startup(void *arg)
 		}
 
 		if (read_ptrig_period(inf->p_period, &port_period) > 0) {
-			period.sec = port_period.sec;
-			period.nsec = port_period.usec * NSEC_PER_USEC;
+			cur_period_ns = (uint64_t)port_period.sec * NSEC_PER_SEC +
+					(uint64_t)port_period.usec * NSEC_PER_USEC;
 		}
 
 		int64_t port_period_ns;
-		if (read_int64(inf->p_period_ns, &port_period_ns) > 0) {
-			period.sec = port_period_ns / NSEC_PER_SEC;
-			period.nsec = port_period_ns % NSEC_PER_SEC;
-		}
+		if (read_int64(inf->p_period_ns, &port_period_ns) > 0)
+			cur_period_ns = (uint64_t)port_period_ns;
 
 		if (ubx_chain_trigger(&inf->chains[inf->actchain]) != 0)
 			ubx_err(b, "ubx_chain_trigger failed for chain%i", inf->actchain);
@@ -382,23 +390,53 @@ void *thread_startup(void *arg)
 			continue;
 		}
 
-		/* compute remaining sleep time: period - elapsed */
-		ret = ubx_gettime(&now);
+		/*
+		 * Sleep until the next absolute deadline. The deadline grid
+		 * (next) advances by exactly one period each cycle, regardless
+		 * of how long the trigger took or how late we woke up, so
+		 * wake-up jitter does not accumulate: there is no drift.
+		 *
+		 * We sleep for a *relative* duration (next - now). This keeps
+		 * both sleep modes identical (ubx_nanosleep / ubx_nanowait both
+		 * take a relative duration) and is independent of the
+		 * ubx_gettime time source (CLOCK_MONOTONIC or TSC), which an
+		 * absolute clock_nanosleep(TIMER_ABSTIME) would not be.
+		 */
+		if (cur_period_ns == 0)
+			continue;	/* no period configured: free-run */
+
+		next += cur_period_ns;
+
+		ret = ubx_gettime(&now_ts);
 		if (ret) {
 			ubx_err(b, "ubx_gettime failed: %s", strerror(errno));
 			goto out;
 		}
+		now_ns = ubx_ts_to_ns(&now_ts);
 
-		ubx_ts_sub(&now, &start, &remaining);
-		ubx_ts_sub(&period, &remaining, &remaining);
+		if (next > now_ns) {
+			uint64_t remaining_ns = next - now_ns;
 
-		/* only sleep if there is time remaining */
-		if (remaining.sec >= 0 && remaining.nsec > 0) {
+			remaining.sec = remaining_ns / NSEC_PER_SEC;
+			remaining.nsec = remaining_ns % NSEC_PER_SEC;
+
 			ret = inf->sleep_fn(&remaining);
 			if (ret) {
 				ubx_err(b, "sleep failed: %s", strerror(errno));
 				goto out;
 			}
+		} else {
+			/*
+			 * Deadline already missed (overrun): skip the missed
+			 * tick(s) and realign to the next future grid point so
+			 * recovering load does not cause a burst of back-to-back
+			 * triggers. Phase relative to the grid is preserved.
+			 */
+			uint64_t missed = (now_ns - next) / cur_period_ns + 1;
+
+			next += missed * cur_period_ns;
+			ubx_debug(b, "deadline missed, skipped %" PRIu64 " period(s)",
+				  missed);
 		}
 	}
 
