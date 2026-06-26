@@ -45,11 +45,12 @@ Both support multiple trigger chains, per-block timing statistics, and runtime c
 | port                 | direction | type                    | description                                                        |
 |----------------------|-----------|-------------------------|--------------------------------------------------------------------|
 | `shutdown`           | in        | `int`                   | write any value to stop the thread                                 |
-| `period`             | in        | `struct ptrig_period`   | change the trigger period at runtime                               |
+| `period`             | in        | `struct ptrig_period`   | change the trigger period at runtime (no effect under SCHED_DEADLINE — use `sched_deadline`) |
+| `period_ns`          | in        | `int64_t`               | change the trigger period [ns] at runtime (no effect under SCHED_DEADLINE — use `sched_deadline`) |
 | `sched_deadline`     | in        | `struct ptrig_deadline` | update `SCHED_DEADLINE` parameters at runtime (Linux ≥ 3.14)      |
 | `deadline_throt_cnt` | out       | `uint64_t`              | cumulative count of SCHED_DEADLINE budget overruns (Linux ≥ 4.16) |
-
 | `overrun_cnt`        | out       | `uint64_t`              | cumulative count of missed trigger deadlines; counts skipped periods in sleep/busy-wait modes only (stays 0 with SCHED_DEADLINE — use `deadline_throt_cnt` there) |
+
 ## SCHED_DEADLINE
 
 When `sched_policy` is set to `"SCHED_DEADLINE"`, ptrig uses the Linux

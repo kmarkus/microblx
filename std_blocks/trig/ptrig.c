@@ -248,19 +248,9 @@ static int ptrig_deadline_apply(ubx_block_t *b, struct ptrig_inf *inf,
 	return 0;
 }
 
-/* helper for normalizing struct timespecs */
-inline void tsnorm(struct timespec *ts)
-{
-	if (ts->tv_nsec >= NSEC_PER_SEC) {
-		ts->tv_sec += ts->tv_nsec / NSEC_PER_SEC;
-		ts->tv_nsec = ts->tv_nsec % NSEC_PER_SEC;
-	}
-}
-
 /* thread entry */
 void *thread_startup(void *arg)
 {
-	uint64_t last_overrun_cnt = 0;	/* last value emitted on the overrun_cnt port */
 	int ret;
 	ubx_block_t *b;
 	struct ptrig_inf *inf;
@@ -270,6 +260,7 @@ void *thread_startup(void *arg)
 	uint64_t now_ns;
 	uint64_t cur_period_ns;		/* current period [ns], may change at runtime */
 	int rearm = 1;			/* (re)initialize the deadline on (re)activation */
+	uint64_t last_overrun_cnt = 0;	/* last value emitted on the overrun_cnt port */
 	sig_atomic_t last_deadline_overrun_cnt = 0;
 
 	b = (ubx_block_t *) arg;
@@ -311,14 +302,6 @@ void *thread_startup(void *arg)
 			 * going inactive: flush stats once. This must
 			 * happen before setting THREAD_INACTIVE,
 			 * since stop() unconfigures the chains after
-
-			if (inf->overrun_cnt > 0)
-				ubx_warn(b, "missed %" PRIu64 " trigger deadline(s)",
-					 inf->overrun_cnt);
-
-			if (inf->use_deadline && deadline_overrun_cnt > 0)
-				ubx_warn(b, "%u SCHED_DEADLINE budget overrun(s)",
-					 (unsigned int)deadline_overrun_cnt);
 			 * observing that state.
 			 */
 			common_output_stats(b, inf->chains, inf->num_chains);
@@ -328,6 +311,14 @@ void *thread_startup(void *arg)
 
 			if (ret)
 				ubx_err(b, "failed to write tstats to profile_path: %d", ret);
+
+			if (inf->overrun_cnt > 0)
+				ubx_warn(b, "missed %" PRIu64 " trigger deadline(s)",
+					 inf->overrun_cnt);
+
+			if (inf->use_deadline && deadline_overrun_cnt > 0)
+				ubx_warn(b, "%u SCHED_DEADLINE budget overrun(s)",
+					 (unsigned int)deadline_overrun_cnt);
 		}
 
 		while (inf->state != BLOCK_STATE_ACTIVE && !inf->shutdown) {
@@ -365,14 +356,19 @@ void *thread_startup(void *arg)
 				ptrig_deadline_apply(b, inf, &port_dl);
 		}
 
-		if (read_ptrig_period(inf->p_period, &port_period) > 0) {
-			cur_period_ns = (uint64_t)port_period.sec * NSEC_PER_SEC +
+		/* The period ports have no effect under SCHED_DEADLINE (the
+		 * kernel paces the thread via sched_attr; use the
+		 * sched_deadline port to retune), so skip them in that mode. */
+		if (!inf->use_deadline) {
+			if (read_ptrig_period(inf->p_period, &port_period) > 0)
+				cur_period_ns =
+					(uint64_t)port_period.sec * NSEC_PER_SEC +
 					(uint64_t)port_period.usec * NSEC_PER_USEC;
-		}
 
-		int64_t port_period_ns;
-		if (read_int64(inf->p_period_ns, &port_period_ns) > 0)
-			cur_period_ns = (uint64_t)port_period_ns;
+			int64_t port_period_ns;
+			if (read_int64(inf->p_period_ns, &port_period_ns) > 0)
+				cur_period_ns = (uint64_t)port_period_ns;
+		}
 
 		if (ubx_chain_trigger(&inf->chains[inf->actchain]) != 0)
 			ubx_err(b, "ubx_chain_trigger failed for chain%i", inf->actchain);
@@ -445,6 +441,10 @@ void *thread_startup(void *arg)
 			 * tick(s) and realign to the next future grid point so
 			 * recovering load does not cause a burst of back-to-back
 			 * triggers. Phase relative to the grid is preserved.
+			 */
+			uint64_t missed = (now_ns - next) / cur_period_ns + 1;
+
+			next += missed * cur_period_ns;
 			inf->overrun_cnt += missed;
 
 			if (inf->overrun_cnt != last_overrun_cnt) {
@@ -452,10 +452,6 @@ void *thread_startup(void *arg)
 				last_overrun_cnt = inf->overrun_cnt;
 			}
 
-			 */
-			uint64_t missed = (now_ns - next) / cur_period_ns + 1;
-
-			next += missed * cur_period_ns;
 			ubx_debug(b, "deadline missed, skipped %" PRIu64 " period(s)",
 				  missed);
 		}
@@ -619,6 +615,9 @@ int ptrig_handle_config(ubx_block_t *b)
 		const int *prio;
 		struct sched_param sched_param;
 
+		if (inf->period_ns == 0)
+			ubx_warn(b, "period is 0: trigger will free-run (busy loop) without sleeping");
+
 		if (pthread_attr_setschedpolicy(&inf->attr, schedpol))
 			ubx_err(b, "pthread_attr_setschedpolicy failed");
 
@@ -693,9 +692,9 @@ int ptrig_init(ubx_block_t *b)
 
 	inf->p_deadline_throt_cnt = ubx_port_get(b, "deadline_throt_cnt");
 	assert(inf->p_deadline_throt_cnt != NULL);
+
 	inf->p_overrun_cnt = ubx_port_get(b, "overrun_cnt");
 	assert(inf->p_overrun_cnt != NULL);
-
 
 	/* initialize chains and add configs */
 	inf->num_chains = common_init_chains(b, &inf->chains);

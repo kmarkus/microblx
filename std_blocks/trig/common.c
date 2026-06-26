@@ -198,7 +198,7 @@ void common_read_actchain(const ubx_block_t *b,
 	}
 
 	if (tmp < 0 || tmp >= num_chains) {
-		ubx_err(b, "requested chain %i is out of range [0,%i]", tmp, num_chains);
+		ubx_err(b, "requested chain %i is out of range [0,%i]", tmp, num_chains - 1);
 		return;
 	}
 
