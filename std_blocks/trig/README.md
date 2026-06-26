@@ -49,6 +49,7 @@ Both support multiple trigger chains, per-block timing statistics, and runtime c
 | `sched_deadline`     | in        | `struct ptrig_deadline` | update `SCHED_DEADLINE` parameters at runtime (Linux ≥ 3.14)      |
 | `deadline_throt_cnt` | out       | `uint64_t`              | cumulative count of SCHED_DEADLINE budget overruns (Linux ≥ 4.16) |
 
+| `overrun_cnt`        | out       | `uint64_t`              | cumulative count of missed trigger deadlines; counts skipped periods in sleep/busy-wait modes only (stays 0 with SCHED_DEADLINE — use `deadline_throt_cnt` there) |
 ## SCHED_DEADLINE
 
 When `sched_policy` is set to `"SCHED_DEADLINE"`, ptrig uses the Linux
@@ -69,8 +70,10 @@ is therefore ignored.
 
 If the chain execution exceeds `runtime_ns`, the kernel throttles the thread
 for the remainder of the period and (on Linux ≥ 4.16) sends `SIGXCPU`. ptrig
-catches this signal, logs a warning, and increments the counter on the
-`deadline_throt_cnt` output port so applications can monitor overruns.
+catches this signal and increments the counter on the `deadline_throt_cnt`
+output port so applications can monitor overruns. As with `overrun_cnt`, each
+overrun is logged at debug level and the cumulative total is logged as a
+warning on stop.
 
 > **Note:** `SCHED_DEADLINE` requires `CAP_SYS_NICE`. Do not use
 > `setcap cap_sys_nice+ep` on the interpreter — file capabilities set

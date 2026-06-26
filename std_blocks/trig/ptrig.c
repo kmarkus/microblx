@@ -74,6 +74,8 @@ ubx_proto_port_t ptrig_ports[] = {
 	  .doc = "update SCHED_DEADLINE parameters at runtime" },
 	{ .name = "deadline_throt_cnt", .out_type_name = "uint64_t",
 	  .doc = "cumulative SCHED_DEADLINE budget overrun count (requires Linux >= 4.16)" },
+	{ .name = "overrun_cnt", .out_type_name = "uint64_t",
+	  .doc = "cumulative count of missed trigger deadlines (sleep/busy-wait modes)" },
 	{ 0 },
 };
 
@@ -158,6 +160,9 @@ struct ptrig_inf {
 	int64_t autostop_steps;
 	int sleep_mode;
 	int (*sleep_fn)(const struct ubx_timespec *);
+
+	uint64_t overrun_cnt;	/* cumulative missed trigger deadlines */
+	ubx_port_t *p_overrun_cnt;
 
 	ubx_port_t *p_actchain;
 	ubx_port_t *p_period;
@@ -255,6 +260,7 @@ inline void tsnorm(struct timespec *ts)
 /* thread entry */
 void *thread_startup(void *arg)
 {
+	uint64_t last_overrun_cnt = 0;	/* last value emitted on the overrun_cnt port */
 	int ret;
 	ubx_block_t *b;
 	struct ptrig_inf *inf;
@@ -305,6 +311,14 @@ void *thread_startup(void *arg)
 			 * going inactive: flush stats once. This must
 			 * happen before setting THREAD_INACTIVE,
 			 * since stop() unconfigures the chains after
+
+			if (inf->overrun_cnt > 0)
+				ubx_warn(b, "missed %" PRIu64 " trigger deadline(s)",
+					 inf->overrun_cnt);
+
+			if (inf->use_deadline && deadline_overrun_cnt > 0)
+				ubx_warn(b, "%u SCHED_DEADLINE budget overrun(s)",
+					 (unsigned int)deadline_overrun_cnt);
 			 * observing that state.
 			 */
 			common_output_stats(b, inf->chains, inf->num_chains);
@@ -382,7 +396,7 @@ void *thread_startup(void *arg)
 			sig_atomic_t cnt = deadline_overrun_cnt;
 			if (cnt != last_deadline_overrun_cnt) {
 				uint64_t cnt64 = (uint64_t)(unsigned int)cnt;
-				ubx_warn(b, "SCHED_DEADLINE budget overrun (total: %" PRIu64 ")", cnt64);
+				ubx_debug(b, "SCHED_DEADLINE budget overrun (total: %" PRIu64 ")", cnt64);
 				write_uint64(inf->p_deadline_throt_cnt, &cnt64);
 				last_deadline_overrun_cnt = cnt;
 			}
@@ -431,6 +445,13 @@ void *thread_startup(void *arg)
 			 * tick(s) and realign to the next future grid point so
 			 * recovering load does not cause a burst of back-to-back
 			 * triggers. Phase relative to the grid is preserved.
+			inf->overrun_cnt += missed;
+
+			if (inf->overrun_cnt != last_overrun_cnt) {
+				write_uint64(inf->p_overrun_cnt, &inf->overrun_cnt);
+				last_overrun_cnt = inf->overrun_cnt;
+			}
+
 			 */
 			uint64_t missed = (now_ns - next) / cur_period_ns + 1;
 
@@ -672,6 +693,9 @@ int ptrig_init(ubx_block_t *b)
 
 	inf->p_deadline_throt_cnt = ubx_port_get(b, "deadline_throt_cnt");
 	assert(inf->p_deadline_throt_cnt != NULL);
+	inf->p_overrun_cnt = ubx_port_get(b, "overrun_cnt");
+	assert(inf->p_overrun_cnt != NULL);
+
 
 	/* initialize chains and add configs */
 	inf->num_chains = common_init_chains(b, &inf->chains);
