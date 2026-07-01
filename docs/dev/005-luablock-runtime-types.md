@@ -3,7 +3,12 @@ Runtime struct type registration from Lua blocks
 
 2026-06-25, mk
 
-Status: concept, not implemented.
+Status: implemented — `ubx.type_add(nd, name, cdecl [, doc])` registers a
+struct type at runtime (cdef + sizeof + persistent copy + register) and
+`ubx.type_rm(nd, name)` unregisters and frees one it created. See
+`lua/ubx.lua` and `tests/test_type_add.lua`. The `luablock` integration
+sketched below (a typed `ports` struct-array config) is not wired up; the
+primitive is available for blocks that want it.
 
 Goal
 ----

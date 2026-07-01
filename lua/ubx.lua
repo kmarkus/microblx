@@ -1094,6 +1094,118 @@ function M.ffi_load_types(nd)
    utils.foreach(ffi_load_no_ns, typ_list)
 end
 
+-- Set of ubx_type_t we allocated from Lua (keyed by pointer address), so
+-- type_rm only ever frees a runtime type it created -- never a static C
+-- type whose memory is not ours to free.
+local lua_types = {}
+
+-- Persistent C copy of a Lua string, incl. the NUL terminator. Not
+-- GC-managed: released explicitly with ffi.C.free (see type_rm).
+local function cstr_dup(s)
+   local p = ffi.C.malloc(#s + 1)
+   if p == nil then error("cstr_dup: out of memory") end
+   ffi.copy(p, s)
+   return ffi.cast("char*", p)
+end
+
+--- Register a struct type at runtime from Lua.
+--
+-- Makes `cdecl` available to the ffi, computes the type's size and
+-- registers a `ubx_type_t` under `name` in `nd`. This lets a Lua block
+-- expose a real, typed (struct) config or port without a separate C type
+-- module -- see `docs/dev/005-luablock-runtime-types.md`.
+--
+-- Caveats: the type is *node-local* (its hash is name-based, so data
+-- crossing a node boundary has no peer type) and the ffi declaration is
+-- process-global and append-only (the same `name` must always describe
+-- the same layout). Idempotent: re-registering an existing `name` in the
+-- same node returns the existing type.
+--
+-- @param nd `ubx_node_t`
+-- @param name full type name, e.g. `"struct my_type"`
+-- @param cdecl C declaration string defining `name`
+-- @param doc *optional* documentation string
+-- @return the registered `ubx_type_t`
+function M.type_add(nd, name, cdecl, doc)
+   if nd == nil then error("type_add: nd is nil") end
+   if type(name) ~= "string" or name == "" then
+      error("type_add: name must be a non-empty string")
+   end
+   if type(cdecl) ~= "string" or cdecl == "" then
+      error("type_add: cdecl must be a non-empty string")
+   end
+
+   -- idempotent: already registered in this node -> return it
+   local existing = M.type_get(nd, name)
+   if existing ~= nil then return existing end
+
+   -- make the declaration known to the ffi (append-only, process-global);
+   -- tolerate a redefinition when `name` is already declared (identically).
+   local ok, err = pcall(ffi.cdef, cdecl)
+   if not ok and not pcall(ffi.typeof, name) then
+      error(fmt("type_add: cdef failed for '%s': %s", name, tostring(err)))
+   end
+
+   local sok, size = pcall(ffi.sizeof, name)
+   if not sok or type(size) ~= "number" or size <= 0 then
+      error(fmt("type_add: cannot size '%s' (does cdecl define it?)", name))
+   end
+
+   -- persistent storage: ubx_type_register keeps these pointers verbatim
+   -- (name is the hash key, private_data the cdecl), so they must outlive
+   -- this scope. Freed only by type_rm.
+   local t = ffi.C.malloc(ffi.sizeof("ubx_type_t"))
+   if t == nil then error("type_add: out of memory") end
+   ffi.fill(t, ffi.sizeof("ubx_type_t"))
+   t = ffi.cast("ubx_type_t*", t)
+
+   t.name = cstr_dup(name)
+   t.type_class = ffi.C.TYPE_CLASS_STRUCT
+   t.size = size
+   t.private_data = cstr_dup(cdecl)
+   if doc ~= nil then t.doc = cstr_dup(tostring(doc)) end
+
+   local ret = ubx.ubx_type_register(nd, t)
+   if ret ~= 0 then
+      ffi.C.free(ffi.cast("void*", t.name))
+      ffi.C.free(ffi.cast("void*", t.private_data))
+      if t.doc ~= nil then ffi.C.free(ffi.cast("void*", t.doc)) end
+      ffi.C.free(t)
+      error(fmt("type_add: failed to register '%s' (error %d)", name, tonumber(ret)))
+   end
+
+   lua_types[tostring(ffi.cast("uintptr_t", t))] = true
+   return t
+end
+
+--- Unregister a struct type previously created with `type_add` and free
+-- its backing memory.
+--
+-- Only types registered via `type_add` may be removed -- removing a
+-- static C type raises an error (its memory is not ours to free). There
+-- is no use-count check, so ensure no live data or ports of the type
+-- remain before calling.
+--
+-- @param nd `ubx_node_t`
+-- @param name type name string
+-- @return `true` if removed, `false` if no such type in the node
+function M.type_rm(nd, name)
+   local t = M.type_get(nd, name)
+   if t == nil then return false end
+
+   if not lua_types[tostring(ffi.cast("uintptr_t", t))] then
+      error(fmt("type_rm: '%s' was not registered via type_add", name))
+   end
+
+   t = ubx.ubx_type_unregister(nd, name)
+   lua_types[tostring(ffi.cast("uintptr_t", t))] = nil
+   ffi.C.free(ffi.cast("void*", t.name))
+   ffi.C.free(ffi.cast("void*", t.private_data))
+   if t.doc ~= nil then ffi.C.free(ffi.cast("void*", t.doc)) end
+   ffi.C.free(t)
+   return true
+end
+
 
 --- Convert a `ubx_data_t` to a plain Lua value.
 -- Returns `nil` for null data. Char arrays are returned as strings.
