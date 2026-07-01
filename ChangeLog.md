@@ -51,15 +51,19 @@ This file tracks user visible API changes
 
 New blocks:
 
-- `udpsink`: JSON-over-UDP streaming sink for live plotting with
-  [PlotJuggler](https://plotjuggler.io). Implemented as a plain
-  `ubx/luablock` (no core extension); the port set and UDP destination
-  are declared via `lua_str`. Timestamps use a connected `ts` input port
-  when present, otherwise `ubx_gettime()`. Supports RT/NRT decoupling:
-  run the sink on the luablock self-trigger (`thread=1`, `period`) at a
-  lower rate than the producers and size connection buffers accordingly.
+- `netsink`: network streaming sink for live plotting and telemetry,
+  primarily for [PlotJuggler](https://plotjuggler.io). Implemented as a
+  plain `ubx/luablock` (no core extension). Configurable `transport`
+  (`udp` datagrams or a ZeroMQ `PUB` socket, via the LuaJIT FFI — no
+  `luasocket`/`lzmq` dependency) and `format` (`json`, or MessagePack
+  via `lua-MessagePack`). All settings -- the port set and the network
+  configuration (transport/format/host/port/uri) -- are declared as
+  `lua_str` globals. Timestamps use a connected `ts` input port when
+  present, otherwise `ubx_gettime()`. Supports RT/NRT decoupling: run the
+  sink on the luablock self-trigger (`thread=1`, `period`) at a lower
+  rate than the producers and size connection buffers accordingly.
   Per-port pending/grace slots align frames across non-atomically filled
-  buffers. See `std_blocks/udpsink/README.md`.
+  buffers. See `std_blocks/netsink/README.md`.
 
 - `ubx/gpio`: Linux GPIO block via `libgpiod` v2
 - `ubx/iio`, `ubx/iio_buf`: Linux IIO (ADC/DAC/IMU/sensors) via `libiio`

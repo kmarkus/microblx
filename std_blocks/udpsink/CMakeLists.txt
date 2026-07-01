@@ -1,1 +1,0 @@
-install(FILES udpsink.lua DESTINATION ${UBX_LUABLOCK_DIR})

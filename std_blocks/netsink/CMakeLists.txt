@@ -1,0 +1,1 @@
+install(FILES netsink.lua DESTINATION ${UBX_LUABLOCK_DIR})

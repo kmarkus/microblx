@@ -1,13 +1,13 @@
 
--- udpsink demo: stream a bundle of mathematical functions as JSON
--- over UDP, ready for PlotJuggler's "UDP Server" input on port 9870.
+-- netsink demo: stream a bundle of mathematical functions over the
+-- network as one message per sample, ready for PlotJuggler.
 --
 --           RT / low-latency (100 Hz ptrig)    :  NRT / best-effort
---                                              :   (udpsink thread,
+--                                              :   (netsink thread,
 --   /------\    /-----\                        :       10 Hz)
 --   | ramp |--->| sin |---+--->[buf 16]\       :
 --   \------/    \-----/        \        \      :  /---------\
---      |        /-----\         \  [buf16]+----:->| udpsink |--udp/json-->
+--      |        /-----\         \  [buf16]+----:->| netsink |--json/udp-->
 --      +------->| cos |----------+--------/    :  \---------/    PlotJuggler
 --      |        \-----/         /[buf16]/      :
 --      +------->| tan |--->[buf16]              :
@@ -18,22 +18,54 @@
 --           \---------/                        :
 --
 -- This decouples the RT producer side from the best-effort network side.
--- The ptrig runs ramp/sin/cos/tan at 100 Hz; udpsink is NOT in that chain
+-- The ptrig runs ramp/sin/cos/tan at 100 Hz; netsink is NOT in that chain
 -- but self-triggers on the luablock's own thread at 10 Hz (thread=1,
 -- period=100). The deep connection buffers (buffer_len=16) hold the ~10
 -- samples that pile up between sink steps; each step drains them all (one
--- datagram per sample), so the slow socket sends add no latency to the RT
--- chain. "luablock:udpsink" loads udpsink.lua from the blocks search path
--- and its lua_str declares the input ports and UDP destination.
+-- message per sample), so the slow socket sends add no latency to the RT
+-- chain. "luablock:netsink" loads netsink.lua from the blocks search
+-- path; its lua_str declares the input ports and all network settings
+-- (transport/format/host/port/uri).
 --
--- The ramp feeds sink.ts: a connected "ts" port is used as the JSON
--- timestamp instead of the sink's own clock (which, decoupled, would
--- stamp every sample at the 10 Hz read time). Select "ts" as the
--- timestamp field in PlotJuggler.
+-- The ramp feeds sink.ts: a connected "ts" port is used as the timestamp
+-- instead of the sink's own clock. Select "ts" as the timestamp field in
+-- PlotJuggler.
 --
--- Open PlotJuggler -> Streaming -> UDP Server -> port 9870, then
---   ubx-launch -t 10 -c examples/usc/udpsink.usc
--- Or watch the raw datagrams:  nc -u -l 9870
+-- Transport and format are selectable from the environment for
+-- convenience (defaults: udp + json, ready for PlotJuggler):
+--
+--   NETSINK_TRANSPORT=udp|zmq   NETSINK_FORMAT=json|msgpack
+--
+-- Examples:
+--   # UDP + JSON -> PlotJuggler (Streaming -> UDP Server -> port 9870),
+--   # or watch the raw datagrams:  nc -u -l 9870
+--   ubx-launch -t 10 -c examples/usc/netsink.usc
+--
+--   # MessagePack over a ZeroMQ PUB socket (bind tcp://*:9870); subscribe
+--   # with a ZeroMQ SUB socket (SUBSCRIBE "")
+--   NETSINK_TRANSPORT=zmq NETSINK_FORMAT=msgpack \
+--       ubx-launch -t 10 -c examples/usc/netsink.usc
+
+-- pick transport/format from the environment (with sensible defaults) and
+-- build the sink's lua_str accordingly: udp needs host/port, zmq a uri.
+local function envdef(name, default)
+   local v = os.getenv(name)
+   if v == nil or v == "" then return default end
+   return v
+end
+local transport = envdef("NETSINK_TRANSPORT", "udp")
+local format    = envdef("NETSINK_FORMAT", "json")
+
+local dest = (transport == "zmq")
+   and 'uri  = "tcp://*:9870"'
+   or  'host = "127.0.0.1"\n      port = 9870'
+
+local sink_lua_str = string.format([[
+      ports     = { ts="double", sin="double", cos="double", tan="double" }
+      transport = "%s"
+      format    = "%s"
+      %s
+]], transport, format, dest)
 
 return bd.system
 {
@@ -50,7 +82,7 @@ return bd.system
       { name="sin",     type="ubx/math_double" },
       { name="cos",     type="ubx/math_double" },
       { name="tan",     type="ubx/math_double" },
-      { name="sink",    type="luablock:udpsink" },
+      { name="sink",    type="luablock:netsink" },
       { name="trigger", type="ubx/ptrig" },
    },
 
@@ -65,11 +97,9 @@ return bd.system
 	   thread = 1,
 	   period = 100, -- msec: self-trigger at 10 Hz, off the ptrig
 
-	   lua_str = [[
-	      ports = { ts="double", sin="double", cos="double", tan="double" }
-	      host  = "127.0.0.1"
-	      port  = 9870
-	   ]],
+	   -- all netsink settings are lua_str globals; here transport/format
+	   -- come from NETSINK_TRANSPORT / NETSINK_FORMAT (see header).
+	   lua_str = sink_lua_str,
 	}
       },
 

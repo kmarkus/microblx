@@ -10,7 +10,7 @@ Goal
 
 Let a Lua block expose a real, typed (struct) config instead of
 smuggling structured configuration through `lua_str`. Example:
-`udpsink` declares its port set as a Lua table inside `lua_str`; a real
+`netsink` declares its port set as a Lua table inside `lua_str`; a real
 `struct`-array config would be typed, USC-settable per field, and
 visible to tooling (`ubx-modinfo`, `lsdb-intf`, webgraph) — while
 keeping the block a pure `ubx/luablock` (no separate C type module).
