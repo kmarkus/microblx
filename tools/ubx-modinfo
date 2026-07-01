@@ -66,6 +66,31 @@ local function type_tostr(t)
    return magenta(t.name)..", sz="..yellow(ts(t.size))..", "..t.class
 end
 
+-- Render a struct type's C model (its declaration) readably: drop
+-- preprocessor guard lines and surrounding blank lines, and indent.
+local function model_pp(model, indent)
+   indent = indent or "      "
+   local lines = {}
+   for line in (model.."\n"):gmatch("(.-)\n") do
+      if not line:match("^%s*#") then  -- skip #ifndef/#define/#include/#endif
+	 lines[#lines+1] = line
+      end
+   end
+   while lines[1] and lines[1]:match("^%s*$") do table.remove(lines, 1) end
+   while lines[#lines] and lines[#lines]:match("^%s*$") do table.remove(lines) end
+   for i, l in ipairs(lines) do lines[i] = indent..green(l) end
+   return table.concat(lines, "\n")
+end
+
+-- One-line type summary, plus the indented definition for struct types.
+local function type_pp(t)
+   local s = type_tostr(t)
+   if t.class == "struct" and type(t.model) == "string" and t.model ~= "" then
+      s = s.."\n"..model_pp(t.model)
+   end
+   return s
+end
+
 local function block_pp(b)
    local res = {}
    local bt = ubx.is_block(b) and ubx.block_totab(b) or b
@@ -351,7 +376,11 @@ if opttab[0][1] == "show" then
    if #show_types > 0 or #show_blocks > 0 then
       if #show_types > 0 then
 	 for _,tname in ipairs(show_types) do
-	    print("  " ..type_tostr(types[tname]))
+	    if types[tname] == nil then
+	       print("  no such type '"..tname.."'")
+	    else
+	       print("  " ..type_pp(types[tname]))
+	    end
 	 end
       end
 
@@ -363,7 +392,7 @@ if opttab[0][1] == "show" then
    else
       -- print all
       print(" types:")
-      for _,t in pairs(types) do print("  "..type_tostr(t)) end
+      for _,t in pairs(types) do print("  "..type_pp(t)) end
       print("\n blocks:")
       for _,b in pairs(blocks) do print("  " ..block_pp(b)) end
    end
