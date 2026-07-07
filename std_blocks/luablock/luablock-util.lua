@@ -7,6 +7,8 @@ local utils = require("utils")
 
 local M = {}
 
+-- Hardcoded fallback block directories, searched after the UBX_PATH
+-- derived ones (see M.block_search_dirs).
 M.DEFAULT_PREFIXES = {
    "/usr/share/ubx/blocks",
    "/usr/local/share/ubx/blocks",
@@ -20,6 +22,28 @@ local function load_luablock(nd)
    if not loaded[nd] then
       ubx.load_module(nd, "luablock")
    end
+end
+
+--- Ordered list of directories searched for luablock files.
+-- The UBX_PATH-derived prefixes (`<prefix>/share/ubx/blocks`, the same
+-- prefixes core modules are loaded from) come first, so a staged or
+-- custom install is honored; the hardcoded M.DEFAULT_PREFIXES follow as
+-- a fallback. Duplicates are removed, order preserved.
+-- @return array of directory paths
+function M.block_search_dirs()
+   local dirs, seen = {}, {}
+   local function add(d)
+      if d and not seen[d] then seen[d] = true; dirs[#dirs+1] = d end
+   end
+
+   -- ubx.get_prefix() returns (core_prefix, prefixes)
+   local ok, _, prefixes = pcall(ubx.get_prefix)
+   if ok and type(prefixes) == "table" then
+      for _, p in ipairs(prefixes) do add(p .. "/share/ubx/blocks") end
+   end
+
+   for _, d in ipairs(M.DEFAULT_PREFIXES) do add(d) end
+   return dirs
 end
 
 --- Create a new luablock
@@ -41,8 +65,9 @@ function M.create(nd, block, name, tgtstate, active)
 
    if not fn then
       local ver = ubx.mod_version()
+      local dirs = M.block_search_dirs()
 
-      for _, d in ipairs(M.DEFAULT_PREFIXES) do
+      for _, d in ipairs(dirs) do
 	 local f = d .. "/" .. ver .. "/" .. block .. ".lua"
 	 if utils.file_exists(f) then
 	    fn = f
@@ -51,8 +76,8 @@ function M.create(nd, block, name, tgtstate, active)
       end
 
       if not fn then
-	 error("no module " .. block .. " found in as file or under " ..
-	       table.concat(M.DEFAULT_PREFIXES, ', ') .. " with version " .. ver)
+	 error("no module " .. block .. " found as file or under " ..
+	       table.concat(dirs, ', ') .. " with version " .. ver)
       end
    end
 
