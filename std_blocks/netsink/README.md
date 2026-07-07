@@ -60,7 +60,11 @@ optional and default as shown.
 | `zmq_bind`  | number   | zmq: `1`=bind (default), `0`=connect            |
 
 `ports` maps each output key / input-port name to a registered ubx type
-name (scalar, length 1), e.g. `ports = { x="double", n="int32_t" }`.
+name, e.g. `ports = { x="double", n="int32_t" }`. A bare type name is a
+scalar (length 1); a `"[N]"` suffix makes an array port of length N,
+e.g. `ports = { pos="double[3]" }`. Array ports serialize as a nested
+array under their key (`{"pos":[x,y,z]}`); PlotJuggler expands these
+into `pos/0`, `pos/1`, ...
 
 ## Ports
 

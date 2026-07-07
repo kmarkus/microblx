@@ -193,6 +193,42 @@ function TestNetsink:Test_msgpack_format()
    lu.assert_almost_equals(o.a, 21.0, 1e-9)
 end
 
+--- a "type[N]" port is created as an array inport of length N
+function TestNetsink:Test_array_port_created()
+   local sink = launch_sink("ports = { pos='double[3]', a='double' }")
+   local ppos = ubx.block_port_get(sink, "pos")
+   local pa   = ubx.block_port_get(sink, "a")
+   lu.assert_not_nil(ppos)
+   lu.assert_equals(ffi.string(ppos.in_type.name), "double")
+   lu.assert_equals(tonumber(ppos.in_data_len), 3)
+   lu.assert_equals(tonumber(pa.in_data_len), 1)   -- bare type stays scalar
+end
+
+--- an array port serializes as a nested JSON array under its key
+function TestNetsink:Test_json_array_port()
+   local sink, udp_port = launch_sink("ports = { ts='double', pos='double[3]' }")
+   local rx = make_receiver(udp_port)
+
+   local p_ts  = ubx.port_clone_conn(sink, "ts",  1, nil, 7, 0)
+   local p_pos = ubx.port_clone_conn(sink, "pos", 1, nil, 7, 0)
+   ubx.block_tostate(sink, 'active')
+
+   p_ts:write(1.0)
+   p_pos:write({ 1.5, -2.5, 3.5 })
+   sink:do_step()
+
+   local o = recv(rx, json.decode)
+   ffi.C.close(rx)
+
+   lu.assert_not_nil(o)
+   lu.assert_equals(o.pos, { 1.5, -2.5, 3.5 })
+end
+
+--- a zero-length array suffix is rejected at init
+function TestNetsink:Test_bad_array_len_fails()
+   lu.assert_false(pcall(launch_sink, "ports = { p='double[0]' }"))
+end
+
 --- an unknown transport makes start refuse (nonzero, block not activated)
 function TestNetsink:Test_bad_transport_fails()
    local sink = launch_sink("ports = { a='double' }", "transport='carrier-pigeon'\n")

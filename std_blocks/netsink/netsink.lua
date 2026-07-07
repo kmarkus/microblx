@@ -16,7 +16,7 @@
 --   { name="sink", type="luablock:netsink" },
 --   { name="sink", config = {
 --        lua_str = [[
---           ports     = { ts="double", sin="double" }
+--           ports     = { ts="double", sin="double", pos="double[3]" }
 --           transport = "zmq"              -- "udp" (default) | "zmq"
 --           format    = "msgpack"          -- "json" (default) | "msgpack"
 --           uri       = "tcp://*:9870"     -- zmq endpoint
@@ -25,11 +25,14 @@
 --   } },
 --
 -- One input port is created per `ports` entry (key = port name / output
--- key, value = registered ubx type name). The ports are added in the
--- `preinit` hook -- the life-cycle step meant for extending the block
--- interface -- so they exist by the time the USC connections are wired
--- up. The network settings (transport/format/host/port/uri) are read in
--- `start`.
+-- key, value = registered ubx type name). A "[N]" suffix on the type
+-- (e.g. "double[3]") makes an array port of length N; a bare type name
+-- is a scalar. Array ports serialize as a nested array under their key
+-- (PlotJuggler expands these into name/0, name/1, ...). The ports are
+-- added in the `preinit` hook -- the life-cycle step meant for extending
+-- the block interface -- so they exist by the time the USC connections
+-- are wired up. The network settings (transport/format/host/port/uri)
+-- are read in `start`.
 --
 -- No core extension is required: no custom block type, no struct type
 -- registration -- just the stock luablock and its lua_str/lua_file
@@ -149,15 +152,24 @@ function preinit(b)
 	 ubx.err(nd, "netsink", "port '%s': value must be a type-name string", id)
 	 return false
       end
-      if ubx.type_get(nd, typ) == nil then
-	 ubx.err(nd, "netsink", "port '%s': unknown type '%s'", id, typ)
+      -- optional "[N]" suffix selects an array port of length N; a bare
+      -- type name is a scalar (length 1). Vectors serialize as arrays.
+      local base, n = string.match(typ, "^%s*(.-)%s*%[%s*(%d+)%s*%]%s*$")
+      local tname = base or typ
+      local len = base and tonumber(n) or 1
+      if len < 1 then
+	 ubx.err(nd, "netsink", "port '%s': array length must be >= 1", id)
 	 return false
       end
-      if b:inport_add(id, "netsink input", 0, typ, 1) ~= 0 then
+      if ubx.type_get(nd, tname) == nil then
+	 ubx.err(nd, "netsink", "port '%s': unknown type '%s'", id, tname)
+	 return false
+      end
+      if b:inport_add(id, "netsink input", 0, tname, len) ~= 0 then
 	 ubx.err(nd, "netsink", "failed to add inport '%s'", id)
 	 return false
       end
-      portlist[#portlist+1] = { id=id, typ=typ }
+      portlist[#portlist+1] = { id=id, typ=tname, len=len }
       if id == "ts" then has_ts_port = true end
    end
 
