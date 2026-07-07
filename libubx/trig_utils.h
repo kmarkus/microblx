@@ -88,7 +88,7 @@ int tstat_fwrite(FILE *fp, struct ubx_tstat *stats);
  * @every_cnt: counter for reducing trigger frequency via "every" triggee value
  * @global_tstats global tstats structure
  * @blk_tstats: pointer to array of size trig_list_len for per block stats
- * @tstats_output_rate:	output rate
+ * @tstats_output_rate:	minimum interval [ns] between tstats port outputs (0: output every trigger)
  * @tstats_output_last_msg: timestamp of last message
  * @tstats_output_idx: index of last output sample
  */
@@ -123,7 +123,7 @@ struct ubx_chain {
  * @chain: chain to initialized
  * @chain_id: id for this chain (used as id of global stats and
  *            as a file name for statistics files. Can be NULL, then default is used.
- * @tstats_output_rate: tstats output rate [sec] (0 to disable tstats output on port)
+ * @tstats_output_rate: min seconds between tstats port outputs (0: only emit on stop)
  * @return 0 if OK, < 0 otherwise
  */
 int ubx_chain_init(struct ubx_chain* chain,

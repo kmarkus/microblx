@@ -107,7 +107,7 @@ ubx_proto_config_t ptrig_config[] = {
 
 	{ .name = "tstats_mode", .type_name = "int", .max = 1, .doc = "0: off (def), 1: global only, 2: per block", },
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "directory to write the timing stats file to" },
-	{ .name = "tstats_output_rate", .type_name = "double", .max = 1, .doc = "throttle output on tstats port" },
+	{ .name = "tstats_output_rate", .type_name = "double", .max = 1, .doc = "min seconds between tstats port outputs (0: only emit on stop)" },
 	{ .name = "tstats_skip_first", .type_name = "int", .max=1, .doc = "skip N steps before acquiring stats" },
 	{ .name = "sleep_mode", .type_name = "int", .max = 1, .doc = "0: OS sleep (ubx_nanosleep, def), 1: busy-wait (ubx_nanowait)",  },
 	{ .name = "loglevel", .type_name = "int" },

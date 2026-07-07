@@ -28,7 +28,7 @@ ubx_proto_config_t trig_config[] = {
 	{ .name = "num_chains", .type_name = "int", .max = 1, .doc = "number of trigger chains. def: 1" },
 	{ .name = "tstats_mode", .type_name = "int", .max = 1, .doc = "0: off (def), 1: global only, 2: per block", },
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "directory to write the timing stats file to" },
-	{ .name = "tstats_output_rate", .type_name = "double", .max = 1, .doc = "throttle output on tstats port" },
+	{ .name = "tstats_output_rate", .type_name = "double", .max = 1, .doc = "min seconds between tstats port outputs (0: only emit on stop)" },
 	{ .name = "tstats_skip_first", .type_name = "int", .max=1, .doc = "skip N steps before acquiring stats" },
 	{ .name = "loglevel", .type_name = "int" },
 	{ 0 },

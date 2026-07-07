@@ -15,7 +15,7 @@ Both support multiple trigger chains, per-block timing statistics, and runtime c
 | `num_chains`           | `int`    | number of chains (default: 1)                            |
 | `tstats_mode`          | `int`    | 0=off, 1=global only, 2=per block (default: 0)           |
 | `tstats_profile_path`  | `char`   | directory to write timing stats file to                  |
-| `tstats_output_rate`   | `double` | throttle rate for tstats port output                     |
+| `tstats_output_rate`   | `double` | min seconds between tstats port outputs (0: only emit on stop) |
 | `tstats_skip_first`    | `int`    | skip N steps before collecting stats                     |
 | `loglevel`             | `int`    | optional log level                                       |
 
