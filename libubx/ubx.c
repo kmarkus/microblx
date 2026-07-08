@@ -909,10 +909,13 @@ int ubx_data_resize(ubx_data_t *d, long newlen)
 /**
  * Free a previously allocated ubx_data_t.
  *
- * @param d ubx_data_t to free
+ * @param d ubx_data_t to free. NULL is a no-op (like free(3)).
  */
 void ubx_data_free(ubx_data_t *d)
 {
+	if (d == NULL)
+		return;
+
 	d->refcnt--;
 
 	if (d->refcnt < 0) {
