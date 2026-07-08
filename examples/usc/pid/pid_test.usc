@@ -15,7 +15,7 @@
 -- can be accessed using the ubx-mq tool.
 
 return bd.system {
-   imports = { "stdtypes", "ramp_double", "mqueue" },
+   imports = { "stdtypes", "ramp", "mqueue" },
 
    subsystems = {
       controller = bd.load("pid.usc")
@@ -23,13 +23,14 @@ return bd.system {
 
    blocks = {
       -- simulated input
-      { name="ramp_msr", type="ubx/ramp_double" },
+      { name="ramp_msr", type="ubx/ramp" },
    },
 
    configurations = {
       -- configure the sensor signal
       { name="ramp_msr",
 	config = {
+	   type="double",
 	   data_len=10,
 	   slope = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
 	   start = { 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 }

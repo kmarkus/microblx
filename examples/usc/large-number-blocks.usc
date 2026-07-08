@@ -20,13 +20,13 @@ local function make_chain(i)
    local s = tostring(i)
    return {
       blocks = {
-         { name="ramp_" ..s, type="ubx/ramp_double" },
+         { name="ramp_" ..s, type="ubx/ramp" },
          { name="sin_"  ..s, type="ubx/math_double" },
          { name="thres_"..s, type="ubx/threshold"   },
          { name="trig_" ..s, type="ubx/trig"        },
       },
       configurations = {
-         { name="ramp_" ..s, config = { slope = 0.01 * i } },
+         { name="ramp_" ..s, config = { type="double", slope = 0.01 * i } },
          { name="sin_"  ..s, config = { func  = "sin"    } },
          { name="thres_"..s, config = { threshold = 0.5  } },
          { name="trig_" ..s, config = {
@@ -76,7 +76,7 @@ return bd.system {
       "ptrig",
       "trig",
       "lfrb",
-      "ramp_double",
+      "ramp",
       "math_double",
       "threshold",
    },

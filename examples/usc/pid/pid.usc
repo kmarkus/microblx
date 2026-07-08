@@ -19,12 +19,12 @@ local start_des = { 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 }
 return bd.system
 {
    imports = {
-      "stdtypes", "trig", "lfrb", "pid", "ramp_double",
+      "stdtypes", "trig", "lfrb", "pid", "ramp",
    },
 
    blocks = {
       { name="pid_1", type="ubx/pid" },
-      { name="ramp_des", type="ubx/ramp_double" },
+      { name="ramp_des", type="ubx/ramp" },
       { name="trig_1", type="ubx/trig" },
    },
 
@@ -37,7 +37,7 @@ return bd.system
 
    configurations = {
       { name="pid_1", config = { Kp=Kp, Ki=Ki, Kd=Kd, data_len="&data_len" } },
-      { name="ramp_des", config = { data_len="&data_len", slope=slope_des, start=start_des } },
+      { name="ramp_des", config = { type="double", data_len="&data_len", slope=slope_des, start=start_des } },
       { name="trig_1", config = {
 	   tstats_mode = 0,
 	   chain0 = {

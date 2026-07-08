@@ -7,11 +7,13 @@
 
 #include <ubx/ubx.h>
 #include <stdlib.h>
+#include <string.h>
 
 int main(int argc, char **argv)
 {
 	ubx_node_t nd;
 	ubx_block_t *rand1;
+	ubx_data_t *d;
 	int timeout, ret = EXIT_FAILURE;
 
 	timeout = (argc > 1) ? atoi(argv[1]) : UINT_MAX;
@@ -23,13 +25,22 @@ int main(int argc, char **argv)
 	if(ubx_module_load(&nd, "/usr/local/lib/ubx/0.9/stdtypes.so") != 0)
 		goto out;
 
-	/* load the rand_double block */
-	if(ubx_module_load(&nd, "/usr/local/lib/ubx/0.9/rand_double.so") != 0)
+	/* load the rand block */
+	if(ubx_module_load(&nd, "/usr/local/lib/ubx/0.9/rand.so") != 0)
 		goto out;
 
-	/* create a rand_double block */
-	if((rand1 = ubx_block_create(&nd, "ubx/rand_double", "rand1"))==NULL)
+	/* create a rand block */
+	if((rand1 = ubx_block_create(&nd, "ubx/rand", "rand1"))==NULL)
 		goto out;
+
+	/* set the mandatory 'type' config to "double" */
+	if((d = ubx_config_get_data(rand1, "type")) == NULL)
+		goto out;
+
+	if(ubx_data_resize(d, strlen("double") + 1) != 0)
+		goto out;
+
+	strcpy((char *)d->data, "double");
 
 	/* init and start the block */
 	if(ubx_block_init(rand1) != 0) {

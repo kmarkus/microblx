@@ -73,12 +73,12 @@ return bd.system
       "stdtypes",
       "ptrig",
       "lfrb",
-      "ramp_double",
+      "ramp",
       "math_double",
    },
 
    blocks = {
-      { name="ramp",    type="ubx/ramp_double" },
+      { name="ramp",    type="ubx/ramp" },
       { name="sin",     type="ubx/math_double" },
       { name="cos",     type="ubx/math_double" },
       { name="tan",     type="ubx/math_double" },
@@ -87,7 +87,7 @@ return bd.system
    },
 
    configurations = {
-      { name="ramp", config = { slope = 0.02 } },
+      { name="ramp", config = { type="double", slope = 0.02 } },
       { name="sin",  config = { func = "sin" } },
       { name="cos",  config = { func = "cos" } },
       { name="tan",  config = { func = "tan", mul = 0.2 } }, -- damp the asymptotes

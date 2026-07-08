@@ -29,13 +29,13 @@ return bd.system
       "lfrb",
       "mqueue",
       "threshold",
-      "ramp_double",
+      "ramp",
       "math_double"
    },
 
    blocks = {
       { name="thres", type="ubx/threshold" },
-      { name="ramp", type="ubx/ramp_double" },
+      { name="ramp", type="ubx/ramp" },
       { name="sin", type="ubx/math_double" },
       { name="trigger", type="ubx/ptrig" },
    },
@@ -47,7 +47,7 @@ return bd.system
       },
       {
 	 name="ramp",
-	 config = { slope=0.05 }
+	 config = { type="double", slope=0.05 }
       },
       {
 	 name="sin",
