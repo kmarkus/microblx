@@ -41,3 +41,27 @@ add_ramp(ramp_int8 int8_t "int8")
 add_ramp(ramp_int16 int16_t "int16")
 add_ramp(ramp_int32 int32_t "int32")
 add_ramp(ramp_int64 int64_t "int64")
+
+# generic runtime-typed variant (ubx/ramp); supersedes the compile-time
+# typed variants above, which are kept for backwards compatibility
+add_library(ramp MODULE ${MOD_SRC_DIR}/ramp_generic.c)
+
+target_include_directories(ramp
+  PRIVATE ${CMAKE_SOURCE_DIR}/libubx/
+  ${MOD_BUILD_DIR}
+)
+
+target_compile_options(ramp PRIVATE ${UBX_MOD_CFLAGS} )
+target_link_libraries(ramp PRIVATE ubx m)
+
+set_target_properties(ramp
+  PROPERTIES
+  POSITION_INDEPENDENT_CODE ON
+  PREFIX ""
+  OUTPUT_NAME ramp
+)
+
+install(
+  TARGETS ramp
+  LIBRARY DESTINATION ${UBX_MOD_DIR} COMPONENT libraries
+)
