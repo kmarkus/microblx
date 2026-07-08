@@ -114,6 +114,70 @@ function TestThreshold:TestBoundaryValue()
    lu.assert_equals(sval:tolua(), 1)
 end
 
+--- Test hysteresis: within the band the previous state is kept
+function TestThreshold:TestHysteresis()
+   local sys = bd.system {
+      imports = { "stdtypes", "lfrb", "threshold" },
+      blocks = {
+	 { name = "thres1", type = "ubx/threshold" },
+      },
+      configurations = {
+	 -- band is [4,6]: rise above 6, fall below 4
+	 { name = "thres1", config = { threshold = 5.0, hysteresis = 2.0 } },
+      },
+   }
+
+   ni = sys:launch({ nodename = "TestThresHyst", nostart = true, loglevel = LOGLEVEL })
+   lu.assert_not_nil(ni)
+
+   local thres1 = ni:b("thres1")
+   local p_in = ubx.port_clone_conn(thres1, "in", 1, nil, 7, 0)
+   local p_state = ubx.port_clone_conn(thres1, "state", nil, 1, 7, 0)
+   local p_event = ubx.port_clone_conn(thres1, "event", nil, 1, 7, 0)
+
+   ubx.block_tostate(thres1, 'active')
+
+   -- in: value to feed, exp: expected state afterwards
+   local seq = {
+      { in_ = 3.0, exp = 0 },	-- below band
+      { in_ = 5.5, exp = 0 },	-- inside band: stays 0 (would flip without hysteresis)
+      { in_ = 6.5, exp = 1 },	-- above band: rises
+      { in_ = 4.5, exp = 1 },	-- inside band: stays 1 (would flip without hysteresis)
+      { in_ = 5.9, exp = 1 },	-- still inside: stays 1
+      { in_ = 3.9, exp = 0 },	-- below band: falls
+   }
+
+   local nevents = 0
+   for i, s in ipairs(seq) do
+      p_in:write(s.in_)
+      thres1:do_step()
+      local _, sval = p_state:read()
+      lu.assert_equals(sval:tolua(), s.exp, "step " .. i)
+      local elen = p_event:read()
+      if tonumber(elen) > 0 then nevents = nevents + 1 end
+   end
+
+   -- exactly one rising and one falling crossing
+   lu.assert_equals(nevents, 2)
+end
+
+--- Test a negative hysteresis is refused
+function TestThreshold:TestNegativeHysteresis()
+   local sys = bd.system {
+      imports = { "stdtypes", "lfrb", "threshold" },
+      blocks = {
+	 { name = "thres1", type = "ubx/threshold" },
+      },
+      configurations = {
+	 { name = "thres1", config = { threshold = 5.0, hysteresis = -1.0 } },
+      },
+   }
+
+   lu.assert_false(pcall(sys.launch, sys,
+			 { nodename = "TestThresNegHyst", nostart = true,
+			   loglevel = LOGLEVEL }))
+end
+
 --- Test no data on input produces no output change
 function TestThreshold:TestNoData()
    local sys = bd.system {

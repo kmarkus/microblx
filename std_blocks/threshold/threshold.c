@@ -13,6 +13,8 @@ char thres_meta[] =
 /* Configurations */
 ubx_proto_config_t thres_config[] = {
 	{ .name = "threshold", .type_name = "double", .min = 1, .max = 1, .doc="threshold to check" },
+	{ .name = "hysteresis", .type_name = "double", .min = 0, .max = 1,
+	  .doc="hysteresis band around the threshold: state switches to 1 above threshold+hysteresis/2 and back to 0 below threshold-hysteresis/2 (default 0)" },
 
 	/* if a 'loglevel' config is defined, it will automatically
 	 * affect the block loglevel. If unset or undefined the global
@@ -48,6 +50,7 @@ def_port_accessors(thres_event, struct thres_event)
 /* block instance state. To be allocated in the init hook */
 struct thres_info {
 	const double *threshold;		/* pointer to configuration */
+	double hyst2;				/* half the hysteresis band (0 if unset) */
 	int state;				/* current state of threshold: 1 if above, 0 if below */
 	ubx_port_t *pin, *pstate, *pevent;	/* cached pointers to port */
 };
@@ -73,6 +76,21 @@ int thres_init(ubx_block_t *b)
 	len = cfg_getptr_double(b, "threshold", &inf->threshold);
 	assert(len > 0);
 	(void) len;
+
+	/* the optional 'hysteresis' config: len == 0 means unset, in
+	 * which case the default of 0 (no hysteresis) is used */
+	const double *hysteresis;
+	len = cfg_getptr_double(b, "hysteresis", &hysteresis);
+	assert(len >= 0);
+
+	if (len > 0 && *hysteresis < 0) {
+		ubx_err(b, "EINVALID_CONFIG: hysteresis must be >= 0");
+		free(b->private_data);
+		b->private_data = NULL;
+		return EINVALID_CONFIG;
+	}
+
+	inf->hyst2 = (len > 0) ? *hysteresis / 2 : 0;
 
 	/* cache the port ptrs: avoids repeated lookups in step */
 	inf->pin = ubx_port_get(b, "in");
@@ -112,7 +130,16 @@ void thres_step(ubx_block_t *b)
 		return;	/* no data on port */
 	}
 
-	state = (inval > *inf->threshold) ? 1 : 0;
+	/* Schmitt-trigger style comparison: switch to 1 above
+	 * threshold+hyst/2, back to 0 below threshold-hyst/2. Within
+	 * the band the previous state is kept. With hysteresis unset
+	 * (0) this degenerates to a plain threshold comparison. */
+	if (inval > *inf->threshold + inf->hyst2)
+		state = 1;
+	else if (inval < *inf->threshold - inf->hyst2)
+		state = 0;
+	else
+		state = inf->state;
 
 	if (state != inf->state) {
 		ubx_debug(b, "threshold %f passed in %s direction",
