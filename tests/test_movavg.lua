@@ -125,6 +125,81 @@ function TestMovavg:TestWindowOne()
 end
 
 --
+-- mode='median': outliers are removed, not smeared. Warm-up medians
+-- over the partial window; even counts average the two middle values.
+--   window = 3, in: 1, 100, 2,   3,  4
+--   sorted windows: {1} {1,100} {1,2,100} {2,3,100} {2,3,4}
+--   out:            1   50.5    2         3         3
+--
+function TestMovavg:TestMedian()
+   local _, p_in, p_out = make({ type = "double", window = 3, mode = "median" },
+			       "TestMovavgMedian")
+
+   local in_data  = { 1, 100, 2, 3, 4 }
+   local expected = { 1, 50.5, 2, 3, 3 }
+   for i, v in ipairs(in_data) do
+      p_in:write(v)
+      ni:b("ma1"):do_step()
+      local _, val = p_out:read()
+      assert_true(math.abs(val:tolua() - expected[i]) < 1e-9,
+		  "unexpected median at step " .. i)
+   end
+end
+
+--
+-- mode='min'/'max': sliding envelope over the window.
+--   window = 2, in: 5, 3, 7, 1
+--   min: 5, 3, 3, 1   max: 5, 5, 7, 7
+--
+function TestMovavg:TestMinMax()
+   local results = {}
+   for _, mode in ipairs({ "min", "max" }) do
+      local _, p_in, p_out = make({ type = "double", window = 2, mode = mode },
+				  "TestMovavg" .. mode)
+      results[mode] = {}
+      for _, v in ipairs({ 5, 3, 7, 1 }) do
+	 p_in:write(v)
+	 ni:b("ma1"):do_step()
+	 local _, val = p_out:read()
+	 results[mode][#results[mode] + 1] = val:tolua()
+      end
+      ubx.node_rm(ni)
+      ni = nil
+   end
+
+   assert_equals(results.min, { 5, 3, 3, 1 })
+   assert_equals(results.max, { 5, 5, 7, 7 })
+end
+
+--
+-- mode='median' with data_len > 1: per-channel medians
+--   window = 3, data_len = 2
+--   in:  {1,10} {100,-100} {2,20}
+--   out: {1,10} {50.5,-45} {2,10}
+--
+function TestMovavg:TestMedianPerElement()
+   local _, p_in, p_out = make({ type = "double", window = 3, data_len = 2,
+				 mode = "median" }, "TestMovavgMedianVec")
+
+   local in_data  = { { 1, 10 }, { 100, -100 }, { 2, 20 } }
+   local expected = { { 1, 10 }, { 50.5, -45 }, { 2, 10 } }
+   for i = 1, #in_data do
+      p_in:write(in_data[i])
+      ni:b("ma1"):do_step()
+      local _, val = p_out:read()
+      assert_equals(val:tolua(), expected[i])
+   end
+end
+
+--
+-- An unknown mode is refused at init.
+--
+function TestMovavg:TestBadMode()
+   assert_true(not pcall(make, { type = "double", window = 3, mode = "avg" },
+			 "TestMovavgBadMode"))
+end
+
+--
 -- No input on the port must produce no output (NODATA).
 --
 function TestMovavg:TestNoData()

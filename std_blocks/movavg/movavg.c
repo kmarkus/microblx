@@ -1,13 +1,14 @@
 /*
- * A generic fixed-window moving-average (simple moving average) block.
+ * A generic fixed-window sliding filter block.
  *
  * Maintains a ring buffer of the last 'window' values received on the
- * 'in' port and emits their average on the 'out' port. The numeric type
- * is configurable at runtime via the 'type' config; input and output
- * share that type, so the block acts as a drop-in signal filter. With
- * 'data_len' > 1 the ports are vectors and an independent moving average
- * is kept per element (channel). Before the window has filled, the
- * average is computed over the samples seen so far.
+ * 'in' port and emits an aggregate ('mode': mean (default), median, min
+ * or max) on the 'out' port. The numeric type is configurable at
+ * runtime via the 'type' config; input and output share that type, so
+ * the block acts as a drop-in signal filter. With 'data_len' > 1 the
+ * ports are vectors and an independent filter is kept per element
+ * (channel). Before the window has filled, the aggregate is computed
+ * over the samples seen so far.
  */
 
 #include <math.h>
@@ -19,16 +20,18 @@
 #define TYPE		"type"
 #define WINDOW		"window"
 #define DATA_LEN	"data_len"
+#define MODE		"mode"
 #define PIN		"in"
 #define POUT		"out"
 
 char movavg_meta[] =
-	"{ doc='fixed-window moving-average (SMA) filter', realtime=true }";
+	"{ doc='fixed-window sliding filter (mean/median/min/max)', realtime=true }";
 
 ubx_proto_config_t movavg_config[] = {
 	{ .name = TYPE, .type_name = "char", .min = 1, .doc = "ubx numeric type name of the signal" },
-	{ .name = WINDOW, .type_name = "long", .min = 1, .max = 1, .doc = "number of samples in the averaging window" },
-	{ .name = DATA_LEN, .type_name = "long", .min = 0, .max = 1, .doc = "vector length; averaged per element (default 1)" },
+	{ .name = WINDOW, .type_name = "long", .min = 1, .max = 1, .doc = "number of samples in the window" },
+	{ .name = DATA_LEN, .type_name = "long", .min = 0, .max = 1, .doc = "vector length; filtered per element (default 1)" },
+	{ .name = MODE, .type_name = "char", .doc = "aggregate: 'mean' (default), 'median', 'min' or 'max'" },
 	/* if a 'loglevel' config is defined, it will automatically
 	 * affect the block loglevel. If unset the global loglevel is used */
 	{ .name = "loglevel", .type_name = "int" },
@@ -84,14 +87,25 @@ static const struct numtype *lookup_conv(const char *name)
 	return NULL;
 }
 
+enum movavg_mode { MODE_MEAN, MODE_MEDIAN, MODE_MIN, MODE_MAX };
+
+static const char *mode_names[] = {
+	[MODE_MEAN] = "mean",
+	[MODE_MEDIAN] = "median",
+	[MODE_MIN] = "min",
+	[MODE_MAX] = "max",
+};
+
 struct movavg_info {
 	to_double_fn to_double;
 	from_double_fn from_double;
 	long elem_size;		/* size of one element [bytes] */
 
-	long window;		/* size of the averaging window */
+	enum movavg_mode mode;	/* aggregate to compute over the window */
+	long window;		/* size of the sliding window */
 	long data_len;		/* number of channels (vector length) */
 	double *ring;		/* per-channel ring buffers [data_len * window] */
+	double *scratch;	/* sort scratch for median [window], else NULL */
 	long count;		/* number of valid samples (<= window) */
 	long head;		/* index of the next slot to write */
 
@@ -178,6 +192,31 @@ static int movavg_init(ubx_block_t *b)
 		goto out_free;
 	}
 
+	/* mode, default 'mean' */
+	{
+		const char *mode;
+		unsigned int i;
+
+		len = cfg_getptr_char(b, MODE, &mode);
+		assert(len >= 0);
+
+		inf->mode = MODE_MEAN;
+
+		if (len > 0) {
+			for (i = 0; i < ARRAY_SIZE(mode_names); i++) {
+				if (strcmp(mode, mode_names[i]) == 0) {
+					inf->mode = i;
+					break;
+				}
+			}
+
+			if (i == ARRAY_SIZE(mode_names)) {
+				ubx_err(b, "EINVALID_CONFIG: unknown %s '%s'", MODE, mode);
+				goto out_free;
+			}
+		}
+	}
+
 	/* add the runtime-typed ports */
 	ret = ubx_inport_add(b, PIN, "input signal", 0, type_name, inf->data_len);
 
@@ -189,12 +228,16 @@ static int movavg_init(ubx_block_t *b)
 	if (ret != 0)
 		goto out_port_in;
 
-	/* allocate the per-channel rings and the read/write buffers */
+	/* allocate the per-channel rings, the median sort scratch (if
+	 * needed) and the read/write buffers */
 	inf->ring = calloc(inf->window * inf->data_len, sizeof(double));
+	inf->scratch = (inf->mode == MODE_MEDIAN) ?
+		calloc(inf->window, sizeof(double)) : NULL;
 	inf->in_sample = ubx_data_alloc(b->nd, type_name, inf->data_len);
 	inf->out_sample = ubx_data_alloc(b->nd, type_name, inf->data_len);
 
-	if (inf->ring == NULL || inf->in_sample == NULL || inf->out_sample == NULL) {
+	if (inf->ring == NULL || inf->in_sample == NULL || inf->out_sample == NULL ||
+	    (inf->mode == MODE_MEDIAN && inf->scratch == NULL)) {
 		ubx_err(b, "EOUTOFMEM: failed to alloc buffers");
 		ret = EOUTOFMEM;
 		goto out_buffers;
@@ -206,6 +249,7 @@ static int movavg_init(ubx_block_t *b)
 
 out_buffers:
 	free(inf->ring);
+	free(inf->scratch);
 	ubx_data_free(inf->in_sample);
 	ubx_data_free(inf->out_sample);
 	ubx_port_rm(b, POUT);
@@ -230,12 +274,62 @@ static int movavg_start(ubx_block_t *b)
 	return 0;
 }
 
+/* compute the configured aggregate over vals[count] (count >= 1).
+ * 'median' insertion-sorts into the preallocated scratch buffer. */
+static double movavg_aggregate(struct movavg_info *inf, const double *vals, long count)
+{
+	double ret;
+
+	switch (inf->mode) {
+	case MODE_MEAN:
+		ret = 0;
+		for (long i = 0; i < count; i++)
+			ret += vals[i];
+		return ret / (double)count;
+
+	case MODE_MEDIAN:
+		for (long i = 0; i < count; i++) {
+			long j = i;
+
+			while (j > 0 && inf->scratch[j - 1] > vals[i]) {
+				inf->scratch[j] = inf->scratch[j - 1];
+				j--;
+			}
+			inf->scratch[j] = vals[i];
+		}
+		return (count % 2) ? inf->scratch[count / 2] :
+			0.5 * (inf->scratch[count / 2 - 1] + inf->scratch[count / 2]);
+
+	case MODE_MIN:
+		ret = vals[0];
+		for (long i = 1; i < count; i++)
+			ret = (vals[i] < ret) ? vals[i] : ret;
+		return ret;
+
+	case MODE_MAX:
+	default:
+		ret = vals[0];
+		for (long i = 1; i < count; i++)
+			ret = (vals[i] > ret) ? vals[i] : ret;
+		return ret;
+	}
+}
+
 void movavg_step(ubx_block_t *b)
 {
+	long len;
 	struct movavg_info *inf = (struct movavg_info *)b->private_data;
 
-	if (__port_read(inf->p_in, inf->in_sample) <= 0)
+	len = __port_read(inf->p_in, inf->in_sample);
+
+	if (len <= 0)
 		return;		/* NODATA */
+
+	if (len != inf->data_len) {
+		ubx_err(b, "in value has wrong length (got %ld, expected %ld)",
+			len, inf->data_len);
+		return;
+	}
 
 	/* push each channel's value into its ring at the shared head */
 	for (long ch = 0; ch < inf->data_len; ch++) {
@@ -248,16 +342,12 @@ void movavg_step(ubx_block_t *b)
 	if (inf->count < inf->window)
 		inf->count++;
 
-	/* per-channel average over the valid samples (exact sum) */
+	/* per-channel aggregate over the valid samples */
 	for (long ch = 0; ch < inf->data_len; ch++) {
 		const double *chring = &inf->ring[ch * inf->window];
 		void *elem = (char *)inf->out_sample->data + ch * inf->elem_size;
-		double sum = 0;
 
-		for (long i = 0; i < inf->count; i++)
-			sum += chring[i];
-
-		inf->from_double(elem, sum / (double)inf->count);
+		inf->from_double(elem, movavg_aggregate(inf, chring, inf->count));
 	}
 
 	__port_write(inf->p_out, inf->out_sample);
@@ -268,6 +358,7 @@ void movavg_cleanup(ubx_block_t *b)
 	struct movavg_info *inf = (struct movavg_info *)b->private_data;
 
 	free(inf->ring);
+	free(inf->scratch);
 	ubx_data_free(inf->in_sample);
 	ubx_data_free(inf->out_sample);
 	ubx_port_rm(b, POUT);
