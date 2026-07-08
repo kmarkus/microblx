@@ -92,16 +92,16 @@ end
 --- Test fan-out: one output connected to two inputs launches and connects
 function TestConnectionErrors:TestFanOut()
    local sys = bd.system {
-      imports = { "stdtypes", "lfrb", "saturation_double" },
+      imports = { "stdtypes", "lfrb", "saturation" },
       blocks = {
-	 { name = "sat1", type = "ubx/saturation_double" },
-	 { name = "sat2", type = "ubx/saturation_double" },
-	 { name = "sat3", type = "ubx/saturation_double" },
+	 { name = "sat1", type = "ubx/saturation" },
+	 { name = "sat2", type = "ubx/saturation" },
+	 { name = "sat3", type = "ubx/saturation" },
       },
       configurations = {
-	 { name = "sat1", config = { lower_limits = -10, upper_limits = 10 } },
-	 { name = "sat2", config = { lower_limits = -10, upper_limits = 10 } },
-	 { name = "sat3", config = { lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat1", config = { type="double", lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat2", config = { type="double", lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat3", config = { type="double", lower_limits = -10, upper_limits = 10 } },
       },
       connections = {
 	 { src = "sat1.out", tgt = "sat2.in" },
@@ -124,16 +124,16 @@ end
 --- Test fan-in: two outputs connected to same input
 function TestConnectionErrors:TestFanIn()
    local sys = bd.system {
-      imports = { "stdtypes", "lfrb", "saturation_double" },
+      imports = { "stdtypes", "lfrb", "saturation" },
       blocks = {
-	 { name = "sat1", type = "ubx/saturation_double" },
-	 { name = "sat2", type = "ubx/saturation_double" },
-	 { name = "sat3", type = "ubx/saturation_double" },
+	 { name = "sat1", type = "ubx/saturation" },
+	 { name = "sat2", type = "ubx/saturation" },
+	 { name = "sat3", type = "ubx/saturation" },
       },
       configurations = {
-	 { name = "sat1", config = { lower_limits = -10, upper_limits = 10 } },
-	 { name = "sat2", config = { lower_limits = -10, upper_limits = 10 } },
-	 { name = "sat3", config = { lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat1", config = { type="double", lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat2", config = { type="double", lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat3", config = { type="double", lower_limits = -10, upper_limits = 10 } },
       },
       connections = {
 	 { src = "sat1.out", tgt = "sat3.in" },
@@ -150,14 +150,14 @@ end
 --- Test that buffer_len config is applied to auto-created iblock
 function TestConnectionErrors:TestBufferLenConfig()
    local sys = bd.system {
-      imports = { "stdtypes", "lfrb", "saturation_double" },
+      imports = { "stdtypes", "lfrb", "saturation" },
       blocks = {
-	 { name = "sat1", type = "ubx/saturation_double" },
-	 { name = "sat2", type = "ubx/saturation_double" },
+	 { name = "sat1", type = "ubx/saturation" },
+	 { name = "sat2", type = "ubx/saturation" },
       },
       configurations = {
-	 { name = "sat1", config = { lower_limits = -10, upper_limits = 10 } },
-	 { name = "sat2", config = { lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat1", config = { type="double", lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat2", config = { type="double", lower_limits = -10, upper_limits = 10 } },
       },
       connections = {
 	 { src = "sat1.out", tgt = "sat2.in", config = { buffer_len = 42 } },

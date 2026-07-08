@@ -26,15 +26,17 @@ end
 --- Test basic connection using lfrb iblock
 function TestLfrb:TestSimpleConnection()
    local sys = bd.system {
-      imports = { "stdtypes", "lfrb", "saturation_double" },
+      imports = { "stdtypes", "lfrb", "saturation" },
       blocks = {
-	 { name = "sat1", type = "ubx/saturation_double" },
-	 { name = "sat2", type = "ubx/saturation_double" },
+	 { name = "sat1", type = "ubx/saturation" },
+	 { name = "sat2", type = "ubx/saturation" },
       },
       configurations = {
 	 { name = "sat1", config = {
+	      type="double",
 	      lower_limits = -10, upper_limits = 10 } },
 	 { name = "sat2", config = {
+	      type="double",
 	      lower_limits = -5, upper_limits = 5 } },
       },
       connections = {
@@ -74,17 +76,19 @@ function TestLfrb:TestVectorData()
    local DATA_LEN = 3
 
    local sys = bd.system {
-      imports = { "stdtypes", "lfrb", "saturation_double" },
+      imports = { "stdtypes", "lfrb", "saturation" },
       blocks = {
-	 { name = "sat1", type = "ubx/saturation_double" },
-	 { name = "sat2", type = "ubx/saturation_double" },
+	 { name = "sat1", type = "ubx/saturation" },
+	 { name = "sat2", type = "ubx/saturation" },
       },
       configurations = {
 	 { name = "sat1", config = {
+	      type="double",
 	      data_len = DATA_LEN,
 	      lower_limits = { -10, -10, -10 },
 	      upper_limits = { 10, 10, 10 } } },
 	 { name = "sat2", config = {
+	      type="double",
 	      data_len = DATA_LEN,
 	      lower_limits = { -5, -5, -5 },
 	      upper_limits = { 5, 5, 5 } } },
@@ -114,15 +118,17 @@ end
 --- Test lfrb connection table is correct
 function TestLfrb:TestConnTab()
    local sys = bd.system {
-      imports = { "stdtypes", "lfrb", "saturation_double" },
+      imports = { "stdtypes", "lfrb", "saturation" },
       blocks = {
-	 { name = "sat1", type = "ubx/saturation_double" },
-	 { name = "sat2", type = "ubx/saturation_double" },
+	 { name = "sat1", type = "ubx/saturation" },
+	 { name = "sat2", type = "ubx/saturation" },
       },
       configurations = {
 	 { name = "sat1", config = {
+	      type="double",
 	      lower_limits = -10, upper_limits = 10 } },
 	 { name = "sat2", config = {
+	      type="double",
 	      lower_limits = -5, upper_limits = 5 } },
       },
       connections = {

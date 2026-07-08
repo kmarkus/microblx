@@ -22,17 +22,19 @@ end
 function TestConnection:Test_01_Simple()
    local DATA_LEN = 1
    local sys = bd.system {
-      imports = { "stdtypes", "lfrb", "saturation_double" },
+      imports = { "stdtypes", "lfrb", "saturation" },
       blocks = {
-	 { name = "sat1", type = "ubx/saturation_double" },
-	 { name = "sat2", type = "ubx/saturation_double" }
+	 { name = "sat1", type = "ubx/saturation" },
+	 { name = "sat2", type = "ubx/saturation" }
       },
       configurations = {
 	 { name = "sat1", config = {
+	      type="double",
 	      data_len=DATA_LEN,
 	      lower_limits = u.fill(-10, DATA_LEN),
 	      upper_limits = u.fill(3.4, DATA_LEN), } },
 	 { name = "sat2", config = {
+	      type="double",
 	      data_len=DATA_LEN,
 	      lower_limits = u.fill(-2, DATA_LEN),
 	      upper_limits = u.fill(2, DATA_LEN), } }
@@ -59,13 +61,14 @@ end
 function TestConnection:Test_02_MQExisting()
    local DATA_LEN = 10
    local sys = bd.system {
-      imports = { "stdtypes", "mqueue", "saturation_double" },
+      imports = { "stdtypes", "mqueue", "saturation" },
       blocks = {
-	 { name = "sat1", type = "ubx/saturation_double" },
+	 { name = "sat1", type = "ubx/saturation" },
 	 { name = "mq1", type = "ubx/mqueue" },
       },
       configurations = {
 	 { name = "sat1", config = {
+	      type="double",
 	      data_len=DATA_LEN,
 	      lower_limits = u.fill(-10, DATA_LEN),
 	      upper_limits = u.fill(3.4, DATA_LEN), } },
@@ -96,12 +99,13 @@ end
 function TestConnection:Test_03_MQNonExisting()
    local DATA_LEN = 10
    local sys = bd.system {
-      imports = { "stdtypes", "mqueue", "saturation_double" },
+      imports = { "stdtypes", "mqueue", "saturation" },
       blocks = {
-	 { name = "sat1", type = "ubx/saturation_double" },
+	 { name = "sat1", type = "ubx/saturation" },
       },
       configurations = {
 	 { name = "sat1", config = {
+	      type="double",
 	      data_len=DATA_LEN,
 	      lower_limits = u.fill(-10, DATA_LEN),
 	      upper_limits = u.fill(3.4, DATA_LEN), } },
@@ -127,12 +131,13 @@ end
 function TestConnection:Test_04_MQNonExisting()
    local DATA_LEN = 10
    local sys = bd.system {
-      imports = { "stdtypes", "mqueue", "saturation_double" },
+      imports = { "stdtypes", "mqueue", "saturation" },
       blocks = {
-	 { name = "sat1", type = "ubx/saturation_double" },
+	 { name = "sat1", type = "ubx/saturation" },
       },
       configurations = {
 	 { name = "sat1", config = {
+	      type="double",
 	      data_len=DATA_LEN,
 	      lower_limits = u.fill(-10, DATA_LEN),
 	      upper_limits = u.fill(3.4, DATA_LEN), } },
