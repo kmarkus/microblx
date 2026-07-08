@@ -97,19 +97,18 @@ struct log_shm_inf {
 	uint32_t shm_size;
 	uint32_t frame_size;
 
-	volatile log_buf_t *buf_ptr;	/* ptr to the shm region */
+	log_buf_t *buf_ptr;	/* ptr to the shm region */
 };
 
 struct log_shm_inf inf;
 
 /**
- * log_inc_woff - atomically inc the write offset
+ * log_inc_woff - advance and publish the write offset
  *
- * This works, because
- *  - aligned memory accesses are guaranteed atomic on most architectures
- *  - we only have one writer
- *
- * To be portable, this should use gcc atomic ops.
+ * Must be called with wlock held (there may be concurrent writers).
+ * The release store pairs with the readers' acquire loads: a reader
+ * observing the new offset is guaranteed to see the frame written
+ * before it.
  *
  * @param inc new write pointer offset (bytes)
  */
@@ -121,7 +120,8 @@ static void log_inc_woff(uint32_t inc)
 	 * read current wrap and write offset to preserve wrap
 	 * counter
 	 */
-	next = inf.buf_ptr->w;
+	next.wrap_off = atomic_load_explicit(&inf.buf_ptr->w,
+					     memory_order_relaxed);
 	next.off += inc;
 
 	if (next.off > inf.shm_size - inf.frame_size - sizeof(log_buf_t)) {
@@ -129,21 +129,38 @@ static void log_inc_woff(uint32_t inc)
 		next.wrap++;
 	}
 
-	/* atomic */
-	inf.buf_ptr->w = next;
+	atomic_store_explicit(&inf.buf_ptr->w, next.wrap_off,
+			      memory_order_release);
 }
 
 static void ubx_log_shm(const struct ubx_node *nd, const struct ubx_log_msg *msg)
 {
+	int ret;
+	log_wrap_off_t w;
 	struct ubx_log_msg *frame;
 	(void)(nd);
 
-	pthread_spin_lock(&inf.buf_ptr->wlock);
-	frame = (struct ubx_log_msg *)&inf.buf_ptr->data[inf.buf_ptr->w.off];
-	memcpy((void *)frame, (void *)msg, sizeof(struct ubx_log_msg));
+	ret = pthread_mutex_lock(&inf.buf_ptr->wlock);
+
+	if (ret == EOWNERDEAD) {
+		/*
+		 * the previous owner died holding the lock. The header
+		 * is still consistent, since w is only advanced after
+		 * the frame is complete; at worst a partial frame at
+		 * w.off gets overwritten now.
+		 */
+		pthread_mutex_consistent(&inf.buf_ptr->wlock);
+	} else if (ret != 0) {
+		return;	/* ENOTRECOVERABLE: drop the message */
+	}
+
+	w.wrap_off = atomic_load_explicit(&inf.buf_ptr->w,
+					  memory_order_relaxed);
+	frame = (struct ubx_log_msg *)&inf.buf_ptr->data[w.off];
+	memcpy(frame, msg, sizeof(struct ubx_log_msg));
 
 	log_inc_woff(inf.frame_size);
-	pthread_spin_unlock(&inf.buf_ptr->wlock);
+	pthread_mutex_unlock(&inf.buf_ptr->wlock);
 }
 
 int ubx_log_init(struct ubx_node *nd)
@@ -154,13 +171,13 @@ int ubx_log_init(struct ubx_node *nd)
 
 	nd->log_data = NULL;
 
-	inf.shm_size = sizeof(log_wrap_off_t) + sizeof(struct ubx_log_msg) *
+	inf.shm_size = sizeof(log_buf_t) + sizeof(struct ubx_log_msg) *
 		       LOG_BUFFER_DEPTH;
 
 	inf.frame_size = sizeof(struct ubx_log_msg);
 
 	/* allocate shared mem. Try to create it first (O_EXCL), so
-	 * that only the creator initializes the spinlock and write
+	 * that only the creator initializes the mutex and write
 	 * offset. Re-initializing the lock of an existing segment
 	 * would corrupt it if another process is logging. */
 	inf.shm_fd = shm_open(LOG_SHM_FILENAME,
@@ -204,8 +221,26 @@ int ubx_log_init(struct ubx_node *nd)
 	}
 
 	if (need_init) {
-		pthread_spin_init(&inf.buf_ptr->wlock, PTHREAD_PROCESS_SHARED);
-		inf.buf_ptr->w.wrap_off = 0;
+		pthread_mutexattr_t mattr;
+
+		pthread_mutexattr_init(&mattr);
+		pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
+		pthread_mutexattr_setprotocol(&mattr, PTHREAD_PRIO_INHERIT);
+		pthread_mutexattr_setrobust(&mattr, PTHREAD_MUTEX_ROBUST);
+
+		ret = pthread_mutex_init(&inf.buf_ptr->wlock, &mattr);
+		pthread_mutexattr_destroy(&mattr);
+
+		if (ret != 0) {
+			fprintf(stderr, "%s: mutex init failed: %s\n",
+				__func__, strerror(ret));
+			munmap(inf.buf_ptr, inf.shm_size);
+			ret = -1;
+			goto out_unlink;
+		}
+
+		atomic_store_explicit(&inf.buf_ptr->w, 0,
+				      memory_order_relaxed);
 	}
 
 	nd->log = ubx_log_shm;
@@ -222,10 +257,10 @@ out:
 
 void ubx_log_cleanup(struct ubx_node *nd)
 {
-	/* we skip destroying the spinlock and shm, since there may be
+	/* we skip destroying the mutex and shm, since there may be
 	 * other processes still using it */
 	nd->log = NULL;
-	munmap((void *) inf.buf_ptr, inf.shm_size);
+	munmap(inf.buf_ptr, inf.shm_size);
 	close(inf.shm_fd);
 }
 #endif

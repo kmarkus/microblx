@@ -76,7 +76,10 @@ out:
  */
 void logc_seek_to_oldest(logc_info_t *inf)
 {
-	log_wrap_off_t new = inf->buf_ptr->w;
+	log_wrap_off_t new;
+
+	new.wrap_off = atomic_load_explicit(&inf->buf_ptr->w,
+					    memory_order_acquire);
 
 	/*
 	 * advance by LOGC_SEEK_OLDEST_CRUSH_ZONE elem. Moving beyond
@@ -123,7 +126,8 @@ void logc_seek_to_oldest(logc_info_t *inf)
  */
 void logc_reset_read(logc_info_t *inf)
 {
-	inf->r = inf->buf_ptr->w;
+	inf->r.wrap_off = atomic_load_explicit(&inf->buf_ptr->w,
+					       memory_order_acquire);
 }
 
 
@@ -227,8 +231,10 @@ enum READ_STATUS logc_has_data(const logc_info_t *inf)
 	int ret = NO_DATA;
 	log_wrap_off_t w, r;	/* write and read wrap and offsets */
 
-	/* atomic */
-	w = inf->buf_ptr->w;
+	/* acquire: pairs with the writer's release store, so frames
+	 * written before this offset are visible when read below */
+	w.wrap_off = atomic_load_explicit(&inf->buf_ptr->w,
+					  memory_order_acquire);
 	r = inf->r;
 
 	if (w.off == r.off && w.wrap == r.wrap) {
@@ -296,11 +302,15 @@ void *logc_dataptr_get(volatile log_frame_t *frame)
 
 void logc_print_stat(const logc_info_t *inf)
 {
-	(void)(inf);
+	log_wrap_off_t w;
+
+	w.wrap_off = atomic_load_explicit(&inf->buf_ptr->w,
+					  memory_order_relaxed);
+	(void)(w);
 
 	DBG("w.wrap: %u, w.off: %u, r.wrap: %u, r.off: %u, rptr: %p",
-	    inf->buf_ptr->w.wrap,
-	    inf->buf_ptr->w.off,
+	    w.wrap,
+	    w.off,
 	    inf->r.wrap,
 	    inf->r.off,
 	    &inf->buf_ptr->data[inf->r.off]);

@@ -22,6 +22,7 @@
  */
 
 #include <pthread.h>
+#include <stdatomic.h>
 
 #define LOG_BUFFER_DEPTH 10000
 #define LOG_SHM_FILENAME "rtlog.logshm"
@@ -30,8 +31,8 @@
  * keep when seeking to the oldest log message */
 #define LOGC_SEEK_OLDEST_CRUSH_ZONE 100
 
-/* helper to handle atomic read/write of wrap_woff and conveniently
- * deal with wrap and woff */
+/* helper to conveniently deal with the wrap and woff halves of the
+ * atomic wrap_off word */
 typedef union {
 	struct {
 		uint32_t wrap;
@@ -40,11 +41,22 @@ typedef union {
 	uint64_t wrap_off;
 } log_wrap_off_t;
 
+/*
+ * w is accessed concurrently from multiple processes, so the 64-bit
+ * atomic must be address-free (a libatomic lock-based fallback would
+ * only synchronize within one process)
+ */
+_Static_assert(ATOMIC_LLONG_LOCK_FREE == 2,
+	       "rtlog requires lock-free 64-bit atomics");
+
 /* log buffer header */
 typedef struct log_buf
 {
-	pthread_spinlock_t wlock;	/* writer spinlock */
-	log_wrap_off_t w;		/* wrap and offset */
+	pthread_mutex_t wlock;	/* writer lock (process-shared, robust, PI) */
+	_Atomic uint64_t w;	/* wrap and offset (a log_wrap_off_t):
+				 * stored with release order after the
+				 * frame is written, so readers must
+				 * load-acquire it before reading frames */
 	uint8_t data[];
 } log_buf_t;
 
