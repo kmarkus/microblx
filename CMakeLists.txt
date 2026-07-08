@@ -206,6 +206,7 @@ endfunction()
 
 add_block_subdir(BLOCK_CONST       "std_blocks/const"       ON)
 add_block_subdir(BLOCK_CPPDEMO     "std_blocks/cppdemo"     ON)
+add_block_subdir(BLOCK_EWMA        "std_blocks/ewma"        ON)
 add_block_subdir(BLOCK_HEXDUMP     "std_blocks/hexdump"     ON)
 if (NOT CMAKE_C_COMPILER_TARGET MATCHES "aarch64|arm64")
   add_block_subdir(BLOCK_LFDS_CYCLIC "std_blocks/lfds_cyclic" OFF)
