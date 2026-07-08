@@ -215,9 +215,17 @@ local function setup_zmq(nd)
    local uri = opt_str("uri", "tcp://*:9870")
    local do_bind = opt_num("zmq_bind", 1) ~= 0   -- default: bind
 
-   local ok, lib = pcall(ffi.load, "zmq")
-   if not ok then
-      ubx.err(nd, "netsink", "transport 'zmq': failed to load libzmq (%s)", tostring(lib))
+   -- ffi.load("zmq") resolves to the unversioned libzmq.so, a
+   -- dev-package symlink that production images don't ship, so fall
+   -- back to the SONAME
+   local lib, lerr
+   for _, n in ipairs{ "zmq", "libzmq.so.5" } do
+      local ok, res = pcall(ffi.load, n)
+      if ok then lib = res; break end
+      lerr = res
+   end
+   if not lib then
+      ubx.err(nd, "netsink", "transport 'zmq': failed to load libzmq (%s)", tostring(lerr))
       return false
    end
    zmq = lib
