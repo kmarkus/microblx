@@ -1,0 +1,67 @@
+--- Demonstrate slicing a sub-vector out of a larger signal with ubx/demux.
+--
+-- A ramp generates a 6-element vector modeling a [p, v] state (three
+-- positions, three velocities). The demux block partitions it into two
+-- 3-element sub-vectors: the position part (out0) is exported to an
+-- mqueue, the velocity part (out1) is simply left unconnected -
+-- slicing is just partitioning plus ignoring the parts not needed.
+--
+--   /------\  double[6]  /-------\  double[3] (out0)   /----\
+--   | ramp |------------>| slice |-------------------->| mq |
+--   \------/             \-------/   out1: unconnected \----/
+--
+-- Run with:    ubx-launch -c slice.usc
+-- Watch with:  ubx-mq list
+--              ubx-mq read <mq-id>   (three positions, velocities absent)
+
+return bd.system
+{
+   imports = {
+      "stdtypes",
+      "ptrig",
+      "lfrb",
+      "mqueue",
+      "ramp",
+      "mux",
+   },
+
+   blocks = {
+      { name="state", type="ubx/ramp" },
+      { name="slice", type="ubx/demux" },
+      { name="trigger", type="ubx/ptrig" },
+   },
+
+   configurations = {
+      -- [p, v]: positions start apart and move slowly, velocities are
+      -- large and constant-ish, so the two halves are easy to tell apart
+      { name="state",
+	config = {
+	   type = "double",
+	   data_len = 6,
+	   start = { 0, 10, 20, 1000, 2000, 3000 },
+	   slope = { 0.1, 0.1, 0.1, 0, 0, 0 },
+	}
+      },
+
+      -- partition the 6-vector into two 3-vectors: out0 = positions,
+      -- out1 = velocities
+      { name="slice",
+	config = { type="double", nout=2, out_len={ 3, 3 } }
+      },
+
+      { name="trigger",
+	config = {
+	   period = { sec=1, usec=0 },
+	   chain0 = {
+	      { b="#state" },
+	      { b="#slice" } }
+	}
+      },
+   },
+
+   connections = {
+      { src="state.out", tgt="slice.in" },
+      -- export only the position slice; slice.out1 stays unconnected
+      { src="slice.out0", type="ubx/mqueue" },
+   },
+}
