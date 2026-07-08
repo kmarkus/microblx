@@ -5,6 +5,45 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `rtlog`: replaced the shm writer spinlock with a process-shared,
+  robust, priority-inheritance mutex and made the write offset a C11
+  atomic with release/acquire publication. This bounds priority
+  inversion among writers of different priorities, recovers when a
+  writer dies while holding the lock (`EOWNERDEAD`) instead of
+  deadlocking all loggers, and fixes reader-side memory ordering on
+  weakly-ordered architectures. The shm layout changed:
+  mixed-version processes must not share a log shm (a stale segment
+  is detected via its size and reinitialized).
+- `saturation`: **API change** — the compile-time typed
+  `ubx/saturation_*` blocks were replaced by a single runtime-typed
+  `ubx/saturation` block: element type and length are set via the
+  `type` and `data_len` configs; `lower_limits`/`upper_limits` are
+  `double` arrays of length 1 (broadcast) or `data_len`.
+- `ramp`: added the generic `ubx/ramp` block: element type selectable
+  at runtime via `type` (all standard numeric types), with per-type
+  native accumulation kernels (exact for 64-bit integers beyond the
+  2^53 double mantissa). `slope` is mandatory, `start` defaults to 0;
+  both broadcast scalars to `data_len`. The legacy `ubx/ramp_*`
+  blocks are retained for backwards compatibility.
+- `rand`: added the generic `ubx/rand` block (runtime `type` +
+  `data_len`). Uses per-instance PRNG state (`erand48`/`jrand48`), so
+  multiple instances are thread-safe and independent; seeding via the
+  `seed` config is `srand48`-compatible. The legacy `ubx/rand_*`
+  blocks are retained for backwards compatibility.
+- `threshold`: added an optional `hysteresis` config (Schmitt
+  trigger): the state switches to 1 only above `threshold +
+  hysteresis/2` and back to 0 only below `threshold - hysteresis/2`,
+  suppressing event chatter on noisy signals.
+- `movavg`: added a `mode` config selecting the sliding-window
+  aggregate: `mean` (default), `median`, `min` or `max`. The median
+  is RT-safe (insertion sort on a preallocated scratch buffer).
+- `netsink`: the zmq transport falls back to loading the versioned
+  `libzmq.so.5` SONAME when the unversioned `libzmq.so` (a
+  dev-package symlink not shipped on production images) is absent.
+- `libubx`: `ubx_data_free` is now NULL-safe (like `free(3)`),
+  simplifying block error paths.
+- `examples`: updated to use the generic `ubx/ramp` and `ubx/rand`
+  blocks.
 - `libubx`: added optional `preinit`/`preexit` life-cycle hooks
   (`ubx_proto_block_t` / `ubx_block_t`). `preinit` runs while the block
   is in state `preinit` (before the regular config is applied and before
@@ -50,6 +89,22 @@ This file tracks user visible API changes
 - replace `lua-filesystem` with ffi implementation
 
 New blocks:
+
+- `ubx/ewma`: exponentially weighted moving average filter (`y +=
+  alpha * (x - y)`) for any numeric type, configured at runtime via
+  `type`/`data_len`. The mandatory `alpha` ∈ (0, 1] sets the
+  smoothing (rule of thumb: `alpha = 2/(N+1)` approximates a window
+  of N samples); the first sample seeds the filter state. See
+  `std_blocks/ewma/README.md`.
+
+- `ubx/mux`, `ubx/demux`: composition glue for array signals of any
+  registered type: `mux` concatenates `nin` input ports into one
+  vector output, `demux` partitions a vector input onto `nout` output
+  ports. The optional `in_len`/`out_len` configs assign per-port
+  sub-vector lengths, which makes `demux` double as a slice/splice
+  block — connect only the outputs needed and leave the rest
+  unconnected. See `std_blocks/mux/README.md` and the runnable
+  `std_blocks/mux/slice.usc` demo.
 
 - `netsink`: network streaming sink for live plotting and telemetry,
   primarily for [PlotJuggler](https://plotjuggler.io). Implemented as a

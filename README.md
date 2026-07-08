@@ -21,7 +21,8 @@ Main features:
 - **composing applications**: applications are described using a simple textual language
 - **standard blocks and tools** included:
   - *communication*: lock free buffers, POSIX message queues,
-  - *computations*: PID controller, ramps, constants, random ...
+  - *computations*: PID controller, filters (moving average, EWMA),
+    statistics, mux/demux, ramps, constants, random ...
   - *triggers*: periodic, passive incl. built in latency profiling
   - real-time safe logging
 - **no HAL**: no arbitrary abstractions, just "configurable" POSIX
@@ -125,17 +126,22 @@ Standard Blocks
 | [ubx/lfds_cyclic](std_blocks/lfds_cyclic/README.md)                   | i-block   | hard-RT lock-free cyclic (overwriting) buffer                          |
 | [mqueue](std_blocks/mqueue/README.md)                                 | i-block   | POSIX message queue inter-process communication                        |
 | [ubx/math\_double, ubx/math\_float](std_blocks/math_double/README.md) | c-block   | element-wise math.h function (sin, sqrt, …) with optional scale/offset |
+| [ubx/ewma](std_blocks/ewma/README.md)                                 | c-block   | exponentially weighted moving average filter (any numeric type)        |
+| [ubx/movavg](std_blocks/movavg/README.md)                             | c-block   | sliding-window filter: mean, median, min or max (any numeric type)     |
+| [ubx/mux, ubx/demux](std_blocks/mux/README.md)                        | c-block   | concatenate/partition array signals, incl. sub-vector slicing          |
+| [ubx/stats](std_blocks/stats/README.md)                               | c-block   | running signal statistics: min, max, mean, stddev                      |
 | [ubx/pid](std_blocks/pid/README.md)                                   | c-block   | discrete-time PID controller                                           |
-| [ubx/ramp\_\*](std_blocks/ramp/README.md)                             | c-block   | ramp signal generator (double, float, int8/16/32/64)                   |
-| [ubx/rand\_\*](std_blocks/rand/README.md)                             | c-block   | random number generator (double, float, uint32, int32)                 |
-| [ubx/saturation\_\*](std_blocks/saturation/README.md)                 | c-block   | element-wise signal clamp                                              |
-| [ubx/threshold](std_blocks/threshold/README.md)                       | c-block   | threshold detector with crossing events                                |
+| [ubx/ramp](std_blocks/ramp/README.md)                                 | c-block   | ramp signal generator (any numeric type)                               |
+| [ubx/rand](std_blocks/rand/README.md)                                 | c-block   | pseudo-random number generator (any numeric type)                      |
+| [ubx/saturation](std_blocks/saturation/README.md)                     | c-block   | element-wise signal clamp (any numeric type)                           |
+| [ubx/threshold](std_blocks/threshold/README.md)                       | c-block   | threshold detector with crossing events and optional hysteresis        |
 | [ubx/trig, ubx/ptrig](std_blocks/trig/README.md)                      | trigger   | passive and pthread-based triggers with timing stats                   |
 | [ubx/gpio](std_blocks/gpio/README.md)                                 | c-block   | Linux GPIO via libgpiod v2                                             |
 | [ubx/gps](std_blocks/gps/README.md)                                   | c-block   | GPS via gpsd shared memory interface                                   |
 | [ubx/iio, ubx/iio_buf](std_blocks/iio/README.md)                      | c-block   | Linux IIO (ADC/DAC/IMU/sensor) via libiio                              |
 | [luablock](std_blocks/luablock/README.md)                             | c-block   | generic LuaJIT block; implement hooks in Lua                           |
 | [lsdb-intf](std_blocks/lsdb-intf/README.md)                           | c-block   | D-Bus interface to the ubx node                                        |
+| [netsink](std_blocks/netsink/README.md)                               | lua block | UDP/ZeroMQ streaming sink (JSON/MessagePack), e.g. for PlotJuggler     |
 | [webgraph](std_blocks/webgraph/README.md)                             | lua block | browser-based React Flow graph of the running node                     |
 | [skelleton](std_blocks/skelleton/README.md)                           | template  | annotated starting point for new blocks                                |
 | [cppdemo](std_blocks/cppdemo/README.md)                               | example   | minimal C++ block example                                              |
