@@ -307,10 +307,16 @@ static int lc_init(struct ubx_log_info *inf)
 			diag_log(LOG_INFO, 0, "waiting for %s to appear\n",
 				 LOG_SHM_FILENAME);
 			while(!done) {
+				if (quit) {
+					ret = -EINTR;
+					goto out_close_infd;
+				}
 				done = check_inotify(inf->uininf);
-				if (done < 0) {
+				if (done == -EINTR) {
+					done = 0; /* recheck quit */
+				} else if (done < 0) {
 					ret = done;
-					goto out;
+					goto out_close_infd;
 				}
 			}
 		}
@@ -328,7 +334,7 @@ static int lc_init(struct ubx_log_info *inf)
 	if (ret != 0) {
 		fprintf(stderr, "start_inotify failed: %d: %s\n", ret,
 			strerror(-ret));
-		goto out_free_logc_info;
+		goto out_free_uin_info;
 	}
 	goto out;
 
@@ -337,9 +343,11 @@ out_close_infd:
 
 out_free_uin_info:
 	free(inf->uininf);
+	inf->uininf = NULL;
 
 out_free_logc_info:
 	free(inf->lcinf);
+	inf->lcinf = NULL;
 
 out:
 	return ret;
@@ -360,6 +368,7 @@ static int check_new_shm(struct ubx_log_info *inf, int show_old, int color)
 	switch(ret) {
 	case 0:
 	case -EAGAIN:
+	case -EINTR:
 		ret = 0;
 		break;
 
@@ -537,8 +546,14 @@ int main(int argc, char **argv)
 	if (use_syslog)
 		openlog("ubx-log", LOG_PID, syslog_facility);
 
-	signal(SIGTERM, sig_handler);
-	signal(SIGINT, sig_handler);
+	/* no SA_RESTART: SIGINT/SIGTERM must interrupt the blocking
+	 * inotify read while waiting for the log shm to appear */
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = sig_handler;
+	sigemptyset(&sa.sa_mask);
+	sigaction(SIGTERM, &sa, NULL);
+	sigaction(SIGINT, &sa, NULL);
 
 	inf = calloc(1, sizeof(struct ubx_log_info));
 	if (inf == NULL) {
@@ -565,6 +580,10 @@ int main(int argc, char **argv)
 	}
 
 	ret = lc_init(inf);
+	if (ret == -EINTR) {
+		ret = 0; /* interrupted while waiting for the shm */
+		goto out_free;
+	}
 	if (ret != 0)
 		goto out_free;
 
