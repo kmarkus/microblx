@@ -65,6 +65,11 @@ test:
     - test-lfq
     - test-lfq -c 1 -t 8 -o 50000
     - test-lfq-unit
+    # run the rtlog stress test (multi-writer/multi-reader shm log
+    # verification): defaults, high contention and the SPSC fast path
+    - test-rtlog
+    - test-rtlog -w 32 -r 8 -n 50
+    - test-rtlog -w 1 -r 1 -n 20
   artifacts:
     when: always
     reports:
@@ -81,6 +86,21 @@ test-lfq-tsan:
     - gcc -fsanitize=thread -g -O1 -Iliblfq liblfq/test-lfq.c liblfq/lfq.c -lpthread -o tsan-lfq
     - ./tsan-lfq -c 1 -t 4 -o 20000
     - ./tsan-lfq -c 4 -t 4 -o 20000
+
+# run the rtlog stress test under ThreadSanitizer (validates the shm
+# writer mutex and the release/acquire publication of the write offset)
+test-rtlog-tsan:
+  stage: test
+  before_script:
+    - apt update && apt -y install uthash-dev
+  script:
+    # rtlog.c includes the cmake-generated config.h; an empty one is
+    # fine for this standalone build
+    - touch config.h
+    - gcc -fsanitize=thread -g -O1 -Ilibubx -I. tools/test-rtlog.c libubx/rtlog.c libubx/rtlog_client.c libubx/ubx_time.c -lpthread -lrt -o tsan-rtlog
+    - ./tsan-rtlog -w 8 -r 4 -n 10
+    - ./tsan-rtlog -w 32 -r 8 -n 5
+    - ./tsan-rtlog -w 1 -r 1 -n 10
 
 examples:
   stage: test
