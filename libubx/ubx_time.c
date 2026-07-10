@@ -249,7 +249,8 @@ void ubx_ts_div(const struct ubx_timespec *ts, const long div,
 		return;
 	}
 
-	tmp_nsec = (ts->sec * NSEC_PER_SEC) + ts->nsec;
+	/* widen before multiplying: sec is a 32 bit long on ILP32 */
+	tmp_nsec = ((int64_t)ts->sec * NSEC_PER_SEC) + ts->nsec;
 	tmp_nsec /= div;
 	out->sec = tmp_nsec / NSEC_PER_SEC;
 	out->nsec = tmp_nsec % NSEC_PER_SEC;
