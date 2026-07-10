@@ -221,7 +221,9 @@ function TestStats:TestOutputRateThrottle()
       imports = { "stdtypes", "lfrb", "stats" },
       blocks = { { name = "st1", type = "ubx/stats" } },
       configurations = {
-	 { name = "st1", config = { type = "double", stats_output_rate = 100.0 } },
+	 -- deliberately larger than any possible system uptime: the first
+	 -- emission must happen regardless of the monotonic clock value
+	 { name = "st1", config = { type = "double", stats_output_rate = 1e9 } },
       },
    }
 

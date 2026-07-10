@@ -312,7 +312,11 @@ void stats_step(ubx_block_t *b)
 		ubx_gettime(&now);
 		now_ns = ubx_ts_to_ns(&now);
 
-		if (now_ns <= inf->output_last_ns + inf->output_rate_ns)
+		/* output_last_ns == 0 means "never emitted": always emit,
+		 * since shortly after boot now_ns itself can be smaller
+		 * than output_rate_ns */
+		if (inf->output_last_ns != 0 &&
+		    now_ns <= inf->output_last_ns + inf->output_rate_ns)
 			return;
 
 		inf->output_last_ns = now_ns;
