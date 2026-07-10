@@ -25,9 +25,16 @@ if not has_mp then has_mp, mp = pcall(require, "cmsgpack") end
 
 local LOGLEVEL = ffi.C.UBX_LOGLEVEL_WARN
 
--- locate the source netsink.lua relative to this test file
+-- locate the source netsink.lua relative to this test file; on
+-- installed systems (no source tree) fall back to resolving it via
+-- the block search path (e.g. /usr/share/ubx/blocks/<ver>/)
 local here = (debug.getinfo(1, "S").source:gsub("^@", "")):match("(.*/)") or "./"
 local NETSINK_LUA = here .. "../std_blocks/netsink/netsink.lua"
+
+do
+   local f = io.open(NETSINK_LUA)
+   if f then f:close() else NETSINK_LUA = "netsink" end
+end
 
 -- minimal FFI UDP receiver (independent cdefs; the block runs in its own
 -- lua_State so there is no clash)
