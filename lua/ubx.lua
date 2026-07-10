@@ -9,6 +9,13 @@
 --
 
 local ffi = require("ffi")
+
+-- Stable string key for a C pointer. tostring of a boxed uintptr_t is
+-- only value-based for 64 bit ints; on ILP32 it stringifies the cdata
+-- box (a different address each cast), so widen to uint64_t first.
+local function ptr_key(p)
+   return tostring(ffi.cast("uint64_t", ffi.cast("uintptr_t", p)))
+end
 local bit = require("bit")
 local cdata = require("cdata")
 local utils = require("utils")
@@ -1071,7 +1078,7 @@ function M.ffi_load_types(nd)
 	 -- from a different module with the same struct name; pointer-based dedup
 	 -- only suppresses the exact same hexarr and lets ffi.cdef raise loudly
 	 -- on any genuine name collision from a different source.
-	 local ptr = tostring(ffi.cast("uintptr_t", t.private_data))
+	 local ptr = ptr_key(t.private_data)
 	 if loaded_hexarrs[ptr] then return end
 	 loaded_hexarrs[ptr] = true
 	 local struct_str = preproc(ffi.string(t.private_data))
@@ -1174,7 +1181,7 @@ function M.type_add(nd, name, cdecl, doc)
       error(fmt("type_add: failed to register '%s' (error %d)", name, tonumber(ret)))
    end
 
-   lua_types[tostring(ffi.cast("uintptr_t", t))] = true
+   lua_types[ptr_key(t)] = true
    return t
 end
 
@@ -1193,12 +1200,12 @@ function M.type_rm(nd, name)
    local t = M.type_get(nd, name)
    if t == nil then return false end
 
-   if not lua_types[tostring(ffi.cast("uintptr_t", t))] then
+   if not lua_types[ptr_key(t)] then
       error(fmt("type_rm: '%s' was not registered via type_add", name))
    end
 
    t = ubx.ubx_type_unregister(nd, name)
-   lua_types[tostring(ffi.cast("uintptr_t", t))] = nil
+   lua_types[ptr_key(t)] = nil
    ffi.C.free(ffi.cast("void*", t.name))
    ffi.C.free(ffi.cast("void*", t.private_data))
    if t.doc ~= nil then ffi.C.free(ffi.cast("void*", t.doc)) end
