@@ -9,6 +9,8 @@
 local ubx = require("ubx")
 local bd = require("blockdiagram")
 local utils = require("utils")
+local have_optparse, optparse = pcall(require, "optparse")
+
 local ts = tostring
 local fmt = string.format
 
@@ -23,81 +25,119 @@ local function errexit(status, format, ...)
    os.exit(status)
 end
 
-local function usage()
-   local res, str = utils.preproc(
-      [=[
+if not have_optparse then
+   errexit(1, "error: the 'optparse' module is required (luarocks install optparse)")
+end
+
+local res, help = utils.preproc(
+   [=[
+ubx-launch $(gitver)
+
 microblx function block model system launcher
-usage: ubx-launch [OPTION] -c <model file>
-  -b BLOCK		monitor BLOCK and shutdown when it becomes inactive
-  -c FILE[,FILE2]	.usc or .json model file to launch
-			if multiple models are given, these will be merged prior
-			to launching.
-  -ctype TYPE[,TYPE2]	types of the model file. Either ucs or json. If not specified,
-			auto-detected from extension
-  -nodename NAME	set nodename to NAME
-  -mlockall		call mlockall to lock memory
-  -dumpable             enable core dumps even for priviledged processes
-  -nostart		instantiate and configure, but don't start
-  -t SECONDS		run for SECONDS and then shutdown
-  -loglevel N		set global loglevel [0..7]
-  -s			log to stderr (in addition to ubx_log)
-  -v                    verbose (will log additional, early messages to stderr)
-  -dbus                 create and start the dbus interface block.
-  -webgraph [PORT]	create and start the webgraph block.
-			the optional port defaults to 8888.
 
-  -validate             don't run, just validate configuration file
+Usage: ubx-launch [OPTIONS] -c FILE[,FILE2]
 
-  -check CHK1[,CHK2]    carry out additional validation
-    available checks:
-@   for k,v in pairs(checks) do
-      $(k): $(v.desc)
-@   end
+Options:
+  -c, --conf=FILE[,FILE2]  .usc or .json model file(s) to launch. if multiple
+                           models are given, these will be merged prior to
+                           launching
+      --ctype=TYPE[,TYPE2] types of the model files. either usc or json. if
+                           not specified, auto-detected from extension.
+                           requires the same number of parameters as -c
+  -b, --monitor=BLOCK      monitor BLOCK and shutdown when it becomes inactive
+      --nodename=NAME      set nodename to NAME
+      --mlockall           call mlockall to lock memory
+      --dumpable           enable core dumps even for priviledged processes
+      --nostart            instantiate and configure, but don't start
+  -t, --duration=SECONDS   run for SECONDS and then shutdown
+  -l, --loglevel=N         set global loglevel [0..7]
+  -s, --stderr             log to stderr (in addition to ubx_log)
+  -v, --verbose            verbose (will log additional, early messages to
+                           stderr)
+  -i, --interactive        skip waiting and node teardown (used by ubx-ilaunch)
+      --dbus               create and start the dbus interface block
+      --webgraph=[PORT]    create and start the webgraph block. the optional
+                           port defaults to 8888
+      --validate           don't run, just validate configuration file
+      --check=CHK1[,CHK2]  carry out additional validation
+      --werror             treat warnings as errors
+      --version            print version and exit
+  -h, --help               display this help and exit
 
-  -werror		treat warnings as errors
-  -version		print version and exit
-  -h			display this help and exit
-]=], {checks=bd._checks, pairs=pairs, table=table})
-   assert(res, "failed to generate usage string")
-   print(str)
-end
+available checks:
+@ for k,v in pairs(checks) do
+  $(k): $(v.desc)
+@ end
 
-local opttab=utils.proc_args(arg)
-local nodename
-local model
-local conf_files
-local conf_types = {}
-local checks
-local loglevel
+for backwards compatibility, the legacy single-dash long options
+(-ctype, -nodename, -mlockall, -dumpable, -nostart, -loglevel, -dbus,
+-webgraph, -validate, -check, -werror, -version) are still accepted.
+]=], {checks=bd._checks, pairs=pairs, gitver=ubx.git_version()})
+assert(res, "failed to generate help string")
 
-if opttab['-version'] then
-   print("microblx "..ubx.git_version().." (modver "..ubx.mod_version()..")")
-   os.exit(0)
-end
+-- backwards compat: translate the legacy single-dash long options to
+-- GNU style
+local legacy_opts = {
+   ["-ctype"]=true, ["-nodename"]=true, ["-mlockall"]=true,
+   ["-dumpable"]=true, ["-nostart"]=true, ["-loglevel"]=true,
+   ["-dbus"]=true, ["-webgraph"]=true, ["-validate"]=true,
+   ["-check"]=true, ["-werror"]=true, ["-version"]=true,
+}
 
-if #arg==1 or opttab['-h'] then
-   usage(); os.exit(1)
-end
+local legacy_seen = {}
 
-if not (opttab['-c'] and opttab['-c'][1]) then
-   print("error: no configuration file(s) given (-c option)")
-   os.exit(1)
-else
-   conf_files = utils.split(opttab['-c'][1], ',')
-end
-
-if opttab['-v'] then bd.VERBOSE=true end
-
-if opttab['-ctype'] then
-   if not opttab['-ctype'][1] then
-      print("error: -ctype option requires a type argument")
-      os.exit(1)
-   else
-      conf_types = utils.split(opttab['-ctype'][1], ',')
+for i=1,#arg do
+   if legacy_opts[arg[i]] then
+      legacy_seen[#legacy_seen+1] = arg[i]
+      arg[i] = "-"..arg[i]
    end
+end
+
+if #legacy_seen > 0 then
+   local gnu = {}
+   for i,o in ipairs(legacy_seen) do gnu[i] = "-"..o end
+   io.stderr:write(fmt("warning: option(s) %s are deprecated and will be dropped in the future, please use %s\n",
+		       table.concat(legacy_seen, ", "), table.concat(gnu, ", ")))
+end
+
+-- handle --version manually to preserve the legacy output format
+for _,a in ipairs(arg) do
+   if a == "--version" then
+      print("microblx "..ubx.git_version().." (modver "..ubx.mod_version()..")")
+      os.exit(0)
+   end
+end
+
+local parser = optparse(help)
+local args, opts = parser:parse(arg)
+
+if #args > 0 then
+   errexit(1, "error: invalid argument(s): %s (see -h for help)",
+	   table.concat(args, " "))
+end
+
+-- multiply given options are returned as tables: keep the last one
+-- (as the legacy proc_args based parsing did)
+for _,o in ipairs{"conf", "ctype", "check", "nodename", "loglevel",
+		  "duration", "monitor", "webgraph"} do
+   if type(opts[o]) == "table" then opts[o] = opts[o][#opts[o]] end
+end
+
+if opts.verbose then bd.VERBOSE=true end
+
+local model
+
+if not opts.conf then
+   errexit(1, "error: no configuration file(s) given (-c option)")
+end
+
+local conf_files = utils.split(opts.conf, ',')
+local conf_types = {}
+
+if opts.ctype then
+   conf_types = utils.split(opts.ctype, ',')
    if #conf_files ~= #conf_types then
-      print("error: the use of -ctype requires the same number of parameters as -c")
-      os.exit(1)
+      errexit(1, "error: the use of --ctype requires the same number of parameters as -c")
    end
 end
 
@@ -106,66 +146,49 @@ model = bd.load(conf_files[1], conf_types[1])
 
 if not bd.is_system(model) then
    print(model)
-   print("error: failed to load files "..table.concat(conf_files, ', '))
-   os.exit(1)
+   errexit(1, "error: failed to load files %s", table.concat(conf_files, ', '))
 end
 
 for i=2,#conf_files do
    local m = bd.load(conf_files[i], conf_types[i])
-   --   print("merging "..conf_files[i].. " into ".. conf_files[1])
    model:merge(m, true)
 end
 
-if opttab['-nodename'] then
-   if not opttab['-nodename'][1] then
-      print("error: -nodename option requires a node name argument)")
-      os.exit(1)
-   else
-      nodename = opttab['-nodename'][1]
-   end
-end
-
-if opttab['-validate'] then
+if opts.validate then
    model:validate(true)
    os.exit(1)
 end
 
-if opttab['-loglevel'] then
-   if not opttab['-loglevel'][1] then
-      print("error: -loglevel option requres a level argument")
-      os.exit(1)
-   else
-      loglevel = tonumber(opttab['-loglevel'][1])
+local loglevel
+if opts.loglevel then
+   loglevel = tonumber(opts.loglevel)
+   if loglevel == nil then
+      errexit(1, "error: invalid loglevel argument '%s'", opts.loglevel)
    end
 end
 
-if opttab['-check'] then
-   if not opttab['-check'][1] then
-      print("error: -check option requires name argument)")
-      os.exit(1)
-   end
-   checks = utils.split(opttab['-check'][1], ",")
-end
+local checks
+if opts.check then checks = utils.split(opts.check, ",") end
 
 local core_prefix, prefixes = ubx.get_prefix()
 print("core_prefix: " .. core_prefix)
 print("prefixes:    " .. table.concat(prefixes, ", "))
 
 local nd = model:launch{
-   nodename = nodename,
+   nodename = opts.nodename,
    verbose = true,
    loglevel = loglevel,
-   use_stderr = opttab['-s'],
-   mlockall = opttab['-mlockall'],
-   dumpable = opttab['-dumpable'],
-   nostart = opttab['-nostart'],
+   use_stderr = opts.stderr,
+   mlockall = opts.mlockall,
+   dumpable = opts.dumpable,
+   nostart = opts.nostart,
    checks = checks or nil,
-   werror = opttab['-werror'],
+   werror = opts.werror,
 }
 
 _G.nd = nd
 
-if opttab['-dbus'] then
+if opts.dbus then
    local have_luablock, lbutil = pcall(require, "ubx/luablock-util")
 
    if not have_luablock then
@@ -175,43 +198,33 @@ if opttab['-dbus'] then
    lbutil.create(nd, "lsdb-intf", "lsdb0", "active", true)
 end
 
-if opttab['-webgraph'] then
-   local port = tonumber(opttab['-webgraph'][1]) or 8888
+if opts.webgraph then
+   local port = tonumber(opts.webgraph) or 8888
    local have_luablock, lbutil = pcall(require, "ubx/luablock-util")
 
    if not have_luablock then
       errexit(1, "luablock module is not available")
    end
 
-   if opttab['-v'] then print("webgraph: listening on http://localhost:"..ts(port)) end
+   if opts.verbose then print("webgraph: listening on http://localhost:"..ts(port)) end
    local b = lbutil.create(nd, "webgraph", "webgraph0", nil, {period=50})
    assert(ubx.block_tostate(b, 'inactive') == 0)
    ubx.set_config(b, 'port', port)
    assert(ubx.block_tostate(b, 'active') == 0)
 end
 
-if not opttab['-i'] then
+if not opts.interactive then
    local duration = MAXINT
-   local monblock
 
-   -- time
-   if opttab['-t'] then
-      if not opttab['-t'][1] then
-	 errexit(1, "missing duration argument to -t")
-      else
-	 duration = tonumber(opttab['-t'][1])
+   if opts.duration then
+      duration = tonumber(opts.duration)
+      if duration == nil then
+	 errexit(1, "error: invalid duration argument '%s'", opts.duration)
       end
    end
 
-   -- monitorblock
-   if (opttab['-b'] and opttab['-b'][1]) then
-      local monitorblock = opttab['-b'][1]
-
-      if monitorblock == nil then
-	 errexit(1, "missing block name argument to -b")
-      end
-
-      monblock = nd:block_get(monitorblock)
+   if opts.monitor then
+      local monblock = nd:block_get(opts.monitor)
 
       while duration > 0 do
 	 duration = duration - 1
