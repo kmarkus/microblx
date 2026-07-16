@@ -14,9 +14,13 @@ image: gcc:trixie
     - git clone --depth=1 https://github.com/corsix/ffi-reflect.git
     - git clone --depth=1 https://github.com/kmarkus/lsdbus.git
     - git clone --depth=1 --branch LUAUNIT_V3_5 https://github.com/bluebird75/luaunit.git
+    - git clone --depth=1 --branch v1.5 https://github.com/gvvaughan/optparse.git
     # install reflect
     - install -d /usr/local/share/lua/5.1/
     - cp ffi-reflect/reflect.lua /usr/local/share/lua/5.1/
+    # install optparse (required by ubx-launch and ubx-dbus)
+    - install -d /usr/local/share/lua/5.1/optparse/
+    - cp optparse/lib/optparse/*.lua /usr/local/share/lua/5.1/optparse/
     # install luaunit from git (3.5 with improved setup/teardown error handling)
     - cp luaunit/luaunit.lua /usr/local/share/lua/5.1/
     # install uutils
