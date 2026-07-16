@@ -35,7 +35,11 @@ ubx-launch $(gitver)
 
 microblx function block model system launcher
 
-Usage: ubx-launch [OPTIONS] -c FILE[,FILE2]
+Usage: ubx-launch [OPTIONS] {-c FILE[,FILE2] | -e}
+
+either a model file (-c) or empty mode (-e) must be given. an empty
+node is useful in conjunction with --dbus for loading the actual
+model later via ubx-dbus --load-usc.
 
 Options:
   -c, --conf=FILE[,FILE2]  .usc or .json model file(s) to launch. if multiple
@@ -44,6 +48,7 @@ Options:
       --ctype=TYPE[,TYPE2] types of the model files. either usc or json. if
                            not specified, auto-detected from extension.
                            requires the same number of parameters as -c
+  -e, --empty              launch an empty node (mutually exclusive with -c)
   -b, --monitor=BLOCK      monitor BLOCK and shutdown when it becomes inactive
       --nodename=NAME      set nodename to NAME
       --mlockall           call mlockall to lock memory
@@ -127,31 +132,45 @@ if opts.verbose then bd.VERBOSE=true end
 
 local model
 
-if not opts.conf then
+if opts.empty and opts.conf then
+   errexit(1, "error: -e and -c are mutually exclusive")
+end
+
+if not opts.empty and not opts.conf then
    errexit(1, "error: no configuration file(s) given (-c option)")
 end
 
-local conf_files = utils.split(opts.conf, ',')
-local conf_types = {}
-
-if opts.ctype then
-   conf_types = utils.split(opts.ctype, ',')
-   if #conf_files ~= #conf_types then
-      errexit(1, "error: the use of --ctype requires the same number of parameters as -c")
+if opts.empty then
+   -- launch an empty node (e.g. for populating it later via
+   -- --dbus). stdtypes is imported as a baseline, also since the
+   -- --dbus and --webgraph blocks depend on it
+   if opts.verbose then
+      io.stderr:write("launching empty node\n")
    end
-end
+   model = bd.system{ imports={ "stdtypes" } }
+else
+   local conf_files = utils.split(opts.conf, ',')
+   local conf_types = {}
 
--- load first model and merge others into it
-model = bd.load(conf_files[1], conf_types[1])
+   if opts.ctype then
+      conf_types = utils.split(opts.ctype, ',')
+      if #conf_files ~= #conf_types then
+	 errexit(1, "error: the use of --ctype requires the same number of parameters as -c")
+      end
+   end
 
-if not bd.is_system(model) then
-   print(model)
-   errexit(1, "error: failed to load files %s", table.concat(conf_files, ', '))
-end
+   -- load first model and merge others into it
+   model = bd.load(conf_files[1], conf_types[1])
 
-for i=2,#conf_files do
-   local m = bd.load(conf_files[i], conf_types[i])
-   model:merge(m, true)
+   if not bd.is_system(model) then
+      print(model)
+      errexit(1, "error: failed to load files %s", table.concat(conf_files, ', '))
+   end
+
+   for i=2,#conf_files do
+      local m = bd.load(conf_files[i], conf_types[i])
+      model:merge(m, true)
+   end
 end
 
 if opts.validate then
@@ -187,6 +206,10 @@ local nd = model:launch{
 }
 
 _G.nd = nd
+
+if opts.empty then
+   ubx.info(nd, "ubx-launch", "launched empty node")
+end
 
 if opts.dbus then
    local have_luablock, lbutil = pcall(require, "ubx/luablock-util")
