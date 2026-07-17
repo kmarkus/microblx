@@ -110,6 +110,9 @@ int ubx_chain_init(struct ubx_chain *chain,
 		   const char *chain_id,
 		   double tstats_output_rate)
 {
+	snprintf(chain->id, sizeof(chain->id), "%s",
+		 (chain_id != NULL) ? chain_id : "");
+
 	chain->tstats_output_rate = tstats_output_rate * NSEC_PER_SEC;
 	chain->tstats_output_last_msg = 0;
 	chain->tstats_output_idx = 0;
