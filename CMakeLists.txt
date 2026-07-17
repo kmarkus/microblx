@@ -65,6 +65,23 @@ else()
   include_directories(${UTHASH_INCLUDE_DIRS})
 endif()
 
+# tracing instrumentation (see docs in libubx/ubx_trace.h)
+set(TRACING "OFF" CACHE STRING "Tracing backend: OFF (default), SDT (USDT probes), MARKER (ftrace trace_marker)")
+set_property(CACHE TRACING PROPERTY STRINGS OFF SDT MARKER)
+
+if(TRACING STREQUAL "SDT")
+  include(CheckIncludeFile)
+  check_include_file("sys/sdt.h" HAVE_SYS_SDT_H)
+  if(NOT HAVE_SYS_SDT_H)
+    message(FATAL_ERROR "TRACING=SDT requires sys/sdt.h (install systemtap-sdt-dev)")
+  endif()
+  add_compile_definitions(CONFIG_TRACE_SDT)
+elseif(TRACING STREQUAL "MARKER")
+  add_compile_definitions(CONFIG_TRACE_MARKER)
+elseif(NOT TRACING STREQUAL "OFF")
+  message(FATAL_ERROR "invalid TRACING value '${TRACING}' (must be OFF, SDT or MARKER)")
+endif()
+
 # pthread_setname_np (GNU extension) for naming block threads
 include(CheckSymbolExists)
 set(CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
@@ -90,6 +107,10 @@ set(UBX_SRCS
   ${UBX_SRC_DIR}/accessors.c
 )
 
+if(TRACING STREQUAL "MARKER")
+  list(APPEND UBX_SRCS ${UBX_SRC_DIR}/ubx_trace.c)
+endif()
+
 include_directories(
   ${CMAKE_SOURCE_DIR}/std_types/stdtypes/types
   ${CMAKE_SOURCE_DIR}/libubx/
@@ -104,6 +125,7 @@ set(UBX_PUBLIC_HDRS
   ${UBX_SRC_DIR}/ubx_time.h
   ${UBX_SRC_DIR}/ubx_uthash_ffi.h
   ${UBX_SRC_DIR}/trig_utils.h
+  ${UBX_SRC_DIR}/ubx_trace.h
   ${UBX_SRC_DIR}/md5.h
   ${UBX_SRC_DIR}/ubx_utils.h
   ${UBX_SRC_DIR}/rtlog.h

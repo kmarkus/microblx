@@ -146,6 +146,55 @@ Standard Blocks
 | [skelleton](std_blocks/skelleton/README.md)                           | template  | annotated starting point for new blocks                                |
 | [cppdemo](std_blocks/cppdemo/README.md)                               | example   | minimal C++ block example                                              |
 
+Tracing
+-------
+
+Beyond the built-in timing statistics of the trigger blocks (`tstats`,
+min/max/avg per block or chain), microblx can be instrumented for
+per-event tracing. The backend is selected at compile time and
+defaults to off, in which case the trace macros compile to nothing:
+
+```bash
+cmake -DTRACING=SDT ..     # USDT probes (requires systemtap-sdt-dev)
+cmake -DTRACING=MARKER ..  # ftrace trace_marker
+cmake -DTRACING=OFF ..     # disabled (default)
+```
+
+The following events are emitted (see `libubx/ubx_trace.h`):
+
+| event                    | args              | location                       |
+|--------------------------|-------------------|--------------------------------|
+| `chain_begin/chain_end`  | chain id          | around each trigger chain run  |
+| `step_begin/step_end`    | block name        | around each c-block `step()`   |
+| `overrun`                | missed, total     | ptrig missed a trigger deadline|
+| `dl_overrun`             | total             | `SCHED_DEADLINE` budget overrun|
+
+**SDT** compiles each probe to a single `nop` until a consumer
+attaches to it, so it is safe to leave enabled in production
+builds. The probes (provider `ubx`) can be consumed with `perf`,
+`systemtap` or `bpftrace`, e.g. a per-block step latency histogram:
+
+```bash
+bpftrace -e '
+usdt:/usr/local/lib/libubx.so.*:ubx:step_begin { @t[tid] = nsecs; }
+usdt:/usr/local/lib/libubx.so.*:ubx:step_end /@t[tid]/ {
+    @us[str(arg0)] = hist((nsecs - @t[tid]) / 1000); delete(@t[tid]); }'
+```
+
+**MARKER** writes the events into the kernel ftrace buffer (one
+`write(2)` per event), where they interleave with kernel events on a
+common timeline. This shows *why* a cycle overran (preemption, IRQs,
+...), which no userspace-only profiling can:
+
+```bash
+trace-cmd record -e sched_switch -e irq ubx-launch -c app.usc
+kernelshark trace.dat
+```
+
+Note that the node needs write access to
+`/sys/kernel/tracing/trace_marker` (run `trace-cmd` as root, or mount
+tracefs accordingly).
+
 Related Projects
 ----------------
 

@@ -10,6 +10,7 @@
 #include <limits.h>
 #include <inttypes.h>
 #include "trig_utils.h"
+#include "ubx_trace.h"
 
 
 static const char *FILE_HDR = "block, cnt, min_us, max_us, avg_us\n";
@@ -313,6 +314,8 @@ int ubx_chain_trigger(struct ubx_chain *chain)
 {
 	int ret;
 
+	ubx_trace_chain_begin(chain->id);
+
 	if (chain->tstats_skip_first > 0) {
 		chain->tstats_skip_first--;
 		ret = trig_stats_disabled(chain);
@@ -335,6 +338,7 @@ int ubx_chain_trigger(struct ubx_chain *chain)
 	}
 out:
 	chain->every_cnt++;
+	ubx_trace_chain_end(chain->id);
 	return ret;
 }
 

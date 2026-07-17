@@ -11,6 +11,7 @@
 #undef UBX_DEBUG
 
 #include "ubx.h"
+#include "ubx_trace.h"
 #include <config.h>
 
 /* core logging helpers */
@@ -2418,8 +2419,10 @@ int ubx_cblock_step(ubx_block_t *b)
 	if (b->step == NULL)
 		goto out_ok;
 
+	ubx_trace_step_begin(b->name);
 	b->step(b);
 	b->stat_num_steps++;
+	ubx_trace_step_end(b->name);
 
 out_ok:
 	ret = 0;
