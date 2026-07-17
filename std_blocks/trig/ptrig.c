@@ -46,6 +46,7 @@ static int __ubx_sched_setattr(pid_t pid, struct sched_attr *attr, unsigned int 
 }
 
 #include "ubx.h"
+#include "ubx_trace.h"
 #include "trig_utils.h"
 #include "common.h"
 
@@ -392,6 +393,7 @@ void *thread_startup(void *arg)
 			sig_atomic_t cnt = deadline_overrun_cnt;
 			if (cnt != last_deadline_overrun_cnt) {
 				uint64_t cnt64 = (uint64_t)(unsigned int)cnt;
+				ubx_trace_dl_overrun(cnt64);
 				ubx_debug(b, "SCHED_DEADLINE budget overrun (total: %" PRIu64 ")", cnt64);
 				write_uint64(inf->p_deadline_throt_cnt, &cnt64);
 				last_deadline_overrun_cnt = cnt;
@@ -446,6 +448,7 @@ void *thread_startup(void *arg)
 
 			next += missed * cur_period_ns;
 			inf->overrun_cnt += missed;
+			ubx_trace_overrun(missed, inf->overrun_cnt);
 
 			if (inf->overrun_cnt != last_overrun_cnt) {
 				write_uint64(inf->p_overrun_cnt, &inf->overrun_cnt);
