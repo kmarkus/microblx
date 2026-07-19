@@ -73,7 +73,7 @@ int tstat_fwrite(FILE *fp, struct ubx_tstat *stats)
 		ubx_ts_div(&stats->total, stats->cnt, &avg);
 
 		fprintf(fp, FILE_FMT,
-			stats->id, stats->cnt,
+			stats->id, (uint64_t)stats->cnt,
 			ubx_ts_to_us(&stats->min),
 			ubx_ts_to_us(&stats->max),
 			ubx_ts_to_us(&avg));
@@ -97,7 +97,7 @@ void tstat_log(const ubx_block_t *b, const struct ubx_tstat *stats)
 	ubx_ts_div(&stats->total, stats->cnt, &avg);
 
 	ubx_info(b, LOG_FMT,
-		 stats->id, stats->cnt,
+		 stats->id, (uint64_t)stats->cnt,
 		 ubx_ts_to_us(&stats->min),
 		 ubx_ts_to_us(&stats->max),
 		 ubx_ts_to_us(&avg));
