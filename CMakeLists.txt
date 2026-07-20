@@ -114,6 +114,7 @@ endif()
 include_directories(
   ${CMAKE_SOURCE_DIR}/std_types/stdtypes/types
   ${CMAKE_SOURCE_DIR}/libubx/
+  ${CMAKE_SOURCE_DIR}/liblfb/
 )
 
 set(UBX_PUBLIC_HDRS
@@ -203,6 +204,10 @@ install(FILES ${CMAKE_BINARY_DIR}/ubxrtl0.pc
 # liblfq (lock free queue)
 set(LFQ_SRC_DIR ${CMAKE_SOURCE_DIR}/liblfq/)
 add_subdirectory(${LFQ_SRC_DIR})
+
+# liblfb (lock free broadcast buffer)
+set(LFB_SRC_DIR ${CMAKE_SOURCE_DIR}/liblfb/)
+add_subdirectory(${LFB_SRC_DIR})
 
 #
 # Lua modules
