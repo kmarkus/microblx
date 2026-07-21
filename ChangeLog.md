@@ -5,15 +5,29 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
-- `rtlog`: replaced the shm writer spinlock with a process-shared,
-  robust, priority-inheritance mutex and made the write offset a C11
-  atomic with release/acquire publication. This bounds priority
-  inversion among writers of different priorities, recovers when a
-  writer dies while holding the lock (`EOWNERDEAD`) instead of
-  deadlocking all loggers, and fixes reader-side memory ordering on
-  weakly-ordered architectures. The shm layout changed:
-  mixed-version processes must not share a log shm (a stale segment
-  is detected via its size and reinitialized).
+- `rtlog`: reimplemented on top of `liblfb`, the lock-free broadcast
+  buffer. The shm writer spinlock is replaced by a process-shared,
+  robust, priority-inheritance mutex (held in lfb's user area) and the
+  write offset is a C11 atomic with release/acquire publication. This
+  bounds priority inversion among writers of different priorities,
+  recovers when a writer dies while holding the lock (`EOWNERDEAD`)
+  instead of deadlocking all loggers, and fixes reader-side memory
+  ordering on weakly-ordered architectures. The log shm layout
+  changed: mixed-version processes must not share a log shm (a foreign
+  or stale segment is rejected/reinitialized).
+- `struct ubx_log_msg`: **ABI change** — `ts` is now an `int64_t`
+  nanosecond timestamp (was `struct ubx_timespec`) and `level` an
+  `int32_t`, giving a fixed-width, ABI-stable layout identical on 32-
+  and 64-bit targets. The struct is now 192 bytes (three cache lines),
+  so log frames never straddle cache lines. `UBX_LOG_MSG_MAXLEN`
+  shrank from 127 to 115; longer messages truncate 12 bytes earlier.
+  It is now a CMake cache variable (`-DUBX_LOG_MSG_MAXLEN=`, default
+  115): `ubx_types.h` is generated from `ubx_types.h.in` so the value
+  reaches both the C build and the luajit FFI. rtlog asserts the frame
+  stays a cache-line multiple, so keep values of the form 64*k - 77
+  (51, 115, 179, ...).
+- `librtlog_client`: the pkg-config `Cflags` now also add
+  `-I${includedir}/ubx` (the client header includes `lfb.h`).
 - `saturation`: **API change** — the compile-time typed
   `ubx/saturation_*` blocks were replaced by a single runtime-typed
   `ubx/saturation` block: element type and length are set via the

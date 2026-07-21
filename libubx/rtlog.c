@@ -8,6 +8,7 @@
  */
 
 #include <stdarg.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <sys/shm.h>
 #include <fcntl.h>
@@ -20,6 +21,17 @@
 
 #include "ubx.h"
 #include "rtlog.h"
+
+/*
+ * The log frame must stay a multiple of the 64 byte cache line, so
+ * that a writer filling one frame never dirties a line a reader is
+ * copying the neighbouring frame from. If this fires, adjust the
+ * UBX_LOG_MSG_MAXLEN CMake cache variable (values 64*k - 77, e.g. 51,
+ * 115, 179) for this target -- it cannot be asserted in ubx_types.h,
+ * which has to remain luajit-ffi parsable.
+ */
+_Static_assert(sizeof(struct ubx_log_msg) % 64 == 0,
+	       "ubx_log_msg must be a multiple of the 64 byte cache line");
 
 const char *loglevel_str[] = {
 	"EMERG", "ALERT", "CRIT", "ERROR",
@@ -34,8 +46,10 @@ void __ubx_log(const int level, const ubx_node_t *nd, const char *src, const cha
 {
 	va_list args;
 	struct ubx_log_msg msg;
+	struct ubx_timespec ts;
 
-	ubx_gettime(&msg.ts);
+	ubx_gettime(&ts);
+	msg.ts = (int64_t)ubx_ts_to_ns(&ts);
 	msg.level = level;
 
 	strncpy(msg.src, src, UBX_BLOCK_NAME_MAXLEN);
@@ -70,8 +84,9 @@ static void ubx_log_simple(const struct ubx_node *nd, const struct ubx_log_msg *
 		     msg->level < UBX_LOGLEVEL_EMERG) ?
 		"INVALID" : loglevel_str[msg->level];
 
-	fprintf(stream, "[%li.%06li] %s %s.%s: %s\n",
-		msg->ts.sec, msg->ts.nsec / NSEC_PER_USEC,
+	fprintf(stream, "[%" PRId64 ".%06" PRId64 "] %s %s.%s: %s\n",
+		msg->ts / NSEC_PER_SEC,
+		(msg->ts % NSEC_PER_SEC) / NSEC_PER_USEC,
 		level_str, nd->name, msg->src, msg->msg);
 }
 
@@ -91,136 +106,110 @@ void ubx_log_cleanup(struct ubx_node *nd)
 #ifdef CONFIG_LOGGING_SHM
 
 #include "internal/rtlog_common.h"
+#include "lfb_shm.h"
 
-struct log_shm_inf {
-	int shm_fd;
-	uint32_t shm_size;
-	uint32_t frame_size;
+/* bound the retries when another party is mid-create (see log_join) */
+#define LOG_JOIN_RETRIES	1000
+#define LOG_JOIN_RETRY_US	1000
 
-	log_buf_t *buf_ptr;	/* ptr to the shm region */
-};
-
-struct log_shm_inf inf;
+static lfb_shm_t log_shm;
+static log_user_t *log_user;
 
 /**
- * log_inc_woff - advance and publish the write offset
+ * log_join - create or attach to the log segment
  *
- * Must be called with wlock held (there may be concurrent writers).
- * The release store pairs with the readers' acquire loads: a reader
- * observing the new offset is guaranteed to see the frame written
- * before it.
+ * lfb_shm_join creates the segment if absent -- leaving it
+ * *unpublished* so that we can initialize the writer lock before
+ * anybody can see it -- or attaches read-write to an existing one
+ * after checking it matches our geometry exactly.
  *
- * @param inc new write pointer offset (bytes)
+ * @return 1 if created (caller must init the user area and publish),
+ *         0 if an existing segment was joined, negative errno on
+ *         failure
  */
-static void log_inc_woff(uint32_t inc)
+static int log_join(void)
 {
-	log_wrap_off_t next;
+	int ret, unlinked = 0;
 
-	/*
-	 * read current wrap and write offset to preserve wrap
-	 * counter
-	 */
-	next.wrap_off = atomic_load_explicit(&inf.buf_ptr->w,
-					     memory_order_relaxed);
-	next.off += inc;
+	for (int i = 0; i < LOG_JOIN_RETRIES; i++) {
+		ret = lfb_shm_join(&log_shm, LOG_SHM_FILENAME,
+				   sizeof(struct ubx_log_msg),
+				   LOG_BUFFER_DEPTH, sizeof(log_user_t));
 
-	if (next.off > inf.shm_size - inf.frame_size - sizeof(log_buf_t)) {
-		next.off = 0;
-		next.wrap++;
+		if (ret >= 0)
+			return ret;
+
+		if (ret == -EAGAIN) {
+			/* somebody is mid-create: give them a moment */
+			usleep(LOG_JOIN_RETRY_US);
+			continue;
+		}
+
+		/*
+		 * a segment of different geometry is in the way, e.g.
+		 * left by a node built against another log message
+		 * layout. Discard it once: consumers keep their
+		 * mapping until they notice it went stale.
+		 */
+		if (ret == -EPROTO && !unlinked) {
+			shm_unlink(LOG_SHM_FILENAME);
+			unlinked = 1;
+			continue;
+		}
+
+		return ret;
 	}
 
-	atomic_store_explicit(&inf.buf_ptr->w, next.wrap_off,
-			      memory_order_release);
+	return -ETIMEDOUT;
 }
 
 static void ubx_log_shm(const struct ubx_node *nd, const struct ubx_log_msg *msg)
 {
 	int ret;
-	log_wrap_off_t w;
-	struct ubx_log_msg *frame;
 	(void)(nd);
 
-	ret = pthread_mutex_lock(&inf.buf_ptr->wlock);
+	ret = pthread_mutex_lock(&log_user->wlock);
 
 	if (ret == EOWNERDEAD) {
 		/*
-		 * the previous owner died holding the lock. The header
-		 * is still consistent, since w is only advanced after
-		 * the frame is complete; at worst a partial frame at
-		 * w.off gets overwritten now.
+		 * the previous owner died holding the lock. The buffer
+		 * is still consistent, since lfb_write only advances
+		 * the write position once the frame is complete; at
+		 * worst a partial frame sits in a slot that was never
+		 * published and gets overwritten now.
 		 */
-		pthread_mutex_consistent(&inf.buf_ptr->wlock);
+		pthread_mutex_consistent(&log_user->wlock);
 	} else if (ret != 0) {
 		return;	/* ENOTRECOVERABLE: drop the message */
 	}
 
-	w.wrap_off = atomic_load_explicit(&inf.buf_ptr->w,
-					  memory_order_relaxed);
-	frame = (struct ubx_log_msg *)&inf.buf_ptr->data[w.off];
-	memcpy(frame, msg, sizeof(struct ubx_log_msg));
-
-	log_inc_woff(inf.frame_size);
-	pthread_mutex_unlock(&inf.buf_ptr->wlock);
+	lfb_write(lfb_shm_lfb(&log_shm), msg);
+	pthread_mutex_unlock(&log_user->wlock);
 }
 
 int ubx_log_init(struct ubx_node *nd)
 {
-	int ret = -1;
-	int need_init = 1;
-	struct stat sb;
+	int ret;
 
 	nd->log_data = NULL;
 
-	inf.shm_size = sizeof(log_buf_t) + sizeof(struct ubx_log_msg) *
-		       LOG_BUFFER_DEPTH;
+	ret = log_join();
 
-	inf.frame_size = sizeof(struct ubx_log_msg);
-
-	/* allocate shared mem. Try to create it first (O_EXCL), so
-	 * that only the creator initializes the mutex and write
-	 * offset. Re-initializing the lock of an existing segment
-	 * would corrupt it if another process is logging. */
-	inf.shm_fd = shm_open(LOG_SHM_FILENAME,
-			      O_CREAT | O_EXCL | O_RDWR, 0640);
-
-	if (inf.shm_fd == -1 && errno == EEXIST) {
-		need_init = 0;
-		inf.shm_fd = shm_open(LOG_SHM_FILENAME, O_RDWR, 0640);
+	if (ret < 0) {
+		fprintf(stderr, "%s: joining %s failed: %s\n",
+			__func__, LOG_SHM_FILENAME, strerror(-ret));
+		return -1;
 	}
 
-	if (inf.shm_fd == -1) {
-		fprintf(stderr, "%s: shm_open failed: %m\n", __func__);
-		goto out;
-	}
+	log_user = lfb_user(lfb_shm_lfb(&log_shm));
 
-	/* check if we need to adjust size, otherwise leave it */
-	if (fstat(inf.shm_fd, &sb) != 0) {
-		fprintf(stderr, "%s: fstat shm failed: %m\n", __func__);
-		goto out_unlink;
-	}
-
-	if (sb.st_size != (off_t) inf.shm_size) {
-		ret = ftruncate(inf.shm_fd, inf.shm_size);
-
-		if (ret != 0) {
-			fprintf(stderr, "%s: resizing shm failed: %m\n", __func__);
-			goto out_unlink;
-		}
-		/* resized: header is in an unknown state */
-		need_init = 1;
-	}
-
-	inf.buf_ptr = mmap(0, inf.shm_size,
-			    PROT_READ | PROT_WRITE,
-			    MAP_SHARED, inf.shm_fd, 0);
-
-	if (inf.buf_ptr == MAP_FAILED) {
-		ret = -1;
-		fprintf(stderr, "%s: mmap shm failed: %m\n", __func__);
-		goto out_unlink;
-	}
-
-	if (need_init) {
+	if (ret == 1) {
+		/*
+		 * we created the segment: initialize the writer lock,
+		 * then publish. Until lfb_shm_publish, other writers
+		 * and all readers get -EAGAIN, so nobody can observe
+		 * the uninitialized lock.
+		 */
 		pthread_mutexattr_t mattr;
 
 		pthread_mutexattr_init(&mattr);
@@ -228,39 +217,30 @@ int ubx_log_init(struct ubx_node *nd)
 		pthread_mutexattr_setprotocol(&mattr, PTHREAD_PRIO_INHERIT);
 		pthread_mutexattr_setrobust(&mattr, PTHREAD_MUTEX_ROBUST);
 
-		ret = pthread_mutex_init(&inf.buf_ptr->wlock, &mattr);
+		ret = pthread_mutex_init(&log_user->wlock, &mattr);
 		pthread_mutexattr_destroy(&mattr);
 
 		if (ret != 0) {
 			fprintf(stderr, "%s: mutex init failed: %s\n",
 				__func__, strerror(ret));
-			munmap(inf.buf_ptr, inf.shm_size);
-			ret = -1;
-			goto out_unlink;
+			lfb_shm_destroy(&log_shm);
+			return -1;
 		}
 
-		atomic_store_explicit(&inf.buf_ptr->w, 0,
-				      memory_order_relaxed);
+		lfb_shm_publish(&log_shm);
 	}
 
 	nd->log = ubx_log_shm;
 
-	ret = 0;
-	goto out;
-
-out_unlink:
-	shm_unlink(LOG_SHM_FILENAME);
-	close(inf.shm_fd);
-out:
-	return ret;
+	return 0;
 }
 
 void ubx_log_cleanup(struct ubx_node *nd)
 {
-	/* we skip destroying the mutex and shm, since there may be
-	 * other processes still using it */
+	/* close but don't unlink: other processes may still be logging
+	 * into this segment (and the lock lives in it) */
 	nd->log = NULL;
-	munmap(inf.buf_ptr, inf.shm_size);
-	close(inf.shm_fd);
+	log_user = NULL;
+	lfb_shm_close(&log_shm);
 }
 #endif

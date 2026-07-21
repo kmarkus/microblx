@@ -97,6 +97,16 @@ set(UBX_SRC_DIR ${CMAKE_SOURCE_DIR}/libubx/)
 
 configure_file("${UBX_SRC_DIR}/config.h.in" "${CMAKE_BINARY_DIR}/config.h")
 
+# Max length of a log message. The default (115) sizes struct
+# ubx_log_msg to 192 bytes = 3 cache lines; keep it 64*k - 77 (51,
+# 115, 179, ...) so the frame stays a cache-line multiple (asserted in
+# rtlog.c). ubx_types.h is generated from ubx_types.h.in so the value
+# is visible to both the C build and the luajit FFI (which reads the
+# installed header).
+set(UBX_LOG_MSG_MAXLEN 115 CACHE STRING "max ubx log message length")
+configure_file("${UBX_SRC_DIR}/ubx_types.h.in"
+  "${CMAKE_BINARY_DIR}/libubx/ubx_types.h" @ONLY)
+
 set(UBX_SRCS
   ${UBX_SRC_DIR}/md5.c
   ${UBX_SRC_DIR}/ubx.c
@@ -112,6 +122,7 @@ if(TRACING STREQUAL "MARKER")
 endif()
 
 include_directories(
+  ${CMAKE_BINARY_DIR}/libubx        # generated ubx_types.h
   ${CMAKE_SOURCE_DIR}/std_types/stdtypes/types
   ${CMAKE_SOURCE_DIR}/libubx/
   ${CMAKE_SOURCE_DIR}/liblfb/
@@ -122,7 +133,7 @@ set(UBX_PUBLIC_HDRS
   ${UBX_SRC_DIR}/typemacros.h
   ${UBX_SRC_DIR}/accessors.h
   ${UBX_SRC_DIR}/ubx_core.h
-  ${UBX_SRC_DIR}/ubx_types.h
+  ${CMAKE_BINARY_DIR}/libubx/ubx_types.h
   ${UBX_SRC_DIR}/ubx_time.h
   ${UBX_SRC_DIR}/ubx_uthash_ffi.h
   ${UBX_SRC_DIR}/trig_utils.h

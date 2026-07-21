@@ -24,7 +24,21 @@ enum {
 	UBX_PORT_NAME_MAXLEN	= 39,
 	UBX_CONFIG_NAME_MAXLEN  = 39,
 	UBX_TYPE_NAME_MAXLEN	= 63,
-	UBX_LOG_MSG_MAXLEN	= 127,
+
+	/*
+	 * Substituted from the UBX_LOG_MSG_MAXLEN CMake cache variable
+	 * (this file is the ubx_types.h.in template). The default 115
+	 * sizes sizeof(struct ubx_log_msg) to 192, a multiple of the 64
+	 * byte cache line: log frames then never straddle lines, so a
+	 * writer filling one frame cannot dirty a line a reader is
+	 * copying the neighbouring frame from. The layout is fixed-width
+	 * and ordered widest-first (ts, level, ...), so that every field
+	 * sits at the same offset on any ABI and the total holds on 32
+	 * and 64 bit alike. rtlog.c asserts the cache-line multiple --
+	 * this header must stay luajit-ffi parsable, so the assert
+	 * cannot live here.
+	 */
+	UBX_LOG_MSG_MAXLEN	= @UBX_LOG_MSG_MAXLEN@,
 	UBX_TSTAT_ID_MAXLEN	= 63,
 
 	UBX_TYPE_HASH_LEN	= 16,   			/* binary md5 */
@@ -426,16 +440,17 @@ struct ubx_timespec {
 
 /**
  * struct ubx_log_msg - ubx log message
+ * @ts: timestamp taken at time of logging, in nanoseconds
  * @level: log level (UBX_LOGLEVEL_ERR, ...)
- * @ts: timestamp taken at time of logging
  * @src: source of log message (typically block or node name)
  * @msg: log message
  */
 struct ubx_log_msg {
-	int level;
-	struct ubx_timespec ts;
+	int64_t ts;
+	int32_t level;
 	char src[UBX_BLOCK_NAME_MAXLEN + 1];
 	char msg[UBX_LOG_MSG_MAXLEN + 1];
 };
+
 
 #endif /* UBX_TYPES_H */

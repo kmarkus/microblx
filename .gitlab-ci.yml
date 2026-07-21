@@ -69,6 +69,12 @@ test:
     - test-lfq
     - test-lfq -c 1 -t 8 -o 50000
     - test-lfq-unit
+    # run lfb tests (unit, shm unit, and the multi-reader stress test
+    # including forced overrun recovery)
+    - test-lfb-unit
+    - test-lfb-shm-unit
+    - test-lfb
+    - test-lfb -r 8 -O
     # run the rtlog stress test (multi-writer/multi-reader shm log
     # verification): defaults, high contention and the SPSC fast path
     - test-rtlog
@@ -91,6 +97,22 @@ test-lfq-tsan:
     - ./tsan-lfq -c 1 -t 4 -o 20000
     - ./tsan-lfq -c 4 -t 4 -o 20000
 
+# run the lock-free broadcast buffer tests under ThreadSanitizer
+# (validates the seqlock-style frame publication and the copy read
+# path, which are the parts we keep tsan-clean)
+test-lfb-tsan:
+  stage: test
+  before_script:
+    - apt update && apt -y install libcmocka-dev
+  script:
+    - gcc -fsanitize=thread -g -O1 -Iliblfb liblfb/test-lfb-unit.c -lcmocka -lpthread -lrt -o tsan-lfb-unit
+    - ./tsan-lfb-unit
+    - gcc -fsanitize=thread -g -O1 -Iliblfb liblfb/test-lfb-shm-unit.c -lcmocka -lpthread -lrt -o tsan-lfb-shm-unit
+    - ./tsan-lfb-shm-unit
+    - gcc -fsanitize=thread -g -O1 -Iliblfb liblfb/test-lfb.c -lpthread -lrt -o tsan-lfb
+    - ./tsan-lfb -r 4 -n 20
+    - ./tsan-lfb -r 4 -O
+
 # run the rtlog stress test under ThreadSanitizer (validates the shm
 # writer mutex and the release/acquire publication of the write offset)
 test-rtlog-tsan:
@@ -98,10 +120,12 @@ test-rtlog-tsan:
   before_script:
     - apt update && apt -y install uthash-dev
   script:
-    # rtlog.c includes the cmake-generated config.h; an empty one is
-    # fine for this standalone build
+    # rtlog.c includes the cmake-generated config.h and ubx_types.h;
+    # for this standalone build fake config.h and substitute the
+    # ubx_types.h template with the default log message length
     - touch config.h
-    - gcc -fsanitize=thread -g -O1 -Ilibubx -I. tools/test-rtlog.c libubx/rtlog.c libubx/rtlog_client.c libubx/ubx_time.c -lpthread -lrt -o tsan-rtlog
+    - sed 's/@UBX_LOG_MSG_MAXLEN@/115/' libubx/ubx_types.h.in > libubx/ubx_types.h
+    - gcc -fsanitize=thread -g -O1 -Ilibubx -Iliblfb -I. tools/test-rtlog.c libubx/rtlog.c libubx/rtlog_client.c libubx/ubx_time.c -lpthread -lrt -o tsan-rtlog
     - ./tsan-rtlog -w 8 -r 4 -n 10
     - ./tsan-rtlog -w 32 -r 8 -n 5
     - ./tsan-rtlog -w 1 -r 1 -n 10

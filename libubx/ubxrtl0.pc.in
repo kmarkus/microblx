@@ -7,5 +7,5 @@ Name: librtlog_client
 Description: Client library for real-time logging
 URL: https://github.com/kmarkus/microblx
 Version: @PROJECT_VERSION@
-Cflags: -I${includedir}
+Cflags: -I${includedir} -I${includedir}/ubx
 Libs: -L${libdir} -lrtlog_client

@@ -8,59 +8,52 @@
  */
 
 /*
- * rtlog_common.h - definitions for both aggregator block (producer)
- * and consumer side.
+ * rtlog_common.h - definitions shared by the aggregator side
+ * (producer) and the consumer side.
  *
- * Please note the meaning of read and write offsets:
+ * The ring itself is lfb (see liblfb/): a lossy broadcast buffer for
+ * one producer and any number of independent consumers. rtlog adds
+ * only the two things lfb deliberately leaves to the application:
  *
- * - `woff` is where the aggregator block will write the next frame (or
- *   currently is writing to)
+ *  - writer serialization. lfb is single-producer, whereas several
+ *    ubx nodes (in one or more processes) log into one buffer, so
+ *    writes are serialized by a process-shared robust PI mutex kept
+ *    in lfb's user area (see log_user_t and lfb_shm_join).
  *
- * - `roff` points to the next frame that a client will read once is
- *   is complete. A frame is complete when the woff has advanced ahead
- *   of roff (and no erroneous conditions such as an overrun occured).
+ *  - the segment lifecycle policy: whoever gets there first creates
+ *    and initializes the buffer, everybody else attaches to it.
  */
 
 #include <pthread.h>
 #include <stdatomic.h>
 
+#include "lfb.h"
+
 #define LOG_BUFFER_DEPTH 10000
 #define LOG_SHM_FILENAME "rtlog.logshm"
 
-/* the minimum distance from the wptr that logc_seek_to_oldest will
- * keep when seeking to the oldest log message */
-#define LOGC_SEEK_OLDEST_CRUSH_ZONE 100
-
-/* helper to conveniently deal with the wrap and woff halves of the
- * atomic wrap_off word */
-typedef union {
-	struct {
-		uint32_t wrap;
-		uint32_t off;
-	};
-	uint64_t wrap_off;
-} log_wrap_off_t;
+/*
+ * lfb user area: writers hold this lock across lfb_write.
+ *
+ * It is robust because a writer may die holding it, which is
+ * recoverable here: lfb_write copies the frame into the slot and
+ * only then advances the write position with a release store, so a
+ * writer dying mid-copy leaves the buffer consistent -- the partial
+ * frame sits in a slot that was never published, and the next writer
+ * overwrites it. Hence pthread_mutex_consistent() rather than
+ * tearing the segment down.
+ */
+typedef struct log_user {
+	pthread_mutex_t wlock;
+} log_user_t;
 
 /*
- * w is accessed concurrently from multiple processes, so the 64-bit
- * atomic must be address-free (a libatomic lock-based fallback would
- * only synchronize within one process)
+ * opaque frame handle returned by logc_read_frame. Note that since
+ * the move to lfb this refers to the reader's *own copy* of the
+ * frame (logc_info_t.frame), not to memory inside the ring: lfb
+ * validates a frame after copying it out, which is what lets it
+ * detect a producer overwriting the slot mid-read.
  */
-_Static_assert(ATOMIC_LLONG_LOCK_FREE == 2,
-	       "rtlog requires lock-free 64-bit atomics");
-
-/* log buffer header */
-typedef struct log_buf
-{
-	pthread_mutex_t wlock;	/* writer lock (process-shared, robust, PI) */
-	_Atomic uint64_t w;	/* wrap and offset (a log_wrap_off_t):
-				 * stored with release order after the
-				 * frame is written, so readers must
-				 * load-acquire it before reading frames */
-	uint8_t data[];
-} log_buf_t;
-
-/* log frame */
 typedef struct log_frame
 {
 	uint8_t data;

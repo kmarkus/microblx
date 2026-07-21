@@ -12,13 +12,9 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <sys/mman.h>
-#include <sys/stat.h>        /* For mode constants */
-#include <fcntl.h>           /* For O_* constants */
-#include <limits.h>
-#include <unistd.h>
 
 #include "rtlog_client.h"
 
@@ -31,92 +27,20 @@
 #endif
 
 /**
- * get_shm_file_size - get size of shm file
- * this also ensures it exists
- *
- * @param shm_file filename of shm file
- * @return 0 if successful, non-zero (errno) in case of failure.
- */
-static int get_shm_file_size(const char *shm_file, int *sz)
-{
-	int ret = EINVAL;
-	struct stat st;
-	char shm_path[NAME_MAX];
-
-	if (snprintf(shm_path,
-		    NAME_MAX,
-		    "/dev/shm/%s",
-		    shm_file) < 0) {
-		DBG("failed to create shm file path\n");
-		ret = ENAMETOOLONG;
-		goto out;
-	}
-
-	if (stat(shm_path, &st) == -1) {
-		ret = errno;
-		DBG("failed to stat file %s: %s\n",
-		    shm_path,
-		    strerror(errno));
-		goto out;
-	}
-
-	*sz = st.st_size;
-	ret = 0;
-out:
-	return ret;
-}
-
-
-/**
- * logc_seek_to_oldest - move the read ptr to the oldest valid log
- * message (keeping at least LOGC_SEEK_OLDEST_CRUSH_ZONE distance from the
- * wptr).
+ * logc_seek_to_oldest - move the read ptr to the oldest log message
+ * that can still be read without being immediately overrun (lfb
+ * keeps LFB_CRUSH(depth) frames of headroom for that).
  *
  * @param inf pointer to logc_info_t
  */
 void logc_seek_to_oldest(logc_info_t *inf)
 {
-	log_wrap_off_t new;
+	const lfb_t *b = lfb_shm_lfb(&inf->shm);
 
-	new.wrap_off = atomic_load_explicit(&inf->buf_ptr->w,
-					    memory_order_acquire);
+	if (b == NULL)
+		return;		/* not open */
 
-	/*
-	 * advance by LOGC_SEEK_OLDEST_CRUSH_ZONE elem. Moving beyond
-	 * wptr means we need to remember to decrement wrap.
-	 */
-	new.off += LOGC_SEEK_OLDEST_CRUSH_ZONE * inf->frame_size;
-
-	/* wrap? */
-	if (new.off > inf->shm_size - inf->frame_size - sizeof(log_buf_t)) {
-		/*
-		 * yes. No need to decrement wrap because we moved
-		 * ahead of wptr, which already "decremented" it.
-		 */
-		new.off = new.off - inf->shm_size + sizeof(log_buf_t);
-		DBG("wrapped");
-	} else {
-		/*
-		 * no wrap occurred and buffer has never wrapped
-		 * before. This means 0 is our oldest message (if its
-		 * there at all).
-		 */
-		if (new.wrap == 0) {
-			DBG("no wrap and wrap=0. starting at off=0");
-			new.off = 0;
-		} else {
-			/*
-			 * no wrap occurreed and buffer is full (has
-			 * wrapped before), so we need to decrement
-			 * wrap for moving beyond wptr
-			 */
-			DBG("no wrap and wrap=%u. decrementing wrap", new.wrap);
-			new.wrap--;
-		}
-	}
-
-	DBG("idx of oldest: %u", new.off / inf->frame_size);
-	inf->r = new;
+	lfb_seek(b, &inf->rd, LFB_OLDEST);
 }
 
 /**
@@ -126,17 +50,21 @@ void logc_seek_to_oldest(logc_info_t *inf)
  */
 void logc_reset_read(logc_info_t *inf)
 {
-	inf->r.wrap_off = atomic_load_explicit(&inf->buf_ptr->w,
-					       memory_order_acquire);
-}
+	const lfb_t *b = lfb_shm_lfb(&inf->shm);
 
+	if (b == NULL)
+		return;		/* not open */
+
+	lfb_seek(b, &inf->rd, LFB_NEWEST);
+}
 
 /**
  * logc_init - open shm file and initalize client info
  *
  * @param inf local data
  * @param filename name of shm file created by aggregator block.
- * @param frame_size total frame size (from JSON meta-data)
+ * @param frame_size total frame size (from JSON meta-data). Must
+ *        match the frame size the producer created the segment with.
  *
  * @return 0 if successfull, non-zero (errno) in case of failure.
  */
@@ -145,44 +73,45 @@ int logc_init(logc_info_t *inf,
 	     uint32_t frame_size)
 {
 	int ret;
+	const lfb_t *b;
 
-	inf->frame_size = frame_size;
+	memset(inf, 0, sizeof(*inf));
 
-	ret = get_shm_file_size(filename, &inf->shm_size);
+	ret = lfb_shm_open(&inf->shm, filename);
 
-	if (ret != 0)
-		goto out;
-
-	inf->shm_fd = shm_open(filename, O_RDONLY, 0640);
-
-	if (inf->shm_fd == -1) {
-		ret = errno;
-		DBG("shm_open failed: %s", strerror(errno));
-		goto out;
+	if (ret != 0) {
+		DBG("lfb_shm_open failed: %s", strerror(-ret));
+		return -ret;
 	}
 
-	inf->buf_ptr = mmap(0, inf->shm_size,
-			    PROT_READ, MAP_SHARED,
-			    inf->shm_fd, 0);
-	if (inf->buf_ptr == MAP_FAILED) {
-		ret = errno;
-		DBG("mmap failed: %s", strerror(errno));
-		close(inf->shm_fd);
-		goto out;
+	b = lfb_shm_lfb(&inf->shm);
+
+	/*
+	 * the caller states the frame size out of band, so a mismatch
+	 * means it disagrees with the producer about the log message
+	 * layout: refuse rather than mis-parse every frame
+	 */
+	if (b->frame_size != frame_size) {
+		DBG("frame size mismatch: segment %u, caller %u",
+		    b->frame_size, frame_size);
+		lfb_shm_close(&inf->shm);
+		return EPROTO;
+	}
+
+	inf->frame_size = frame_size;
+	inf->frame = malloc(frame_size);
+
+	if (inf->frame == NULL) {
+		lfb_shm_close(&inf->shm);
+		return ENOMEM;
 	}
 
 	logc_reset_read(inf);
 
-	DBG("inf->buf_ptr:          %p", inf->buf_ptr);
-	DBG("inf->buf_ptr->data:    %p", inf->buf_ptr->data);
-	DBG("inf->frame_size:       %u", inf->frame_size);
-	DBG("inf->buf_ptr->w.off:   %u", inf->buf_ptr->w.off);
-	DBG("inf->r.off:            %u", inf->r.off);
+	DBG("frame_size: %u, depth: %lu",
+	    inf->frame_size, (unsigned long)b->depth);
 
-	/* all OK */
-	ret = 0;
-out:
-	return ret;
+	return 0;
 }
 
 /**
@@ -192,80 +121,53 @@ out:
  */
 void logc_close(logc_info_t *inf)
 {
-	munmap((void *) inf->buf_ptr, inf->shm_size);
-	close(inf->shm_fd);
-}
-
-/**
- * calc_next_roff  - calculate the next read offset
- *
- * Handles wrapping. Does not consider the write state or whether
- * there is actually valid data at the new address.
- *
- * @param inf
- * @return new wrap_woff write state
- */
-static log_wrap_off_t calc_next_roff(logc_info_t *inf)
-{
-	log_wrap_off_t new = inf->r;
-
-	new.off = inf->r.off + inf->frame_size;
-
-	/* check for wrapping */
-	if (new.off > inf->shm_size - inf->frame_size - sizeof(log_buf_t)) {
-		new.off = 0;
-		new.wrap++;
-	}
-
-	return new;
+	lfb_shm_close(&inf->shm);
+	free(inf->frame);
+	inf->frame = NULL;
 }
 
 /**
  * logc_has_data - is new data available?
+ *
+ * Non-consuming: unlike logc_read_frame this only reports the state
+ * and never advances the read cursor or resyncs after an overrun.
  *
  * @param inf
  * @return READ_STATUS
  */
 enum READ_STATUS logc_has_data(const logc_info_t *inf)
 {
-	int ret = NO_DATA;
-	log_wrap_off_t w, r;	/* write and read wrap and offsets */
+	const lfb_t *b = lfb_shm_lfb(&inf->shm);
+	lfb_word_t lag;
 
-	/* acquire: pairs with the writer's release store, so frames
-	 * written before this offset are visible when read below */
-	w.wrap_off = atomic_load_explicit(&inf->buf_ptr->w,
-					  memory_order_acquire);
-	r = inf->r;
+	if (b == NULL)
+		return ERROR;	/* not open */
 
-	if (w.off == r.off && w.wrap == r.wrap) {
-		ret = NO_DATA;
-		goto out;
-	} else if ((w.off > r.off && w.wrap == r.wrap) ||
-		  (w.off < r.off && w.wrap - r.wrap == 1)) {
-		ret = NEW_DATA;
-		goto new_data;
-	} else if (w.wrap - r.wrap >= 2 ||
-		  (w.off >= r.off && w.wrap - r.wrap == 1)) {
-		ret = OVERRUN;
-		goto out;
-	} else {
-		ret = ERROR;
-		goto out;
-	}
+	lag = lfb_lag(&inf->rd);
 
-new_data:
-	/* all OK */
-	ret = NEW_DATA;
+	if (lag == 0)
+		return NO_DATA;
 
-out:
-	return ret;
+	if (lag >= b->depth)
+		return OVERRUN;
+
+	return NEW_DATA;
 }
-
 
 /**
  * logc_read_frame - read the next frame if available
  *
  * this is a consuming read, in that the readptr is advanced.
+ *
+ * The frame is copied into client-owned memory and validated against
+ * the write position afterwards, so a frame the producer overwrote
+ * while it was being read is never handed out (it is reported as an
+ * OVERRUN instead). @frame stays valid until the next call.
+ *
+ * On OVERRUN the cursor has already been resynced to the oldest
+ * surviving frame, so calling again simply continues the stream; an
+ * explicit logc_seek_to_oldest is no longer required (but remains
+ * harmless).
  *
  * @param inf
  * @param frame outvalue to store the read frame.
@@ -273,20 +175,17 @@ out:
  */
 enum READ_STATUS logc_read_frame(logc_info_t *inf, volatile log_frame_t **frame)
 {
-	int ret = logc_has_data(inf);
+	int ret = lfb_read(&inf->rd, inf->frame);
 
-	/*
-	 * if we have anything but NEW_DATA (NO_DATA, OVERRUN),
-	 * return that there is nothing to read.
-	 */
-	if (ret != NEW_DATA)
-		goto out;
+	if (ret == 1) {
+		*frame = (volatile log_frame_t *)inf->frame;
+		return NEW_DATA;
+	}
 
-	/* we have valid new data, return current and advance roff */
-	*frame = (volatile log_frame_t *)&inf->buf_ptr->data[inf->r.off];
-	inf->r = calc_next_roff(inf);
-out:
-	return ret;
+	if (ret == 0)
+		return NO_DATA;
+
+	return OVERRUN;		/* -EPIPE: frames were lost */
 }
 
 /**
@@ -302,16 +201,9 @@ void *logc_dataptr_get(volatile log_frame_t *frame)
 
 void logc_print_stat(const logc_info_t *inf)
 {
-	log_wrap_off_t w;
+	(void)inf;
 
-	w.wrap_off = atomic_load_explicit(&inf->buf_ptr->w,
-					  memory_order_relaxed);
-	(void)(w);
-
-	DBG("w.wrap: %u, w.off: %u, r.wrap: %u, r.off: %u, rptr: %p",
-	    w.wrap,
-	    w.off,
-	    inf->r.wrap,
-	    inf->r.off,
-	    &inf->buf_ptr->data[inf->r.off]);
+	DBG("lag: %lu, overruns: %lu",
+	    (unsigned long)lfb_lag(&inf->rd),
+	    (unsigned long)inf->rd.overruns);
 }

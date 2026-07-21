@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <unistd.h>
@@ -30,6 +31,7 @@ const char *loglevel_str[] = {
 
 #define REOPEN_RETRY_NUM	10
 #define REOPEN_RETRY_TIMEOUT_US	200000
+#define LC_RETRY_TIMEOUT_US	10000
 
 #define RED   "\x1B[31m"
 #define GRN   "\x1B[32m"
@@ -107,14 +109,17 @@ static void log_data(logc_info_t *inf, int color)
 		}
 
 		if (color)
-			fprintf(stdout, GRN "[%li.%06li] " YEL "%s %s%s: %s\n" RESET,
-				msg->ts.sec, msg->ts.nsec / NSEC_PER_USEC,
+			fprintf(stdout, GRN "[%" PRId64 ".%06" PRId64 "] " YEL
+				"%s %s%s: %s\n" RESET,
+				msg->ts / NSEC_PER_SEC,
+				(msg->ts % NSEC_PER_SEC) / NSEC_PER_USEC,
 				msg->src,
 				loglevel_color[msg->level],
 				level_str, msg->msg);
 		else
-			fprintf(stdout, "[%li.%06li] %s %s: %s\n",
-				msg->ts.sec, msg->ts.nsec / NSEC_PER_USEC,
+			fprintf(stdout, "[%" PRId64 ".%06" PRId64 "] %s %s: %s\n",
+				msg->ts / NSEC_PER_SEC,
+				(msg->ts % NSEC_PER_SEC) / NSEC_PER_USEC,
 				msg->src, level_str, msg->msg);
 
 		fflush(stdout);
@@ -296,8 +301,8 @@ static int lc_init(struct ubx_log_info *inf)
 			break;
 		}
 
-		if (ret == ENAMETOOLONG) {
-			fprintf(stderr, "failed to initialise logging library\n");
+		if (quit) {
+			ret = -EINTR;
 			goto out_close_infd;
 		}
 
@@ -319,7 +324,25 @@ static int lc_init(struct ubx_log_info *inf)
 					goto out_close_infd;
 				}
 			}
+			continue;
 		}
+
+		if (ret == EAGAIN) {
+			/* created but not published yet: retry */
+			usleep(LC_RETRY_TIMEOUT_US);
+			continue;
+		}
+
+		/* anything else is fatal: falling through would spin */
+		fprintf(stderr, "failed to open %s: %s\n",
+			LOG_SHM_FILENAME, strerror(ret));
+
+		if (ret == EPROTO)
+			fprintf(stderr, "log format mismatch, remove "
+				"/dev/shm/%s when no node is logging\n",
+				LOG_SHM_FILENAME);
+
+		goto out_close_infd;
 	}
 
 	/* the shm file has appeared. close the blocking inotify fd

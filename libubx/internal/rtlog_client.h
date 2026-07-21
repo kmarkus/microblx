@@ -7,15 +7,22 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
+#include "lfb_shm.h"
+
 typedef struct logc_info
 {
-	volatile log_buf_t *buf_ptr;
-	log_wrap_off_t r;	/* read wrap and offset */
+	lfb_shm_t shm;		/* read-only mapping of the log segment */
+	lfb_rd_t rd;		/* private read cursor */
 
 	uint32_t frame_size;
 
-	int shm_fd;
-	int shm_size;
+	/*
+	 * frame_size bytes owned by this client. lfb_read copies into
+	 * it and validates the copy afterwards, so what logc_read_frame
+	 * hands out stays stable even if the producer laps us meanwhile.
+	 * Valid until the next logc_read_frame on this client.
+	 */
+	void *frame;
 } logc_info_t;
 
 enum READ_STATUS {
