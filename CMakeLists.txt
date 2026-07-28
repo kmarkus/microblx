@@ -295,7 +295,30 @@ add_type_subdir(TYPE_TESTTYPES "std_types/testtypes" ON)
 
 add_executable(ubx-log tools/ubx-log.c)
 target_link_libraries(ubx-log PRIVATE rt rtlog_client)
-pkg_check_modules(LIBDAEMON libdaemon)
+
+# ubx-log daemon mode (-d), which requires libdaemon. AUTO detects and
+# warns if absent; ON makes a missing libdaemon a hard error, so a build
+# that is supposed to ship -d cannot silently drop it (packagers should
+# pass ON or OFF explicitly rather than rely on what happens to be
+# installed)
+set(UBX_LOG_DAEMON "AUTO" CACHE STRING "ubx-log daemon mode: AUTO (default, use libdaemon if found), ON (require it), OFF")
+set_property(CACHE UBX_LOG_DAEMON PROPERTY STRINGS AUTO ON OFF)
+
+if(UBX_LOG_DAEMON STREQUAL "ON")
+  pkg_check_modules(LIBDAEMON REQUIRED libdaemon)
+elseif(UBX_LOG_DAEMON STREQUAL "AUTO")
+  pkg_check_modules(LIBDAEMON libdaemon)
+  if(NOT LIBDAEMON_FOUND)
+    message(WARNING "libdaemon not found: building ubx-log without daemon mode (-d). "
+      "Configure with -DUBX_LOG_DAEMON=OFF to silence this, or =ON to make it an error.")
+  endif()
+elseif(UBX_LOG_DAEMON STREQUAL "OFF")
+  # don't inherit a LIBDAEMON_FOUND left in the cache by an earlier run
+  set(LIBDAEMON_FOUND FALSE)
+else()
+  message(FATAL_ERROR "invalid UBX_LOG_DAEMON value '${UBX_LOG_DAEMON}' (must be AUTO, ON or OFF)")
+endif()
+
 if(LIBDAEMON_FOUND)
   target_compile_definitions(ubx-log PRIVATE HAVE_LIBDAEMON)
   target_compile_options(ubx-log PRIVATE ${LIBDAEMON_CFLAGS_OTHER})
