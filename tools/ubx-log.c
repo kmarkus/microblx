@@ -11,6 +11,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <signal.h>
 #include <syslog.h>
 #include <termios.h>
@@ -56,6 +57,7 @@ static const int syslog_prio[] = {
 static int use_syslog = 0;
 static int syslog_facility = LOG_LOCAL0;
 static int daemon_mode = 0;
+static int follow = 1;
 static volatile sig_atomic_t quit = 0;
 static struct termios orig_tp;
 static int orig_tp_saved = 0;
@@ -309,6 +311,14 @@ static int lc_init(struct ubx_log_info *inf)
 		if (ret == ENOENT) {
 			int done = 0;
 
+			/* nothing to dump and we are not going to wait */
+			if (!follow) {
+				fprintf(stderr, "%s does not exist: "
+					"no node is logging\n",
+					LOG_SHM_FILENAME);
+				goto out_close_infd;
+			}
+
 			diag_log(LOG_INFO, 0, "waiting for %s to appear\n",
 				 LOG_SHM_FILENAME);
 			while(!done) {
@@ -430,9 +440,25 @@ static int check_new_shm(struct ubx_log_info *inf, int show_old, int color)
 	return ret;
 }
 
+/*
+ * ngetc - read a char from stdin if one is pending, without blocking
+ *
+ * Note: readiness is checked with poll instead of putting stdin into
+ * O_NONBLOCK. O_NONBLOCK is a property of the open file description,
+ * which for an interactive invocation is shared with stdout and
+ * stderr, so setting it would make our own writes fail with EAGAIN
+ * whenever the terminal cannot keep up - silently truncating the log
+ * output at an arbitrary message - and would leave the terminal
+ * nonblocking for the shell afterwards.
+ */
 static ssize_t ngetc(char *c)
 {
-	return read (0, c, 1);
+	struct pollfd pfd = { .fd = STDIN_FILENO, .events = POLLIN };
+
+	if (poll(&pfd, 1, 0) <= 0)
+		return 0;
+
+	return read(STDIN_FILENO, c, 1);
 }
 
 /*
@@ -468,6 +494,7 @@ static void print_help(char **argv)
 	printf("Options:\n");
 	printf("  -N         don't use colors\n");
 	printf("  -O         don't show old messages upon startup\n");
+	printf("  -F         don't follow: dump the current buffer and exit\n");
 	printf("  -s         forward messages to syslog (in addition to stdout)\n");
 	printf("  -f LOCAL<n> syslog facility LOCAL0..LOCAL7 (default: LOCAL0)\n");
 #ifdef HAVE_LIBDAEMON
@@ -483,7 +510,7 @@ int main(int argc, char **argv)
 	struct termios tp;
 	char c;
 
-	while ((opt = getopt(argc, argv, "ONhsf:"
+	while ((opt = getopt(argc, argv, "ONFhsf:"
 #ifdef HAVE_LIBDAEMON
 			     "d"
 #endif
@@ -494,6 +521,9 @@ int main(int argc, char **argv)
 			break;
 		case 'O':
 			show_old = 0;
+			break;
+		case 'F':
+			follow = 0;
 			break;
 		case 's':
 			use_syslog = 1;
@@ -520,6 +550,11 @@ int main(int argc, char **argv)
 
 	if (daemon_mode && !use_syslog) {
 		fprintf(stderr, "daemon mode requires syslog forwarding (-s)\n");
+		exit(EXIT_FAILURE);
+	}
+
+	if (daemon_mode && !follow) {
+		fprintf(stderr, "daemon mode and -F are mutually exclusive\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -586,10 +621,7 @@ int main(int argc, char **argv)
 	inf->lcinf = NULL;
 	inf->uininf = NULL;
 
-	if (!daemon_mode) {
-		/* make stdin nonblocking */
-		fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
-
+	if (!daemon_mode && follow) {
 		/* turn echo off, saving original settings for restoration on exit */
 		if (tcgetattr(STDIN_FILENO, &orig_tp) == 0) {
 			orig_tp_saved = 1;
@@ -615,13 +647,20 @@ int main(int argc, char **argv)
 
 	while (!quit) {
 		/* check for create shm event */
-		ret = check_new_shm(inf, show_old, color);
-		if (ret != 0)
-			goto out_close;
+		if (follow) {
+			ret = check_new_shm(inf, show_old, color);
+			if (ret != 0)
+				goto out_close;
+		}
 
 		ret = logc_has_data(inf->lcinf);
 		switch (ret) {
 		case NO_DATA:
+			if (!follow) {
+				ret = 0;
+				goto out_close;
+			}
+
 			if (!daemon_mode && ngetc(&c) > 0) {
 				if (c == '\n')
 					SEP(color);
