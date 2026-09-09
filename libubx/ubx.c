@@ -296,7 +296,11 @@ int ubx_node_init(ubx_node_t *nd, const char *name, uint32_t attrs)
 	}
 
 #ifdef TIMESRC_TSC
-	logf_info(nd, "TSC timesource enabled");
+	logf_info(nd, "microblx %s (timesrc TSC, cpu_hz %s, tracing %s)",
+		  GIT_VERSION, UBX_CPU_HZ_STR, UBX_TRACING);
+#else
+	logf_info(nd, "microblx %s (timesrc %s, tracing %s)",
+		  GIT_VERSION, UBX_TIMESRC, UBX_TRACING);
 #endif
 
 	nd->attrs = attrs | ND_INITIALIZED;
@@ -2560,3 +2564,59 @@ const char *ubx_mod_version(void)
 	return MOD_VERSION;
 }
 
+/* "yes"/"no" spellings of the configure time feature checks */
+#ifdef HAVE_STRUCT_SCHED_ATTR
+# define CONF_SCHED_ATTR	"yes"
+#else
+# define CONF_SCHED_ATTR	"no"
+#endif
+
+#ifdef HAVE_SCHED_FLAG_DL_OVERRUN
+# define CONF_DL_OVERRUN	"yes"
+#else
+# define CONF_DL_OVERRUN	"no"
+#endif
+
+#ifdef HAVE_PTHREAD_SETNAME_NP
+# define CONF_SETNAME		"yes"
+#else
+# define CONF_SETNAME		"no"
+#endif
+
+#ifdef HAVE_PTHREAD_SETAFFINITY_NP
+# define CONF_SETAFFINITY	"yes"
+#else
+# define CONF_SETAFFINITY	"no"
+#endif
+
+/**
+ * ubx_build_config - return the compile time configuration of libubx
+ *
+ * The entries are "key=value" strings. Options are added and removed
+ * over time, so callers must iterate rather than index: treat this as
+ * information for humans, not as a stable interface.
+ *
+ * @return NULL terminated array of "key=value" strings
+ */
+const char **ubx_build_config(void)
+{
+	static const char *config[] = {
+		"timesrc=" UBX_TIMESRC,
+#ifdef TIMESRC_TSC
+		"cpu_hz=" UBX_CPU_HZ_STR,
+#endif
+		"tracing=" UBX_TRACING,
+		"log_msg_maxlen=" UBX_LOG_MSG_MAXLEN_STR,
+		"build_type=" UBX_BUILD_TYPE,
+		"compiler=" UBX_COMPILER,
+		"arch=" UBX_TARGET_ARCH,
+		"sched_attr=" CONF_SCHED_ATTR,
+		"sched_dl_overrun=" CONF_DL_OVERRUN,
+		"pthread_setname=" CONF_SETNAME,
+		"pthread_setaffinity=" CONF_SETAFFINITY,
+		"module_dir=" UBX_MOD_DIR_STR,
+		NULL
+	};
+
+	return config;
+}

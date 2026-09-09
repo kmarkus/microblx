@@ -263,6 +263,45 @@ function M.mod_version()
    return ffi.string(ubx.ubx_mod_version())
 end
 
+--- Return the compile time configuration of the microblx core.
+-- The set of options changes over time, so iterate over the result
+-- instead of indexing it.
+-- @return array of `{ key, value }` string pairs, in declaration order
+function M.build_config()
+   local res = {}
+   local conf = ubx.ubx_build_config()
+   local i = 0
+
+   while conf[i] ~= nil do
+      local k, v = string.match(ffi.string(conf[i]), "^([^=]*)=(.*)$")
+      res[#res+1] = { k, v }
+      i = i + 1
+   end
+
+   return res
+end
+
+--- Return the version and build configuration as a multi-line string.
+-- The first line is the legacy single line version output, so it can
+-- still be parsed by scripts.
+-- @return multi-line string
+function M.version_string()
+   local conf = M.build_config()
+   local lines = {
+      "microblx "..M.git_version().." (modver "..M.mod_version()..")",
+      "build options:"
+   }
+
+   local width = 0
+   for _,kv in ipairs(conf) do width = math.max(width, #kv[1] + 1) end
+
+   for _,kv in ipairs(conf) do
+      lines[#lines+1] = string.format("  %-"..width.."s %s", kv[1]..":", kv[2])
+   end
+
+   return table.concat(lines, "\n")
+end
+
 --- Predicates
 -- @section Predicates
 

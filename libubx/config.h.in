@@ -3,3 +3,38 @@
 #define VERSION "@PROJECT_VERSION@"
 #define GIT_VERSION "@GIT_VERSION@"
 #define MOD_VERSION "@VERSION_MAJOR@.@VERSION_MINOR@"
+
+/*
+ * Compile time options. These are reported by ubx_build_config() (see
+ * ubx.c), which is what `ubx-launch --version` prints, so keep the
+ * string variants in sync when adding an option here.
+ */
+
+/* timesource: "POSIX", "TSC" or "CNTVCT" */
+#define UBX_TIMESRC "@UBX_TIMESRC@"
+#cmakedefine TIMESRC_TSC 1
+#cmakedefine TIMESRC_CNTVCT 1
+
+/* CPU frequency assumed by the TSC timesource (unused otherwise) */
+#define CPU_HZ @CPU_HZ@
+#define UBX_CPU_HZ_STR "@CPU_HZ@"
+
+/* tracing backend: "OFF", "SDT" or "MARKER" */
+#define UBX_TRACING "@TRACING@"
+
+/* max log message length (see UBX_LOG_MSG_MAXLEN in ubx_types.h) */
+#define UBX_LOG_MSG_MAXLEN_STR "@UBX_LOG_MSG_MAXLEN@"
+
+/* toolchain and build flavour */
+#define UBX_BUILD_TYPE "@CMAKE_BUILD_TYPE@"
+#define UBX_COMPILER "@CMAKE_C_COMPILER_ID@ @CMAKE_C_COMPILER_VERSION@"
+#define UBX_TARGET_ARCH "@CMAKE_SYSTEM_PROCESSOR@"
+
+/* module search directory compiled into this build */
+#define UBX_MOD_DIR_STR "@UBX_MOD_DIR@"
+
+/* thread and scheduling extensions detected at configure time */
+#cmakedefine HAVE_STRUCT_SCHED_ATTR 1
+#cmakedefine HAVE_SCHED_FLAG_DL_OVERRUN 1
+#cmakedefine HAVE_PTHREAD_SETNAME_NP 1
+#cmakedefine HAVE_PTHREAD_SETAFFINITY_NP 1

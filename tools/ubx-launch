@@ -105,10 +105,10 @@ if #legacy_seen > 0 then
 		       table.concat(legacy_seen, ", "), table.concat(gnu, ", ")))
 end
 
--- handle --version manually to preserve the legacy output format
+-- handle --version manually: optparse would print its own one-liner
 for _,a in ipairs(arg) do
    if a == "--version" then
-      print("microblx "..ubx.git_version().." (modver "..ubx.mod_version()..")")
+      print(ubx.version_string())
       os.exit(0)
    end
 end
