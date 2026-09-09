@@ -109,6 +109,60 @@ Now build *microblx*:
 	  $ make
 	  $ sudo make install
 
+Compile time options
+~~~~~~~~~~~~~~~~~~~~
+
+The following cmake options change the behavior of the core:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Option
+     - Description
+   * - ``-DENABLE_TIMESRC_TSC=ON``
+     - use the x86 TSC instead of the POSIX clock as timesource. The
+       conversion to time assumes a fixed CPU frequency, set with
+       ``-DCPU_HZ=<hz>``
+   * - ``-DENABLE_TIMESRC_CNTVCT=ON``
+     - use the aarch64 ``CNTVCT`` counter as timesource (mutually
+       exclusive with ``ENABLE_TIMESRC_TSC``)
+   * - ``-DTRACING=SDT|MARKER``
+     - build with tracing instrumentation, see ``libubx/ubx_trace.h``
+   * - ``-DUBX_LOG_MSG_MAXLEN=<n>``
+     - max length of a log message. This is part of the log shared
+       memory layout, so writers and ``ubx-log`` must agree on it
+   * - ``-DUBX_LOG_DAEMON=AUTO|ON|OFF``
+     - build ``ubx-log`` with daemon mode (``-d``), which requires
+       libdaemon
+   * - ``-DCMAKE_BUILD_TYPE=<type>``
+     - defaults to ``RelWithDebInfo``
+
+The options a given installation was built with (plus the compiler,
+target architecture and the detected scheduling features) can be
+queried at runtime:
+
+.. code:: bash
+
+	  $ ubx-launch --version
+	  microblx v0.9.2-154-gabcdef (modver 0.9)
+	  build options:
+	    timesrc:             POSIX
+	    tracing:             OFF
+	    log_msg_maxlen:      115
+	    build_type:          RelWithDebInfo
+	    compiler:            GNU 15.3.0
+	    arch:                x86_64
+	    sched_attr:          yes
+	    sched_dl_overrun:    yes
+	    pthread_setname:     yes
+	    pthread_setaffinity: yes
+	    module_dir:          /usr/local/lib/ubx/0.9/
+
+``ubx-modinfo -version`` prints the same information. In addition, the
+timesource and tracing backend are logged at ``INFO`` level on node
+initialisation, so a captured log identifies the build it came from.
+
 Using yocto
 -----------
 

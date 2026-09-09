@@ -3,26 +3,9 @@ set(MOD_NAME trig)
 set(MOD_SRC_DIR ${CMAKE_SOURCE_DIR}/std_blocks/${MOD_NAME})
 set(MOD_BUILD_DIR ${CMAKE_BINARY_DIR}/std_blocks/${MOD_NAME})
 
-include(CheckCSourceCompiles)
-include(CheckSymbolExists)
-
-check_c_source_compiles("
-#define _GNU_SOURCE
-#include <pthread.h>
-int main(void) { struct sched_attr a; (void)a.size; return 0; }
-" HAVE_STRUCT_SCHED_ATTR)
-
-check_c_source_compiles("
-#define _GNU_SOURCE
-#include <sched.h>
-int main(void) { return SCHED_FLAG_DL_OVERRUN; }
-" HAVE_SCHED_FLAG_DL_OVERRUN)
-
-set(CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
-set(CMAKE_REQUIRED_LIBRARIES pthread)
-check_symbol_exists(pthread_setaffinity_np "pthread.h" HAVE_PTHREAD_SETAFFINITY_NP)
-unset(CMAKE_REQUIRED_DEFINITIONS)
-unset(CMAKE_REQUIRED_LIBRARIES)
+# HAVE_STRUCT_SCHED_ATTR, HAVE_SCHED_FLAG_DL_OVERRUN,
+# HAVE_PTHREAD_SETNAME_NP and HAVE_PTHREAD_SETAFFINITY_NP are detected
+# in the top level CMakeLists.txt.
 
 file(MAKE_DIRECTORY ${MOD_BUILD_DIR}/types)
 

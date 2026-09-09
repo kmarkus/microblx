@@ -82,20 +82,54 @@ elseif(NOT TRACING STREQUAL "OFF")
   message(FATAL_ERROR "invalid TRACING value '${TRACING}' (must be OFF, SDT or MARKER)")
 endif()
 
-# pthread_setname_np (GNU extension) for naming block threads
+# thread and scheduling extensions used by the trig blocks. These are
+# properties of the toolchain and libc rather than of a single block,
+# so they are checked once here (subdirectories inherit the results)
+# and reported by ubx_build_config().
 include(CheckSymbolExists)
+include(CheckCSourceCompiles)
+
 set(CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
 set(CMAKE_REQUIRED_LIBRARIES pthread)
 check_symbol_exists(pthread_setname_np "pthread.h" HAVE_PTHREAD_SETNAME_NP)
+check_symbol_exists(pthread_setaffinity_np "pthread.h" HAVE_PTHREAD_SETAFFINITY_NP)
 unset(CMAKE_REQUIRED_DEFINITIONS)
 unset(CMAKE_REQUIRED_LIBRARIES)
 
-#
-# libubx
-#
-set(UBX_SRC_DIR ${CMAKE_SOURCE_DIR}/libubx/)
+check_c_source_compiles("
+#define _GNU_SOURCE
+#include <pthread.h>
+int main(void) { struct sched_attr a; (void)a.size; return 0; }
+" HAVE_STRUCT_SCHED_ATTR)
 
-configure_file("${UBX_SRC_DIR}/config.h.in" "${CMAKE_BINARY_DIR}/config.h")
+check_c_source_compiles("
+#define _GNU_SOURCE
+#include <sched.h>
+int main(void) { return SCHED_FLAG_DL_OVERRUN; }
+" HAVE_SCHED_FLAG_DL_OVERRUN)
+
+# timesource: POSIX clock_gettime (default), the x86 TSC or the
+# aarch64 CNTVCT counter. Selected here rather than on the ubx target
+# so that the choice lands in config.h, which is both what ubx_time.c
+# compiles against and what ubx_build_config() reports.
+option(ENABLE_TIMESRC_TSC "Use TSC as timesource instead of POSIX time" OFF)
+option(ENABLE_TIMESRC_CNTVCT "Use CNTVCT as timesource instead of POSIX time" OFF)
+
+if(ENABLE_TIMESRC_TSC AND ENABLE_TIMESRC_CNTVCT)
+  message(FATAL_ERROR "ENABLE_TIMESRC_TSC and ENABLE_TIMESRC_CNTVCT are mutually exclusive")
+endif()
+
+set(CPU_HZ 1600000000 CACHE STRING "CPU frequency in Hz for TSC to time calculation")
+
+if(ENABLE_TIMESRC_TSC)
+  set(TIMESRC_TSC 1)
+  set(UBX_TIMESRC "TSC")
+elseif(ENABLE_TIMESRC_CNTVCT)
+  set(TIMESRC_CNTVCT 1)
+  set(UBX_TIMESRC "CNTVCT")
+else()
+  set(UBX_TIMESRC "POSIX")
+endif()
 
 # Max length of a log message. The default (115) sizes struct
 # ubx_log_msg to 192 bytes = 3 cache lines; keep it 64*k - 77 (51,
@@ -104,6 +138,16 @@ configure_file("${UBX_SRC_DIR}/config.h.in" "${CMAKE_BINARY_DIR}/config.h")
 # is visible to both the C build and the luajit FFI (which reads the
 # installed header).
 set(UBX_LOG_MSG_MAXLEN 115 CACHE STRING "max ubx log message length")
+
+#
+# libubx
+#
+set(UBX_SRC_DIR ${CMAKE_SOURCE_DIR}/libubx/)
+
+# config.h collects the compile time options above; keep it configured
+# after all of them have been determined.
+configure_file("${UBX_SRC_DIR}/config.h.in" "${CMAKE_BINARY_DIR}/config.h")
+
 configure_file("${UBX_SRC_DIR}/ubx_types.h.in"
   "${CMAKE_BINARY_DIR}/libubx/ubx_types.h" @ONLY)
 
@@ -144,21 +188,6 @@ set(UBX_PUBLIC_HDRS
 )
 
 add_library(ubx SHARED ${UBX_SRCS})
-
-# TIMESRC_TSC
-option(ENABLE_TIMESRC_TSC "Use TSC as timesource instead of POSIX time" OFF)
-
-if(ENABLE_TIMESRC_TSC)
-  set(CPU_HZ 1600000000 CACHE STRING "CPU frequency in Hz for TSC to time calculation")
-  target_compile_definitions(ubx PRIVATE -DTIMESRC_TSC=1 -DCPU_HZ=${CPU_HZ})
-endif()
-
-# TIMESRC_CNTVCT
-option(ENABLE_TIMESRC_CNTVCT "Use  CNTVCT as timesource instead of POSIX time" OFF)
-
-if(ENABLE_TIMESRC_CNTVCT)
-  add_compile_definitions(TIMESRC_CNTVCT)
-endif()
 
 # for config.h
 target_include_directories(ubx PRIVATE ${CMAKE_BINARY_DIR})
