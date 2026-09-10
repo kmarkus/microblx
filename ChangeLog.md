@@ -5,6 +5,22 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ptrig`: new `sleep_mode` 2 (hybrid): sleeps for
+  `period - busy_slack_ns` and busy-waits the remaining
+  `busy_slack_ns`, which absorbs the OS wakeup latency and yields
+  busy-wait accuracy at a `busy_slack_ns / period` duty cycle. Tuned
+  via the new `busy_slack_ns` config (default 50000). The value must
+  exceed the platform's worst-case wakeup latency or the mode degrades
+  to `sleep_mode=0`.
+- `ptrig`: new `timerslack_ns` config, applied to the trigger thread
+  via `prctl(PR_SET_TIMERSLACK)`; 0 (default) leaves the inherited
+  value unchanged. Linux defaults non-realtime threads to 50us of
+  timer slack, which shows up directly as trigger lateness under
+  `SCHED_OTHER`; realtime policies ignore it.
+- `libubx`: new `ubx_nanosleep_hybrid(const struct ubx_timespec *dur,
+  uint64_t slack_ns)`, the sleep-then-spin wait backing ptrig's hybrid
+  sleep mode.
+
 - `rtlog`: reimplemented on top of `liblfb`, the lock-free broadcast
   buffer. The shm writer spinlock is replaced by a process-shared,
   robust, priority-inheritance mutex (held in lfb's user area) and the
