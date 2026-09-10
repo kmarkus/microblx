@@ -752,4 +752,69 @@ function TestPtrig:TestStartStopCycles()
    ubx.node_rm(nd)
 end
 
+local sys_hybrid = bd.system {
+   imports = { "stdtypes", "ptrig", "ramp_uint64" },
+   blocks = {
+      { name="ramp",  type="ubx/ramp_uint64" },
+      { name="ptrig", type="ubx/ptrig" },
+   },
+   configurations = {
+      { name="ramp", config = { start=0, slope=1 } },
+      { name="ptrig", config = {
+	   period_ns     = 1000000,   -- 1ms
+	   sleep_mode    = 2,         -- hybrid
+	   busy_slack_ns = 50000,     -- 50us
+	   timerslack_ns = 1,
+	   chain0        = { { b="#ramp" } },
+      }},
+   },
+}
+
+-- hybrid sleep_mode: the block must init, run and produce steps
+function TestPtrig:TestSleepModeHybrid()
+   local nd = sys_hybrid:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
+				 nodename='TestSleepModeHybrid' }
+   local ramp = nd:b("ramp")
+
+   sys_hybrid:startup(nd)
+   ubx.clock_mono_sleep(0, 200000000)  -- 200ms
+   nd:b("ptrig"):do_stop()
+
+   local steps = tonumber(ramp.stat_num_steps)
+   ubx.node_rm(nd)
+
+   assert_true(steps > 10,
+	       "expected >10 steps in hybrid sleep_mode, got " .. steps)
+end
+
+-- busy_slack_ns >= period is rejected: it would busy-wait the whole period
+function TestPtrig:TestBusySlackExceedsPeriod()
+   local nd = ubx.node_create("busy_slack_too_big",
+			      { loglevel = ffi.C.UBX_LOGLEVEL_ERR })
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "ptrig")
+   local b = ubx.block_create(nd, "ubx/ptrig", "pt",
+      { period_ns = 50000, sleep_mode = 2, busy_slack_ns = 50000 })
+   assert_not_nil(b)
+   assert_not_equals(ubx.block_tostate(b, 'inactive'), 0,
+      "init should fail when busy_slack_ns >= period")
+   assert_equals(b.block_state, ffi.C.BLOCK_STATE_PREINIT)
+   ubx.node_rm(nd)
+end
+
+-- an out of range sleep_mode must be rejected
+function TestPtrig:TestSleepModeInvalid()
+   local nd = ubx.node_create("sleep_mode_invalid",
+			      { loglevel = ffi.C.UBX_LOGLEVEL_ERR })
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "ptrig")
+   local b = ubx.block_create(nd, "ubx/ptrig", "pt",
+      { period_ns = 1000000, sleep_mode = 3 })
+   assert_not_nil(b)
+   assert_not_equals(ubx.block_tostate(b, 'inactive'), 0,
+      "init should fail for sleep_mode 3")
+   assert_equals(b.block_state, ffi.C.BLOCK_STATE_PREINIT)
+   ubx.node_rm(nd)
+end
+
 if not _RUNNER then os.exit( luaunit.LuaUnit.run() ) end

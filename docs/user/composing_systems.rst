@@ -62,8 +62,9 @@ minimal example:
 	}
 
 ``ptrig`` additionally supports ``affinity`` (CPU list), ``stacksize``,
-``thread_name``, ``autostop_steps``, and ``sleep_mode`` (0=OS sleep,
-1=busy-wait). The ``sched_policy`` field accepts ``SCHED_OTHER``
+``thread_name``, ``autostop_steps``, ``sleep_mode`` (0=OS sleep,
+1=busy-wait, 2=hybrid, tuned via ``busy_slack_ns``) and
+``timerslack_ns``. The ``sched_policy`` field accepts ``SCHED_OTHER``
 (default), ``SCHED_FIFO``, ``SCHED_RR``, and ``SCHED_DEADLINE`` (Linux
 ≥ 3.14); for ``SCHED_DEADLINE`` a ``sched_deadline`` config of type
 ``struct ptrig_deadline`` is required (see the README for details). See

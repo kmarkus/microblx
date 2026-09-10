@@ -17,6 +17,7 @@
 #include <pthread.h>
 #include <limits.h>	/* PTHREAD_STACK_MIN */
 #include <sys/syscall.h>
+#include <sys/prctl.h>
 
 /* Fall back to a local definition when the toolchain headers don't supply
  * struct sched_attr (older glibc / older kernel headers). Detected by CMake. */
@@ -59,6 +60,13 @@ static int __ubx_sched_setattr(pid_t pid, struct sched_attr *attr, unsigned int 
 /* wait 1 second for thread to stop */
 #define	THREAD_STOP_TIMEOUT_US	50000
 #define	THREAD_STOP_RETRIES	20
+
+/* default sleep_mode=2 busy-wait tail. Sized to cover the worst-case
+ * wakeup latency of an RT-tuned ARM SoC; trim it on faster targets. */
+#define	PTRIG_BUSY_SLACK_NS_DEF	50000
+
+/* warn when the busy-wait tail exceeds this fraction of the period */
+#define	PTRIG_BUSY_SLACK_WARN_RATIO	10
 
 char ptrig_meta[] =
 	"{ doc='pthread based trigger',"
@@ -110,7 +118,9 @@ ubx_proto_config_t ptrig_config[] = {
 	{ .name = "tstats_profile_path", .type_name = "char", .doc = "directory to write the timing stats file to" },
 	{ .name = "tstats_output_rate", .type_name = "double", .max = 1, .doc = "min seconds between tstats port outputs (0: only emit on stop)" },
 	{ .name = "tstats_skip_first", .type_name = "int", .max=1, .doc = "skip N steps before acquiring stats" },
-	{ .name = "sleep_mode", .type_name = "int", .max = 1, .doc = "0: OS sleep (ubx_nanosleep, def), 1: busy-wait (ubx_nanowait)",  },
+	{ .name = "sleep_mode", .type_name = "int", .max = 1, .doc = "0: OS sleep (ubx_nanosleep, def), 1: busy-wait (ubx_nanowait), 2: hybrid (sleep, then busy-wait the last busy_slack_ns)",  },
+	{ .name = "busy_slack_ns", .type_name = "int64_t", .max = 1, .doc = "sleep_mode=2: duration to busy-wait before the deadline [ns] (def: 50000). Must exceed the platform's worst-case wakeup latency", },
+	{ .name = "timerslack_ns", .type_name = "int64_t", .max = 1, .doc = "thread timer slack [ns] (prctl(PR_SET_TIMERSLACK)); 0 (def): leave unchanged. Only affects SCHED_OTHER, where Linux defaults to 50us", },
 	{ .name = "loglevel", .type_name = "int" },
 	{ .name = "sched_deadline", .type_name = "struct ptrig_deadline", .max = 1,
 	  .doc = "SCHED_DEADLINE params { runtime_ns, deadline_ns, period_ns }; "
@@ -160,7 +170,9 @@ struct ptrig_inf {
 
 	int64_t autostop_steps;
 	int sleep_mode;
-	int (*sleep_fn)(const struct ubx_timespec *);
+	uint64_t busy_slack_ns;	/* sleep_mode=2: busy-wait tail [ns] */
+	int64_t timerslack_ns;	/* thread timer slack [ns], 0: leave unchanged */
+	int (*sleep_fn)(const struct ubx_timespec *dur, uint64_t slack_ns);
 
 	uint64_t overrun_cnt;	/* cumulative missed trigger deadlines */
 	ubx_port_t *p_overrun_cnt;
@@ -181,8 +193,22 @@ static const char *sleep_mode_tostr(int sleep_mode)
 	switch (sleep_mode) {
 	case 0: return "OS sleep (ubx_nanosleep)";
 	case 1: return "busy-wait (ubx_nanowait)";
+	case 2: return "hybrid (ubx_nanosleep_hybrid)";
 	default: return "unknown";
 	}
+}
+
+/* uniform sleep_fn signature; the slack arg is only used by the hybrid mode */
+static int ptrig_sleep(const struct ubx_timespec *dur, uint64_t slack_ns)
+{
+	(void)slack_ns;
+	return ubx_nanosleep(dur);
+}
+
+static int ptrig_wait(const struct ubx_timespec *dur, uint64_t slack_ns)
+{
+	(void)slack_ns;
+	return ubx_nanowait(dur);
 }
 
 /* TLS overrun counter: incremented by the signal handler, read in the thread loop. */
@@ -268,6 +294,13 @@ void *thread_startup(void *arg)
 	inf = (struct ptrig_inf *)b->private_data;
 
 	cur_period_ns = inf->period_ns;
+
+	/* timer slack is a per-thread property, so it must be set here */
+	if (inf->timerslack_ns > 0) {
+		if (prctl(PR_SET_TIMERSLACK, (unsigned long)inf->timerslack_ns) != 0)
+			ubx_err(b, "prctl(PR_SET_TIMERSLACK, %" PRId64 ") failed: %s",
+				inf->timerslack_ns, strerror(errno));
+	}
 
 	if (inf->use_deadline) {
 		struct sigaction sa = {
@@ -432,7 +465,7 @@ void *thread_startup(void *arg)
 			remaining.sec = remaining_ns / NSEC_PER_SEC;
 			remaining.nsec = remaining_ns % NSEC_PER_SEC;
 
-			ret = inf->sleep_fn(&remaining);
+			ret = inf->sleep_fn(&remaining, inf->busy_slack_ns);
 			if (ret) {
 				ubx_err(b, "sleep failed: %s", strerror(errno));
 				goto out;
@@ -525,12 +558,48 @@ int ptrig_handle_config(ubx_block_t *b)
 	assert(len >= 0);
 	inf->sleep_mode = (len > 0) ? *sleep_mode : 0;
 
-	if (inf->sleep_mode < 0 || inf->sleep_mode > 1) {
-		ubx_err(b, "invalid sleep_mode %d, expected 0 (sleep) or 1 (busy)",
+	if (inf->sleep_mode < 0 || inf->sleep_mode > 2) {
+		ubx_err(b, "invalid sleep_mode %d, expected 0 (sleep), 1 (busy) or 2 (hybrid)",
 			inf->sleep_mode);
 		goto out;
 	}
-	inf->sleep_fn = (inf->sleep_mode == 0) ? ubx_nanosleep : ubx_nanowait;
+
+	switch (inf->sleep_mode) {
+	case 1: inf->sleep_fn = ptrig_wait; break;
+	case 2: inf->sleep_fn = ubx_nanosleep_hybrid; break;
+	default: inf->sleep_fn = ptrig_sleep; break;
+	}
+
+	/* busy_slack_ns */
+	const int64_t *busy_slack_ns;
+	len = cfg_getptr_int64(b, "busy_slack_ns", &busy_slack_ns);
+	assert(len >= 0);
+
+	if (len > 0 && *busy_slack_ns < 0) {
+		ubx_err(b, "invalid busy_slack_ns %" PRId64 ", must be >= 0",
+			*busy_slack_ns);
+		goto out;
+	}
+
+	inf->busy_slack_ns = (len > 0) ?
+		(uint64_t)*busy_slack_ns : PTRIG_BUSY_SLACK_NS_DEF;
+
+	if (inf->sleep_mode != 2 && len > 0)
+		ubx_warn(b, "busy_slack_ns has no effect with sleep_mode %d",
+			 inf->sleep_mode);
+
+	/* timerslack_ns */
+	const int64_t *timerslack_ns;
+	len = cfg_getptr_int64(b, "timerslack_ns", &timerslack_ns);
+	assert(len >= 0);
+
+	if (len > 0 && *timerslack_ns < 0) {
+		ubx_err(b, "invalid timerslack_ns %" PRId64 ", must be >= 0",
+			*timerslack_ns);
+		goto out;
+	}
+
+	inf->timerslack_ns = (len > 0) ? *timerslack_ns : 0;
 
 	/* period / period_ns: exactly one of the two must be configured */
 	const struct ptrig_period *period;
@@ -556,6 +625,20 @@ int ptrig_handle_config(ubx_block_t *b)
 	} else {
 		ubx_err(b, "mandatory config 'period' or 'period_ns' unconfigured");
 		goto out;
+	}
+
+	if (inf->sleep_mode == 2 && inf->period_ns > 0) {
+		if (inf->busy_slack_ns >= inf->period_ns) {
+			ubx_err(b, "busy_slack_ns (%" PRIu64 ") must be less than the period (%" PRIu64 ")",
+				inf->busy_slack_ns, inf->period_ns);
+			goto out;
+		}
+
+		if (inf->busy_slack_ns * PTRIG_BUSY_SLACK_WARN_RATIO > inf->period_ns)
+			ubx_warn(b, "busy_slack_ns (%" PRIu64 ") is %" PRIu64 "%% of the period: "
+				 "the trigger will busy-wait that share of one CPU",
+				 inf->busy_slack_ns,
+				 (inf->busy_slack_ns * 100) / inf->period_ns);
 	}
 
 	/* stacksize */
@@ -652,11 +735,22 @@ int ptrig_handle_config(ubx_block_t *b)
 			goto out;
 		}
 
-		ubx_info(b, "period %" PRIu64 "ns, policy %s, prio %d, stacksize %s, sleep_mode %s",
+		char slackbuf[64] = "";
+		if (inf->sleep_mode == 2)
+			snprintf(slackbuf, sizeof(slackbuf), ", busy_slack %" PRIu64 "ns",
+				 inf->busy_slack_ns);
+
+		char tslackbuf[64] = "";
+		if (inf->timerslack_ns > 0)
+			snprintf(tslackbuf, sizeof(tslackbuf), ", timerslack %" PRId64 "ns",
+				 inf->timerslack_ns);
+
+		ubx_info(b, "period %" PRIu64 "ns, policy %s, prio %d, stacksize %s, sleep_mode %s%s%s",
 			 inf->period_ns,
 			 schedpol_tostr(schedpol),
 			 sched_param.sched_priority,
-			 stackbuf, sleep_mode_tostr(inf->sleep_mode));
+			 stackbuf, sleep_mode_tostr(inf->sleep_mode),
+			 slackbuf, tslackbuf);
 	}
 
 	ret = 0;

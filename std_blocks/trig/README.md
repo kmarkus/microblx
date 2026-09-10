@@ -31,7 +31,9 @@ Both support multiple trigger chains, per-block timing statistics, and runtime c
 | `stacksize`       | `size_t`                | thread stack size                                       |
 | `thread_name`     | `char`                  | thread name shown in debuggers (default: block name)    |
 | `autostop_steps`  | `int64_t`               | stop automatically after N steps                        |
-| `sleep_mode`      | `int`                   | 0=OS sleep (default), 1=busy-wait; ignored with `SCHED_DEADLINE` |
+| `sleep_mode`      | `int`                   | 0=OS sleep (default), 1=busy-wait, 2=hybrid; ignored with `SCHED_DEADLINE` |
+| `busy_slack_ns`   | `int64_t`               | `sleep_mode=2`: duration to busy-wait before the deadline [ns] (default: 50000) |
+| `timerslack_ns`   | `int64_t`               | thread timer slack [ns]; 0 (default) leaves it unchanged |
 
 ## Ports — common
 
@@ -51,6 +53,48 @@ Both support multiple trigger chains, per-block timing statistics, and runtime c
 | `deadline_throt_cnt` | out       | `uint64_t`              | cumulative count of SCHED_DEADLINE budget overruns (Linux ≥ 4.16) |
 | `overrun_cnt`        | out       | `uint64_t`              | cumulative count of missed trigger deadlines; counts skipped periods in sleep/busy-wait modes only (stays 0 with SCHED_DEADLINE — use `deadline_throt_cnt` there) |
 
+## Sleep modes
+
+`sleep_mode` selects how ptrig waits for the next period:
+
+| mode | name   | accuracy      | CPU cost        |
+|------|--------|---------------|-----------------|
+| 0    | sleep  | OS wakeup latency | none        |
+| 1    | busy   | clock resolution  | 100% of a core |
+| 2    | hybrid | clock resolution  | `busy_slack_ns / period` |
+
+The **hybrid** mode sleeps for `period - busy_slack_ns` via
+`clock_nanosleep(2)` and busy-waits the remaining `busy_slack_ns`. The
+sleep gives up the CPU for the bulk of the period; the busy-wait phase
+absorbs the OS wakeup latency, so the trigger fires with busy-wait
+accuracy at a fraction of the CPU cost.
+
+For this to work, **`busy_slack_ns` must exceed the platform's
+worst-case wakeup latency**. If a sleep overshoots by more than
+`busy_slack_ns`, the busy-wait phase never runs and the accuracy
+degrades to that of `sleep_mode=0` — the mode fails soft, but it fails.
+Size the value from the worst-case wakeup latency of the target (e.g.
+`cyclictest -m -p80` max), not from the median. The default of 50µs
+covers an RT-tuned ARM SoC; on a tuned x86 with deep C-states disabled
+10-20µs is enough.
+
+The busy-wait phase spins at the thread's scheduling priority, so under
+`SCHED_FIFO`/`SCHED_RR` it will keep lower-priority tasks off that CPU for
+up to `busy_slack_ns` every period. ptrig warns at init when
+`busy_slack_ns` exceeds 10% of the period.
+
+## Timer slack
+
+Linux applies a default timer slack of 50µs to the hrtimer expiry of
+non-realtime threads, which shows up directly as trigger lateness under
+`SCHED_OTHER`. Realtime policies (`SCHED_FIFO`, `SCHED_RR`,
+`SCHED_DEADLINE`) are exempt and ignore the setting.
+
+`timerslack_ns` sets the ptrig thread's slack via
+`prctl(PR_SET_TIMERSLACK)`; the default of 0 leaves the inherited value
+alone. Setting it to 1 is worthwhile for any `SCHED_OTHER` ptrig that
+cares about accuracy, in `sleep_mode` 0 and 2 alike.
+
 ## SCHED_DEADLINE
 
 When `sched_policy` is set to `"SCHED_DEADLINE"`, ptrig uses the Linux
@@ -67,7 +111,7 @@ this at init and logs a clear error if the constraint is violated.
 When active, `sched_yield(2)` replaces the normal sleep after each chain
 trigger — this signals the kernel that the current job activation is done
 and lets it replenish the budget at the next period boundary. `sleep_mode`
-is therefore ignored.
+is therefore ignored (a non-zero value is rejected at init).
 
 If the chain execution exceeds `runtime_ns`, the kernel throttles the thread
 for the remainder of the period and (on Linux ≥ 4.16) sends `SIGXCPU`. ptrig
