@@ -817,4 +817,100 @@ function TestPtrig:TestSleepModeInvalid()
    ubx.node_rm(nd)
 end
 
+--
+-- Overrun handling: a triggee that overruns must not shift the trigger
+-- grid. ptrig drops the missed tick(s) and resumes on the original grid,
+-- so every trigger stays at the same phase; the regression this guards
+-- against fired one trigger immediately at an arbitrary phase instead.
+--
+local overrun_test_block_tmpl = [[
+local ubx = require "ubx"
+
+local PERIOD  = $PERIOD    -- ns
+local BURN_AT = $BURN_AT   -- step index at which to overrun
+local BURN_NS = $BURN_NS   -- how long to overrun for
+local SKIP    = 2          -- startup steps to ignore
+
+local p_maxdev
+local cnt, t0s, t0ns, maxdev = 0, nil, nil, 0
+
+function init(b)
+   ubx.outport_add(b, "maxdev", "max phase deviation [ns]", 0, "int64_t", 1)
+   p_maxdev = ubx.port_get(b, "maxdev")
+   return true
+end
+
+function step(b)
+   local ts = ubx.gettime()
+   cnt = cnt + 1
+
+   if cnt == SKIP then
+      t0s, t0ns = tonumber(ts.sec), tonumber(ts.nsec)
+   elseif cnt > SKIP then
+      -- relative to the first sample, so the values stay small
+      local rel = (tonumber(ts.sec) - t0s) * 1000000000 +
+	 (tonumber(ts.nsec) - t0ns)
+      local ph = rel % PERIOD
+
+      if ph > PERIOD/2 then ph = ph - PERIOD end
+
+      if math.abs(ph) > maxdev then maxdev = math.abs(ph) end
+      ubx.port_write(p_maxdev, maxdev)
+   end
+
+   if cnt == BURN_AT then ubx.nanowait(0, BURN_NS) end
+end
+
+function cleanup(b)
+   ubx.port_rm(b, "maxdev")
+end
+]]
+
+local OVR_PERIOD_NS = 20000000   -- 20ms
+local OVR_BURN_NS   = 30000000   -- 30ms: overruns by 1.5 periods
+
+local sys_overrun = bd.system {
+   imports = { "stdtypes", "ptrig", "lfrb", "luablock" },
+   blocks = {
+      { name="ovr",   type="ubx/luablock" },
+      { name="ptrig", type="ubx/ptrig" },
+   },
+   configurations = {
+      { name="ovr", config = { lua_str = utils.expand(overrun_test_block_tmpl,
+	 { PERIOD=OVR_PERIOD_NS, BURN_AT=8, BURN_NS=OVR_BURN_NS }) } },
+      { name="ptrig", config = {
+	   period_ns = OVR_PERIOD_NS,
+	   chain0    = { { b="#ovr" } },
+      }},
+   },
+}
+
+function TestPtrig:TestOverrunKeepsGrid()
+   local nd = sys_overrun:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
+				  nodename='TestOverrunKeepsGrid' }
+   local ptrig = nd:b("ptrig")
+   local p_maxdev = ubx.port_clone_conn(nd:b("ovr"), "maxdev")
+   local p_overrun = ubx.port_clone_conn(ptrig, "overrun_cnt")
+
+   sys_overrun:startup(nd)
+   ubx.clock_mono_sleep(0, 600000000)  -- 600ms: ~30 periods
+   ptrig:do_stop()
+
+   local _, maxdev = p_maxdev:read()
+   local _, overruns = p_overrun:read()
+
+   maxdev = tonumber(maxdev:tolua())
+   overruns = tonumber(overruns:tolua())
+
+   ubx.node_rm(nd)
+
+   assert_true(overruns > 0,
+	       "the injected overrun was not detected (overrun_cnt=0)")
+
+   -- a shifted grid would show up as a phase deviation of ~half a period
+   assert_true(maxdev < OVR_PERIOD_NS / 4,
+	       "trigger grid shifted after the overrun: max phase deviation "
+		  .. maxdev .. "ns (period " .. OVR_PERIOD_NS .. "ns)")
+end
+
 if not _RUNNER then os.exit( luaunit.LuaUnit.run() ) end

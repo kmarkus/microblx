@@ -5,6 +5,13 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ptrig`: **fix** overrun handling. After a missed deadline the
+  realigned grid point was discarded: ptrig returned to the top of the
+  loop without waiting, firing one trigger immediately at an arbitrary
+  phase, and the next iteration's period increment then skipped the
+  grid point it had just realigned to. It now waits for the realigned
+  deadline, so a missed deadline drops the affected tick(s) and leaves
+  the phase of all subsequent triggers unchanged.
 - `ptrig`: new `sleep_mode` 2 (hybrid): sleeps for
   `period - busy_slack_ns` and busy-waits the remaining
   `busy_slack_ns`, which absorbs the OS wakeup latency and yields
