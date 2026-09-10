@@ -22,6 +22,7 @@
 #define TYPE			"type"
 #define DATA_LEN		"data_len"
 #define STATS_OUTPUT_RATE	"stats_output_rate"
+#define SKIP_FIRST		"skip_first"
 #define PIN			"in"
 #define PSTATS			"stats"
 
@@ -37,6 +38,7 @@ ubx_proto_config_t stats_config[] = {
 	{ .name = TYPE, .type_name = "char", .min = 1, .doc = "ubx numeric type name of the input signal" },
 	{ .name = DATA_LEN, .type_name = "long", .min = 0, .max = 1, .doc = "vector length; stats are kept per element (default 1)" },
 	{ .name = STATS_OUTPUT_RATE, .type_name = "double", .min = 0, .max = 1, .doc = "min seconds between stats port outputs (0: every step)" },
+	{ .name = SKIP_FIRST, .type_name = "long", .min = 0, .max = 1, .doc = "discard the first N samples before accumulating (default 0)" },
 	/* if a 'loglevel' config is defined, it will automatically
 	 * affect the block loglevel. If unset the global loglevel is used */
 	{ .name = "loglevel", .type_name = "int" },
@@ -97,6 +99,8 @@ struct stats_info {
 	long data_len;		/* number of channels (vector length) */
 
 	unsigned long cnt;	/* sample count (shared, all channels advance together) */
+	long skip_first;	/* discard this many samples before accumulating */
+	long skipped;		/* samples discarded so far */
 	struct chan *chan;	/* per-channel accumulators [data_len] */
 	struct ubx_stat *out;	/* scratch output buffer [data_len] */
 
@@ -121,6 +125,7 @@ static void stats_reset(struct stats_info *inf)
 	}
 
 	inf->output_last_ns = 0;
+	inf->skipped = 0;
 }
 
 static int stats_init(ubx_block_t *b)
@@ -129,6 +134,7 @@ static int stats_init(ubx_block_t *b)
 	long len;
 	const char *type_name;
 	const long *data_len;
+	const long *skip_first;
 	const double *rate;
 	const struct numtype *conv;
 	struct stats_info *inf;
@@ -181,6 +187,16 @@ static int stats_init(ubx_block_t *b)
 	len = cfg_getptr_double(b, STATS_OUTPUT_RATE, &rate);
 	assert(len >= 0);
 	inf->output_rate_ns = (len > 0) ? (uint64_t)(*rate * NSEC_PER_SEC) : 0;
+
+	/* skip_first, default 0 */
+	len = cfg_getptr_long(b, SKIP_FIRST, &skip_first);
+	assert(len >= 0);
+	inf->skip_first = (len > 0) ? *skip_first : 0;
+
+	if (inf->skip_first < 0) {
+		ubx_err(b, "EINVALID_CONFIG: %s must be >= 0", SKIP_FIRST);
+		goto out_free;
+	}
 
 	/* add the runtime-typed input port and resize the stats port */
 	ret = ubx_inport_add(b, PIN, "input signal to accumulate", 0, type_name, inf->data_len);
@@ -283,6 +299,16 @@ void stats_step(ubx_block_t *b)
 
 	if (__port_read(inf->p_in, inf->sample) <= 0)
 		return;		/* NODATA */
+
+	/* Discard the first skip_first samples. Startup transients are
+	 * common in cyclic signals -- e.g. a block deriving a period by
+	 * differencing timestamps emits its absolute start time on the
+	 * first step -- and a single such outlier ruins min/max and
+	 * dominates mean and stddev for the rest of the run. */
+	if (inf->skipped < inf->skip_first) {
+		inf->skipped++;
+		return;
+	}
 
 	inf->cnt++;
 
