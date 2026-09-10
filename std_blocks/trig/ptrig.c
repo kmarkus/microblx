@@ -347,9 +347,12 @@ void *thread_startup(void *arg)
 			if (ret)
 				ubx_err(b, "failed to write tstats to profile_path: %d", ret);
 
-			if (inf->overrun_cnt > 0)
-				ubx_warn(b, "missed %" PRIu64 " trigger deadline(s)",
-					 inf->overrun_cnt);
+			/* standalone overrun report, next to the tstats.
+			 * Logged here rather than in the stop hook because
+			 * autostop_steps parks the thread without going
+			 * through it. */
+			ubx_info(b, "OVERRUNS: %" PRIu64 " missed trigger deadline(s)",
+				 inf->overrun_cnt);
 
 			if (inf->use_deadline && deadline_overrun_cnt > 0)
 				ubx_warn(b, "%u SCHED_DEADLINE budget overrun(s)",

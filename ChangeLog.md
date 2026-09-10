@@ -5,6 +5,9 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ptrig`: the missed-deadline total is now logged at stop as a
+  standalone `OVERRUNS:` line at info level (previously a warning, and
+  only when non-zero).
 - `ptrig`: **fix** overrun handling. After a missed deadline the
   realigned grid point was discarded: ptrig returned to the top of the
   loop without waiting, firing one trigger immediately at an arbitrary
