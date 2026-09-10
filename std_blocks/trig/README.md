@@ -53,6 +53,27 @@ Both support multiple trigger chains, per-block timing statistics, and runtime c
 | `deadline_throt_cnt` | out       | `uint64_t`              | cumulative count of SCHED_DEADLINE budget overruns (Linux ≥ 4.16) |
 | `overrun_cnt`        | out       | `uint64_t`              | cumulative count of missed trigger deadlines; counts skipped periods in sleep/busy-wait modes only (stays 0 with SCHED_DEADLINE — use `deadline_throt_cnt` there) |
 
+## Overrun handling
+
+A trigger deadline is missed when the chain (plus the wakeup latency of
+the sleep mode) takes longer than the period. ptrig then **drops** the
+missed tick(s) and resumes on the original grid: it never triggers
+back-to-back to catch up, and it never re-anchors the grid. The phase of
+every subsequent trigger is unchanged, and the number of dropped
+triggers is added to `overrun_cnt`.
+
+For a 10ms period with a chain that once takes 15ms, the triggers land
+at 0, 10, **(chain runs 20→35)**, 40, 50ms — the 30ms tick is dropped,
+`overrun_cnt` is 1, and 40ms onwards is back on the original grid.
+
+The grid is only re-anchored when the block is (re)started, so an
+inactive interval is never "caught up" either.
+
+Note that the wakeup latency counts against the period budget: an
+overrun is declared when the chain exceeds `period - latency`. That
+makes `sleep_mode=0` declare an overrun slightly sooner than modes 1
+and 2 for the same chain (on an RT-tuned ARM SoC, ~12µs sooner).
+
 ## Sleep modes
 
 `sleep_mode` selects how ptrig waits for the next period:

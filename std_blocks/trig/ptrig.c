@@ -285,6 +285,7 @@ void *thread_startup(void *arg)
 	struct ubx_timespec now_ts, remaining;
 	uint64_t next = 0;		/* absolute deadline of the next period [ns] */
 	uint64_t now_ns;
+	uint64_t remaining_ns;
 	uint64_t cur_period_ns;		/* current period [ns], may change at runtime */
 	int rearm = 1;			/* (re)initialize the deadline on (re)activation */
 	uint64_t last_overrun_cnt = 0;	/* last value emitted on the overrun_cnt port */
@@ -459,23 +460,18 @@ void *thread_startup(void *arg)
 		}
 		now_ns = ubx_ts_to_ns(&now_ts);
 
-		if (next > now_ns) {
-			uint64_t remaining_ns = next - now_ns;
-
-			remaining.sec = remaining_ns / NSEC_PER_SEC;
-			remaining.nsec = remaining_ns % NSEC_PER_SEC;
-
-			ret = inf->sleep_fn(&remaining, inf->busy_slack_ns);
-			if (ret) {
-				ubx_err(b, "sleep failed: %s", strerror(errno));
-				goto out;
-			}
-		} else {
+		if (now_ns >= next) {
 			/*
-			 * Deadline already missed (overrun): skip the missed
-			 * tick(s) and realign to the next future grid point so
-			 * recovering load does not cause a burst of back-to-back
-			 * triggers. Phase relative to the grid is preserved.
+			 * Deadline already missed (overrun): drop the missed
+			 * trigger(s) and realign to the next future grid
+			 * point, so recovering load does not cause a burst of
+			 * back-to-back triggers. Phase relative to the grid is
+			 * preserved; the dropped triggers are reported on the
+			 * overrun_cnt port.
+			 *
+			 * next is strictly in the future afterwards: with
+			 * d = now_ns - next >= 0, the new next is
+			 * now_ns + cur_period_ns - (d % cur_period_ns).
 			 */
 			uint64_t missed = (now_ns - next) / cur_period_ns + 1;
 
@@ -488,8 +484,26 @@ void *thread_startup(void *arg)
 				last_overrun_cnt = inf->overrun_cnt;
 			}
 
-			ubx_debug(b, "deadline missed, skipped %" PRIu64 " period(s)",
+			ubx_debug(b, "deadline missed, dropped %" PRIu64 " trigger(s)",
 				  missed);
+		}
+
+		/*
+		 * Wait for the deadline. This must happen on the overrun path
+		 * too: returning to the top of the loop directly would trigger
+		 * immediately, i.e. at an arbitrary phase, and the next
+		 * iteration's "next += cur_period_ns" would then discard the
+		 * grid point we just realigned to.
+		 */
+		remaining_ns = next - now_ns;
+
+		remaining.sec = remaining_ns / NSEC_PER_SEC;
+		remaining.nsec = remaining_ns % NSEC_PER_SEC;
+
+		ret = inf->sleep_fn(&remaining, inf->busy_slack_ns);
+		if (ret) {
+			ubx_err(b, "sleep failed: %s", strerror(errno));
+			goto out;
 		}
 	}
 
