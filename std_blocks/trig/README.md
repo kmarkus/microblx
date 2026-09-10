@@ -62,6 +62,18 @@ back-to-back to catch up, and it never re-anchors the grid. The phase of
 every subsequent trigger is unchanged, and the number of dropped
 triggers is added to `overrun_cnt`.
 
+At stop, ptrig logs the total as a standalone line next to the timing
+statistics:
+
+```
+OVERRUNS: 7 missed trigger deadline(s)
+```
+
+The count is cumulative over the lifetime of the block, matching the
+`overrun_cnt` output port. It is deliberately not part of `struct
+ubx_tstat`: a missed deadline belongs to the trigger, not to a block's
+execution time.
+
 For a 10ms period with a chain that once takes 15ms, the triggers land
 at 0, 10, **(chain runs 20→35)**, 40, 50ms — the 30ms tick is dropped,
 `overrun_cnt` is 1, and 40ms onwards is back on the original grid.
