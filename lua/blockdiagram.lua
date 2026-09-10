@@ -1103,6 +1103,17 @@ function system.merge(self, sys, override)
    foreach(merge_ndcfg, sys.node_configurations)
    foreach(merge_subsys, sys.subsystems)
 
+   -- The merged-in blocks, configs and connections still carry the
+   -- metadata resolved against *their* system: _src/_tgt point into
+   -- sys' block list (or are false, since a reference into self could
+   -- not resolve there), and _parent/_index/_fqn name the wrong
+   -- system. Re-resolve everything against the merged result.
+   --
+   -- Without this an overlay could only override configs of blocks the
+   -- base model already declared: any connection it added was reported
+   -- as "unknown src/tgt block" even when both endpoints existed after
+   -- the merge.
+   system_populate_meta(self)
 end
 
 --- Launch a blockdiagram system
