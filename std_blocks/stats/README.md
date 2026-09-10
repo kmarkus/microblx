@@ -18,6 +18,14 @@ the *population* standard deviation (variance divided by `cnt`), which
 is the RMS-consistent convention used in signal processing and is
 well-defined for `cnt == 1`.
 
+`skip_first` discards the first N samples outright -- they are neither
+counted nor accumulated. Startup transients are common in cyclic
+signals: a block that derives a period by differencing timestamps
+emits its absolute start time on the very first step, and one such
+outlier ruins `min`/`max` and dominates `mean` and `std` for the whole
+run. This is the `stats` counterpart of trig/ptrig's
+`tstats_skip_first`.
+
 Statistics are cumulative: they persist across `stop`/`start` and are
 only cleared on (re-)`init`. The accumulated statistics are logged
 with `info` loglevel when the block is stopped.
@@ -30,6 +38,7 @@ configs
 | type              | char   | ubx numeric type name of the input signal (mandatory)                  |
 | data_len          | long   | vector length; statistics are kept per element (default 1)             |
 | stats_output_rate | double | throttle output on the `stats` port [sec] (0/unset: output every step) |
+| skip_first        | long   | discard the first N samples before accumulating (default 0)            |
 | loglevel          | int    | block loglevel                                                         |
 
 With `data_len` > 1 the `in` port is a vector and the `stats` port is a
