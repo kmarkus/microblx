@@ -150,6 +150,63 @@ int ubx_nanowait(const struct ubx_timespec *dur)
 }
 
 /**
+ * ubx_nanosleep_hybrid - sleep most of the duration, busy-wait the rest
+ *
+ * Sleeps for (dur - slack_ns) using ubx_nanosleep and busy-waits the
+ * remaining slack_ns. This removes the OS wakeup latency (syscall,
+ * hrtimer and scheduling overhead) from the instant the function
+ * returns, at the cost of burning slack_ns of CPU per call.
+ *
+ * For this to work, slack_ns must exceed the platform's worst-case
+ * wakeup latency: if the sleep overshoots by more than slack_ns, the
+ * busy-wait phase never runs and the result degrades to that of
+ * ubx_nanosleep.
+ *
+ * @param dur relative duration to wait
+ * @param slack_ns duration to busy-wait before the end of dur [ns]
+ * @return 0 or error
+ */
+int ubx_nanosleep_hybrid(const struct ubx_timespec *dur, uint64_t slack_ns)
+{
+	int ret;
+	uint64_t dur_ns;
+	struct ubx_timespec end, now, sleep_dur;
+
+	if (dur == NULL)
+		return EINVALID_ARG;
+
+	ret = ubx_gettime(&now);
+	if (ret)
+		return ret;
+
+	ubx_ts_add(&now, dur, &end);
+
+	dur_ns = ubx_ts_to_ns(dur);
+
+	if (dur_ns > slack_ns) {
+		uint64_t sleep_ns = dur_ns - slack_ns;
+
+		sleep_dur.sec = sleep_ns / NSEC_PER_SEC;
+		sleep_dur.nsec = sleep_ns % NSEC_PER_SEC;
+
+		ret = ubx_nanosleep(&sleep_dur);
+		if (ret)
+			return ret;
+	}
+
+	for (;;) {
+		ret = ubx_gettime(&now);
+
+		if (ret)
+			return ret;
+
+		if (ubx_ts_cmp(&now, &end) >= 0)
+			break;
+	}
+	return 0;
+}
+
+/**
  * Compare two ubx_timespecs
  *
  * @param ts1
