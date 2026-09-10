@@ -85,6 +85,8 @@ ubx_proto_port_t ptrig_ports[] = {
 	  .doc = "cumulative SCHED_DEADLINE budget overrun count (requires Linux >= 4.16)" },
 	{ .name = "overrun_cnt", .out_type_name = "uint64_t",
 	  .doc = "cumulative count of missed trigger deadlines (sleep/busy-wait modes)" },
+	{ .name = "latency_ns", .out_type_name = "int64_t",
+	  .doc = "trigger latency: how late this trigger fired relative to its deadline grid point [ns] (requires latency_stats=1)" },
 	{ 0 },
 };
 
@@ -120,6 +122,7 @@ ubx_proto_config_t ptrig_config[] = {
 	{ .name = "tstats_skip_first", .type_name = "int", .max=1, .doc = "skip N steps before acquiring stats" },
 	{ .name = "sleep_mode", .type_name = "int", .max = 1, .doc = "0: OS sleep (ubx_nanosleep, def), 1: busy-wait (ubx_nanowait), 2: hybrid (sleep, then busy-wait the last busy_slack_ns)",  },
 	{ .name = "busy_slack_ns", .type_name = "int64_t", .max = 1, .doc = "sleep_mode=2: duration to busy-wait before the deadline [ns] (def: 50000). Must exceed the platform's worst-case wakeup latency", },
+	{ .name = "latency_stats", .type_name = "int", .max = 1, .doc = "1: measure trigger latency (one extra clock read per cycle), emit it on latency_ns and log min/max/avg on stop. 0: off (def)", },
 	{ .name = "timerslack_ns", .type_name = "int64_t", .max = 1, .doc = "thread timer slack [ns] (prctl(PR_SET_TIMERSLACK)); 0 (def): leave unchanged. Only affects SCHED_OTHER, where Linux defaults to 50us", },
 	{ .name = "loglevel", .type_name = "int" },
 	{ .name = "sched_deadline", .type_name = "struct ptrig_deadline", .max = 1,
@@ -176,6 +179,13 @@ struct ptrig_inf {
 
 	uint64_t overrun_cnt;	/* cumulative missed trigger deadlines */
 	ubx_port_t *p_overrun_cnt;
+
+	int latency_stats;	/* measure trigger latency */
+	ubx_port_t *p_latency;
+	uint64_t lat_cnt;	/* trigger latency accumulators [ns] */
+	int64_t lat_min;
+	int64_t lat_max;
+	uint64_t lat_total;
 
 	ubx_port_t *p_actchain;
 	ubx_port_t *p_period;
@@ -354,6 +364,12 @@ void *thread_startup(void *arg)
 			ubx_info(b, "OVERRUNS: %" PRIu64 " missed trigger deadline(s)",
 				 inf->overrun_cnt);
 
+			if (inf->lat_cnt > 0)
+				ubx_info(b, "LATENCY: cnt %" PRIu64 ", min %" PRId64
+					 " ns, max %" PRId64 " ns, avg %" PRIu64 " ns",
+					 inf->lat_cnt, inf->lat_min, inf->lat_max,
+					 inf->lat_total / inf->lat_cnt);
+
 			if (inf->use_deadline && deadline_overrun_cnt > 0)
 				ubx_warn(b, "%u SCHED_DEADLINE budget overrun(s)",
 					 (unsigned int)deadline_overrun_cnt);
@@ -406,6 +422,39 @@ void *thread_startup(void *arg)
 			int64_t port_period_ns;
 			if (read_int64(inf->p_period_ns, &port_period_ns) > 0)
 				cur_period_ns = (uint64_t)port_period_ns;
+		}
+
+		/*
+		 * Trigger latency: how late we are relative to the grid
+		 * point we just slept to. 'next' still holds that deadline
+		 * here -- it is only advanced further down, after the
+		 * trigger. This is the quantity sleep_mode exists to
+		 * reduce, and the one overrun_cnt cannot show: overrun_cnt
+		 * only counts *whole* periods lost, so on a 1ms period a
+		 * consistent 200us lateness registers as zero overruns.
+		 *
+		 * Meaningless under SCHED_DEADLINE (the kernel paces the
+		 * thread and 'next' is unused) and in free-run.
+		 */
+		if (inf->latency_stats && !inf->use_deadline && cur_period_ns > 0) {
+			int64_t lat;
+
+			ret = ubx_gettime(&now_ts);
+			if (ret) {
+				ubx_err(b, "ubx_gettime failed: %s", strerror(errno));
+				goto out;
+			}
+
+			lat = (int64_t)(ubx_ts_to_ns(&now_ts) - next);
+
+			write_int64(inf->p_latency, &lat);
+
+			if (inf->lat_cnt == 0 || lat < inf->lat_min)
+				inf->lat_min = lat;
+			if (inf->lat_cnt == 0 || lat > inf->lat_max)
+				inf->lat_max = lat;
+			inf->lat_total += (uint64_t)(lat > 0 ? lat : 0);
+			inf->lat_cnt++;
 		}
 
 		if (ubx_chain_trigger(&inf->chains[inf->actchain]) != 0)
@@ -618,6 +667,16 @@ int ptrig_handle_config(ubx_block_t *b)
 
 	inf->timerslack_ns = (len > 0) ? *timerslack_ns : 0;
 
+	/* latency_stats */
+	const int *latency_stats;
+	len = cfg_getptr_int(b, "latency_stats", &latency_stats);
+	assert(len >= 0);
+	inf->latency_stats = (len > 0) ? *latency_stats : 0;
+
+	if (inf->latency_stats && inf->use_deadline)
+		ubx_warn(b, "latency_stats has no effect with SCHED_DEADLINE "
+			 "(use deadline_throt_cnt)");
+
 	/* period / period_ns: exactly one of the two must be configured */
 	const struct ptrig_period *period;
 	const int64_t *period_ns;
@@ -808,6 +867,7 @@ int ptrig_init(ubx_block_t *b)
 	assert(inf->p_deadline_throt_cnt != NULL);
 
 	inf->p_overrun_cnt = ubx_port_get(b, "overrun_cnt");
+	inf->p_latency = ubx_port_get(b, "latency_ns");
 	assert(inf->p_overrun_cnt != NULL);
 
 	/* initialize chains and add configs */

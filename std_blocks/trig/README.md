@@ -34,6 +34,7 @@ Both support multiple trigger chains, per-block timing statistics, and runtime c
 | `sleep_mode`      | `int`                   | 0=OS sleep (default), 1=busy-wait, 2=hybrid; ignored with `SCHED_DEADLINE` |
 | `busy_slack_ns`   | `int64_t`               | `sleep_mode=2`: duration to busy-wait before the deadline [ns] (default: 50000) |
 | `timerslack_ns`   | `int64_t`               | thread timer slack [ns]; 0 (default) leaves it unchanged |
+| `latency_stats`   | `int`                   | 1: measure trigger latency (one extra clock read per cycle); 0 = off (default) |
 
 ## Ports — common
 
@@ -51,6 +52,7 @@ Both support multiple trigger chains, per-block timing statistics, and runtime c
 | `period_ns`          | in        | `int64_t`               | change the trigger period [ns] at runtime (no effect under SCHED_DEADLINE — use `sched_deadline`) |
 | `sched_deadline`     | in        | `struct ptrig_deadline` | update `SCHED_DEADLINE` parameters at runtime (Linux ≥ 3.14)      |
 | `deadline_throt_cnt` | out       | `uint64_t`              | cumulative count of SCHED_DEADLINE budget overruns (Linux ≥ 4.16) |
+| `latency_ns`         | out       | `int64_t`               | trigger latency for this cycle [ns] (requires `latency_stats=1`)  |
 | `overrun_cnt`        | out       | `uint64_t`              | cumulative count of missed trigger deadlines; counts skipped periods in sleep/busy-wait modes only (stays 0 with SCHED_DEADLINE — use `deadline_throt_cnt` there) |
 
 ## Overrun handling
@@ -85,6 +87,30 @@ Note that the wakeup latency counts against the period budget: an
 overrun is declared when the chain exceeds `period - latency`. That
 makes `sleep_mode=0` declare an overrun slightly sooner than modes 1
 and 2 for the same chain (on an RT-tuned ARM SoC, ~12µs sooner).
+
+## Trigger latency
+
+`overrun_cnt` counts only *whole* periods lost, so it says nothing about a
+trigger that fired late but still within its period — which is exactly what
+the sleep modes trade against CPU time. On a 1 ms period a consistent 200 µs
+lateness registers as zero overruns.
+
+`latency_stats = 1` measures it: each cycle, the difference between the actual
+trigger time and the deadline grid point ptrig slept to is written to the
+`latency_ns` port, and `min`/`max`/`avg` are logged on stop as
+
+```
+LATENCY: cnt 5624, min 11843 ns, max 34102 ns, avg 12971 ns
+```
+
+The cost is one extra `ubx_gettime()` per cycle, hence the opt-in. Connect
+`latency_ns` to a `ubx/stats` block for the standard deviation, or to a logger
+for the full series.
+
+The value is normally positive (late). It can be slightly negative in
+`sleep_mode` 1 and 2, where the busy-wait exits on the first clock read at or
+past the deadline. It is not measured under `SCHED_DEADLINE` (the kernel paces
+the thread; use `deadline_throt_cnt`) or when no period is configured.
 
 ## Sleep modes
 
