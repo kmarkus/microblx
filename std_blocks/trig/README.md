@@ -107,6 +107,12 @@ The cost is one extra `ubx_gettime()` per cycle, hence the opt-in. Connect
 `latency_ns` to a `ubx/stats` block for the standard deviation, or to a logger
 for the full series.
 
+The `latency_ns` port carries every sample; the logged min/max/avg skip the
+first `tstats_skip_first` of them, as the tstats do. That matters here: on the
+first cycle after (re)start the deadline grid has just been anchored to now, so
+the measurement spans startup and is meaningless -- left in, it swamps the
+reported max.
+
 The value is normally positive (late). It can be slightly negative in
 `sleep_mode` 1 and 2, where the busy-wait exits on the first clock read at or
 past the deadline. It is not measured under `SCHED_DEADLINE` (the kernel paces
