@@ -42,6 +42,17 @@ int ubx_gettime(struct ubx_timespec *uts)
 	return 0;
 }
 
+uint64_t ubx_gettime_ns(void)
+{
+	uint64_t tsc = rdtscp();
+
+	if (NSEC_PER_SEC % CPU_HZ == 0)
+		return tsc * (NSEC_PER_SEC / CPU_HZ);
+
+	return (tsc / CPU_HZ) * NSEC_PER_SEC +
+		((tsc % CPU_HZ) * NSEC_PER_SEC) / CPU_HZ;
+}
+
 #elif defined(TIMESRC_CNTVCT)
 
 #if !defined(__aarch64__) && !defined(__arm64__)
@@ -68,6 +79,30 @@ int ubx_gettime(struct ubx_timespec *uts)
 	return 0;
 }
 
+uint64_t ubx_gettime_ns(void)
+{
+	static uint64_t cntfrq;
+	static uint64_t ns_per_tick;
+	uint64_t cnt;
+
+	if (!cntfrq) {
+		asm volatile("mrs %0, cntfrq_el0" : "=r"(cntfrq));
+		/* the exact path needs cntfrq to divide 1e9 evenly. It
+		 * does on the common 25/50/100/200 MHz parts; 19.2 and
+		 * 24 MHz ones fall back to the division below. */
+		ns_per_tick = (NSEC_PER_SEC % cntfrq == 0) ?
+			NSEC_PER_SEC / cntfrq : 0;
+	}
+
+	asm volatile("mrs %0, cntvct_el0" : "=r"(cnt));
+
+	if (ns_per_tick)
+		return cnt * ns_per_tick;
+
+	return (cnt / cntfrq) * NSEC_PER_SEC +
+		((cnt % cntfrq) * NSEC_PER_SEC) / cntfrq;
+}
+
 #else /* no HW timestamps */
 /**
  * ubx_gettime
@@ -89,6 +124,19 @@ int ubx_gettime(struct ubx_timespec *uts)
 	uts->sec = ts.tv_sec;
 	uts->nsec = ts.tv_nsec;
 	return ret;
+}
+
+uint64_t ubx_gettime_ns(void)
+{
+	struct timespec ts;
+
+	/* the callers are spin loops with no way to report an error;
+	 * returning UINT64_MAX makes them fall out immediately rather
+	 * than wait forever on a clock that is not advancing. */
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+		return UINT64_MAX;
+
+	return (uint64_t)ts.tv_sec * NSEC_PER_SEC + (uint64_t)ts.tv_nsec;
 }
 
 #endif /* TIMESRC_* */
@@ -125,27 +173,19 @@ int ubx_nanosleep(const struct ubx_timespec *dur)
  */
 int ubx_nanowait(const struct ubx_timespec *dur)
 {
-	int ret;
-	struct ubx_timespec end, now;
+	uint64_t end;
 
 	if (dur == NULL)
 		return EINVALID_ARG;
 
-	ret = ubx_gettime(&end);
-	if (ret)
-		return ret;
+	end = ubx_gettime_ns() + ubx_ts_to_ns(dur);
 
-	ubx_ts_add(&end, dur, &end);
+	/* spin on the raw ns clock: converting to a sec/nsec pair on
+	 * every iteration only to compare it costs ~3x as much as the
+	 * counter read itself. */
+	while (ubx_gettime_ns() <= end)
+		;
 
-	for (;;) {
-		ret = ubx_gettime(&now);
-
-		if (ret)
-			return ret;
-
-		if (ubx_ts_cmp(&now, &end) == 1)
-			break;
-	}
 	return 0;
 }
 
@@ -169,19 +209,14 @@ int ubx_nanowait(const struct ubx_timespec *dur)
 int ubx_nanosleep_hybrid(const struct ubx_timespec *dur, uint64_t slack_ns)
 {
 	int ret;
-	uint64_t dur_ns;
-	struct ubx_timespec end, now, sleep_dur;
+	uint64_t dur_ns, end;
+	struct ubx_timespec sleep_dur;
 
 	if (dur == NULL)
 		return EINVALID_ARG;
 
-	ret = ubx_gettime(&now);
-	if (ret)
-		return ret;
-
-	ubx_ts_add(&now, dur, &end);
-
 	dur_ns = ubx_ts_to_ns(dur);
+	end = ubx_gettime_ns() + dur_ns;
 
 	if (dur_ns > slack_ns) {
 		uint64_t sleep_ns = dur_ns - slack_ns;
@@ -194,15 +229,10 @@ int ubx_nanosleep_hybrid(const struct ubx_timespec *dur, uint64_t slack_ns)
 			return ret;
 	}
 
-	for (;;) {
-		ret = ubx_gettime(&now);
+	/* see ubx_nanowait on why this spins on the raw ns clock */
+	while (ubx_gettime_ns() < end)
+		;
 
-		if (ret)
-			return ret;
-
-		if (ubx_ts_cmp(&now, &end) >= 0)
-			break;
-	}
 	return 0;
 }
 

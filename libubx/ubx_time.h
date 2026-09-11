@@ -14,6 +14,7 @@ void ubx_ts_add(const struct ubx_timespec *ts1, const struct ubx_timespec *ts2, 
 void ubx_ts_div(const struct ubx_timespec *ts, const long div, struct ubx_timespec *out);
 double ubx_ts_to_double(const struct ubx_timespec *ts);
 uint64_t ubx_ts_to_ns(const struct ubx_timespec *ts);
+uint64_t ubx_gettime_ns(void);
 uint64_t ubx_ts_to_us(const struct ubx_timespec *ts);
 
 #endif /* _UBX_TIME_H */
