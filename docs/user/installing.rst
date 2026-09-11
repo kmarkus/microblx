@@ -138,6 +138,34 @@ The following cmake options change the behavior of the core:
    * - ``-DCMAKE_BUILD_TYPE=<type>``
      - defaults to ``RelWithDebInfo``
 
+.. note::
+
+   Timing-sensitive systems should enable a hardware time source. The
+   default is the POSIX clock, where every timestamp is a
+   ``clock_gettime`` call; the counter-based sources read a register
+   instead. Measured on a 1.25 GHz Cortex-A53 (``cntfrq_el0`` = 200 MHz,
+   gcc 13.4 ``-O2``, loop overhead subtracted):
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 55 20
+
+      * - time source
+        - per read
+      * - POSIX (``clock_gettime``, vDSO) -- default
+        - 65.3 ns
+      * - ``CNTVCT``
+        - 15.2 ns
+
+   This is paid on every timestamp, so it scales with how much timing
+   instrumentation is enabled. A ``ptrig`` with ``tstats_mode=2`` over a
+   four-block chain takes eleven timestamps per cycle: ~0.7 us on the
+   POSIX clock against ~0.2 us on ``CNTVCT``, charged to the measured
+   step duration itself. It is also paid per iteration by the busy-wait
+   in ``sleep_mode`` 1 and 2, which sets how precisely the loop can
+   detect its deadline -- roughly 68 ns on the POSIX clock against 9 ns
+   on ``CNTVCT``.
+
 The options a given installation was built with (plus the compiler,
 target architecture and the detected scheduling features) can be
 queried at runtime:
