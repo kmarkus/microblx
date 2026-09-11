@@ -181,6 +181,7 @@ struct ptrig_inf {
 	ubx_port_t *p_overrun_cnt;
 
 	int latency_stats;	/* measure trigger latency */
+	unsigned int lat_skip;	/* discard this many samples before accumulating */
 	ubx_port_t *p_latency;
 	uint64_t lat_cnt;	/* trigger latency accumulators [ns] */
 	int64_t lat_min;
@@ -449,12 +450,27 @@ void *thread_startup(void *arg)
 
 			write_int64(inf->p_latency, &lat);
 
+			/*
+			 * The port carries every sample; the accumulator skips
+			 * the first tstats_skip_first, exactly as the tstats do.
+			 * Without this the very first cycle after rearm --
+			 * where 'next' was just anchored to now, so the
+			 * measurement spans the whole startup -- lands in
+			 * lat_max and swamps it: at a 500us period it reported
+			 * 8.6ms against a true steady-state max of 59us.
+			 */
+			if (inf->lat_skip > 0) {
+				inf->lat_skip--;
+				goto lat_done;
+			}
+
 			if (inf->lat_cnt == 0 || lat < inf->lat_min)
 				inf->lat_min = lat;
 			if (inf->lat_cnt == 0 || lat > inf->lat_max)
 				inf->lat_max = lat;
 			inf->lat_total += (uint64_t)(lat > 0 ? lat : 0);
 			inf->lat_cnt++;
+lat_done:		;
 		}
 
 		if (ubx_chain_trigger(&inf->chains[inf->actchain]) != 0)
@@ -672,6 +688,12 @@ int ptrig_handle_config(ubx_block_t *b)
 	len = cfg_getptr_int(b, "latency_stats", &latency_stats);
 	assert(len >= 0);
 	inf->latency_stats = (len > 0) ? *latency_stats : 0;
+
+	/* share tstats_skip_first: same startup transient, same remedy */
+	const int *lat_skip_first;
+	len = cfg_getptr_int(b, "tstats_skip_first", &lat_skip_first);
+	assert(len >= 0);
+	inf->lat_skip = (len > 0 && *lat_skip_first > 0) ? (unsigned int)*lat_skip_first : 0;
 
 	if (inf->latency_stats && inf->use_deadline)
 		ubx_warn(b, "latency_stats has no effect with SCHED_DEADLINE "
