@@ -293,7 +293,7 @@ void *thread_startup(void *arg)
 	ubx_block_t *b;
 	struct ptrig_inf *inf;
 	struct ptrig_period port_period;
-	struct ubx_timespec now_ts, remaining;
+	struct ubx_timespec remaining;
 	uint64_t next = 0;		/* absolute deadline of the next period [ns] */
 	uint64_t now_ns;
 	uint64_t remaining_ns;
@@ -394,12 +394,7 @@ void *thread_startup(void *arg)
 
 		if (rearm) {
 			/* (re)anchor the absolute deadline grid to now */
-			ret = ubx_gettime(&now_ts);
-			if (ret) {
-				ubx_err(b, "ubx_gettime failed: %s", strerror(errno));
-				goto out;
-			}
-			next = ubx_ts_to_ns(&now_ts);
+			next = ubx_gettime_ns();
 			rearm = 0;
 		}
 
@@ -440,13 +435,7 @@ void *thread_startup(void *arg)
 		if (inf->latency_stats && !inf->use_deadline && cur_period_ns > 0) {
 			int64_t lat;
 
-			ret = ubx_gettime(&now_ts);
-			if (ret) {
-				ubx_err(b, "ubx_gettime failed: %s", strerror(errno));
-				goto out;
-			}
-
-			lat = (int64_t)(ubx_ts_to_ns(&now_ts) - next);
+			lat = (int64_t)(ubx_gettime_ns() - next);
 
 			write_int64(inf->p_latency, &lat);
 
@@ -521,12 +510,7 @@ lat_done:		;
 
 		next += cur_period_ns;
 
-		ret = ubx_gettime(&now_ts);
-		if (ret) {
-			ubx_err(b, "ubx_gettime failed: %s", strerror(errno));
-			goto out;
-		}
-		now_ns = ubx_ts_to_ns(&now_ts);
+		now_ns = ubx_gettime_ns();
 
 		if (now_ns >= next) {
 			/*

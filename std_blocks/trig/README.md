@@ -103,7 +103,8 @@ trigger time and the deadline grid point ptrig slept to is written to the
 LATENCY: cnt 5624, min 11843 ns, max 34102 ns, avg 12971 ns
 ```
 
-The cost is one extra `ubx_gettime()` per cycle, hence the opt-in. Connect
+The cost is one extra clock read (`ubx_gettime_ns()`, ~15 ns on a 200 MHz
+ARM generic timer) per cycle, hence the opt-in. Connect
 `latency_ns` to a `ubx/stats` block for the standard deviation, or to a logger
 for the full series.
 
