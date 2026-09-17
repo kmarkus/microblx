@@ -2446,7 +2446,7 @@ out:
  */
 long __port_read(const ubx_port_t *port, ubx_data_t *data)
 {
-	int ret = 0;
+	long ret = 0;
 	ubx_block_t **iaptr;
 
 	if (port == NULL) {

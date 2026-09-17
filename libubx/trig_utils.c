@@ -121,12 +121,14 @@ int ubx_chain_init(struct ubx_chain *chain,
 	tstat_init2(&chain->global_tstats, TSTAT_TOTALS, chain_id);
 
 	if (chain->tstats_mode >= 2) {
-		chain->blk_tstats = realloc(
+		struct ubx_tstat *tstats = realloc(
 			chain->blk_tstats,
 			chain->triggees_len * sizeof(struct ubx_tstat));
 
-		if (!chain->blk_tstats)
+		if (tstats == NULL)
 			return EOUTOFMEM;
+
+		chain->blk_tstats = tstats;
 
 		for (int i = 0; i < chain->triggees_len; i++)
 			tstat_init2(&chain->blk_tstats[i], chain->triggees[i].b->name, chain_id);

@@ -36,7 +36,11 @@ int common_write_stats(ubx_block_t *b, struct ubx_chain *chains, int num_chains)
 		}
 	}
 
-	fclose(fp);
+	if (fclose(fp) != 0) {
+		ubx_err(b, "failed to close tstats file %s: %m", profile_path);
+		return -1;
+	}
+
 	return 0;
 }
 
