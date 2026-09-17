@@ -1193,6 +1193,7 @@ ubx_block_t *ubx_block_create(ubx_node_t *nd, const char *type, const char *name
 	if (__block_register(nd, newb) != 0) {
 		logf_crit(nd, "failed to register block %s", name);
 		ubx_block_free(newb);
+		newb = NULL;
 		goto out;
 	}
  out:
