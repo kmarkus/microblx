@@ -1,0 +1,22 @@
+# clang-tidy configuration for microblx, run via 'make tidy'.
+#
+# cert-*            SEI CERT C rules implemented by clang-tidy
+# clang-analyzer-*  path sensitive analysis (leaks, null deref, uninit reads)
+# bugprone-*        catches several further CERT rules under a different name
+#
+# Disabled: easily-swappable-parameters is pure noise for C APIs taking
+# multiple ints, macro-parentheses fires throughout the typemacros.h code
+# generator macros where the unparenthesized pasting is intentional, and
+# DeprecatedOrUnsafeBufferHandling demands the C11 Annex K _s functions,
+# which glibc does not implement.
+Checks: >
+  -*,
+  cert-*,
+  clang-analyzer-*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-macro-parentheses,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+
+HeaderFilterRegex: '(libubx|liblfb|liblfq|std_blocks|std_types|tools)/.*\.h$'
+FormatStyle: none

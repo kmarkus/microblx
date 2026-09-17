@@ -36,6 +36,9 @@ set(UBX_TOCARR ${CMAKE_SOURCE_DIR}/tools/ubx-tocarr)
 
 add_compile_options(-W -Wextra -Wall -Werror -Wshadow -Wformat-security -Wnull-dereference)
 
+# compile_commands.json, used by the tidy target and by editors
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
 
@@ -432,5 +435,18 @@ add_custom_target(cppcheck
 		  --suppress=variableScope:libubx/md5.c .
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Running cppcheck..."
+  VERBATIM
+)
+
+#
+# clang-tidy (SEI CERT C checks, see .clang-tidy)
+#
+add_custom_target(tidy
+  COMMAND run-clang-tidy -quiet
+		  -p ${CMAKE_BINARY_DIR}
+		  -config-file=${CMAKE_SOURCE_DIR}/.clang-tidy
+		  "\\.c$"
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMENT "Running clang-tidy..."
   VERBATIM
 )
