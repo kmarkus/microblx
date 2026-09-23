@@ -30,6 +30,37 @@ This file tracks user visible API changes
 - `libubx`: new `ubx_nanosleep_hybrid(const struct ubx_timespec *dur,
   uint64_t slack_ns)`, the sleep-then-spin wait backing ptrig's hybrid
   sleep mode.
+- `ptrig`: new `latency_stats` config. When set to 1, the lateness of
+  each trigger relative to its deadline grid point is written to the
+  new `latency_ns` output port and min/max/avg are logged at stop as a
+  `LATENCY:` line. The logged summary skips the first
+  `tstats_skip_first` samples (startup transient); the port carries
+  every sample. Opt-in, as it costs one extra clock read per cycle. Not
+  measured under `SCHED_DEADLINE` or without a configured period.
+- `libubx`: new `uint64_t ubx_gettime_ns(void)`, returning the current
+  time in nanoseconds without building a `struct ubx_timespec`. On the
+  `CNTVCT` time source this avoids three 64-bit divisions (15.2 ns vs.
+  37.7 ns for `ubx_gettime` + `ubx_ts_to_ns` on a Cortex-A53). On the
+  POSIX fallback it returns `UINT64_MAX` if `clock_gettime` fails.
+  `ubx_nanowait`, `ubx_nanosleep_hybrid` and the ptrig trigger loop now
+  use it.
+- `libubx`: the compile time options (time source, tracing backend,
+  `UBX_LOG_MSG_MAXLEN`, build type, compiler, arch and detected
+  scheduling features) are reported by `ubx-launch --version` and
+  `ubx-modinfo -version`, and the time source and tracing backend are
+  logged at node init.
+- `stats`: new `skip_first` config discarding the first N samples
+  before accumulating (default 0), the counterpart of ptrig's
+  `tstats_skip_first`.
+- `blockdiagram`: **fix** connections added by a merged (overlay)
+  system that reference blocks of the base system were rejected as
+  `unknown src block`. References are now re-resolved after a merge.
+- `libubx`, `trig`: **fix** a use-after-free in the `ubx_block_create`
+  error path, a leak of the per-block tstats array on `realloc` failure,
+  a `long` to `int` narrowing of the `__port_read` return value, and an
+  unchecked `fclose` when writing the tstats file.
+- `cmake`: new `tidy` target running `clang-tidy` with SEI CERT C
+  checks (see `.clang-tidy`).
 
 - `rtlog`: reimplemented on top of `liblfb`, the lock-free broadcast
   buffer. The shm writer spinlock is replaced by a process-shared,
@@ -129,6 +160,20 @@ This file tracks user visible API changes
 - replace `lua-filesystem` with ffi implementation
 
 New blocks:
+
+- `ubx/vstore`: single-slot value store iblock for connections whose
+  writer and reader are stepped by the same trigger (same thread).
+  No queue and no atomics, and the payload shares a cache line with
+  its flag. Same read contract as `lfrb` (returns 0 when no unread
+  value is held); the `overwrites` port counts writes that landed
+  before the previous value was read. Not safe across threads. See
+  `std_blocks/vstore/README.md`.
+
+- `ubx/latch`: single-writer, multi-reader latest-value iblock. Reads
+  do not consume, so every reader gets the most recently written value
+  until it is replaced. Seqlock-based: wait-free writer, safe across
+  threads. Exactly one writer is required. See
+  `std_blocks/latch/README.md`.
 
 - `ubx/ewma`: exponentially weighted moving average filter (`y +=
   alpha * (x - y)`) for any numeric type, configured at runtime via

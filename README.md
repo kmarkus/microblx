@@ -20,10 +20,12 @@ Main features:
 - **extensible**: easy to add a new type, trigger block or connection
 - **composing applications**: applications are described using a simple textual language
 - **standard blocks and tools** included:
-  - *communication*: lock free buffers, POSIX message queues,
+  - *communication*: lock free buffers, latest-value stores, POSIX
+    message queues,
   - *computations*: PID controller, filters (moving average, EWMA),
     statistics, mux/demux, ramps, constants, random ...
-  - *triggers*: periodic, passive incl. built in latency profiling
+  - *triggers*: periodic, passive incl. built in execution time and
+    trigger latency profiling
   - real-time safe logging
 - **no HAL**: no arbitrary abstractions, just "configurable" POSIX
 - **minimal**: tiny memory footprint, few dependencies, embedded-friendly
@@ -124,6 +126,8 @@ Standard Blocks
 | [ubx/hexdump](std_blocks/hexdump/README.md)                           | i-block   | hex-dump written data to stdout (debug)                                |
 | [ubx/lfrb](std_blocks/lfrb/README.md)                                 | i-block   | hard-RT lock-free ring buffer                                          |
 | [ubx/lfds_cyclic](std_blocks/lfds_cyclic/README.md)                   | i-block   | hard-RT lock-free cyclic (overwriting) buffer                          |
+| [ubx/vstore](std_blocks/vstore/README.md)                             | i-block   | single-slot value store for same-thread connections                    |
+| [ubx/latch](std_blocks/latch/README.md)                               | i-block   | single-writer multi-reader latest-value store (seqlock)                |
 | [mqueue](std_blocks/mqueue/README.md)                                 | i-block   | POSIX message queue inter-process communication                        |
 | [ubx/math\_double, ubx/math\_float](std_blocks/math_double/README.md) | c-block   | element-wise math.h function (sin, sqrt, …) with optional scale/offset |
 | [ubx/ewma](std_blocks/ewma/README.md)                                 | c-block   | exponentially weighted moving average filter (any numeric type)        |

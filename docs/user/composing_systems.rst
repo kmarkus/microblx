@@ -63,8 +63,9 @@ minimal example:
 
 ``ptrig`` additionally supports ``affinity`` (CPU list), ``stacksize``,
 ``thread_name``, ``autostop_steps``, ``sleep_mode`` (0=OS sleep,
-1=busy-wait, 2=hybrid, tuned via ``busy_slack_ns``) and
-``timerslack_ns``. The ``sched_policy`` field accepts ``SCHED_OTHER``
+1=busy-wait, 2=hybrid, tuned via ``busy_slack_ns``),
+``timerslack_ns`` and ``latency_stats`` (trigger latency
+measurement). The ``sched_policy`` field accepts ``SCHED_OTHER``
 (default), ``SCHED_FIFO``, ``SCHED_RR``, and ``SCHED_DEADLINE`` (Linux
 ≥ 3.14); for ``SCHED_DEADLINE`` a ``sched_deadline`` config of type
 ``struct ptrig_deadline`` is required (see the README for details). See
@@ -199,7 +200,10 @@ The following example shows how to create ports among cblock ports:
 - both ``src`` and ``tgt`` are of the form ``CBLOCK.PORT``. Both
   blocks and ports must exist.
 - ``type`` specifies the type of iblock to create for the
-  connection. If unset it defaults to ``ubx/lfrb``
+  connection. If unset it defaults to ``ubx/lfrb``. For special
+  cases ``ubx/vstore`` (writer and reader in the same trigger chain)
+  and ``ubx/latch`` (reader always gets the latest value) are
+  available, see their READMEs for the preconditions.
 - ``config`` is the optional configuration to apply to the newly
   created iblock. The configs ``type_name`` and ``data_len`` are set
   automatically unless specified.
