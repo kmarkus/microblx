@@ -1333,6 +1333,11 @@ int ubx_port_connect_out(ubx_port_t *p, const ubx_block_t *iblock)
 {
 	int ret = -1;
 
+	if (iblock->type != BLOCK_TYPE_INTERACTION || iblock->prototype == NULL) {
+		logf_err(iblock->nd, "block %s is not an iblock instance", iblock->name);
+		return EINVALID_BLOCK_TYPE;
+	}
+
 	if (port_is_out(p)) {
 		ret = array_block_add(&p->out_interaction, iblock);
 		if (ret != 0)
@@ -1359,6 +1364,11 @@ out:
 int ubx_port_connect_in(ubx_port_t *p, const ubx_block_t *iblock)
 {
 	int ret;
+
+	if (iblock->type != BLOCK_TYPE_INTERACTION || iblock->prototype == NULL) {
+		logf_err(iblock->nd, "block %s is not an iblock instance", iblock->name);
+		return EINVALID_BLOCK_TYPE;
+	}
 
 	if (port_is_in(p)) {
 		ret = array_block_add(&p->in_interaction, iblock);

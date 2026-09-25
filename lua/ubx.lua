@@ -2075,6 +2075,15 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       end
    end
 
+   -- check: a block given without a port must be an iblock instance
+   if srcb ~= nil and srcpn == nil and not M.is_iblock_instance(srcb) then
+      return false, fmt("src %s is not an iblock instance", srcbn)
+   end
+
+   if tgtb ~= nil and tgtpn == nil and not M.is_iblock_instance(tgtb) then
+      return false, fmt("tgt %s is not an iblock instance", tgtbn)
+   end
+
    -- check: warn about a config table when it's not used
    if M.is_iblock_instance(srcb) then
       if ibconfig then

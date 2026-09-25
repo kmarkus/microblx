@@ -233,4 +233,30 @@ function TestConnection:Test_07_ReadInPortClone()
    lu.assert_error_msg_contains("is not an inport", ubx.port_read, pcc)
 end
 
+--- connect must reject a missing block or a non-iblock without port
+function TestConnection:Test_08_ConnectInvalidBlocks()
+   ni = ubx.node_create("Test_08", { loglevel = LOGLEVEL })
+   for _,m in ipairs{ "stdtypes", "lfrb", "ramp_double", "math_double" } do
+      ubx.load_module(ni, m)
+   end
+   local r = ubx.block_create(ni, "ubx/ramp_double", "r", { start=0, slope=1 })
+   local m = ubx.block_create(ni, "ubx/math_double", "m", { func="sin" })
+   ubx.block_init(r)
+   ubx.block_init(m)
+
+   local ok, e = ubx.connect(ni, "nosuch", "out", "m", "x", "ubx/lfrb")
+   lu.assert_false(ok)
+   lu.assert_str_contains(e, "no src block nosuch")
+
+   ok, e = ubx.connect(ni, "r", nil, "m", "x")
+   lu.assert_false(ok)
+   lu.assert_str_contains(e, "not an iblock instance")
+
+   ok, e = ubx.connect(ni, "ubx/lfrb", nil, "m", "x")
+   lu.assert_false(ok)
+   lu.assert_str_contains(e, "not an iblock instance")
+
+   lu.assert_equals(ubx.port_totab(m:p("x")).connections.incoming, {})
+end
+
 if not _RUNNER then os.exit( lu.LuaUnit.run() ) end
