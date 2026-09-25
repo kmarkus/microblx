@@ -440,6 +440,17 @@ function TestLsdbIntf:test_plugin_dbus_object()
    assert_equals(pp('NodeName'), "test_plugin_dbus")
 end
 
+function TestLsdbIntf:test_plugin_handler_error()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_plugin_err")
+
+   _pm_proxy('LoadPlugin', TEST_PLUGIN)
+
+   local pp = lsdb.proxy.new(_bus,
+                              fmt(UBX_SRV, "test_plugin_err"),
+                              "/testplugin", "org.test.plugin")
+   assert_error_msg_contains("plugin handler failed", pp, 'Fail')
+end
+
 function TestLsdbIntf:test_plugin_ctx_api()
    _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_plugin_ctx")
 

@@ -13,6 +13,9 @@ function M.init(ctx)
                { direction='out', name='reply',  type='s' },
                handler = function(vt, msg) return msg end,
             },
+            Fail = {
+               handler = function(vt) error("plugin handler failed") end,
+            },
             NodeName = {
                { direction='out', name='name', type='s' },
                handler = function(vt) return ctx.nd:get_name() end,
