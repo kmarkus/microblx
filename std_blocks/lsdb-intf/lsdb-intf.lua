@@ -82,10 +82,24 @@ local function create_block(vt,	type, name, conf)
    ubx.block_create(vt.nd, type, name, conf)
 end
 
+-- drop cached port clones that are connected to iblock ibname
+local function drop_pccs_of(ibname)
+   for _, cache in ipairs{ wpccs, rppcs } do
+      for _, ports in pairs(cache) do
+	 for pn, pcc in pairs(ports) do
+	    local c = ubx.port_conns_totab(pcc)
+	    for _, n in ipairs(c.incoming) do if n == ibname then ports[pn] = nil end end
+	    for _, n in ipairs(c.outgoing) do if n == ibname then ports[pn] = nil end end
+	 end
+      end
+   end
+end
+
 local function remove_block(vt, name)
    check_not_self(vt, name)
    wpccs[name] = nil
    rppcs[name] = nil
+   if ubx.is_iblock(ubx.block_get(vt.nd, name)) then drop_pccs_of(name) end
    ubx.block_unload(vt.nd, name)
 end
 

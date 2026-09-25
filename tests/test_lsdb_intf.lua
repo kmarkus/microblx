@@ -443,6 +443,19 @@ function TestLsdbIntf:test_trigger_inactive_fails()
       function() _proxy('Trigger', { "t1" }) end)
 end
 
+-- the kept block's port clones are connected via iblocks that
+-- ClearNode removes; they must be recreated, not reused
+function TestLsdbIntf:test_read_after_clearnode_keep()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_clearnode_keep")
+
+   local sys = bd.load_str(make_thres_usc("t1", 5.0), 'lua')
+   sys:launch{ nd=_nd }
+
+   assert_equals(write_trigger_read(_proxy, "t1", 3.0), 0)
+   _proxy('ClearNode', { "t1" })
+   assert_equals(write_trigger_read(_proxy, "t1", 7.0), 1)
+end
+
 ---
 --- Plugins: ListPlugins / LoadPlugin / UnloadPlugin
 ---
