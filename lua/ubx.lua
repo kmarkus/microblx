@@ -629,6 +629,30 @@ function M.block_get(nd, bname)
    return b
 end
 
+-- call fun(b, c) for each trigger chain config c (of any block) that
+-- references block tgt
+local function triggee_configs_foreach(nd, tgt, fun)
+   M.blocks_map(nd, function(b)
+      M.configs_map(b, function(c)
+	 if safe_tostr(c.type.name) ~= "struct ubx_triggee" then return end
+	 local t = ffi.cast("struct ubx_triggee*", c.value.data)
+	 for i=0,tonumber(c.value.len)-1 do
+	    if t[i].b == tgt then fun(b, c); return end
+	 end
+      end)
+   end, M.is_instance)
+end
+
+-- remove all entries for block tgt from trigger chain config c
+local function triggee_config_scrub(c, tgt)
+   local t = ffi.cast("struct ubx_triggee*", c.value.data)
+   local n = 0
+   for i=0,tonumber(c.value.len)-1 do
+      if t[i].b ~= tgt then t[n] = t[i]; n = n + 1 end
+   end
+   M.data_resize(c.value, n)
+end
+
 -- remove all references to iblock ib from the ports of all blocks
 local function iblock_disconnect_all(nd, ib)
    M.blocks_map(nd, function(b)
@@ -646,13 +670,26 @@ end
 --- Unload a block: transition to `preinit`, drop all references to
 -- it and call `ubx_block_rm`.
 --
--- An iblock is disconnected from all ports.
+-- An iblock is disconnected from all ports and the block is removed
+-- from the chains of all inactive triggers. **Errors** if an active
+-- trigger still references the block.
 -- @param nd `ubx_node_t`
 -- @param name block name string
 function M.block_unload(nd, name)
    local b = M.block_get(nd, name)
+
+   triggee_configs_foreach(nd, b, function(tb, c)
+      if tb.block_state == ffi.C.BLOCK_STATE_ACTIVE then
+	 error(fmt("block_unload: '%s' is triggered by active block '%s', stop it first",
+		   name, ffi.string(tb.name)))
+      end
+   end)
+
    M.block_tostate(b, 'preinit')
+
+   triggee_configs_foreach(nd, b, function(_, c) triggee_config_scrub(c, b) end)
    if M.is_iblock(b) then iblock_disconnect_all(nd, b) end
+
    if M.block_rm(nd, name) ~= 0 then error("block_unload: ubx_block_rm failed for '"..name.."'") end
 end
 

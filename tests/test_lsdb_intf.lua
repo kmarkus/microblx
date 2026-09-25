@@ -398,6 +398,30 @@ function TestLsdbIntf:test_self_ops_rejected()
    assert_equals(_lsdb_blk:get_block_state(), "active")
 end
 
+function TestLsdbIntf:test_remove_active_triggee_fails()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_rm_triggee")
+
+   ubx.load_module(_nd, "ptrig")
+   local sys = bd.load_str([[
+return bd.system {
+   imports = { "stdtypes", "lfrb", "threshold", "ptrig" },
+   blocks = {
+      { name = "t1", type = "ubx/threshold" },
+      { name = "pt", type = "ubx/ptrig" },
+   },
+   configurations = {
+      { name = "t1", config = { threshold = 5.0 } },
+      { name = "pt", config = { period = { sec=0, usec=1000 }, chain0 = { { b="#t1" } } } },
+   },
+}
+]], 'lua')
+   sys:launch{ nd=_nd }
+
+   assert_error_msg_contains("is triggered by active block 'pt'",
+      function() _proxy('RemoveBlock', "t1") end)
+   assert_true(cblocks_contains(_proxy.CBlocks, "t1"))
+end
+
 ---
 --- Plugins: ListPlugins / LoadPlugin / UnloadPlugin
 ---

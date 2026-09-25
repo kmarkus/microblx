@@ -59,4 +59,29 @@ function TestTrigChain:TestEveryNumSteps()
    assert_equals(tonumber(nd:b("r2").stat_num_steps), 6)
 end
 
+--- block_unload refuses a block an active trigger still steps
+function TestTrigChain:TestUnloadActiveTriggee()
+   nd = sys:launch{ nodename = "TestUnloadActive", loglevel = LOGLEVEL }
+
+   lu.assert_error_msg_contains("is triggered by active block 'trig'",
+				ubx.block_unload, nd, "r2")
+   assert_not_nil(ubx.ubx.ubx_block_get(nd, "r2"))
+end
+
+--- block_unload removes the block from inactive trigger chains
+function TestTrigChain:TestUnloadScrubsChain()
+   nd = sys:launch{ nodename = "TestUnloadScrub", loglevel = LOGLEVEL }
+
+   local trig = nd:b("trig")
+   ubx.block_tostate(trig, 'inactive')
+   ubx.block_unload(nd, "r2")
+
+   local chain = ubx.data_tolua(trig:c("chain0").value)
+   assert_equals(chain.b, "r1")
+
+   assert_equals(ubx.block_tostate(trig, 'active'), 0)
+   ubx.cblock_step(trig)
+   assert_equals(tonumber(nd:b("r1").stat_num_steps), 1)
+end
+
 if not _RUNNER then os.exit(lu.LuaUnit.run()) end
