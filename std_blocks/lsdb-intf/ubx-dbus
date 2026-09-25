@@ -53,7 +53,12 @@ local function str2lua(str)
    return r
 end
 
-local function split(str) return utils.split(str, ARGSEP) end
+-- split at ARGSEP, keeping empty fields (utils.split drops a leading one)
+local function split(str)
+   local t = {}
+   for f in (str..ARGSEP):gmatch("(.-)"..ARGSEP) do t[#t+1] = f end
+   return t
+end
 
 local help = [[
 ubx-dbus v0.1
@@ -406,7 +411,7 @@ if opts.connect then
      args[3] or "",
      args[4] or "",
      args[5] or "",
-     lsdb.tovariant(args[6] or "")
+     lsdb.tovariant((args[6] and args[6] ~= "") and str2lua(args[6]) or "")
    )
    handled = true
 end
