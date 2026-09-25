@@ -54,7 +54,7 @@ end
 --- Methods
 local function load_module(vt, module)
    vt.nd:load_module(module)
-   vt:emitPropertiesChanged("CBlockTypes", "IBlockTypes")
+   vt:emitPropertiesChanged("CBlockTypes", "IBlockTypes", "Modules")
 end
 
 -- a list of port_clone_conn ports
@@ -78,8 +78,14 @@ local function vt_errhdl(e, bt, ctx)
    error(err.FAILED .. "|" .. estr)
 end
 
+-- notify subscribers of changed block instances or connections
+local function emit_blocks_changed(vt)
+   vt:emitPropertiesChanged("CBlocks", "Connections")
+end
+
 local function create_block(vt,	type, name, conf)
    ubx.block_create(vt.nd, type, name, conf)
+   emit_blocks_changed(vt)
 end
 
 -- drop cached port clones that are connected to iblock ibname
@@ -125,6 +131,7 @@ end
 local function remove_block(vt, name)
    check_not_self(vt, name)
    unload_block(vt, name)
+   emit_blocks_changed(vt)
 end
 
 local VALID_STATES = { preinit=true, inactive=true, active=true }
@@ -139,6 +146,7 @@ local function switch_state(vt, name, state)
       lsdb.throw(err.FAILED, "failed to switch block '%s' to state '%s' (now '%s')",
 		 name, state, b:get_block_state())
    end
+   emit_blocks_changed(vt)
 end
 
 local function trigger_blocks(vt, blocks)
@@ -203,11 +211,13 @@ end
 local function load_usc_json(vt, str)
    local sys = bd.load_str(str, 'json')
    sys:launch({ nd = vt.nd })
+   vt:emitAllPropertiesChanged()
 end
 
 local function load_usc_lua(vt, str)
    local sys = bd.load_str(str, 'lua')
    sys:launch({ nd = vt.nd })
+   vt:emitAllPropertiesChanged()
 end
 
 -- Return true if name matches any entry in the keeplist.
@@ -252,6 +262,7 @@ local function clear_node(vt, keeplist)
    for _, name in ipairs(names) do
       if ubx.ubx.ubx_block_get(vt.nd, name) ~= nil then unload_block(vt, name) end
    end
+   emit_blocks_changed(vt)
 end
 
 local function write(vt, bn, pn, val)
@@ -276,6 +287,7 @@ local function write(vt, bn, pn, val)
       pcc = ubx.port_clone_conn(b, pn, nil, nil, -1)
       wpccs[bn] = wpccs[bn] or {}
       wpccs[bn][pn] = pcc
+      vt:emitPropertiesChanged("Connections")
    end
 
    ubx.port_write(pcc, val)
@@ -301,6 +313,7 @@ local function read(vt, bn, pn)
       pcc = ubx.port_clone_conn(b, pn, nil, nil, -1)
       rppcs[bn] = rppcs[bn] or {}
       rppcs[bn][pn] = pcc
+      vt:emitPropertiesChanged("Connections")
    end
 
    local ret, res = ubx.port_read(pcc)
