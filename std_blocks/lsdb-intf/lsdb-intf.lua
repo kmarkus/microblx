@@ -95,12 +95,36 @@ local function drop_pccs_of(ibname)
    end
 end
 
-local function remove_block(vt, name)
-   check_not_self(vt, name)
+-- names of the iblocks connecting the cached port clones of block name
+local function pcc_iblocks_of(name)
+   local res = {}
+   for _, cache in ipairs{ wpccs, rppcs } do
+      for _, pcc in pairs(cache[name] or {}) do
+	 local c = ubx.port_conns_totab(pcc)
+	 for _, n in ipairs(c.incoming) do res[#res+1] = n end
+	 for _, n in ipairs(c.outgoing) do res[#res+1] = n end
+      end
+   end
+   return res
+end
+
+-- remove a block along with the iblocks of its cached port clones
+local function unload_block(vt, name)
+   local b = ubx.block_get(vt.nd, name)
+   local pcc_ibs = pcc_iblocks_of(name)
    wpccs[name] = nil
    rppcs[name] = nil
-   if ubx.is_iblock(ubx.block_get(vt.nd, name)) then drop_pccs_of(name) end
+   if ubx.is_iblock(b) then drop_pccs_of(name) end
    ubx.block_unload(vt.nd, name)
+
+   for _, ib in ipairs(pcc_ibs) do
+      if ubx.ubx.ubx_block_get(vt.nd, ib) ~= nil then ubx.block_unload(vt.nd, ib) end
+   end
+end
+
+local function remove_block(vt, name)
+   check_not_self(vt, name)
+   unload_block(vt, name)
 end
 
 local VALID_STATES = { preinit=true, inactive=true, active=true }
@@ -221,7 +245,10 @@ local function clear_node(vt, keeplist)
    -- collect the names first: removing frees the block that
    -- blocks_map would read the next pointer from
    local names = ubx.blocks_map(vt.nd, function(b) return b:get_name() end, filter)
-   for _, name in ipairs(names) do remove_block(vt, name) end
+   -- skip names already removed along with their port clone owner
+   for _, name in ipairs(names) do
+      if ubx.ubx.ubx_block_get(vt.nd, name) ~= nil then unload_block(vt, name) end
+   end
 end
 
 local function write(vt, bn, pn, val)

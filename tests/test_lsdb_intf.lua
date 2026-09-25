@@ -488,6 +488,28 @@ return bd.system {
    end
 end
 
+-- removing a block also removes the iblocks of its port clones
+function TestLsdbIntf:test_remove_block_removes_pccs()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_rm_pccs")
+
+   local sys = bd.load_str(make_thres_usc("t1", 5.0), 'lua')
+   sys:launch{ nd=_nd }
+   assert_equals(write_trigger_read(_proxy, "t1", 7.0), 1)
+
+   local function num_pccs()
+      local n = 0
+      ubx.blocks_map(_nd, function(b)
+	 if b:get_name():match("^PCC") then n = n + 1 end
+      end)
+      return n
+   end
+   assert_true(num_pccs() > 0)
+
+   _proxy('SwitchState', "t1", "preinit")
+   _proxy('RemoveBlock', "t1")
+   assert_equals(num_pccs(), 0)
+end
+
 ---
 --- Plugins: ListPlugins / LoadPlugin / UnloadPlugin
 ---
