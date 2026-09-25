@@ -629,12 +629,30 @@ function M.block_get(nd, bname)
    return b
 end
 
---- Unload a block: transition to `preinit` then call `ubx_block_rm`.
+-- remove all references to iblock ib from the ports of all blocks
+local function iblock_disconnect_all(nd, ib)
+   M.blocks_map(nd, function(b)
+      M.ports_foreach(b, function(p)
+	 if M.is_inport(p) then
+	    while ubx.ubx_port_disconnect_in(p, ib) == 0 do end
+	 end
+	 if M.is_outport(p) then
+	    while ubx.ubx_port_disconnect_out(p, ib) == 0 do end
+	 end
+      end)
+   end)
+end
+
+--- Unload a block: transition to `preinit`, drop all references to
+-- it and call `ubx_block_rm`.
+--
+-- An iblock is disconnected from all ports.
 -- @param nd `ubx_node_t`
 -- @param name block name string
 function M.block_unload(nd, name)
    local b = M.block_get(nd, name)
    M.block_tostate(b, 'preinit')
+   if M.is_iblock(b) then iblock_disconnect_all(nd, b) end
    if M.block_rm(nd, name) ~= 0 then error("block_unload: ubx_block_rm failed for '"..name.."'") end
 end
 

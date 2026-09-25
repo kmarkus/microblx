@@ -1206,6 +1206,10 @@ ubx_block_t *ubx_block_create(ubx_node_t *nd, const char *type, const char *name
  * This will unregister a block and free it's data. The block must be
  * in BLOCK_STATE_PREINIT state.
  *
+ * References to the block held elsewhere are not touched: the caller
+ * must first disconnect an iblock from all ports (see ubx.block_unload
+ * in Lua).
+ *
  * @param nd node to remove block from
  * @param name block name to remove
  *
@@ -1292,6 +1296,9 @@ static int array_block_rm(const ubx_block_t ***arr, const ubx_block_t *rmblock)
 {
 	int ret = -1, cnt, match = -1;
 	const ubx_block_t **tmpb;
+
+	if (*arr == NULL)
+		goto out;
 
 	for (tmpb = *arr, cnt = 0; *tmpb != NULL; tmpb++, cnt++) {
 		if (*tmpb == rmblock)

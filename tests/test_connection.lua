@@ -202,4 +202,24 @@ function TestConnection:Test_05_SharedConfig()
    lu.assert_equals(i2:c("buffer_len"):tolua(), 16)
 end
 
+--- removing a connected iblock must drop the port references to it
+function TestConnection:Test_06_IBlockRmDisconnects()
+   ni = ubx.node_create("Test_06", { loglevel = LOGLEVEL })
+   for _,m in ipairs{ "stdtypes", "lfrb", "ramp_double", "math_double" } do
+      ubx.load_module(ni, m)
+   end
+   local r = ubx.block_create(ni, "ubx/ramp_double", "r", { start=0, slope=1 })
+   local m = ubx.block_create(ni, "ubx/math_double", "m", { func="sin" })
+   ubx.block_init(r)
+   ubx.block_init(m)
+   assert(ubx.connect(ni, "r", "out", "m", "x", "ubx/lfrb", {}))
+
+   local ib = ubx.port_totab(r:p("out")).connections.outgoing[1]
+   lu.assert_not_nil(ib)
+   ubx.block_unload(ni, ib)
+
+   lu.assert_equals(ubx.port_totab(r:p("out")).connections.outgoing, {})
+   lu.assert_equals(ubx.port_totab(m:p("x")).connections.incoming, {})
+end
+
 if not _RUNNER then os.exit( lu.LuaUnit.run() ) end
