@@ -448,6 +448,9 @@ end
 if opts.read then
    local p = get_proxy(ndname)
    local args = split(opts.read)
+   if #args ~= 2 then
+      errexit(1, "invalid arg: %s, expected BLOCK:PORT", opts.read)
+   end
    print(pt.tostr(p('Read', args[1], args[2])))
    handled = true
 end
@@ -455,6 +458,9 @@ end
 if opts.read_mon then
    local p = get_proxy(ndname)
    local args = split(opts.read_mon)
+   if #args ~= 2 then
+      errexit(1, "invalid arg: %s, expected BLOCK:PORT", opts.read_mon)
+   end
    while true do
       local v = p('Read', args[1], args[2])
       if v ~= false then
