@@ -363,8 +363,11 @@ local function get_modules(vt)
 end
 
 -- get_connections
+-- only ports are needed: block_totab would also convert all configs
 local function get_connections(vt)
-   local blocks = ubx.blocks_map(vt.nd, ubx.block_totab, ubx.is_instance)
+   local blocks = ubx.blocks_map(vt.nd, function(b)
+      return { name=b:get_name(), ports=ubx.ports_map(b, ubx.port_totab) }
+   end, ubx.is_instance)
 
    local r = {}
    for _,b in ipairs(blocks) do
