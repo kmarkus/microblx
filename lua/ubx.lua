@@ -399,7 +399,7 @@ function M.is_inoutport(p) return M.is_outport(p) and M.is_inport(p) end
 -- @param ... optional format arguments
 local function log(level, node, src, str, ...)
    if level <= node.loglevel then
-      ubx.__ubx_log(level, node, src, fmt(str, ...))
+      ubx.__ubx_log(level, node, src, "%s", fmt(str, ...))
    end
 end
 
