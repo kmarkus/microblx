@@ -158,6 +158,9 @@ local function connect(vt, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    tgtpn = tgtpn ~= "" and tgtpn or nil
    ibtype = ibtype ~= "" and ibtype or nil
    if ibconfig == "" or ibconfig == false then ibconfig = nil end
+   if ibconfig ~= nil and type(ibconfig) ~= 'table' then
+      lsdb.throw(err.INVALID_ARGS, "ibconfig must be a table, got %s", type(ibconfig))
+   end
 
    local ok, e = ubx.connect(vt.nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    if not ok then lsdb.throw(err.FAILED, "%s", e) end

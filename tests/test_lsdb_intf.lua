@@ -510,6 +510,15 @@ function TestLsdbIntf:test_remove_block_removes_pccs()
    assert_equals(num_pccs(), 0)
 end
 
+function TestLsdbIntf:test_connect_ibconfig_not_table()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_connect_ibconfig")
+
+   local sys = bd.load_str(make_thres_usc("t1", 5.0), 'lua')
+   sys:launch{ nd=_nd }
+   assert_error_msg_contains("ibconfig must be a table",
+      function() _proxy('Connect', "t1", "state", "", "", "ubx/lfrb", lsdb.tovariant("{}")) end)
+end
+
 ---
 --- Plugins: ListPlugins / LoadPlugin / UnloadPlugin
 ---
