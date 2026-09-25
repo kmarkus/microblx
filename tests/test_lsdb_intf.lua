@@ -383,6 +383,22 @@ return bd.system {
 end
 
 ---
+--- Error reporting and self-protection
+---
+
+function TestLsdbIntf:test_self_ops_rejected()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_self_ops")
+
+   assert_error_msg_contains("not allowed on the lsdb-intf block",
+      function() _proxy('SwitchState', "lsdb0", "inactive") end)
+   assert_error_msg_contains("not allowed on the lsdb-intf block",
+      function() _proxy('Trigger', { "lsdb0" }) end)
+   assert_error_msg_contains("not allowed on the lsdb-intf block",
+      function() _proxy('RemoveBlock', "lsdb0") end)
+   assert_equals(_lsdb_blk:get_block_state(), "active")
+end
+
+---
 --- Plugins: ListPlugins / LoadPlugin / UnloadPlugin
 ---
 

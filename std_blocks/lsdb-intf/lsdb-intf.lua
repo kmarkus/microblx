@@ -42,6 +42,15 @@ local function check_config(vt, bname, cname)
    return c, b
 end
 
+-- the handlers run in the lsdb-intf block's own thread with its
+-- luablock mutex held: stepping, stopping or removing that block from
+-- here deadlocks
+local function check_not_self(vt, name)
+   if name == vt.blkname then
+      lsdb.throw(err.INVALID_ARGS, "operation not allowed on the lsdb-intf block '%s'", name)
+   end
+end
+
 --- Methods
 local function load_module(vt, module)
    vt.nd:load_module(module)
@@ -74,18 +83,21 @@ local function create_block(vt,	type, name, conf)
 end
 
 local function remove_block(vt, name)
+   check_not_self(vt, name)
    wpccs[name] = nil
    rppcs[name] = nil
    ubx.block_unload(vt.nd, name)
 end
 
 local function switch_state(vt, name, state)
+   check_not_self(vt, name)
    local b = check_block(vt, name)
    ubx.block_tostate(b, state)
 end
 
 local function trigger_blocks(vt, blocks)
    for _,name in ipairs(blocks) do
+      check_not_self(vt, name)
       local b = check_block(vt, name)
       b:do_step()
    end
