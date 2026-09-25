@@ -19,7 +19,13 @@ local _prefix = ubx.get_prefix()
 local PLUGIN_DIR = _prefix .. "/share/ubx/lsdb-intf.d"
 
 -- helpers
+
+-- declare types of modules loaded since start (e.g. by a USC or by
+-- another Lua state) in this Lua state's ffi
+local function load_types(vt) ubx.ffi_load_types(vt.nd) end
+
 local function check_block(vt, name)
+   load_types(vt)
    local b = ubx.block_get(vt.nd, name)
    if b == nil then
       lsdb.throw(err.INVALID_ARGS, "invalid block '%s'", name)
@@ -175,6 +181,8 @@ end
 local function write(vt, bn, pn, val)
    local pcc
 
+   load_types(vt)
+
    -- ensure the blocks (still) exists
    local b = ubx.block_get(vt.nd, bn)
 
@@ -200,6 +208,7 @@ end
 local function read(vt, bn, pn)
    local pcc
 
+   load_types(vt)
    local b = ubx.block_get(vt.nd, bn)
 
    if not b then
