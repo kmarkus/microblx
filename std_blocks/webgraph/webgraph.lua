@@ -798,16 +798,31 @@ local function send_response(client, status, ctype, body)
    client:send(body)
 end
 
+-- total time a request may take: this runs in step, so a slow or
+-- stalled client must not block the triggering thread for long
+local REQUEST_TIMEOUT = 0.5
+
 local function handle_request(client, nd)
-   client:settimeout(1)
-   local req = client:receive("*l")
+   local deadline = socket.gettime() + REQUEST_TIMEOUT
+
+   local function receive_line()
+      local left = deadline - socket.gettime()
+      if left <= 0 then return nil end
+      client:settimeout(left)
+      return client:receive("*l")
+   end
+
+   local req = receive_line()
    if not req then return end
 
    -- drain headers
    while true do
-      local ln = client:receive("*l")
-      if not ln or ln == "" then break end
+      local ln = receive_line()
+      if not ln then return end
+      if ln == "" then break end
    end
+
+   client:settimeout(REQUEST_TIMEOUT)
 
    local path = req:match("^%u+ (/[^ ]*)")
    if not path then return end
