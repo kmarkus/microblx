@@ -2040,12 +2040,12 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    -- get blocks and check they exist
    if srcbn then
       srcb = ubx.ubx_block_get(nd, srcbn)
-      if srcb == nil then return false, fmt("no src block %s") end
+      if srcb == nil then return false, fmt("no src block %s", srcbn) end
    end
 
    if tgtbn then
       tgtb = ubx.ubx_block_get(nd, tgtbn)
-      if tgtb == nil then return false, fmt("no tgt block %s") end
+      if tgtb == nil then return false, fmt("no tgt block %s", tgtbn) end
    end
 
    -- check: one of src and target must exist
@@ -2188,7 +2188,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    elseif srcp and not tgtp then
       -- block.port -> iblock
       if ubx.ubx_port_connect_out(srcp, tgtb) ~= 0 then
-	 return false, fmt("failed to connect %s.p to iblock %s", srcbn, srcpn, tgtbn)
+	 return false, fmt("failed to connect %s.%s to iblock %s", srcbn, srcpn, tgtbn)
       end
       M.block_tostate(tgtb, 'active')
       info(nd, "connect", fmt("%s.%s -> %s [%s]",
