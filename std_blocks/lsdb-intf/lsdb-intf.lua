@@ -413,6 +413,16 @@ local function resolve_plugin_path(name)
    return PLUGIN_DIR .. "/" .. name
 end
 
+-- call a plugin's cleanup hook; errors are logged, not raised, so
+-- that a broken cleanup can't prevent unloading
+local function plugin_cleanup(name, mod)
+   if type(mod) ~= 'table' or type(mod.cleanup) ~= 'function' then return end
+   local ok, e = pcall(mod.cleanup)
+   if not ok then
+      ubx.err(vt.nd, "lsdb-intf", fmt("plugin '%s' cleanup failed: %s", name, tostring(e)))
+   end
+end
+
 local function do_load_plugin(name)
    if plugins_reg[name] then
       lsdb.throw(err.INVALID_ARGS, "plugin '%s' already loaded", name)
@@ -429,9 +439,14 @@ local function do_load_plugin(name)
    end
    local spec = mod.init(ctx)
    if type(spec) ~= 'table' or type(spec.path) ~= 'string' or type(spec.intf) ~= 'table' then
+      plugin_cleanup(name, mod)
       lsdb.throw(err.FAILED, "plugin '%s' init() must return { path=string, intf=table }", path)
    end
-   local pvt = lsdb.server.new(bus, spec.path, spec.intf, vt_errhdl)
+   local ok, pvt = pcall(lsdb.server.new, bus, spec.path, spec.intf, vt_errhdl)
+   if not ok then
+      plugin_cleanup(name, mod)
+      error(pvt, 0)
+   end
    plugins_reg[name] = { vt=pvt, mod=mod }
    ubx.info(vt.nd, "lsdb-intf", fmt("loaded plugin '%s'", name))
 end
@@ -441,7 +456,7 @@ local function do_unload_plugin(name)
    if not p then
       lsdb.throw(err.INVALID_ARGS, "plugin '%s' not loaded", name)
    end
-   if p.mod and type(p.mod.cleanup) == 'function' then p.mod.cleanup() end
+   plugin_cleanup(name, p.mod)
    ubx.info(vt.nd, "lsdb-intf", fmt("unloaded plugin '%s'", name))
    p.vt:unref()
    plugins_reg[name] = nil

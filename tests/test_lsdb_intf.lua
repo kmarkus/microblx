@@ -771,4 +771,40 @@ function TestLsdbIntfPluginErrors:test_init_intf_not_table()
    os.remove(path)
 end
 
+function TestLsdbIntfPluginErrors:test_cleanup_error_unload()
+   local nd, blk, bus, pm = create_pm_node("cleanuperr")
+   local path = write_tmpfile([[
+return {
+   init = function() return { path = "/cleanuperr", intf = { name = "org.test.cleanuperr",
+          methods = { Ping = { handler = function() end } } } } end,
+   cleanup = function() error("cleanup failed") end,
+}]])
+   pm('LoadPlugin', path)
+   pm('UnloadPlugin', path)
+   assert_true(not list_contains(pm('ListPlugins'), path))
+   ubx.block_stop(blk); ubx.block_cleanup(blk); ubx.node_rm(nd)
+   os.remove(path)
+end
+
+function TestLsdbIntfPluginErrors:test_register_error_cleanup()
+   local nd, blk, bus, pm = create_pm_node("regerr")
+   local marker = os.tmpname()
+   local plugin = [[
+return {
+   init = function() return { path = "/regerr", intf = { name = "org.test.regerr",
+          methods = { Ping = { handler = function() end } } } } end,
+   cleanup = function() local f = io.open("%s", "w"); f:write("%s"); f:close() end,
+}]]
+   local path1 = write_tmpfile(fmt(plugin, marker, "1"))
+   local path2 = write_tmpfile(fmt(plugin, marker, "2"))
+   pm('LoadPlugin', path1)
+   -- same object path and interface: registering fails
+   assert_error_msg_contains("failed to add vtable",
+      function() pm('LoadPlugin', path2) end)
+   assert_equals(io.open(marker):read("*a"), "2")
+   assert_true(not list_contains(pm('ListPlugins'), path2))
+   ubx.block_stop(blk); ubx.block_cleanup(blk); ubx.node_rm(nd)
+   os.remove(path1); os.remove(path2); os.remove(marker)
+end
+
 if not _RUNNER then os.exit(luaunit.LuaUnit.run()) end
