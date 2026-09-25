@@ -68,8 +68,8 @@ Usage: ubx-dbus COMMAND [OPTIONS]
 Commands
   -i  --info=[BLOCK]              show information about the node or a block
   -m  --module=MODULE             load a module
-  -n  --create=NAME:TYPE:CFG      create a block NAME of TYPE and apply the CFG table
-  -r  --remove=NAME               remove a block
+      --create=TYPE:NAME:CFG      create a block NAME of TYPE and apply the CFG table
+      --remove=NAME               remove a block
   -s  --switch-state=BLOCK:STATE  bring a block to a given state [preinit,inactive,active]
   -t  --trigger=BLOCK[:BLOCK...]  call the step function of one or more blocks
   -T  --periodic=BLOCK[:BLOCK...] like --trigger but call continuously
@@ -352,7 +352,7 @@ if opts.create then
    local p = get_proxy(ndname)
    local args = split(opts.create)
    if #args ~= 3 then
-      errexit(1, "invalid arg: %s, expected NAME:TYPE:{CONFIG}", opts.create)
+      errexit(1, "invalid arg: %s, expected TYPE:NAME:{CONFIG}", opts.create)
    end
    local cfg = str2lua(args[3])
    p('CreateBlock', args[1], args[2], lsdb.tovariant2(cfg))
@@ -369,7 +369,7 @@ if opts.switch_state then
    local p = get_proxy(ndname)
    local args = split(opts.switch_state)
    if #args < 2 then
-      errexit(1, "invalid arg: %s, expected BLOCK,STATE", opts.switch_state)
+      errexit(1, "invalid arg: %s, expected BLOCK:STATE", opts.switch_state)
    end
    p('SwitchState', args[1], args[2])
    handled = true
@@ -541,20 +541,20 @@ Examples:
   # load a module
   ubx-dbus -m /usr/local/lib/ubx/0.9/lfrb.so
 
-  # create a block named 'buf1' of type 'lfrb'
-  ubx-dbus --create=buf1:lfrb:{data_len=8,buffer_len=4}
+  # create a block named 'buf1' of type 'ubx/lfrb'
+  ubx-dbus --create='ubx/lfrb:buf1:{type_name="double",data_len=8,buffer_len=4}'
 
   # bring a block to active state
   ubx-dbus --switch-state=buf1:active
 
   # connect src.outport to tgt.inport via an lfrb iblock
-  ubx-dbus --connect=src:outport:tgt:inport:lfrb:{}
+  ubx-dbus --connect=src:outport:tgt:inport:ubx/lfrb:{}
 
   # get a config value
   ubx-dbus --config=ptrig0:period
 
   # set a config value
-  ubx-dbus --config=ptrig0:period:{sec=0,nsec=100000000}
+  ubx-dbus --config=ptrig0:period:{sec=0,usec=100000}
 
   # write a value to a port
   ubx-dbus --write=myblock:myport:42
