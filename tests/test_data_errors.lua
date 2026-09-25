@@ -145,4 +145,16 @@ function TestDataErrors:test_data_resize_negative()
    assert_equals(tonumber(d.len), 2)
 end
 
+--- Test data_set rejects a string for a non-char type
+function TestDataErrors:test_data_set_string_non_char()
+   local d = ubx.data_alloc(nd, "double", 1)
+   lu.assert_error_msg_contains("can't assign string 'abc' to type double",
+				ubx.data_set, d, "abc", true)
+   assert_equals(tonumber(d.len), 1)
+
+   local c = ubx.data_alloc(nd, "char", 1)
+   ubx.data_set(c, "abc", true)
+   assert_equals(ubx.data_tolua(c), "abc")
+end
+
 if not _RUNNER then os.exit(lu.LuaUnit.run()) end

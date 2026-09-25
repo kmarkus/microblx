@@ -1397,6 +1397,12 @@ local function is_numeric_cdata(v)
    return false
 end
 
+-- types a Lua string may be assigned to
+local STRING_TYPES = {
+   ["char"]=true, ["signed char"]=true, ["unsigned char"]=true,
+   ["int8_t"]=true, ["uint8_t"]=true,
+}
+
 --- Assign a value to a `ubx_data_t`.
 -- Accepts Lua tables, strings, numbers, and integer cdata
 -- (`int8_t`..`int64_t` / `uint8_t`..`uint64_t`); follows LuaJIT FFI
@@ -1436,6 +1442,10 @@ function M.data_set(d, val, resize)
 	 end
       end
    elseif val_type=='string' then
+      local tn = safe_tostr(d.type.name)
+      if not STRING_TYPES[tn] then
+	 error(fmt("data_set: can't assign string '%s' to type %s", val, tn))
+      end
       if d.len<#val+1 then
 	 M.data_resize(d, #val+1)
 	 d_cdata = M.data_to_cdata(d) -- pointer could have changed in realloc!
