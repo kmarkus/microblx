@@ -456,6 +456,38 @@ function TestLsdbIntf:test_read_after_clearnode_keep()
    assert_equals(write_trigger_read(_proxy, "t1", 7.0), 1)
 end
 
+function TestLsdbIntf:test_clearnode_stops_kept_trigger()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_clearnode_trig")
+
+   ubx.load_module(_nd, "ptrig")
+   local sys = bd.load_str([[
+return bd.system {
+   imports = { "stdtypes", "lfrb", "threshold", "ptrig" },
+   blocks = {
+      { name = "t1", type = "ubx/threshold" },
+      { name = "pt", type = "ubx/ptrig" },
+   },
+   configurations = {
+      { name = "t1", config = { threshold = 5.0 } },
+      { name = "pt", config = { period = { sec=0, usec=1000 }, chain0 = { { b="#t1" } } } },
+   },
+}
+]], 'lua')
+   sys:launch{ nd=_nd }
+   assert_equals(ubx.block_get(_nd, "pt"):get_block_state(), "active")
+
+   _proxy('ClearNode', { "pt" })
+
+   assert_true(not cblocks_contains(_proxy.CBlocks, "t1"))
+   assert_equals(ubx.block_get(_nd, "pt"):get_block_state(), "inactive")
+
+   -- t1 was removed from the chain
+   local info = _proxy('GetBlockInfo', "pt")
+   for _, c in ipairs(info.configs) do
+      if c.name == "chain0" then assert_equals(c.value, nil) end
+   end
+end
+
 ---
 --- Plugins: ListPlugins / LoadPlugin / UnloadPlugin
 ---

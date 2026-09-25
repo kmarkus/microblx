@@ -209,6 +209,13 @@ local function clear_node(vt, keeplist)
       return true
    end
 
+   -- stop all triggers first, including kept ones: their chains
+   -- reference the blocks removed below
+   local function is_trigger(b)
+      return ubx.is_instance(b) and ubx.block_istrigger(b) and b:get_name() ~= vt.blkname
+   end
+   ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'inactive') end, is_trigger)
+
    ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'inactive') end, filter)
    ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'preinit') end, filter)
    -- collect the names first: removing frees the block that
