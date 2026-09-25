@@ -186,6 +186,9 @@ local function write(vt, bn, pn, val)
    if wpccs[bn] and wpccs[bn][pn] then
       pcc = wpccs[bn][pn]
    else
+      if not ubx.is_inport(ubx.port_get(b, pn)) then
+	 lsdb.throw(err.INVALID_ARGS, "write: %s.%s is not an in-port", bn, pn)
+      end
       pcc = ubx.port_clone_conn(b, pn, nil, nil, -1)
       wpccs[bn] = wpccs[bn] or {}
       wpccs[bn][pn] = pcc
@@ -207,6 +210,9 @@ local function read(vt, bn, pn)
    if rppcs[bn] and rppcs[bn][pn] then
       pcc = rppcs[bn][pn]
    else
+      if not ubx.is_outport(ubx.port_get(b, pn)) then
+	 lsdb.throw(err.INVALID_ARGS, "read: %s.%s is not an out-port", bn, pn)
+      end
       pcc = ubx.port_clone_conn(b, pn, nil, nil, -1)
       rppcs[bn] = rppcs[bn] or {}
       rppcs[bn][pn] = pcc

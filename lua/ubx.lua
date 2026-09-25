@@ -1099,6 +1099,7 @@ function M.__data_alloc(typ, num)
    num = num or 1
    local d = ubx.__ubx_data_alloc(typ, num)
    if d==nil then
+      if typ == nil then error("data_alloc: type is NULL") end
       error("data_alloc: unknown type '"..safe_tostr(typ.name).."'")
    end
    ffi.gc(d, function(dat) ubx.ubx_data_free(dat) end)
@@ -1614,6 +1615,7 @@ end
 -- @param p `ubx_port_t` (must be an inport)
 -- @return `ubx_data_t`
 function M.port_alloc_read_sample(p)
+   if not M.is_inport(p) then error("port "..ffi.string(p.name).." is not an inport") end
    return M.__data_alloc(p.in_type, p.in_data_len)
 end
 
@@ -1621,6 +1623,7 @@ end
 -- @param p `ubx_port_t` (must be an outport)
 -- @return `ubx_data_t`
 function M.port_alloc_write_sample(p)
+   if not M.is_outport(p) then error("port "..ffi.string(p.name).." is not an outport") end
    return M.__data_alloc(p.out_type, p.out_data_len)
 end
 

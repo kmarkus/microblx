@@ -222,4 +222,15 @@ function TestConnection:Test_06_IBlockRmDisconnects()
    lu.assert_equals(ubx.port_totab(m:p("x")).connections.incoming, {})
 end
 
+--- reading the clone of an in-port must fail cleanly
+function TestConnection:Test_07_ReadInPortClone()
+   ni = ubx.node_create("Test_07", { loglevel = LOGLEVEL })
+   for _,m in ipairs{ "stdtypes", "lfrb", "math_double" } do
+      ubx.load_module(ni, m)
+   end
+   local m = ubx.block_create(ni, "ubx/math_double", "m", { func="sin" })
+   local pcc = ubx.port_clone_conn(m, "x", nil, nil, -1)
+   lu.assert_error_msg_contains("is not an inport", ubx.port_read, pcc)
+end
+
 if not _RUNNER then os.exit( lu.LuaUnit.run() ) end
