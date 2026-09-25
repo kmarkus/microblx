@@ -2092,7 +2092,12 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       end
    end
 
-   ibconfig = ibconfig or {}
+   -- work on a copy: the defaults added below (type_name, data_len,
+   -- ...) must not leak into the caller's table, which may be shared
+   -- between several connections
+   local cfg = {}
+   for k, v in pairs(ibconfig or {}) do cfg[k] = v end
+   ibconfig = cfg
 
    -- creating src iblock
    if srcb == nil or tgtb == nil then

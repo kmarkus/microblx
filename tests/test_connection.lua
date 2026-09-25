@@ -161,4 +161,45 @@ function TestConnection:Test_04_MQNonExisting()
    lu.assert_equals(conntab_act, conntab_exp)
 end
 
+--- a config table shared by connections of different type and length
+--- must not be modified by connect
+function TestConnection:Test_05_SharedConfig()
+   local cfg = { buffer_len = 16 }
+   local function sat(typ, len)
+      return { type=typ, data_len=len, lower_limits=-1, upper_limits=1 }
+   end
+
+   local sys = bd.system {
+      imports = { "stdtypes", "lfrb", "saturation" },
+      blocks = {
+	 { name = "sat1", type = "ubx/saturation" },
+	 { name = "sat2", type = "ubx/saturation" },
+	 { name = "sat3", type = "ubx/saturation" },
+	 { name = "sat4", type = "ubx/saturation" },
+      },
+      configurations = {
+	 { name = "sat1", config = sat("double", 1) },
+	 { name = "sat2", config = sat("double", 1) },
+	 { name = "sat3", config = sat("int32_t", 3) },
+	 { name = "sat4", config = sat("int32_t", 3) },
+      },
+      connections = {
+	 { src="sat1.out", tgt="sat2.in", config=cfg },
+	 { src="sat3.out", tgt="sat4.in", config=cfg },
+      },
+   }
+
+   ni = sys:launch({nodename = "TestSharedConfig", loglevel=LOGLEVEL })
+   lu.assert_not_nil(ni)
+
+   lu.assert_equals(cfg, { buffer_len = 16 })
+
+   local i1, i2 = ni:b("i_00000001"), ni:b("i_00000002")
+   lu.assert_equals(i1:c("type_name"):tolua(), "double")
+   lu.assert_equals(i1:c("data_len"):tolua(), 1)
+   lu.assert_equals(i2:c("type_name"):tolua(), "int32_t")
+   lu.assert_equals(i2:c("data_len"):tolua(), 3)
+   lu.assert_equals(i2:c("buffer_len"):tolua(), 16)
+end
+
 if not _RUNNER then os.exit( lu.LuaUnit.run() ) end
