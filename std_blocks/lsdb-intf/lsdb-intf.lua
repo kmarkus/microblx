@@ -197,7 +197,10 @@ local function clear_node(vt, keeplist)
 
    ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'inactive') end, filter)
    ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'preinit') end, filter)
-   ubx.blocks_map(vt.nd, function(b) remove_block(vt, b:get_name()) end, filter)
+   -- collect the names first: removing frees the block that
+   -- blocks_map would read the next pointer from
+   local names = ubx.blocks_map(vt.nd, function(b) return b:get_name() end, filter)
+   for _, name in ipairs(names) do remove_block(vt, name) end
 end
 
 local function write(vt, bn, pn, val)
