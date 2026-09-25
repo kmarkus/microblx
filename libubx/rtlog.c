@@ -56,7 +56,9 @@ void __ubx_log(const int level, const ubx_node_t *nd, const char *src, const cha
 	msg.src[UBX_BLOCK_NAME_MAXLEN] = '\0';
 
 	va_start(args, fmt);
-	vsnprintf(msg.msg, sizeof(msg.msg), fmt, args);
+	/* mark truncated messages with a trailing '~' */
+	if (vsnprintf(msg.msg, sizeof(msg.msg), fmt, args) >= (int)sizeof(msg.msg))
+		msg.msg[sizeof(msg.msg) - 2] = '~';
 	va_end(args);
 
 	if (!nd->log) {
