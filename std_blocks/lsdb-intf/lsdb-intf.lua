@@ -89,17 +89,27 @@ local function remove_block(vt, name)
    ubx.block_unload(vt.nd, name)
 end
 
+local VALID_STATES = { preinit=true, inactive=true, active=true }
+
 local function switch_state(vt, name, state)
    check_not_self(vt, name)
+   if not VALID_STATES[state] then
+      lsdb.throw(err.INVALID_ARGS, "invalid state '%s'", state)
+   end
    local b = check_block(vt, name)
-   ubx.block_tostate(b, state)
+   if ubx.block_tostate(b, state) ~= 0 then
+      lsdb.throw(err.FAILED, "failed to switch block '%s' to state '%s' (now '%s')",
+		 name, state, b:get_block_state())
+   end
 end
 
 local function trigger_blocks(vt, blocks)
    for _,name in ipairs(blocks) do
       check_not_self(vt, name)
       local b = check_block(vt, name)
-      b:do_step()
+      if b:do_step() ~= 0 then
+	 lsdb.throw(err.FAILED, "failed to trigger block '%s'", name)
+      end
    end
 end
 

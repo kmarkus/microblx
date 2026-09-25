@@ -184,6 +184,7 @@ function TestLsdbIntf:test_create_and_remove_block()
    _proxy('CreateBlock', "ubx/threshold", "t1", {})
    assert_true(cblocks_contains(_proxy.CBlocks, "t1"))
 
+   _proxy('SetConfig', "t1", "threshold", lsdb.tovariant(5.0))
    _proxy('SwitchState', "t1", "inactive")
    _proxy('SwitchState', "t1", "preinit")
    _proxy('RemoveBlock', "t1")
@@ -420,6 +421,26 @@ return bd.system {
    assert_error_msg_contains("is triggered by active block 'pt'",
       function() _proxy('RemoveBlock', "t1") end)
    assert_true(cblocks_contains(_proxy.CBlocks, "t1"))
+end
+
+function TestLsdbIntf:test_switch_state_errors()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_switch_errors")
+
+   _proxy('CreateBlock', "ubx/threshold", "t1", {})
+   assert_error_msg_contains("invalid state 'bogus'",
+      function() _proxy('SwitchState', "t1", "bogus") end)
+
+   -- threshold init fails without a threshold config
+   assert_error_msg_contains("failed to switch block 't1' to state 'active'",
+      function() _proxy('SwitchState', "t1", "active") end)
+end
+
+function TestLsdbIntf:test_trigger_inactive_fails()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_trigger_inactive")
+
+   _proxy('CreateBlock', "ubx/threshold", "t1", {})
+   assert_error_msg_contains("failed to trigger block 't1'",
+      function() _proxy('Trigger', { "t1" }) end)
 end
 
 ---
