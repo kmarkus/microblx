@@ -275,6 +275,55 @@ Other changes:
   `-s`; needs `libdaemon` at build time) — properly daemonizes via
   `libdaemon`, writes a PID file at `/run/ubx-log.pid`, and prevents
   duplicate instances.
+- `lua`: `ubx.block_unload` now drops all references to the block
+  before removing it: an iblock is disconnected from all ports, and the
+  block is removed from the chains (`struct ubx_triggee` configs) of
+  all inactive blocks. It **fails** if an active block still triggers
+  the block. `ubx_block_rm` itself does not touch references; callers
+  using it directly must do this themselves.
+- `libubx`: `ubx_port_connect_in` and `ubx_port_connect_out` reject a
+  block that is not an iblock instance (`EINVALID_BLOCK_TYPE`), and
+  `ubx.connect` rejects a cblock or prototype where an iblock is
+  expected. Previously the cblock's step function was called as the
+  iblock's read/write function.
+- `lua`: `data_set` raises an error when assigning a string to a type
+  other than `char`, `signed char`, `unsigned char`, `int8_t` or
+  `uint8_t`. Previously the raw string bytes were copied and the data
+  resized.
+- `lua`: reading from or writing to a port in the wrong direction
+  (e.g. `port_read` on an out-only port) raises an error instead of
+  crashing.
+- `lua`: **fix** log messages containing `%` crashed, as the message
+  was used as the format string.
+- `rtlog`: truncated log messages now end with `~`.
+- `lsdb-intf`: `SwitchState`, `Trigger` and `RemoveBlock` on the
+  lsdb-intf block itself are rejected with `InvalidArgs` (they
+  deadlocked). `SwitchState` rejects unknown states and, like
+  `Trigger`, reports failures (both were silently ignored). `Read` and
+  `Write` reject ports of the wrong direction, and `Connect` a
+  non-table `ibconfig`.
+- `lsdb-intf`: `ClearNode` stops all trigger blocks first, including
+  kept ones. **fix** use-after-free reads when removing blocks and
+  when reading via a kept block's cached port clones.
+- `lsdb-intf`: removing a block also removes the iblocks created for
+  its `Read`/`Write` port clones (these leaked).
+- `lsdb-intf`: `PropertiesChanged` is emitted for `CBlocks` and
+  `Connections` on all changes, and for `Modules` on `LoadModule`.
+- `lsdb-intf`: a failing plugin `cleanup()` no longer prevents
+  unloading, and `cleanup()` is called when registering a plugin's
+  D-Bus object fails. Types of modules loaded after start (e.g. by
+  another Lua state) are now known, so `GetBlockInfo` works for them.
+- `ubx-dbus`: **incompatible**: the short options `-n` (`--create`)
+  and `-r` (`--remove`) were removed; they clashed with `-n`
+  (`--node`) and `-r` (`--read`) and never worked. The `--create` help
+  now documents the actual `TYPE:NAME:CFG` order. `--connect` parses
+  the iblock config as a Lua table and keeps empty fields (e.g.
+  `::blk:port:ubx/mqueue:{}`).
+- `webgraph`: a request may block `step` for at most about 1 s (a slow
+  client could block it indefinitely).
+- Blocks that step other blocks, e.g. via a `struct ubx_triggee`
+  chain, must declare `BLOCK_ATTR_TRIGGER` (see
+  `docs/user/developing_blocks.rst`).
 
 ## 0.9.2
 
