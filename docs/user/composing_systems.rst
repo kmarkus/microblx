@@ -131,7 +131,7 @@ initialized, configured and started. ``ubx-launch`` handles this in
 safe way by starting up active blocks after all other blocks (In
 earlier versions, there was ``start`` directive to list the blocks to
 be started, however now this information is obtained by means of the
-block attributes ``BLOCK_ATTR_ACTIVE`` and ``BLOCK_ATTR_TRIGGER``.)
+block attribute ``BLOCK_ATTR_ACTIVE``.)
 
 The following sequence diagram shows the order in which the deployment
 calls the block hooks and applies configuration. Note in particular
