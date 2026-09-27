@@ -362,6 +362,22 @@ data-structure that can then be registered in a microblx module:
        .cleanup = rnd_cleanup,
    };
 
+The optional ``.attrs`` field declares block attributes:
+
+.. csv-table::
+   :header: "attribute", "meaning"
+   :widths: 10, 60
+
+   ``BLOCK_ATTR_ACTIVE``, "the block runs its own thread"
+   ``BLOCK_ATTR_TRIGGER``, "the block steps other blocks"
+
+Tools rely on these: ``ubx-launch`` starts active blocks after all
+others, and the D-Bus ``ClearNode`` stops all trigger blocks before
+removing anything. Hence a block that steps other blocks, for
+example via a ``struct ubx_triggee`` chain config, **must** declare
+``BLOCK_ATTR_TRIGGER``. Otherwise it may still be stepping blocks
+while these are being stopped and removed.
+
 Declaring types
 ---------------
 
