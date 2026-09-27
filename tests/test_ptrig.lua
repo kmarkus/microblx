@@ -398,9 +398,11 @@ function TestPtrig:TestPeriodPort()
 
    sys5:startup(nd)
 
-   -- run at 20ms for 500ms → ~25 steps
+   -- run at 20ms for 500ms → ~25 steps. With buffer_len 1, lfrb is
+   -- transiently empty while a write replaces the only element, so a
+   -- plain read coinciding with a step returns no data: retry.
    ubx.clock_mono_sleep(0, 500000000)
-   local _, v1 = p_ramp:read()
+   local _, v1 = p_ramp:read_timed(1)
    local steps_fast = v1:tolua()
 
    -- switch to 500ms period via port
@@ -408,7 +410,7 @@ function TestPtrig:TestPeriodPort()
 
    -- run another 500ms at slow rate → at most 1-2 additional steps
    ubx.clock_mono_sleep(0, 500000000)
-   local _, v2 = p_ramp:read()
+   local _, v2 = p_ramp:read_timed(1)
    local steps_slow = v2:tolua() - steps_fast
 
    nd:b("ptrig"):do_stop()
