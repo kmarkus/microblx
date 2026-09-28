@@ -3,6 +3,10 @@
 A self-contained luablock that serves an interactive React Flow + ELK.js
 graph of the current microblx node.
 
+**Note:** webgraph is a development tool. It listens on all interfaces
+without authentication and allows any origin (CORS `*`), so don't run it
+on production systems or on untrusted networks.
+
 ## Dependencies
 
 - `luasocket`
