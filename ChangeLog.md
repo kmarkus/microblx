@@ -5,6 +5,7 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `examples/platform` and its tutorial are removed.
 - docs: the Sphinx (readthedocs) documentation is replaced by
   `README.md` and the [usc reference](docs/usc.md). The cmake option
   `BUILD_DOCS` is removed.
