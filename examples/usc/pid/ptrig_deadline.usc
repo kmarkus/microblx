@@ -28,7 +28,7 @@ return bd.system {
    configurations = {
       { name="ptrig_1", config = {
 	   sched_policy = 'SCHED_DEADLINE',
-	   sched_deadline = { runtime_ns=60*1000 },
+	   sched_deadline = { runtime_ns=200*1000 },
 	   period = { sec=0, usec=PERIOD },
 	   tstats_mode=1,
 	   tstats_profile_path="/tmp",
