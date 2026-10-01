@@ -83,15 +83,19 @@ apt install cmake pkg-config luajit libluajit-5.1-dev uthash-dev \
 ```
 
 Mandatory, from source:
-[uutils](https://github.com/kmarkus/uutils) and
-[ffi-reflect](https://github.com/corsix/ffi-reflect):
+[uutils](https://github.com/kmarkus/uutils),
+[ffi-reflect](https://github.com/corsix/ffi-reflect) and
+[optparse](https://github.com/gvvaughan/optparse) (for `ubx-launch`
+and `ubx-dbus`, alternatively `luarocks install optparse`):
 
 ```sh
 git clone --depth=1 https://github.com/kmarkus/uutils.git
 git clone --depth=1 https://github.com/corsix/ffi-reflect.git
+git clone --depth=1 --branch v1.5 https://github.com/gvvaughan/optparse.git
 cd uutils && sudo make install && cd ..
-sudo install -d /usr/local/share/lua/5.1/
+sudo install -d /usr/local/share/lua/5.1/optparse/
 sudo cp ffi-reflect/reflect.lua /usr/local/share/lua/5.1/
+sudo cp optparse/lib/optparse/*.lua /usr/local/share/lua/5.1/optparse/
 ```
 
 Optional blocks are built if their dependencies are found:
