@@ -5,6 +5,7 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ubx-schedstat` is now installed.
 - `ubx-genblock` is removed. Use `examples/oot-block` as a template
   for out-of-tree blocks.
 - `examples/platform` and its tutorial are removed.

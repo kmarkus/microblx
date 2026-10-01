@@ -375,6 +375,7 @@ install(PROGRAMS
   tools/ubx-modinfo
   tools/ubx-tocarr
   tools/ubx-mq
+  tools/ubx-schedstat
   DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 #

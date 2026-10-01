@@ -174,6 +174,14 @@ Three timing parameters must be provided via the `sched_deadline` config:
 The kernel enforces `runtime_ns ≤ deadline_ns ≤ period_ns`; ptrig validates
 this at init and logs a clear error if the constraint is violated.
 
+To size `runtime_ns`, measure the worst-case on-CPU time per period of
+the running node under realistic load with `ubx-schedstat`, and add a
+small guard (e.g. +20%):
+
+```sh
+ubx-schedstat -n 60 1 1000   # 60 windows of 1 s, 1 kHz ptrig
+```
+
 When active, `sched_yield(2)` replaces the normal sleep after each chain
 trigger — this signals the kernel that the current job activation is done
 and lets it replenish the budget at the next period boundary. `sleep_mode`

@@ -399,7 +399,7 @@ Tools
 | `ubx-modinfo`  | show module, block and type info: `ubx-modinfo show ramp`   |
 | `ubx-tocarr`   | convert a type header to a `.hexarr` (used by builds)       |
 | `ubx-dbus`     | control a node via [lsdb-intf](std_blocks/lsdb-intf/README.md) |
-| `tools/ubx-schedstat` | per-thread CPU time of a running node, worst case per period for sizing `SCHED_DEADLINE` `runtime_ns` (not installed) |
+| `ubx-schedstat` | per-thread CPU time of a running node, worst case per period for sizing [`SCHED_DEADLINE`](std_blocks/trig/README.md#sched_deadline) `runtime_ns` |
 
 ```sh
 ubx-log            # follow, incl. old messages
@@ -412,7 +412,7 @@ ubx-log -d -s -O            # daemon, syslog only (needs libdaemon)
 ubx-ilaunch -c app.usc
 > ubx.block_tostate(nd:block_get("trig"), "inactive")
 
-tools/ubx-schedstat -n 60 1 1000   # 60 windows of 1 s, 1 kHz ptrig
+ubx-schedstat -n 60 1 1000   # 60 windows of 1 s, 1 kHz ptrig
 ```
 
 Standard blocks
