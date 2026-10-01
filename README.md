@@ -39,7 +39,6 @@ configurable POSIX realtime properties.
 - [Concepts](#concepts)
 - [Developing blocks](#developing-blocks)
 - [Composing systems](#composing-systems)
-    - [Launching from C](#launching-from-c)
 - [Tools](#tools)
 - [Standard blocks](#standard-blocks)
 - [Tracing](#tracing)
@@ -122,20 +121,11 @@ sudo make install && sudo ldconfig
 | `-DBUILD_LUA_DOCS=ON`           | Lua API docs, see [Lua API docs](#lua-api-docs)                   |
 | `-DCMAKE_BUILD_TYPE=<type>`     | default `RelWithDebInfo`                                          |
 
-Timing-sensitive systems should enable a hardware time source. The
-default POSIX clock costs a `clock_gettime` per timestamp, the counter
-sources a register read. On a 1.25 GHz Cortex-A53 (gcc 13.4 `-O2`):
-
-| time source                        | per read |
-|------------------------------------|----------|
-| POSIX (`clock_gettime`, vDSO)      | 65.3 ns  |
-| `CNTVCT`                           | 15.2 ns  |
-
-This is paid per timestamp: a `ptrig` with `tstats_mode=2` over a
-four-block chain takes eleven per cycle (~0.7 us POSIX vs. ~0.2 us
-`CNTVCT`, charged to the measured step duration). It also sets the
-resolution of the busy-wait in `sleep_mode` 1 and 2 (~68 ns POSIX vs.
-~9 ns `CNTVCT`).
+Timing-sensitive systems should enable a hardware time source: a
+timestamp costs 65 ns with the default POSIX clock (vDSO) vs. 15 ns
+with `CNTVCT` (1.25 GHz Cortex-A53). A `ptrig` with `tstats_mode=2`
+over four blocks takes eleven per cycle, and the `sleep_mode` 1/2
+busy-wait resolution follows the same ratio (~68 vs. ~9 ns).
 
 Query the options of an installation (also `ubx-modinfo -version`;
 timesource and tracing backend are logged at `INFO` on node init):
@@ -198,8 +188,9 @@ ubx-launch -l 7 -c /usr/local/share/ubx/examples/usc/threshold.usc
 Dump the events (Ctrl-C stops `ubx-launch`):
 
 ```sh
-ubx-mq list
-ubx-mq read thres.event -p threshold
+$ ubx-mq read thres.event -p threshold
+{ts={sec=533591,nsec=933403128},dir=1}
+{ts={sec=533591,nsec=959369940},dir=0}
 ```
 
 A larger example: a PID controller composed from several usc files,
@@ -213,7 +204,12 @@ ubx-launch --webgraph -c pid_test.usc,ptrig_nrt.usc
 
 ```sh
 $ ubx-mq list
-$ ubx-mq read controller_pid-out
+   mq id                     type name         array len  type hash
+1  controller_trig_1.tstats  struct ubx_tstat  1          243b40de92698defa93a145ace0616d2
+2  controller_ramp_des.out   double            10         e8cd7da078a86726031ad64f35f5a6c0
+3  ramp_msr.out              double            10         e8cd7da078a86726031ad64f35f5a6c0
+4  controller_pid_1.out      double            10         e8cd7da078a86726031ad64f35f5a6c0
+$ ubx-mq read controller_pid_1.out
 ```
 
 Concepts
@@ -381,11 +377,8 @@ Beyond this, usc supports:
   `ubx-launch -D PERIOD=500`
 - **external blocks**: connect to blocks of an already running node
 
-All features: [usc reference](docs/usc.md).
-
-### Launching from C
-
-Without Lua: [`examples/C/c-launch.c`](examples/C/).
+All features: [usc reference](docs/usc.md). To launch without Lua,
+see [`examples/C/c-launch.c`](examples/C/).
 
 Tools
 -----
@@ -423,10 +416,10 @@ Standard blocks
 | [ubx/cconst, ubx/iconst](std_blocks/const/README.md)                  | c/i-block | constant value of any registered type                                  |
 | [ubx/hexdump](std_blocks/hexdump/README.md)                           | i-block   | hex-dump written data to stdout (debug)                                |
 | [ubx/lfrb](std_blocks/lfrb/README.md)                                 | i-block   | hard-RT lock-free ring buffer                                          |
-| [ubx/lfds_cyclic](std_blocks/lfds_cyclic/README.md)                   | i-block   | hard-RT lock-free cyclic (overwriting) buffer                          |
+| [ubx/lfds_cyclic](std_blocks/lfds_cyclic/README.md)                   | i-block   | deprecated, use `ubx/lfrb`                                             |
 | [ubx/vstore](std_blocks/vstore/README.md)                             | i-block   | single-slot value store for same-thread connections                    |
 | [ubx/latch](std_blocks/latch/README.md)                               | i-block   | single-writer multi-reader latest-value store (seqlock)                |
-| [mqueue](std_blocks/mqueue/README.md)                                 | i-block   | POSIX message queue inter-process communication                        |
+| [ubx/mqueue](std_blocks/mqueue/README.md)                             | i-block   | POSIX message queue inter-process communication                        |
 | [ubx/math\_double, ubx/math\_float](std_blocks/math_double/README.md) | c-block   | element-wise math.h function (sin, sqrt, …) with optional scale/offset |
 | [ubx/ewma](std_blocks/ewma/README.md)                                 | c-block   | exponentially weighted moving average filter (any numeric type)        |
 | [ubx/movavg](std_blocks/movavg/README.md)                             | c-block   | sliding-window filter: mean, median, min or max (any numeric type)     |
@@ -442,7 +435,7 @@ Standard blocks
 | [ubx/gps](std_blocks/gps/README.md)                                   | c-block   | GPS via gpsd shared memory interface                                   |
 | [ubx/iio, ubx/iio_buf](std_blocks/iio/README.md)                      | c-block   | Linux IIO (ADC/DAC/IMU/sensor) via libiio                              |
 | [luablock](std_blocks/luablock/README.md)                             | c-block   | generic LuaJIT block; implement hooks in Lua                           |
-| [lsdb-intf](std_blocks/lsdb-intf/README.md)                           | c-block   | D-Bus interface to the ubx node                                        |
+| [lsdb-intf](std_blocks/lsdb-intf/README.md)                           | lua block | D-Bus interface to the ubx node                                        |
 | [netsink](std_blocks/netsink/README.md)                               | lua block | UDP/ZeroMQ streaming sink (JSON/MessagePack), e.g. for PlotJuggler     |
 | [webgraph](std_blocks/webgraph/README.md)                             | lua block | browser-based React Flow graph of the running node                     |
 | [skelleton](std_blocks/skelleton/README.md)                           | template  | annotated starting point for new blocks                                |
@@ -574,7 +567,7 @@ License or also under the MPLv2.
 It boils down to the following. Use microblx as you wish in free and
 proprietary applications. You can distribute binary function blocks as
 modules. Only if you make changes to the core files (mostly the files
-in libubx/) library), and distribute these, then you are required to
+in `libubx/`), and distribute these, then you are required to
 release these under the conditions of the MPL-2.0.
 
 Acknowledgement

@@ -50,13 +50,15 @@ ubx_proto_config_t rnd_config[] = {
 | 0   | `CONFIG_LEN_MAX` | zero to many            |
 | N   | M                | between N and M         |
 
-Static definitions use the `ubx_proto_*` types, hooks the runtime
-types (`ubx_config_t`, `ubx_port_t`, `ubx_block_t`).
+Configs and ports take an optional `.doc` string, shown by
+`ubx-modinfo`. Static definitions use the `ubx_proto_*` types, hooks
+the runtime types (`ubx_config_t`, `ubx_port_t`, `ubx_block_t`).
 
 ## Ports
 
 A `{ 0 }` terminated array of `ubx_proto_port_t`. `in_type_name`,
-`out_type_name` or both make an in-, out- or in/out port:
+`out_type_name` or both make an in-, out- or in/out port.
+`in_data_len`/`out_data_len` set the array length (default 1):
 
 ```c
 ubx_proto_port_t rnd_ports[] = {
