@@ -25,7 +25,7 @@ $ ubx-launch -c pid_test.usc,ptrig_nrt.usc -D PERIOD=500
 
 Both require `CAP_SYS_NICE`. Use the `run-pid.sh` helper, which
 grants it via `sudo capsh` with ambient capabilities so the
-session bus and `-dbus` keep working:
+session bus and `--dbus` keep working:
 
 ```sh
 $ ./run-pid.sh rt        # SCHED_FIFO
@@ -35,7 +35,7 @@ $ ./run-pid.sh rt -D PERIOD=500   # further args go to ubx-launch
 
 Do **not** use `setcap cap_sys_nice+ep` on the luajit binary — file
 capabilities set the `AT_SECURE` flag on exec, which causes sd-bus to
-ignore session-bus environment variables and breaks `-dbus`.
+ignore session-bus environment variables and breaks `--dbus`.
 
 **SCHED_DEADLINE: CPU affinity and cpusets**
 

@@ -41,8 +41,7 @@ using positional fields: `mode ≥ 2` → lat/lon valid; `mode == 3` → altitud
 
 Each step calls `gps_waiting()` with a 0-ms timeout (non-blocking). If gpsd has
 written new data to shared memory since the last read, it calls `gps_read()` and
-emits on the `gps` port. If no new data is available the port is not written and
-the downstream lfrb retains its last value.
+emits on the `gps` port. If no new data is available the port is not written.
 
 ## Configuration
 
@@ -53,7 +52,7 @@ the downstream lfrb retains its last value.
 ## Usage
 
 ```sh
-$ ubx-launch -c gps.usc -dbus
+$ ubx-launch -c gps.usc --dbus
 
 # second terminal
 $ ubx-dbus -R gps:gps

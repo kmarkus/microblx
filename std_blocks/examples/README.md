@@ -1,4 +1,4 @@
-This directory contains a few example blocks:
+Example blocks:
 
-- `skelleton`: a minimal, almost empty block to serve as a starting point
-- `simple_fifo`: a small iblock example
+- `random`: a cblock with a custom config type, used in [docs/blocks.md](../../docs/blocks.md)
+- `simple_fifo`: a mutex-based fifo iblock

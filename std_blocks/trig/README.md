@@ -197,7 +197,7 @@ warning on stop.
 > **Note:** `SCHED_DEADLINE` requires `CAP_SYS_NICE`. Do not use
 > `setcap cap_sys_nice+ep` on the interpreter — file capabilities set
 > the `AT_SECURE` bit on exec, which causes sd-bus to ignore
-> session-bus environment variables and breaks `-dbus`. Grant the
+> session-bus environment variables and breaks `--dbus`. Grant the
 > capability via `sudo capsh` with ambient capabilities instead (see
 > `examples/usc/pid/run-pid.sh` for a working example); this does not
 > require any file capability on the binary.

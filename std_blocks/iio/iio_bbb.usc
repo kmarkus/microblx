@@ -12,7 +12,7 @@
 -- The 'device' field matches the kernel name attribute; 'direction=0' (default) means
 -- device-input channel → ubx out-port of type double (physical value in mV).
 --
--- Testing with ubx-dbus (after ubx-launch -c iio_bbb.usc -dbus):
+-- Testing with ubx-dbus (after ubx-launch -c iio_bbb.usc --dbus):
 --
 --   ubx-dbus --read=iio:voltage0
 --   ubx-dbus --read-mon=iio:voltage1

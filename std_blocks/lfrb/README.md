@@ -1,8 +1,6 @@
 # ubx/lfrb
 
-Hard real-time, lock-free ring buffer i-block. Uses two lock-free queues (free + used) so writes never overwrite unread data — instead the oldest is dropped and `overruns` is incremented.
-
-Preferred over `ubx/lfds_cyclic` for new designs; no external library dependency.
+Hard real-time, lock-free ring buffer i-block, the default for connections. Built on two lock-free queues (free + used). When full, a write drops the oldest unread element and increments `overruns`.
 
 ## Configuration
 

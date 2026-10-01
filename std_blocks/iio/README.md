@@ -108,7 +108,7 @@ which is probed automatically at init.
 
 ```sh
 iio_info | grep -A5 "\.adc"         # verify device name
-ubx-launch -c iio_bbb.usc -dbus
+ubx-launch -c iio_bbb.usc --dbus
 ubx-dbus --read=iio:voltage0
 ubx-dbus --read-mon=iio:voltage1
 ```
@@ -131,8 +131,7 @@ channels = {
 The device samples at the hardware rate set by `sampling_frequency`. Each ptrig
 step does a **non-blocking poll** on the kernel buffer; if data is ready it
 drains the buffer and emits the most recent sample on each port. If no data has
-arrived yet the port is not written and the downstream lfrb retains the last
-value.
+arrived yet the port is not written.
 
 Input channels only. Use `ubx/iio` for DAC output.
 

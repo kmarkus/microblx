@@ -24,7 +24,7 @@
 --   emit_on_change: 0=emit every step (default), 1=emit only when value changes
 --                   (only effective for dir=in GPIOs)
 --
--- Testing with ubx-dbus (after ubx-launch gpio.usc):
+-- Testing with ubx-dbus (after ubx-launch -c gpio.usc --dbus):
 --
 --   # read the BUTTON0 input port once
 --   ubx-dbus --read=gpio:BUTTON0

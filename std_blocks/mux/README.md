@@ -16,9 +16,8 @@ them — connecting only some of demux's outputs makes it a
 Both work with **any registered type** — numeric or struct — since the
 data is copied bytewise; the element type is configured at runtime via
 the `type` config. Typical use is composing the measurement vector of
-an array-valued block (e.g. `ubx/kalman`'s `z` input) from independent
-sources, and extracting sub-vectors (e.g. the position part of a state
-estimate) the other way.
+an array-valued block from independent sources, and extracting
+sub-vectors (e.g. the position part of a state estimate) the other way.
 
 ## ubx/mux
 

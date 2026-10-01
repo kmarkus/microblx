@@ -7,7 +7,7 @@ Exposes a ubx node over D-Bus using the lsdbus Lua bindings.
 ### Start
 
 ```sh
-$ ubx-launch -c /usr/local/share/ubx/examples/usc/threshold.usc -v -dbus -s -l 8
+$ ubx-launch -c /usr/local/share/ubx/examples/usc/threshold.usc --dbus
 ```
 
 ### Show system state
@@ -51,12 +51,8 @@ $ ubx-dbus -i thres
 }
 ```
 
-A port is reported as an **in-out** port when it carries both an `in_type_name`
-and an `out_type_name` (e.g. the `luablock`'s `exec_str` port). `GetBlockInfo`
-returns both fields and the `ubx-dbus -i BLOCK` pretty-printer tags such ports
-with `[in/out]`; in-only ports show `[in]` and out-only ports `[out]`. No
-special client handling is required — direction is derived from which type
-fields are present.
+Ports with both `in_type_name` and `out_type_name` (e.g. the luablock
+`exec_str`) are shown as `[in/out]`.
 
 ### Change block state
 
@@ -165,14 +161,14 @@ $ ubx-dbus -l mymodel.usc --params        # list the declared parameters (locall
 $ ubx-dbus -l mymodel.usc -D PERIOD=500   # load with PERIOD set to 500
 ```
 
-See "Model parameters" in the composing systems documentation. The
+See [model parameters](../../docs/usc.md#model-parameters). The
 D-Bus method is `LoadUSCLua(s usc, a{ss} params) -> as warnings`; an
 unknown parameter fails the call.
 
 ### Connect blocks
 
 ```sh
-$ ubx-dbus -C srcblock:srcport:tgtblock:tgtport
+$ ubx-dbus -x srcblock:srcport:tgtblock:tgtport:ubx/lfrb:'{buffer_len=4}'
 ```
 
 ## Plugins
@@ -225,9 +221,8 @@ return M
   optional; the plugin is listed and unloaded by the base name without extension.
 
 ```sh
-$ ubx-dbus call --interface org.ubx.pluginmanager LoadPlugin s:"/opt/myapp/robot_plugin.lua"
-$ ubx-dbus call --interface org.ubx.pluginmanager LoadPlugin s:"robot_plugin"
-$ ubx-dbus call --interface org.ubx.pluginmanager LoadPlugin s:"robot_plugin.lua"  # also accepted
+$ ubx-dbus -p /opt/myapp/robot_plugin.lua
+$ ubx-dbus -p robot_plugin              # or robot_plugin.lua
 ```
 
 ### Loading at startup
@@ -242,9 +237,9 @@ $ ubx-dbus call --interface org.ubx.pluginmanager LoadPlugin s:"robot_plugin.lua
 Plugin management is on the `org.ubx.pluginmanager` interface at object path `/`:
 
 ```sh
-$ ubx-dbus call --interface org.ubx.pluginmanager LoadPlugin   s:"robot_plugin"
-$ ubx-dbus call --interface org.ubx.pluginmanager ListPlugins
-$ ubx-dbus call --interface org.ubx.pluginmanager UnloadPlugin s:"robot_plugin"
+$ ubx-dbus -p robot_plugin    # LoadPlugin
+$ ubx-dbus -P                 # ListPlugins
+$ ubx-dbus -u robot_plugin    # UnloadPlugin
 ```
 
 All plugins are automatically unloaded when the block stops.

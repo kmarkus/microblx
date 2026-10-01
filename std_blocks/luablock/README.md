@@ -35,10 +35,12 @@ The `block` argument is the raw `ubx_block_t*`; cast with `ffi.cast("ubx_block_t
 ## Usage
 
 ```lua
--- in a USC file
+-- foo.lua from the luablock search path (<prefix>/share/ubx/blocks/<ver>/)
 { name="foo", type="luablock:foo" }
--- config
-{ name="foo", config={ lua_file="/path/to/foo.lua" } }
+
+-- any file
+{ name="bar", type="ubx/luablock" }
+{ name="bar", config={ lua_file="/path/to/bar.lua" } }
 ```
 
 See `luablock-example.lua` for a minimal example and `luablock-util.lua` for the higher-level `lbutil.create()` helper.

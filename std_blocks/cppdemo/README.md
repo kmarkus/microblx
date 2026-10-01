@@ -1,4 +1,3 @@
-CPPDEMO
-=======
+# cppdemo
 
-Just a minimal example to show how to implement microblx blocks in C++.
+Minimal C++ block. Designated initializers for `ubx_proto_*` need g++ >= 8.

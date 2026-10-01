@@ -25,10 +25,6 @@ settings — is passed as globals through the luablock's `lua_str` config:
 } },
 ```
 
-No struct type registration and no block-prototype registration are
-needed: it is a plain Lua block using mechanisms microblx already
-provides.
-
 ## Dependencies
 
 Only the dependency for the transport/format you actually use is needed:
@@ -38,11 +34,8 @@ Only the dependency for the transport/format you actually use is needed:
   (pure Lua; `cmsgpack` also works)
 - `transport="zmq"`: `libzmq` (loaded lazily via the LuaJIT FFI)
 
-UDP and ZeroMQ are driven through the LuaJIT FFI directly, so no
-`luasocket`/`lzmq` binding is required. Only the socket calls use FFI and
-all use fixed, stable C ABI types. Timestamps use `ubx.gettime()` rather
-than a raw `clock_gettime` FFI (whose `struct timespec` is not portable
-across 32-bit `time_t`).
+UDP and ZeroMQ use the LuaJIT FFI directly, no `luasocket`/`lzmq`
+binding is required.
 
 ## Configuration (via `lua_str`)
 
@@ -68,15 +61,9 @@ into `pos/0`, `pos/1`, ...
 
 ## Ports
 
-The luablock has no static data ports. One input port is created per
-entry of `ports` in the `preinit` hook. Because `preinit` runs during
-`configure_blocks` (before `connect_blocks`), the ports exist by the
-time the USC connections are wired up.
-
-`ports` must be known in `preinit` to build the interface, which is why
-all configuration is carried as `lua_str` globals (applied when the
-`lua_str` chunk runs, before `preinit`) rather than as separate block
-configs.
+One input port per `ports` entry, created in `preinit`, so they exist
+when the usc connections are made. This is why the configuration is
+passed as `lua_str` globals instead of block configs.
 
 ## Transports
 
@@ -97,16 +84,6 @@ configs.
 - **msgpack** — the same flat map, MessagePack-encoded. Frames are
   self-delimiting, so no separator is added; one datagram / ZeroMQ
   message is exactly one map.
-
-## Lifecycle
-
-| hook      | what it does                                                       |
-|-----------|-------------------------------------------------------------------|
-| `preinit` | validate `ports`; `inport_add` one inport per entry            |
-| `start`   | select encoder + transport; open socket/ZeroMQ; cache read buffers |
-| `step`    | drain buffers; emit one aligned frame per sample; send            |
-| `stop`    | close the transport                                               |
-| `cleanup` | reset per-instance state                                          |
 
 ## Behaviour
 

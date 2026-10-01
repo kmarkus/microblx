@@ -35,7 +35,7 @@ Port type: `unsigned int` (0 or 1).
 
 ## Usage
 
-See `gpio.usc` for a complete example. After `ubx-launch -c gpio.usc -dbus`:
+See `gpio.usc` for a complete example. After `ubx-launch -c gpio.usc --dbus`:
 
 ```sh
 # read an input port once

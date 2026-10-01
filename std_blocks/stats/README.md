@@ -1,77 +1,43 @@
-stats block
-===========
+# ubx/stats
 
-A generic statistics computation block (`ubx/stats`). It accumulates
-the scalar values received on its `in` port and computes running
-`min`, `max`, `mean` (average), `std` (population standard deviation)
-and `cnt` (sample count), emitted as a `struct ubx_stat` on the
-`stats` port.
+Running statistics of a numeric signal: `min`, `max`, `mean`, `std`
+(population standard deviation, Welford's algorithm) and `cnt`, output
+as `struct ubx_stat`. The input type is configured at runtime via
+`type`.
 
-The numeric input type is configurable at runtime via the `type`
-config, so a single block works for any of the supported numeric ubx
-types (`int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `float`,
-`double`). The `in` port is created at init with the configured type.
+## Configuration
 
-Mean and standard deviation are computed online with Welford's
-algorithm (numerically stable, single pass). The standard deviation is
-the *population* standard deviation (variance divided by `cnt`), which
-is the RMS-consistent convention used in signal processing and is
-well-defined for `cnt == 1`.
+| config              | type     | description                                                       |
+|---------------------|----------|-------------------------------------------------------------------|
+| `type`              | `char`   | ubx numeric type name of the input (mandatory)                    |
+| `data_len`          | `long`   | vector length; statistics are kept per element (default 1)        |
+| `stats_output_rate` | `double` | min seconds between `stats` outputs (0/unset: every step)         |
+| `skip_first`        | `long`   | discard the first N samples, e.g. startup transients (default 0)  |
+| `loglevel`          | `int`    | optional log level                                                |
 
-`skip_first` discards the first N samples outright -- they are neither
-counted nor accumulated. Startup transients are common in cyclic
-signals: a block that derives a period by differencing timestamps
-emits its absolute start time on the very first step, and one such
-outlier ruins `min`/`max` and dominates `mean` and `std` for the whole
-run. This is the `stats` counterpart of trig/ptrig's
-`tstats_skip_first`.
+Supported `type` values are `int32_t`, `uint32_t`, `int64_t`,
+`uint64_t`, `float` and `double`.
 
-Statistics are cumulative: they persist across `stop`/`start` and are
-only cleared on (re-)`init`. The accumulated statistics are logged
-with `info` loglevel when the block is stopped.
+## Ports
 
-configs
--------
-
-| name              | type   | doc                                                                    |
-|-------------------|--------|------------------------------------------------------------------------|
-| type              | char   | ubx numeric type name of the input signal (mandatory)                  |
-| data_len          | long   | vector length; statistics are kept per element (default 1)             |
-| stats_output_rate | double | throttle output on the `stats` port [sec] (0/unset: output every step) |
-| skip_first        | long   | discard the first N samples before accumulating (default 0)            |
-| loglevel          | int    | block loglevel                                                         |
-
-With `data_len` > 1 the `in` port is a vector and the `stats` port is a
-`struct ubx_stat` array of the same length. Element *i* of the output
-describes the *i*-th vector element (channel) accumulated independently
-across all steps — i.e. each index is treated as its own scalar signal.
-
-`stats_output_rate` works like the trig/ptrig `tstats_output_rate`: it
-limits how often the current statistics are written to the `stats`
-port to at most once per `stats_output_rate` seconds. The statistics
-themselves are still updated on every step. When unset (or `0`), the
-stats are emitted on every step.
-
-ports
------
-
-| name  | dir | type            | doc                        |
-|-------|-----|-----------------|----------------------------|
-| in    | in  | *type* (config) | input signal to accumulate |
-| stats | out | struct ubx_stat | running statistics output  |
-
-struct ubx_stat
----------------
+| port    | direction | type                          | description                |
+|---------|-----------|-------------------------------|----------------------------|
+| `in`    | in        | `<type>`, created at init     | input signal               |
+| `stats` | out       | `struct ubx_stat[data_len]`   | statistics per element     |
 
 ```c
 struct ubx_stat {
 	unsigned long cnt;   /* number of samples */
-	double min;          /* smallest sample */
-	double max;          /* largest sample */
-	double mean;         /* arithmetic mean */
+	double min;
+	double max;
+	double mean;
 	double std;          /* population standard deviation */
 };
 ```
 
-All fields are `double` (except `cnt`), independent of the configured
-input type, so the type of the `stats` port is fixed.
+## Behaviour
+
+- statistics are updated every step; `stats_output_rate` only throttles
+  the output, like trig/ptrig `tstats_output_rate`.
+- statistics persist across stop/start and are cleared on (re-)init.
+  They are logged at `info` level on stop.
