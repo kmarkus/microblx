@@ -176,6 +176,8 @@ examples:
     - cmake -S examples/oot-block -B /tmp/oot-block
     - make -C /tmp/oot-block install
     - ubx-launch -t 1 -c examples/oot-block/scale.usc
+    # validate the threshold example
+    - ubx-launch --validate -c examples/usc/threshold.usc
     # run the threshold example
     - ubx-launch -t 3 -s -check unconn_inports,unconn_outports -c examples/usc/threshold.usc
     # run the pid example

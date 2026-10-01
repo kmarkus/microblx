@@ -5,6 +5,8 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ubx-launch --validate`: **fix** exit status, it was always 1. Now
+  0 if valid, 1 on errors (or warnings with `--werror`).
 - hot connect/disconnect: with the new cmake option `ENABLE_URCU`
   (liburcu-bp) ports can be connected and disconnected while blocks
   run, and `ubx.disconnect` no longer requires stopping them. See

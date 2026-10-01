@@ -198,8 +198,9 @@ else
 end
 
 if opts.validate then
-   model:validate(true)
-   os.exit(1)
+   local num_err, vres = model:validate(true)
+   if num_err > 0 or (opts.werror and vres.warn > 0) then os.exit(1) end
+   os.exit(0)
 end
 
 local loglevel
