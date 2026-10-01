@@ -131,7 +131,8 @@ channels = {
 The device samples at the hardware rate set by `sampling_frequency`. Each ptrig
 step does a **non-blocking poll** on the kernel buffer; if data is ready it
 drains the buffer and emits the most recent sample on each port. If no data has
-arrived yet the port is not written.
+arrived yet the port is not written; connect via `ubx/latch` if readers should
+get the last sample instead.
 
 Input channels only. Use `ubx/iio` for DAC output.
 

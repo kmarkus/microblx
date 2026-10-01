@@ -41,7 +41,8 @@ using positional fields: `mode ≥ 2` → lat/lon valid; `mode == 3` → altitud
 
 Each step calls `gps_waiting()` with a 0-ms timeout (non-blocking). If gpsd has
 written new data to shared memory since the last read, it calls `gps_read()` and
-emits on the `gps` port. If no new data is available the port is not written.
+emits on the `gps` port. If no new data is available the port is not written;
+connect it via `ubx/latch` if readers should get the last fix instead.
 
 ## Configuration
 
