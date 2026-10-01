@@ -64,7 +64,7 @@ Design decisions
 Statechart figure: deliberate inaccuracy
 -----------------------------------------
 
-`docs/user/_static/life_cycle.svg` draws the config-apply passes as
+`docs/img/life_cycle.svg` draws the config-apply passes as
 effects on the transitions, and puts `apply_config #1` + `preinit()`
 on the `create -> preinit` edge. This is a simplification:
 
@@ -78,4 +78,4 @@ on the `create -> preinit` edge. This is a simplification:
 The original FSM hid config application entirely; showing it on the
 edges is strictly more informative, at the cost of this one abstraction.
 The precise temporal view is the sequence diagram in
-`docs/user/_static/launch_sequence.puml`.
+`docs/img/launch_sequence.puml`.

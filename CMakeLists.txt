@@ -388,12 +388,6 @@ if(INSTALL_EXAMPLES)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/examples DESTINATION ${CMAKE_INSTALL_DATADIR}/ubx)
 endif()
 
-option(BUILD_DOCS "Build documentation with Sphinx" OFF)
-
-if(BUILD_DOCS)
-  add_subdirectory(${CMAKE_SOURCE_DIR}/docs/user)
-endif()
-
 option(BUILD_LUA_DOCS "Build Lua API documentation with ldoc" OFF)
 
 if(BUILD_LUA_DOCS)

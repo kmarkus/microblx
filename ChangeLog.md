@@ -5,10 +5,13 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- docs: the Sphinx (readthedocs) documentation is replaced by
+  `README.md` and the [usc reference](docs/usc.md). The cmake option
+  `BUILD_DOCS` is removed.
 - `blockdiagram`: new `bd.param(name, default, help)` to declare model
   parameters, set with `ubx-launch -D NAME=VALUE` and listed with
   `ubx-launch --params`. An undeclared `-D` name is an error. See
-  "Model parameters" in the composing systems documentation. An
+  [Model parameters](docs/usc.md#model-parameters). An
   optional fourth argument validates the value, e.g. with a function
   or a tableshape type. A conversion function as default, e.g.
   `tonumber`, makes the parameter required.
@@ -338,7 +341,7 @@ Other changes:
   client could block it indefinitely).
 - Blocks that step other blocks, e.g. via a `struct ubx_triggee`
   chain, must declare `BLOCK_ATTR_TRIGGER` (see
-  `docs/user/developing_blocks.rst`).
+  [Declaring the block](README.md#declaring-the-block)).
 
 ## 0.9.2
 
