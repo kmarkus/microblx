@@ -356,6 +356,13 @@ return bd.system {}
    assert_equals(warnings, { 'parameter F: default "%f" in <string> conflicts with "%d" in <string>' })
 end
 
+function TestLsdbIntf:test_handler_error_with_percent()
+   -- the logged error message must not be used as format string
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_err_pct")
+   assert_error_msg_contains("load 100% failed",
+      function() _proxy('LoadUSCLua', 'error("load 100% failed")', {}) end)
+end
+
 function TestLsdbIntf:test_load_usc_lua_param_check()
    _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_load_usc_pchk")
    local usc = [[

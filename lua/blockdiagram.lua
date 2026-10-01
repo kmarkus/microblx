@@ -44,7 +44,7 @@ local crit, err, warn, notice, info =
 
 -- log function verbose messages
 local function log(format, ...)
-   if M.VERBOSE then utils.stderr(fmt(format, unpack{...})) end
+   if M.VERBOSE then utils.stderr(fmt(format, ...)) end
 end
 
 --- Create logging helper functions
@@ -55,16 +55,16 @@ local function def_loggers(nd, src)
    end
 
    err = function(format, ...)
-      local msg = fmt(format, unpack{...}); stderr(msg); ubx.err(nd, src, msg)
+      local msg = fmt(format, ...); stderr(msg); ubx.err(nd, src, "%s", msg)
    end
    warn = function(format, ...)
-      local msg = fmt(format, unpack{...}); stderr(msg); ubx.warn(nd, src, msg)
+      local msg = fmt(format, ...); stderr(msg); ubx.warn(nd, src, "%s", msg)
    end
    notice = function(format, ...)
-      local msg = fmt(format, unpack{...}); stderr(msg); ubx.notice(nd, src, msg)
+      local msg = fmt(format, ...); stderr(msg); ubx.notice(nd, src, "%s", msg)
    end
    info = function(format, ...)
-      local msg = fmt(format, unpack{...}); stderr(msg); ubx.info(nd, src, msg)
+      local msg = fmt(format, ...); stderr(msg); ubx.info(nd, src, "%s", msg)
    end
 end
 
@@ -1214,7 +1214,7 @@ end
 function system.merge(self, sys, override)
    if override == nil then override = true end
 
-   log(fmt("merging %s into parent (override: %s)", sys._srcfile, override))
+   log("merging %s into parent (override: %s)", sys._srcfile, override)
 
    local function merge_block(x)
       for i,b in ipairs(self.blocks) do

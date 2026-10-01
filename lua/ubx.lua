@@ -547,12 +547,12 @@ function M.load_module(nd, libfile)
       if utils.file_exists(modpath) then
 	 local res = ubx.ubx_module_load(nd, modpath)
 	 if res == ffi.C.EENTEXISTS then
-	    notice(nd, "lua", "module "..modpath.." already loaded")
+	    notice(nd, "lua", "module %s already loaded", modpath)
 	    return modpath
 	 elseif res ~= 0 then
 	    error("loading module "..modpath.." failed")
 	 end
-	 info(nd, "lua", "loaded module "..modpath)
+	 info(nd, "lua", "loaded module %s", modpath)
 	 M.ffi_load_types(nd)
 	 return modpath
       end
@@ -1992,8 +1992,8 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 	 error("failed to connect port "..ffi.string(p.name))
       end
       M.block_start(i_p_to_prot)
-      info(block.nd, "lua", fmt("port_clone_conn: %s, buffer_len: %d, data_len: %d",
-				iname, buff_len1, tonumber(p.out_data_len)))
+      info(block.nd, "lua", "port_clone_conn: %s, buffer_len: %d, data_len: %d",
+	   iname, buff_len1, tonumber(p.out_data_len))
    end
 
    local i_prot_to_p
@@ -2020,8 +2020,8 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 	 error("failed to connect port "..ffi.string(p.name))
       end
       M.block_start(i_prot_to_p)
-      info(block.nd, "lua", fmt("port_clone_conn: %s, buffer_len: %d, data_len: %d",
-				iname, buff_len2, tonumber(p.in_data_len)))
+      info(block.nd, "lua", "port_clone_conn: %s, buffer_len: %d, data_len: %d",
+	   iname, buff_len2, tonumber(p.in_data_len))
    end
 
    return p
@@ -2134,23 +2134,23 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    -- check: warn about a config table when it's not used
    if M.is_iblock_instance(srcb) then
       if ibconfig then
-	 warn(nd, "connect", fmt("%s -> %s.%s: ignoring config %s",
-				 srcbn, tgtbn, tgtpn, utils.tab2str(ibconfig)))
+	 warn(nd, "connect", "%s -> %s.%s: ignoring config %s",
+	      srcbn, tgtbn, tgtpn, utils.tab2str(ibconfig))
       end
       if ibtype then
-	 warn(nd, "connect", fmt("%s -> %s.%s: ignoring type %s",
-				 srcbn, tgtbn, tgtpn, ibtype))
+	 warn(nd, "connect", "%s -> %s.%s: ignoring type %s",
+	      srcbn, tgtbn, tgtpn, ibtype)
       end
    end
 
    if M.is_iblock_instance(tgtb) then
       if ibconfig then
-	 warn(nd, "connect", fmt("%s.%s -> %s: ignoring config %s",
-				 srcbn, srcpn, tgtbn, utils.tab2str(ibconfig)))
+	 warn(nd, "connect", "%s.%s -> %s: ignoring config %s",
+	      srcbn, srcpn, tgtbn, utils.tab2str(ibconfig))
       end
       if ibtype then
-	 warn(nd, "connect", fmt("%s -> %s.%s: ignoring type %s",
-				 srcbn, tgtpn, tgtbn, ibtype))
+	 warn(nd, "connect", "%s -> %s.%s: ignoring type %s",
+	      srcbn, tgtpn, tgtbn, ibtype)
       end
    end
 
@@ -2196,8 +2196,8 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 	 append_ibconfig('buffer_len', 8)
 	 append_ibconfig('mq_id', make_mqname(tgtbn, tgtpn))
 
-	 info(nd, "connect", fmt("creating connection src %s [%s]: %s",
-				 tgtbn, ibtype, utils.tab2str(ibconfig)))
+	 info(nd, "connect", "creating connection src %s [%s]: %s",
+	      tgtbn, ibtype, utils.tab2str(ibconfig))
 
 	 srcb = M.block_create(nd, ibtype, srcbn, ibconfig)
 	 M.block_init(srcb)
@@ -2211,8 +2211,8 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 	 append_ibconfig('buffer_len', 8)
 	 append_ibconfig('mq_id', make_mqname(srcbn, srcpn))
 
-	 info(nd, "connect", fmt("creating connection tgt %s [%s]: %s",
-				 tgtbn, ibtype, utils.tab2str(ibconfig)))
+	 info(nd, "connect", "creating connection tgt %s [%s]: %s",
+	      tgtbn, ibtype, utils.tab2str(ibconfig))
 	 tgtb = M.block_create(nd, ibtype, tgtbn, ibconfig)
 	 M.block_init(tgtb)
       end
@@ -2236,10 +2236,10 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 
       M.block_tostate(ib, 'active')
 
-      info(nd, "connect", fmt("%s.%s -[%s,%s,%d]-> %s.%s [%s]",
-			      srcbn, srcpn,
-			      ibname, ibconfig.type_name, ibconfig.data_len,
-			      tgtbn, tgtpn, ibtype))
+      info(nd, "connect", "%s.%s -[%s,%s,%d]-> %s.%s [%s]",
+	   srcbn, srcpn,
+	   ibname, ibconfig.type_name, ibconfig.data_len,
+	   tgtbn, tgtpn, ibtype)
 
    elseif srcp and not tgtp then
       -- block.port -> iblock
@@ -2247,16 +2247,16 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 	 return false, fmt("failed to connect %s.%s to iblock %s", srcbn, srcpn, tgtbn)
       end
       M.block_tostate(tgtb, 'active')
-      info(nd, "connect", fmt("%s.%s -> %s [%s]",
-			      srcbn, srcpn, tgtbn, M.block_prototype(tgtb)))
+      info(nd, "connect", "%s.%s -> %s [%s]",
+	   srcbn, srcpn, tgtbn, M.block_prototype(tgtb))
    elseif not srcp and tgtp then
       -- iblock -> block.port
       if ubx.ubx_port_connect_in(tgtp, srcb) ~= 0 then
 	 return false, fmt("failed to connect iblock %s to %s.%s", srcbn, tgtbn, tgtpn)
       end
       M.block_tostate(srcb, 'active')
-      info(nd, "connect", fmt("%s [%s] -> %s.%s",
-			      srcbn, M.block_prototype(srcb), tgtbn, tgtpn))
+      info(nd, "connect", "%s [%s] -> %s.%s",
+	   srcbn, M.block_prototype(srcb), tgtbn, tgtpn)
    else
       return false, fmt("connect: invalid args: %s.%s -> %s.%s, ibtype %s, config %s",
 			srcbn, srcpn, tgtbn, tgtpn, ibtype, utils.tab2str(ibconfig))

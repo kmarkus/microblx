@@ -74,7 +74,7 @@ local bus, vt, ndname
 local function vt_errhdl(e, bt, ctx)
    local estr = tostring(e)
    if lsdb.parse_err(estr) then error(estr) end
-   ubx.err(vt.nd, "lsdb-intf", fmt("%s '%s': %s\n%s", ctx.type, ctx.name, estr, bt))
+   ubx.err(vt.nd, "lsdb-intf", "%s '%s': %s\n%s", ctx.type, ctx.name, estr, bt)
    error(err.FAILED .. "|" .. estr)
 end
 
@@ -323,7 +323,7 @@ local function read(vt, bn, pn)
 
    local ret, res = ubx.port_read(pcc)
    if ret < 0 then
-      ubx.err(vt.nd, "lsdb-intf", fmt("read failed: %d", ret))
+      ubx.err(vt.nd, "lsdb-intf", "read failed: %d", ret)
       lsdb.throw(err.FAILED, "read from %s.%s failed: '%s'", bn, pn, ret)
    elseif ret == 0 then
       return lsdb.tovariant(false)
@@ -443,7 +443,7 @@ local function plugin_cleanup(name, mod)
    if type(mod) ~= 'table' or type(mod.cleanup) ~= 'function' then return end
    local ok, e = pcall(mod.cleanup)
    if not ok then
-      ubx.err(vt.nd, "lsdb-intf", fmt("plugin '%s' cleanup failed: %s", name, tostring(e)))
+      ubx.err(vt.nd, "lsdb-intf", "plugin '%s' cleanup failed: %s", name, tostring(e))
    end
 end
 
@@ -454,7 +454,7 @@ local function do_load_plugin(name)
    local path = resolve_plugin_path(name)
    local chunk, loaderr = loadfile(path)
    if not chunk then
-      ubx.err(vt.nd, "lsdb-intf", fmt("failed to load plugin '%s': %s", path, loaderr))
+      ubx.err(vt.nd, "lsdb-intf", "failed to load plugin '%s': %s", path, loaderr)
       lsdb.throw(err.FAILED, "failed to load plugin '%s': %s", path, loaderr)
    end
    local mod = chunk()
@@ -472,7 +472,7 @@ local function do_load_plugin(name)
       error(pvt, 0)
    end
    plugins_reg[name] = { vt=pvt, mod=mod }
-   ubx.info(vt.nd, "lsdb-intf", fmt("loaded plugin '%s'", name))
+   ubx.info(vt.nd, "lsdb-intf", "loaded plugin '%s'", name)
 end
 
 local function do_unload_plugin(name)
@@ -481,7 +481,7 @@ local function do_unload_plugin(name)
       lsdb.throw(err.INVALID_ARGS, "plugin '%s' not loaded", name)
    end
    plugin_cleanup(name, p.mod)
-   ubx.info(vt.nd, "lsdb-intf", fmt("unloaded plugin '%s'", name))
+   ubx.info(vt.nd, "lsdb-intf", "unloaded plugin '%s'", name)
    p.vt:unref()
    plugins_reg[name] = nil
 end
@@ -626,7 +626,7 @@ local pluginmgr_intf = {
 function init(block)
    block = ffi.cast("ubx_block_t*", block)
    if #_missing_deps > 0 then
-      ubx.err(block.nd, "lsdb-intf", "missing dependencies: " .. table.concat(_missing_deps, ", "))
+      ubx.err(block.nd, "lsdb-intf", "missing dependencies: %s", table.concat(_missing_deps, ", "))
       return false
    end
    block:config_add("plugins", "semicolon-separated list of plugin module names to load at startup", "char")
@@ -665,7 +665,7 @@ function start(block)
 	 for name in string.gmatch(plugin_str, "[^;]+") do
 	    local ok, e = pcall(do_load_plugin, name)
 	    if not ok then
-	       ubx.err(nd, "lsdb-intf", fmt("failed to load startup plugin '%s': %s", name, tostring(e)))
+	       ubx.err(nd, "lsdb-intf", "failed to load startup plugin '%s': %s", name, tostring(e))
 	       return false
 	    end
 	 end

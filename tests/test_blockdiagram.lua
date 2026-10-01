@@ -295,4 +295,63 @@ function TestBlockdiagram:test_load_str_json()
    assert_equals(b:get_block_state(), "inactive")
 end
 
+--- a launch error message containing '%' must not be used as format
+--- string when logged, which would hide the error
+function TestBlockdiagram:test_launch_error_with_percent()
+   local sys = bd.system {
+      imports = { "stdtypes", "lfrb", "threshold" },
+      blocks = { { name="t%d1", type="ubx/threshold" } },
+      configurations = { { name="t%d1", config = { threshold=1, nonexistent=1 } } },
+   }
+   luaunit.assert_error_msg_contains("nonexistent", function()
+      sys:launch{ nodename="test_launch_pct", nostart=true }
+   end)
+end
+
+--- connecting blocks with '%' in their names logs these names at the
+--- default loglevel: port-port, port-iblock and iblock-port, the
+--- latter two with an ignored config and type
+function TestBlockdiagram:test_launch_connect_with_percent()
+   local sys = bd.system {
+      imports = { "stdtypes", "lfrb", "ramp_double", "threshold" },
+      blocks = {
+	 { name="r%d1", type="ubx/ramp_double" },
+	 { name="t%d1", type="ubx/threshold" },
+	 { name="t%d2", type="ubx/threshold" },
+	 { name="q%d1", type="ubx/lfrb" },
+      },
+      configurations = {
+	 { name="r%d1", config = { slope=1 } },
+	 { name="t%d1", config = { threshold=1 } },
+	 { name="t%d2", config = { threshold=1 } },
+	 { name="q%d1", config = { type_name="double", buffer_len=4 } },
+      },
+      connections = {
+	 { src="r%d1.out", tgt="t%d1.in" },
+	 { src="r%d1.out", tgt="q%d1", config = { buffer_len=8 } },
+	 { src="q%d1", tgt="t%d2.in", type="ubx/lfrb" },
+      },
+   }
+   local nd = sys:launch{ nodename="test_connect_pct", nostart=true }
+   assert_not_nil(ubx.block_get(nd, "t%d2"))
+   ubx.node_rm(nd)
+end
+
+--- verbose merge logs the source file name, which may contain '%'
+function TestBlockdiagram:test_merge_verbose_with_percent()
+   local sys = bd.system { blocks = { { name="a", type="ubx/threshold" } } }
+   local other = bd.system { blocks = { { name="b", type="ubx/threshold" } } }
+   other._srcfile = "dir%d/b.usc"
+   -- capture the verbose output instead of printing it
+   local out = {}
+   local verbose, stderr = bd.VERBOSE, utils.stderr
+   bd.VERBOSE = true
+   utils.stderr = function(...) out[#out+1] = table.concat({...}) end
+   local ok, e = pcall(sys.merge, sys, other)
+   bd.VERBOSE, utils.stderr = verbose, stderr
+   luaunit.assert_true(ok, e)
+   assert_equals(#sys.blocks, 2)
+   luaunit.assert_str_contains(table.concat(out, "\n"), "merging dir%d/b.usc into parent")
+end
+
 if not _RUNNER then os.exit( luaunit.LuaUnit.run() ) end
