@@ -1,10 +1,16 @@
-These files are part of the tutorial *close loop control of a robotic
-platform*, which is available online
-https://microblx.readthedocs.io/en/latest/tutorial.html
+Closed-loop control of a simulated 2-DoF platform:
 
-Alternatively it can be built locally (`docs/user/tutorial.rst`) by
-running `make docs` and opening the file in a browser:
+- `platform_2dof.lua`, `platform_2dof_control.lua`: block models of
+  the plant and the controller
+- `platform_2dof.c`, `platform_2dof_control.c`: hook implementations
+- `platform_launch/platform_2dof_and_control.usc`: the composition
+- `platform_launch/main.c`: the same system launched from C
 
-```bash
-firefox file:///home/mk/prog/c/microblx/docs/build/html/tutorial.html
+```sh
+ubx-genblock -c platform_2dof.lua -d platform_2dof
+cp platform_2dof.c platform_2dof/
+cd platform_2dof && ./bootstrap && ./configure && make && sudo make install
+# same for platform_2dof_control, then
+ubx-launch -c platform_launch/platform_2dof_and_control.usc
+ubx-mq read plat1.pos
 ```
