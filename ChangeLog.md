@@ -3,7 +3,7 @@ ChangeLog
 
 This file tracks user visible API changes
 
-## unreleased
+## 1.0.0
 
 - `blockdiagram`: new `bd.param(name, default, help)` to declare model
   parameters, set with `ubx-launch -D NAME=VALUE` and listed with
@@ -19,9 +19,6 @@ This file tracks user visible API changes
   values.
 - `blockdiagram`: load errors of a usc now start with
   `failed to load <file>` instead of `failed to load usc`.
-
-## 1.0.0
-
 - `ptrig`: the missed-deadline total is now logged at stop as a
   standalone `OVERRUNS:` line at info level (previously a warning, and
   only when non-zero).
