@@ -367,7 +367,7 @@ started last.
 
 Configuration is applied in several passes, so `preinit` and `init`
 can extend the block interface based on config values (see the
-[block life cycle](../README.md#hooks-and-life-cycle)):
+[block life cycle](blocks.md#hooks-and-life-cycle)):
 
 ![launch sequence](img/launch_sequence.svg)
 

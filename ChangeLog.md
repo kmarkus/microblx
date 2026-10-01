@@ -344,7 +344,7 @@ Other changes:
   client could block it indefinitely).
 - Blocks that step other blocks, e.g. via a `struct ubx_triggee`
   chain, must declare `BLOCK_ATTR_TRIGGER` (see
-  [Declaring the block](README.md#declaring-the-block)).
+  [Declaring the block](docs/blocks.md#declaring-the-block)).
 
 ## 0.9.2
 

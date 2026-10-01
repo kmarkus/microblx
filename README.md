@@ -38,20 +38,6 @@ configurable POSIX realtime properties.
 - [Quickstart](#quickstart)
 - [Concepts](#concepts)
 - [Developing blocks](#developing-blocks)
-    - [Out-of-tree blocks](#out-of-tree-blocks)
-    - [Configs](#configs)
-    - [Ports](#ports)
-    - [Meta-data](#meta-data)
-    - [Hooks and life cycle](#hooks-and-life-cycle)
-    - [Block local state](#block-local-state)
-    - [Reading configs](#reading-configs)
-    - [Reading and writing ports](#reading-and-writing-ports)
-    - [Declaring the block](#declaring-the-block)
-    - [Types](#types)
-    - [Module registration](#module-registration)
-    - [Logging](#logging)
-    - [Guidelines](#guidelines)
-    - [C++ and Lua blocks](#c-and-lua-blocks)
 - [Composing systems](#composing-systems)
     - [Launching from C](#launching-from-c)
 - [Tools](#tools)
@@ -234,7 +220,7 @@ Concepts
 --------
 
 - **block**: has *configs* (static configuration), *ports* (data in
-  and out) and *hooks* called by the [life cycle](#hooks-and-life-cycle).
+  and out) and *hooks* called by the [life cycle](docs/blocks.md#hooks-and-life-cycle).
 - **cblock** (computation block): the regular functional block with a
   `step` hook.
 - **iblock** (interaction block): implements `read` and `write` to
@@ -259,408 +245,95 @@ Concepts
 Developing blocks
 -----------------
 
-The snippets below are from the
-[random](std_blocks/examples/random/random.c) example block. A block
-needs configs, ports, hooks, a block declaration and a module init
-function that registers it. [skelleton](std_blocks/skelleton/) is an
-annotated template.
-
-### Out-of-tree blocks
-
-Copy [`examples/oot-block`](examples/oot-block/): a block with a
-custom type and a CMake build against an installed microblx.
-
-### Configs
-
-A `{ 0 }` terminated array of `ubx_proto_config_t`:
+A minimal cblock:
 
 ```c
-ubx_proto_config_t rnd_config[] = {
-	{ .name = "loglevel", .type_name = "int" },
-	{ .name = "min_max_config", .type_name = "struct random_config", .min = 1, .max = 1 },
+#include <stdlib.h>
+#include <ubx.h>
+
+char scale_meta[] = "{ doc='out = gain * in', realtime=true }";
+
+ubx_proto_config_t scale_config[] = {
+	{ .name = "gain", .type_name = "double", .min = 1, .max = 1 },
 	{ 0 },
 };
-```
 
-`min` and `max` constrain the array length, checked before `init`
-(before `start` with `.attrs = CONFIG_ATTR_CHECKLATE`):
-
-| min | max              | result                  |
-|-----|------------------|-------------------------|
-| 0   | 0 or unset       | no checking             |
-| 0   | 1                | optional                |
-| 1   | 1                | mandatory               |
-| 0   | `CONFIG_LEN_MAX` | zero to many            |
-| N   | M                | between N and M         |
-
-Static definitions use the `ubx_proto_*` types, hooks the runtime
-types (`ubx_config_t`, `ubx_port_t`, `ubx_block_t`).
-
-### Ports
-
-A `{ 0 }` terminated array of `ubx_proto_port_t`. `in_type_name`,
-`out_type_name` or both make an in-, out- or in/out port:
-
-```c
-ubx_proto_port_t rnd_ports[] = {
-	{ .name = "seed", .in_type_name = "unsigned int" },
-	{ .name = "rnd", .out_type_name = "unsigned int" },
+ubx_proto_port_t scale_ports[] = {
+	{ .name = "in", .in_type_name = "double" },
+	{ .name = "out", .out_type_name = "double" },
 	{ 0 },
 };
-```
 
-### Meta-data
-
-```c
-char rnd_meta[] =
-	"{ doc='A random number generator function block',"
-	"  realtime=true,"
-	"}";
-```
-
-- `doc`: short description
-- `realtime`: `step` is real-time safe (no allocations or other
-  non-deterministic calls)
-
-### Hooks and life cycle
-
-All hooks are optional:
-
-```c
-int  rnd_preinit(ubx_block_t *b);
-int  rnd_init(ubx_block_t *b);
-int  rnd_start(ubx_block_t *b);
-void rnd_step(ubx_block_t *b);
-void rnd_stop(ubx_block_t *b);
-void rnd_cleanup(ubx_block_t *b);
-void rnd_preexit(ubx_block_t *b);
-```
-
-![block life cycle FSM](docs/img/life_cycle.svg)
-
-| hook      | typical use                                                                         |
-|-----------|-------------------------------------------------------------------------------------|
-| `preinit` | extend the interface (add/resize ports, create configs) from static config values   |
-| `init`    | allocate memory and resources, open the device, validate configs. Return 0 if OK    |
-| `start`   | become operational: enable the device, cache port pointers, apply runtime configs   |
-| `step`    | read ports, compute, write ports                                                    |
-| `stop`    | disable the device (rarely used)                                                    |
-| `cleanup` | free everything allocated in `init`                                                 |
-| `preexit` | free private data allocated in `preinit` (ports and configs are freed by the framework) |
-
-`preinit` and `init` both run in state `preinit` and may change the
-interface. The deployment applies configs between them (see the
-[launch sequence](docs/usc.md#launch-sequence)): `preinit` sees only
-the static configs, `init` also the configs created by `preinit`.
-`ubx_block_init` runs `preinit` automatically. Blocks with a fixed
-interface only need `init`..`cleanup`.
-
-### Block local state
-
-No globals: a block type can have many instances. Use
-`b->private_data`:
-
-```c
-struct random_info {
-	unsigned int min;
-	unsigned int max;
+struct scale_info {
+	const double *gain;
+	ubx_port_t *p_in;
+	ubx_port_t *p_out;
 };
 
-int rnd_init(ubx_block_t *b)
+int scale_init(ubx_block_t *b)
 {
-	b->private_data = calloc(1, sizeof(struct random_info));
+	b->private_data = calloc(1, sizeof(struct scale_info));
+	return b->private_data ? 0 : EOUTOFMEM;
+}
 
-	if (b->private_data == NULL) {
-		ubx_crit(b, "ENOMEM");
-		return EOUTOFMEM;
-	}
+int scale_start(ubx_block_t *b)
+{
+	struct scale_info *inf = b->private_data;
+
+	if (cfg_getptr_double(b, "gain", &inf->gain) != 1)
+		return -1;
+	inf->p_in = ubx_port_get(b, "in");
+	inf->p_out = ubx_port_get(b, "out");
 	return 0;
 }
 
-void rnd_cleanup(ubx_block_t *b)
+void scale_step(ubx_block_t *b)
+{
+	struct scale_info *inf = b->private_data;
+	double val;
+
+	if (read_double(inf->p_in, &val) <= 0)
+		return;		/* no new data */
+	val *= *inf->gain;
+	write_double(inf->p_out, &val);
+}
+
+void scale_cleanup(ubx_block_t *b)
 {
 	free(b->private_data);
 }
-```
 
-### Reading configs
-
-`cfg_getptr_<TYPE>` returns <0 on error, 0 if unconfigured, else the
-array length, and points `val` to the data:
-
-```c
-long len;
-const int *val;
-
-if ((len = cfg_getptr_int(b, "myconfig", &val)) < 0)
-	return -1;
-
-int myconfig = (len > 0) ? *val : 47;	/* default 47 */
-```
-
-For custom types, define the accessor with a
-[type macro](#type-safe-accessors):
-
-```c
-def_cfg_getptr_fun(cfg_getptr_random_config, struct random_config)
-
-int rnd_start(ubx_block_t *b)
-{
-	long len;
-	const struct random_config *rndconf;
-	struct random_info *inf = b->private_data;
-
-	len = cfg_getptr_random_config(b, "min_max_config", &rndconf);
-
-	if (len < 0) {
-		ubx_err(b, "failed to retrieve min_max_config");
-		return -1;
-	} else if (len == 0) {
-		inf->min = 0;
-		inf->max = INT_MAX;
-	} else {
-		inf->min = rndconf->min;
-		inf->max = rndconf->max;
-	}
-	return 0;
-}
-```
-
-Copying to `private_data` is only needed for defaults; otherwise use
-the pointer directly. Permitted config changes per state:
-
-| block state | allowed config changes |
-|-------------|------------------------|
-| `preinit`   | resize and change      |
-| `inactive`  | change values          |
-| `active`    | none                   |
-
-Configs may be resized in `preinit`, so re-retrieve pointer and length
-in `init`.
-
-**init or start?** Read configs needed for initialization (e.g. a
-device file) in `init`, others in `start`. Reconfiguring the former
-takes `stop`, `cleanup`, `init`, `start`, the latter only `stop`,
-`start`.
-
-### Reading and writing ports
-
-`read_<TYPE>` returns <0 on error, 0 if no data, else the array
-length:
-
-```c
-ubx_port_t *p_rnd = ubx_port_get(b, "rnd");	/* cache in start */
-
-unsigned int val = 1;
-write_uint(p_rnd, &val);
-
-long len;
-int in;
-
-len = read_int(p_in, &in);
-
-if (len < 0)
-	ubx_err(b, "port read failed");
-else if (len == 0)
-	;	/* no data */
-else
-	ubx_info(b, "new data: %i", in);
-```
-
-`read_<TYPE>_array` and `write_<TYPE>_array` handle arrays. Accessors
-for all basic types are in `<ubx.h>`, for custom types see
-[type safe accessors](#type-safe-accessors). Example:
-[ramp](std_blocks/ramp/ramp.c).
-
-### Declaring the block
-
-```c
-ubx_proto_block_t random_comp = {
-	.name = "ubx/random",
-	.meta_data = rnd_meta,
-	.type = BLOCK_TYPE_COMPUTATION,	/* or BLOCK_TYPE_INTERACTION */
-
-	.ports = rnd_ports,
-	.configs = rnd_config,
-
-	.init = rnd_init,
-	.start = rnd_start,
-	.cleanup = rnd_cleanup,
-	.step = rnd_step,
+ubx_proto_block_t scale_block = {
+	.name = "oot/scale",
+	.type = BLOCK_TYPE_COMPUTATION,
+	.meta_data = scale_meta,
+	.configs = scale_config,
+	.ports = scale_ports,
+	.init = scale_init,
+	.start = scale_start,
+	.step = scale_step,
+	.cleanup = scale_cleanup,
 };
-```
 
-Optional `.attrs`:
+int scale_mod_init(ubx_node_t *nd) { return ubx_block_register(nd, &scale_block); }
+void scale_mod_cleanup(ubx_node_t *nd) { ubx_block_unregister(nd, "oot/scale"); }
 
-| attribute            | meaning                     |
-|----------------------|-----------------------------|
-| `BLOCK_ATTR_ACTIVE`  | block runs its own thread   |
-| `BLOCK_ATTR_TRIGGER` | block steps other blocks    |
-
-`ubx-launch` starts active blocks last, the D-Bus `ClearNode` stops
-trigger blocks before removing anything. A block that steps other
-blocks (e.g. via a `struct ubx_triggee` chain) **must** declare
-`BLOCK_ATTR_TRIGGER`, otherwise it may step blocks that are being
-removed.
-
-### Types
-
-Config and port types must be registered: microblx needs their size,
-and the header enables reflection (usc configs, `ubx-mq`, logging).
-
-```c
-/* types/random_config.h */
-struct random_config {
-	unsigned int min;
-	unsigned int max;
-};
-```
-
-```c
-#include "types/random_config.h"
-#include "types/random_config.h.hexarr"
-
-ubx_type_t random_config_type = def_struct_type(struct random_config, &random_config_h);
-```
-
-The `.hexarr` is the header as a C char array (`random_config_h`),
-generated by `tools/ubx-tocarr` in the build
-([CMake](std_blocks/examples/random/CMakeLists.txt): `generate_hexarr`).
-At runtime it is loaded into the LuaJIT FFI. Without reflection, pass
-`NULL` instead.
-
-Rules for type headers (they are passed to `ffi.cdef`):
-
-1. no `#include`: the C preprocessor is not run. Only use types the
-   FFI knows (all builtins and `<stdint.h>` types).
-2. one registered struct per header. Enums and unions used only by
-   that struct may be in the same header.
-
-Supported constructs:
-
-```c
-/* named enum field: Lua sees a number, usc configs also accept "BLUE" */
-enum test_color { RED=0, GREEN=1, BLUE=2 };
-struct test_with_enum { enum test_color col; int val; };
-
-/* named union field: converted to a table of all members */
-union test_variant { int i; float f; };
-struct test_with_union { union test_variant v; unsigned char tag; };
-
-/* anonymous union: members promoted to the struct, { i=42, selector=0 } */
-struct test_with_anon_union { union { int i; float f; }; unsigned char selector; };
-
-/* anonymous enum field: { kind="KIND_FLOAT", value=3 } */
-struct test_with_anon_enum { enum { KIND_INT=0, KIND_FLOAT=1 } kind; int value; };
-```
-
-Custom conversion to Lua for a named struct or union (key includes
-`struct`/`union`; anonymous ones can't be hooked, hook the containing
-struct):
-
-```lua
-local cdata = require("cdata")
-
-cdata.struct2tab["struct test_with_enum"] = function(cd)
-   local names = { [0]="RED", [1]="GREEN", [2]="BLUE" }
-   return { col = names[tonumber(cd.col)], val = tonumber(cd.val) }
-end
-
--- expose only the active union member
-cdata.struct2tab["union test_variant"] = function(cd) return tonumber(cd.i) end
-```
-
-#### Type safe accessors
-
-```c
-def_type_accessors(SUFFIX, TYPENAME)
-
-/* defines */
-long read_SUFFIX(const ubx_port_t *p, TYPENAME *val);
-int write_SUFFIX(const ubx_port_t *p, const TYPENAME *val);
-long read_SUFFIX_array(const ubx_port_t *p, TYPENAME *val, const int len);
-int write_SUFFIX_array(const ubx_port_t *p, const TYPENAME *val, const int len);
-long cfg_getptr_SUFFIX(const ubx_block_t *b, const char *cfg_name, const TYPENAME **valptr);
-```
-
-| macro                                 | defines                    |
-|---------------------------------------|----------------------------|
-| `def_type_accessors(SUFFIX, TYPE)`    | port and config accessors  |
-| `def_port_accessors(SUFFIX, TYPE)`    | port accessors             |
-| `def_port_readers(FUNCNAME, TYPE)`    | port read accessors        |
-| `def_port_writers(FUNCNAME, TYPE)`    | port write accessors       |
-| `def_cfg_getptr_fun(FUNCNAME, TYPE)`  | config getter              |
-| `def_cfg_set_fun(FUNCNAME, TYPE)`     | config setter (launching from C) |
-
-### Module registration
-
-```c
-int rnd_module_init(ubx_node_t *nd)
-{
-	if (ubx_type_register(nd, &random_config_type))
-		return -1;
-	return ubx_block_register(nd, &random_comp);
-}
-
-void rnd_module_cleanup(ubx_node_t *nd)
-{
-	ubx_type_unregister(nd, "struct random_config");
-	ubx_block_unregister(nd, "ubx/random");
-}
-
-UBX_MODULE_INIT(rnd_module_init)
-UBX_MODULE_CLEANUP(rnd_module_cleanup)
+UBX_MODULE_INIT(scale_mod_init)
+UBX_MODULE_CLEANUP(scale_mod_cleanup)
 UBX_MODULE_LICENSE_SPDX(BSD-3-Clause)
 ```
 
-The license is an [SPDX](https://spdx.org/licenses) identifier,
-dual-licensing: `UBX_MODULE_LICENSE_SPDX(MPL-2.0 BSD-3-Clause)`.
+[`examples/oot-block`](examples/oot-block/) is this block plus a
+custom config type and a CMake build against an installed microblx:
 
-### Logging
-
-Real-time safe, kernel-style levels. Set the node level with
-`ubx-launch -l N`, override per block with an `int` config `loglevel`.
-View the log with `ubx-log`.
-
-```c
-ubx_emerg(b, fmt, ...)	/* 0 system unusable */
-ubx_alert(b, fmt, ...)	/* 1 immediate action required */
-ubx_crit(b, fmt, ...)	/* 2 critical */
-ubx_err(b, fmt, ...)	/* 3 error */
-ubx_warn(b, fmt, ...)	/* 4 warning */
-ubx_notice(b, fmt, ...)	/* 5 normal but significant */
-ubx_info(b, fmt, ...)	/* 6 info */
-ubx_debug(b, fmt, ...)	/* 7 debug: compiled out unless UBX_DEBUG is defined */
+```sh
+cd examples/oot-block && mkdir build && cd build
+cmake .. && make && sudo make install
+ubx-launch -c ../scale.usc
 ```
 
-Outside of a block (e.g. in `module_init`):
-
-```c
-ubx_log(UBX_LOGLEVEL_ERROR, nd, __func__, "error %u", x);
-```
-
-Messages are truncated at `UBX_LOG_MSG_MAXLEN` (see
-[build options](#build-options)).
-
-### Guidelines
-
-- use `long` for type related lengths and sizes: large enough, and
-  errors can be returned negative (e.g. `cfg_getptr_uint32`).
-- blocks with configurable data type and length use the canonical
-  configs `type_name` and `data_len`.
-- cache port pointers in `start` (or `init`): simpler, and saves a
-  hash lookup per `step`.
-- add `-fvisibility=hidden` to `CFLAGS` instead of making all
-  functions `static`.
-- configurable array size: see [saturation](std_blocks/saturation/saturation.c).
-  Multiple types at compile time: [ramp](std_blocks/ramp/ramp.c), at
-  runtime: [lfrb](std_blocks/lfrb/lfrb.c).
-
-### C++ and Lua blocks
-
-- C++: see [cppdemo](std_blocks/cppdemo/). Designated initializers for
-  `ubx_proto_*` need g++ >= 8.
-- Lua: see [luablock](std_blocks/luablock/README.md).
+Configs, ports, the life cycle, types, logging, iblocks and triggers:
+[block reference](docs/blocks.md).
 
 Composing systems
 -----------------
