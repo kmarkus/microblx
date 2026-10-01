@@ -14,6 +14,13 @@ core_prefix: /usr/local
 prefixes:    /usr, /usr/local
 ```
 
+All `ptrig_*.usc` variants take the trigger period in us as model
+parameter `PERIOD` (default 1000):
+
+```sh
+$ ubx-launch -c pid_test.usc,ptrig_nrt.usc -D PERIOD=500
+```
+
 **Real-time version (`SCHED_FIFO`) and SCHED_DEADLINE version**
 
 Both require `CAP_SYS_NICE`. Use the `run-pid.sh` helper, which
@@ -23,6 +30,7 @@ session bus and `-dbus` keep working:
 ```sh
 $ ./run-pid.sh rt        # SCHED_FIFO
 $ ./run-pid.sh deadline  # SCHED_DEADLINE
+$ ./run-pid.sh rt -D PERIOD=500   # further args go to ubx-launch
 ```
 
 Do **not** use `setcap cap_sys_nice+ep` on the luajit binary — file

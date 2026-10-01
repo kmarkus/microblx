@@ -7,10 +7,12 @@
 --   cd examples/usc
 --   ubx-launch -c large-number-blocks.usc
 --
--- Override the count at the top of this file or via the environment:
---   N=100 ubx-launch -c large-number-blocks.usc
+-- Override the count with a model parameter:
+--   ubx-launch -c large-number-blocks.usc -D N=100
 
-local N = tonumber(os.getenv("N")) or 50
+local N = bd.param("N", 50, "number of chains", function(v)
+   return v % 1 == 0 and v >= 1, "must be an integer >= 1"
+end)
 
 -- ---------------------------------------------------------------
 -- Build blocks, configurations and connections programmatically

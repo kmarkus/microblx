@@ -500,6 +500,212 @@ function system:validate(verbose)
    return umf.check(self, system_spec, verbose)
 end
 
+--
+--- model parameters
+--
+
+-- open parameter context, nil outside params_begin/params_end
+local _params = nil
+
+-- file currently being loaded, recorded as the declaring file
+local _curfile = "<string>"
+
+local PARAM_NAME_PAT = "^[A-Za-z_][A-Za-z0-9_]*$"
+
+local function param_valstr(v)
+   if type(v) == 'string' then return fmt("%q", v) end
+   return ts(v)
+end
+
+local function is_callable(f)
+   if type(f) == 'function' then return true end
+   local mt = type(f) == 'table' and getmetatable(f)
+   return type(mt) == 'table' and mt.__call ~= nil
+end
+
+-- run the check of parameter name on v, what is "value" or "default"
+local function param_check(name, check, v, what)
+   local ok, res, msg = pcall(check, v)
+   if not ok then
+      error(fmt("parameter %s: check failed: %s", name, ts(res)), 0)
+   end
+   if not res then
+      error(fmt("parameter %s: invalid %s %s: %s", name, what,
+		param_valstr(v), msg ~= nil and ts(msg) or "check failed"), 0)
+   end
+end
+
+--- Declare a model parameter and return its value.
+-- Inside a parameter context (see params_begin) the declaration is
+-- recorded and a value given for name is returned, converted to the
+-- type of default. Outside a context default is returned.
+-- @param name parameter name
+-- @param default default value (number or string)
+-- @param help optional description
+-- @param check optional validation function or callable (e.g. a
+--   tableshape type): check(value) returns true or false/nil and an
+--   error message. Applied to the default and to the converted value.
+-- @return value
+local function param(name, default, help, check)
+   if type(name) ~= 'string' or not name:match(PARAM_NAME_PAT) then
+      error(fmt("bd.param: invalid parameter name %s", param_valstr(name)), 0)
+   end
+
+   local dtype = type(default)
+   if dtype ~= 'number' and dtype ~= 'string' then
+      error(fmt("parameter %s: default must be a number or string, got %s", name, dtype), 0)
+   end
+
+   if help ~= nil and type(help) ~= 'string' then
+      error(fmt("parameter %s: help must be a string, got %s", name, type(help)), 0)
+   end
+
+   if check ~= nil then
+      if not is_callable(check) then
+	 error(fmt("parameter %s: check must be callable, got %s", name, type(check)), 0)
+      end
+      param_check(name, check, default, "default")
+   end
+
+   local P = _params
+   if not P then return default end
+
+   local d = P.decls[name]
+   if not d then
+      d = { name=name, default=default, help=help, file=_curfile }
+      P.decls[name] = d
+      P.decls[#P.decls+1] = d
+   elseif not (d.default == default or (d.default ~= d.default and default ~= default)) then
+      -- (the second clause treats two nan defaults as equal)
+      -- each file has already used its own default, so without a
+      -- value for all of them the merged system would be inconsistent
+      local msg = fmt("parameter %s: default %s in %s conflicts with %s in %s",
+		      name, param_valstr(default), _curfile,
+		      param_valstr(d.default), d.file)
+      if P.values[name] == nil then error(msg, 0) end
+      P.warnings[#P.warnings+1] = msg
+   end
+
+   local v = P.values[name]
+   if v == nil then return default end
+
+   if dtype == 'number' then
+      local n = tonumber(v)
+      if n == nil then
+	 error(fmt("parameter %s: invalid number %s", name, param_valstr(v)), 0)
+      end
+      v = n
+   else
+      v = ts(v)
+   end
+
+   if check ~= nil then param_check(name, check, v, "value") end
+   return v
+end
+
+--- Open a parameter context.
+-- All models loaded until params_end, including nested bd.load
+-- calls, read their parameters from values and record their
+-- declarations.
+-- @param values optional table of name=value, values are strings or
+--   numbers
+local function params_begin(values)
+   if _params then error("params_begin: a parameter context is already open", 2) end
+   values = values or {}
+   for k,v in pairs(values) do
+      if type(k) ~= 'string' or not k:match(PARAM_NAME_PAT) then
+	 error(fmt("invalid parameter name %s", param_valstr(k)), 0)
+      end
+      if type(v) ~= 'string' and type(v) ~= 'number' then
+	 error(fmt("parameter %s: value must be a string or number, got %s", k, type(v)), 0)
+      end
+   end
+   _params = { values=values, decls={}, warnings={} }
+end
+
+--- Close the parameter context.
+-- Fails if a value was given for a parameter that no model declared.
+-- @return array of declarations {name, default, help, file} in declaration order
+-- @return array of warning messages
+local function params_end()
+   local P = _params
+   if not P then error("params_end: no parameter context open", 2) end
+   _params = nil
+
+   local unknown = {}
+   for k in pairs(P.values) do
+      if not P.decls[k] then unknown[#unknown+1] = k end
+   end
+
+   local decls = {}
+   for i,d in ipairs(P.decls) do decls[i] = d end
+
+   if #unknown > 0 then
+      table.sort(unknown)
+      local declared = {}
+      for i,d in ipairs(decls) do declared[i] = d.name end
+      error(fmt("unknown parameter%s %s; declared: %s",
+		#unknown > 1 and "s" or "", table.concat(unknown, " "),
+		#declared > 0 and table.concat(declared, " ") or "none"), 0)
+   end
+
+   return decls, P.warnings
+end
+
+--- Parse NAME=VALUE strings (e.g. from -D options) into a table.
+-- Splits on the first '='. If a name is given more than once the
+-- last value is used.
+-- @param defs string or array of strings
+-- @return table name=value
+local function parse_defines(defs)
+   local res = {}
+   if defs == nil then return res end
+   if type(defs) ~= 'table' then defs = { defs } end
+   for _,d in ipairs(defs) do
+      local name, val = string.match(d, "^([^=]*)=(.*)$")
+      if not name then
+	 error(fmt("invalid define '%s', expected NAME=VALUE", d), 0)
+      end
+      if not name:match(PARAM_NAME_PAT) then
+	 error(fmt("invalid define '%s': invalid parameter name '%s'", d, name), 0)
+      end
+      res[name] = val
+   end
+   return res
+end
+
+--- Write declarations returned by params_end as a table with the
+-- columns name, default and help.
+-- @param fd file to write to, e.g. io.stdout
+-- @param decls array of declarations
+local function params_write(fd, decls)
+   if #decls == 0 then
+      fd:write("no parameters declared\n")
+      return
+   end
+   local rows = {}
+   for i,d in ipairs(decls) do
+      rows[i] = { d.name, param_valstr(d.default), d.help or "" }
+   end
+   utils.write_table(fd, { "name", "default", "help" }, rows, { count=false })
+end
+
+--- Run func inside a parameter context.
+-- The context is closed also if func fails.
+-- @param values table of name=value, see params_begin
+-- @param func function to run, e.g. one loading models
+-- @return result of func, declarations and warnings (see params_end)
+local function with_params(values, func)
+   params_begin(values)
+   local ok, res = pcall(func)
+   if not ok then
+      _params = nil
+      error(res, 0)
+   end
+   local decls, warnings = params_end()
+   return res, decls, warnings
+end
+
 --- load blockdiagram system from a string
 -- @param str string containing usc (JSON or Lua)
 -- @param file_type type of the string content ('json' or 'usc'/'lua')
@@ -521,7 +727,7 @@ local function load_str(str, file_type)
    end
 
    if not is_system(mod) then
-      error("failed to load usc\n"..ts(mod))
+      error(fmt("failed to load %s\n%s", _curfile, ts(mod)), 0)
    end
 
    return mod
@@ -537,11 +743,14 @@ local function load(fn, file_type)
    local f = assert(io.open(fn, "r"))
    local str = f:read("*all")
    f:close()
-   local mod = load_str(str, file_type)
+   local prevfile = _curfile
+   _curfile = fn
+   local ok, mod = pcall(load_str, str, file_type)
+   _curfile = prevfile
+   if not ok then error(mod, 0) end
    mod._srcfile = fn
    return mod
 end
-
 
 --
 --- late checking
@@ -1168,5 +1377,11 @@ M.system = system
 M.system_spec = system_spec
 M.load = load
 M.load_str = load_str
+M.param = param
+M.params_begin = params_begin
+M.params_end = params_end
+M.with_params = with_params
+M.parse_defines = parse_defines
+M.params_write = params_write
 
 return M

@@ -88,6 +88,9 @@ Commands
                                   STEP is true, step BLOCK in between (default
                                   false)
   -l  --load-usc=USC              load an usc model
+      --params                    with --load-usc: list the parameters
+                                  declared by the model locally and exit.
+                                  -D values are checked as for loading
   -C  --clear=[KEEPLIST]          clear all blocks except the dbus block.
                                   KEEPLIST is an optional colon-separated list
                                   of block names or Lua match patterns to keep.
@@ -100,6 +103,8 @@ Commands
 
 Options
   -n  --node=NAME                 use the node NAME
+  -D  --define=NAME=VALUE         with --load-usc: set model parameter NAME
+                                  to VALUE. repeatable
   -S  --system                    use the system bus
   -U  --session                   use the session bus
       --examples                  show some examples
@@ -116,6 +121,34 @@ local arg, opts = parser:parse(arg)
 
 if #arg>0 then
    errexit(1, "invalid arg: %s, try -h", table.concat(arg, ", "))
+end
+
+if (opts.define or opts.params) and not opts.load_usc then
+   errexit(1, "-D and --params require --load-usc")
+end
+
+-- model parameters for --load-usc
+local usc_params = {}
+if opts.define then
+   if string.match(opts.load_usc, "%.json$") then
+      errexit(1, "-D is not supported for json models")
+   end
+   local bd = require("blockdiagram")
+   local ok, res = pcall(bd.parse_defines, opts.define)
+   if not ok then errexit(1, "error: %s", res) end
+   usc_params = res
+end
+
+-- load the model locally to list its parameters, no node needed
+if opts.params then
+   local bd = require("blockdiagram")
+   local ok, res, decls, warnings = pcall(bd.with_params, usc_params, function()
+      return bd.load(opts.load_usc)
+   end)
+   if not ok then errexit(1, "error: %s", tostring(res)) end
+   for _,w in ipairs(warnings) do io.stderr:write("warning: ", w, "\n") end
+   bd.params_write(io.stdout, decls)
+   os.exit(0)
 end
 
 local bustyp = 'default'
@@ -510,7 +543,10 @@ if opts.load_usc then
    if ext == 'json' then
       p('LoadUSCJSON', contents)
    elseif ext == 'usc' or ext == 'lua' then
-      p('LoadUSCLua', contents)
+      local warnings = p('LoadUSCLua', contents, usc_params)
+      for _,w in ipairs(warnings or {}) do
+	 io.stderr:write("warning: ", w, "\n")
+      end
    else
       errexit(1, "unknown USC file type '%s', expected .json, .usc or .lua", ext or "")
    end
@@ -575,6 +611,10 @@ Examples:
 
   # load a USC model
   ubx-dbus --load-usc=mymodel.usc
+
+  # list its parameters and load it with a parameter set
+  ubx-dbus --load-usc=mymodel.usc --params
+  ubx-dbus --load-usc=mymodel.usc -D PERIOD=500
 
   # trigger a block once, then clear all except ptrig0
   ubx-dbus --trigger=ptrig0

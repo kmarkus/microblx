@@ -49,6 +49,10 @@ Options:
                            not specified, auto-detected from extension.
                            requires the same number of parameters as -c
   -e, --empty              launch an empty node (mutually exclusive with -c)
+  -D, --define=NAME=VALUE  set model parameter NAME to VALUE. repeatable. an
+                           undeclared NAME is an error
+      --params             list the parameters declared by the model(s) and
+                           exit
   -b, --monitor=BLOCK      monitor BLOCK and shutdown when it becomes inactive
       --nodename=NAME      set nodename to NAME
       --mlockall           call mlockall to lock memory
@@ -130,6 +134,9 @@ end
 
 if opts.verbose then bd.VERBOSE=true end
 
+local ok, defines = pcall(bd.parse_defines, opts.define)
+if not ok then errexit(1, "error: %s", defines) end
+
 local model
 
 if opts.empty and opts.conf then
@@ -138,6 +145,10 @@ end
 
 if not opts.empty and not opts.conf then
    errexit(1, "error: no configuration file(s) given (-c option)")
+end
+
+if opts.empty and (opts.define or opts.params) then
+   errexit(1, "error: -D and --params require a model (-c)")
 end
 
 if opts.empty then
@@ -159,17 +170,29 @@ else
       end
    end
 
-   -- load first model and merge others into it
-   model = bd.load(conf_files[1], conf_types[1])
+   -- load first model and merge others into it. all files share one
+   -- parameter context.
+   local ok, res, decls, warnings = pcall(bd.with_params, defines, function()
+      local m = bd.load(conf_files[1], conf_types[1])
+      for i=2,#conf_files do
+	 m:merge(bd.load(conf_files[i], conf_types[i]), true)
+      end
+      return m
+   end)
 
-   if not bd.is_system(model) then
-      print(model)
-      errexit(1, "error: failed to load files %s", table.concat(conf_files, ', '))
+   if not ok then errexit(1, "error: %s", ts(res)) end
+   model = res
+
+   for _,w in ipairs(warnings) do
+      io.stderr:write("warning: ", w, "\n")
+   end
+   if #warnings > 0 and opts.werror then
+      errexit(1, "error: treating warnings as errors (--werror)")
    end
 
-   for i=2,#conf_files do
-      local m = bd.load(conf_files[i], conf_types[i])
-      model:merge(m, true)
+   if opts.params then
+      bd.params_write(io.stdout, decls)
+      os.exit(0)
    end
 end
 

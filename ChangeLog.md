@@ -3,6 +3,23 @@ ChangeLog
 
 This file tracks user visible API changes
 
+## unreleased
+
+- `blockdiagram`: new `bd.param(name, default, help)` to declare model
+  parameters, set with `ubx-launch -D NAME=VALUE` and listed with
+  `ubx-launch --params`. An undeclared `-D` name is an error. See
+  "Model parameters" in the composing systems documentation. An
+  optional fourth argument validates the value, e.g. with a function
+  or a tableshape type.
+- `ubx-dbus`: new `-D` and `--params` options for `--load-usc`.
+- `lsdb-intf`: **incompatible** `LoadUSCLua` signature change from
+  `(s)` to `(s usc, a{ss} params) -> as warnings`. Pass an empty dict
+  for no parameters. The plugin API `load_usc_lua(str)` takes an
+  optional parameter table as second argument, with string or number
+  values.
+- `blockdiagram`: load errors of a usc now start with
+  `failed to load <file>` instead of `failed to load usc`.
+
 ## 1.0.0
 
 - `ptrig`: the missed-deadline total is now logged at stop as a

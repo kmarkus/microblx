@@ -20,6 +20,34 @@
 --   ---> depicts data flow
 --   ...> means "triggers"
 --
+-- The trigger period and scheduling are model parameters, e.g.
+--
+--   ubx-launch -c threshold.usc --params
+--   ubx-launch -c threshold.usc -D PERIOD=500 -D SCHED_POLICY=SCHED_FIFO -D SCHED_PRIORITY=50
+--
+-- SCHED_FIFO/SCHED_RR need a priority > 0 and SCHED_OTHER 0; ptrig
+-- rejects other combinations.
+
+local function int_range(min, max)
+   return function(v)
+      return v % 1 == 0 and v >= min and v <= max,
+	 ("must be an integer in [%d, %d]"):format(min, max)
+   end
+end
+
+local function one_of(...)
+   local allowed = {...}
+   return function(v)
+      for _,a in ipairs(allowed) do if v == a then return true end end
+      return false, "must be one of " .. table.concat(allowed, ", ")
+   end
+end
+
+local PERIOD = bd.param("PERIOD", 1000, "trigger period [us]", int_range(1, 1e9))
+local SCHED_POLICY = bd.param("SCHED_POLICY", "SCHED_OTHER", "ptrig scheduling policy",
+			      one_of("SCHED_OTHER", "SCHED_FIFO", "SCHED_RR"))
+local SCHED_PRIORITY = bd.param("SCHED_PRIORITY", 0, "ptrig priority, > 0 for SCHED_FIFO/RR",
+				int_range(0, 99))
 
 return bd.system
 {
@@ -56,7 +84,9 @@ return bd.system
       {
 	 name="trigger",
 	 config = {
-	   period = {sec=0, usec=1000 }, -- 1000 Hz
+	    period = { sec=0, usec=PERIOD },
+	    sched_policy = SCHED_POLICY,
+	    sched_priority = SCHED_PRIORITY,
 	    chain0 = {
 	       { b="#ramp" },
 	       { b="#sin" },

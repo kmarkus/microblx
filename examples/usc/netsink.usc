@@ -31,10 +31,10 @@
 -- instead of the sink's own clock. Select "ts" as the timestamp field in
 -- PlotJuggler.
 --
--- Transport and format are selectable from the environment for
--- convenience (defaults: udp + json, ready for PlotJuggler):
+-- Transport, format and destination are model parameters (defaults:
+-- udp + json to 127.0.0.1:9870, ready for PlotJuggler). List them with
 --
---   NETSINK_TRANSPORT=udp|zmq   NETSINK_FORMAT=json|msgpack
+--   ubx-launch -c examples/usc/netsink.usc --params
 --
 -- Examples:
 --   # UDP + JSON -> PlotJuggler (Streaming -> UDP Server -> port 9870),
@@ -43,22 +43,27 @@
 --
 --   # MessagePack over a ZeroMQ PUB socket (bind tcp://*:9870); subscribe
 --   # with a ZeroMQ SUB socket (SUBSCRIBE "")
---   NETSINK_TRANSPORT=zmq NETSINK_FORMAT=msgpack \
---       ubx-launch -t 10 -c examples/usc/netsink.usc
+--   ubx-launch -t 10 -c examples/usc/netsink.usc -D TRANSPORT=zmq -D FORMAT=msgpack
 
--- pick transport/format from the environment (with sensible defaults) and
--- build the sink's lua_str accordingly: udp needs host/port, zmq a uri.
-local function envdef(name, default)
-   local v = os.getenv(name)
-   if v == nil or v == "" then return default end
-   return v
+local function one_of(...)
+   local allowed = {...}
+   return function(v)
+      for _,a in ipairs(allowed) do if v == a then return true end end
+      return false, "must be one of " .. table.concat(allowed, ", ")
+   end
 end
-local transport = envdef("NETSINK_TRANSPORT", "udp")
-local format    = envdef("NETSINK_FORMAT", "json")
 
+local transport = bd.param("TRANSPORT", "udp", "udp or zmq", one_of("udp", "zmq"))
+local format    = bd.param("FORMAT", "json", "json or msgpack", one_of("json", "msgpack"))
+local host      = bd.param("HOST", "127.0.0.1", "udp destination host")
+local port      = bd.param("PORT", 9870, "udp destination or zmq bind port",
+			   function(v) return v % 1 == 0 and v >= 1 and v <= 65535,
+				 "must be an integer in [1, 65535]" end)
+
+-- build the sink's lua_str: udp needs host/port, zmq a uri.
 local dest = (transport == "zmq")
-   and 'uri  = "tcp://*:9870"'
-   or  'host = "127.0.0.1"\n      port = 9870'
+   and ('uri  = "tcp://*:%d"'):format(port)
+   or  ('host = %q\n      port = %d'):format(host, port)
 
 local sink_lua_str = string.format([[
       ports     = { ts="double", sin="double", cos="double", tan="double" }
@@ -97,8 +102,8 @@ return bd.system
 	   thread = 1,
 	   period = 100, -- msec: self-trigger at 10 Hz, off the ptrig
 
-	   -- all netsink settings are lua_str globals; here transport/format
-	   -- come from NETSINK_TRANSPORT / NETSINK_FORMAT (see header).
+	   -- all netsink settings are lua_str globals; here they come
+	   -- from the model parameters (see header).
 	   lua_str = sink_lua_str,
 	}
       },

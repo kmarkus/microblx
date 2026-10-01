@@ -22,6 +22,7 @@ local assert_not_nil = luaunit.assert_not_nil
 local assert_equals = luaunit.assert_equals
 local assert_true = luaunit.assert_true
 local assert_error_msg_contains = luaunit.assert_error_msg_contains
+local assert_str_contains = luaunit.assert_str_contains
 
 local fmt = string.format
 local UBX_SRV  = 'org.ubx.%s'
@@ -286,11 +287,202 @@ end
 function TestLsdbIntf:test_load_usc_lua()
    _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_load_usc")
 
-   _proxy('LoadUSCLua', make_thres_usc("t1", 5.0))
+   _proxy('LoadUSCLua', make_thres_usc("t1", 5.0), {})
    assert_true(cblocks_contains(_proxy.CBlocks, "t1"))
 
    assert_equals(write_trigger_read(_proxy, "t1", 3.0), 0)
    assert_equals(write_trigger_read(_proxy, "t1", 7.0), 1)
+end
+
+-- threshold model whose threshold is the parameter T
+local THRES_PARAM_USC = [[
+local T = bd.param("T", 5.0, "threshold")
+return bd.system {
+   imports = { "stdtypes", "lfrb", "threshold" },
+   blocks = { { name = "t1", type = "ubx/threshold" } },
+   configurations = { { name = "t1", config = { threshold = T } } },
+}
+]]
+
+function TestLsdbIntf:test_load_usc_lua_param_default()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_load_usc_pdef")
+   local warnings = _proxy('LoadUSCLua', THRES_PARAM_USC, {})
+   assert_equals(warnings, {})
+   assert_equals(_proxy('GetConfig', "t1", "threshold"), 5.0)
+end
+
+function TestLsdbIntf:test_load_usc_lua_param_value()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_load_usc_pval")
+   _proxy('LoadUSCLua', THRES_PARAM_USC, { T="20" })
+   assert_equals(_proxy('GetConfig', "t1", "threshold"), 20.0)
+   assert_equals(write_trigger_read(_proxy, "t1", 7.0), 0)
+   assert_equals(write_trigger_read(_proxy, "t1", 21.0), 1)
+end
+
+function TestLsdbIntf:test_load_usc_lua_param_unknown()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_load_usc_punk")
+   assert_error_msg_contains("unknown parameter X; declared: T",
+      function() _proxy('LoadUSCLua', THRES_PARAM_USC, { X="1" }) end)
+   assert_true(not cblocks_contains(_proxy.CBlocks, "t1"))
+   -- the context was closed: the next load works
+   _proxy('LoadUSCLua', THRES_PARAM_USC, { T="3" })
+   assert_equals(_proxy('GetConfig', "t1", "threshold"), 3.0)
+end
+
+function TestLsdbIntf:test_load_usc_lua_param_invalid()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_load_usc_pinv")
+   assert_error_msg_contains('parameter T: invalid number "x"',
+      function() _proxy('LoadUSCLua', THRES_PARAM_USC, { T="x" }) end)
+   assert_error_msg_contains("invalid parameter name",
+      function() _proxy('LoadUSCLua', THRES_PARAM_USC, { ["1T"]="1" }) end)
+   assert_true(not cblocks_contains(_proxy.CBlocks, "t1"))
+end
+
+function TestLsdbIntf:test_load_usc_lua_param_conflict()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_load_usc_pconf")
+   local usc = [[
+bd.param("T", 1.0)
+bd.param("T", 2.0)
+return bd.system {}
+]]
+   assert_error_msg_contains("parameter T: default 2 in <string> conflicts with 1 in <string>",
+      function() _proxy('LoadUSCLua', usc, {}) end)
+   local warnings = _proxy('LoadUSCLua', usc, { T="3" })
+   assert_equals(warnings, { "parameter T: default 2 in <string> conflicts with 1 in <string>" })
+
+   -- a warning is no format string
+   warnings = _proxy('LoadUSCLua', 'bd.param("F", "%d"); bd.param("F", "%f"); return bd.system {}',
+		     { F="x" })
+   assert_equals(warnings, { 'parameter F: default "%f" in <string> conflicts with "%d" in <string>' })
+end
+
+function TestLsdbIntf:test_load_usc_lua_param_check()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_load_usc_pchk")
+   local usc = [[
+local T = bd.param("T", 5.0, "threshold", function(v) return v < 10, "must be < 10" end)
+return bd.system {
+   imports = { "stdtypes", "lfrb", "threshold" },
+   blocks = { { name = "t1", type = "ubx/threshold" } },
+   configurations = { { name = "t1", config = { threshold = T } } },
+}
+]]
+   assert_error_msg_contains("parameter T: invalid value 20: must be < 10",
+      function() _proxy('LoadUSCLua', usc, { T="20" }) end)
+   assert_true(not cblocks_contains(_proxy.CBlocks, "t1"))
+   _proxy('LoadUSCLua', usc, { T="8" })
+   assert_equals(_proxy('GetConfig', "t1", "threshold"), 8.0)
+end
+
+---
+--- ubx-dbus -D / --params
+---
+
+-- run ubx-dbus from the source tree, independent of PATH
+local UBX_DBUS = "luajit " .. TEST_DIR .. "/../std_blocks/lsdb-intf/ubx-dbus"
+
+--- run a shell command, return combined stdout+stderr and exit code.
+--- a leading ubx-dbus runs the source tree version.
+local function run(cmd)
+   cmd = cmd:gsub("^ubx%-dbus", UBX_DBUS)
+   local p = io.popen(cmd .. " 2>&1; echo \"rc=$?\"")
+   local out = p:read("*a")
+   p:close()
+   local rc = tonumber(out:match("rc=(%d+)\n?$"))
+   return out:gsub("rc=%d+\n?$", ""), rc
+end
+
+local function write_tmp(content, ext)
+   -- os.tmpname creates the file, only use its unique name
+   local base = os.tmpname()
+   os.remove(base)
+   local fn = base .. ext
+   local f = assert(io.open(fn, "w"))
+   f:write(content)
+   f:close()
+   return fn
+end
+
+function TestLsdbIntf:test_ubx_dbus_params_local()
+   -- lists locally, no node and no bus needed
+   local fn = write_tmp(THRES_PARAM_USC, ".usc")
+   local out, rc = run("ubx-dbus --load-usc=" .. fn .. " --params")
+   os.remove(fn)
+   assert_equals(rc, 0)
+   assert_equals((out:gsub("[ ]+\n", "\n")), " name  default  help\n T     5        threshold\n")
+end
+
+function TestLsdbIntf:test_ubx_dbus_params_define()
+   -- --params applies and checks -D like ubx-launch
+   local fn = write_tmp(THRES_PARAM_USC, ".usc")
+   local out, rc = run("ubx-dbus --load-usc=" .. fn .. " --params -D X=1")
+   assert_equals(rc, 1)
+   assert_equals(out, "error: unknown parameter X; declared: T\n")
+   out, rc = run("ubx-dbus --load-usc=" .. fn .. " --params -D T=x")
+   assert_equals(rc, 1)
+   assert_str_contains(out, 'parameter T: invalid number "x"')
+   out, rc = run("ubx-dbus --load-usc=" .. fn .. " --params -D T=7")
+   os.remove(fn)
+   assert_equals(rc, 0, out)
+end
+
+function TestLsdbIntf:test_ubx_dbus_params_load_error()
+   local fn = write_tmp("error('bad model')", ".usc")
+   local out, rc = run("ubx-dbus --load-usc=" .. fn .. " --params")
+   os.remove(fn)
+   assert_equals(rc, 1)
+   assert_str_contains(out, "error: failed to load " .. fn)
+   assert_str_contains(out, "bad model")
+end
+
+function TestLsdbIntf:test_ubx_dbus_define_requires_load_usc()
+   for _,o in ipairs{ "-D T=1", "--params" } do
+      local out, rc = run("ubx-dbus -n nonexistent " .. o)
+      assert_equals(rc, 1)
+      assert_equals(out, "-D and --params require --load-usc\n")
+   end
+end
+
+function TestLsdbIntf:test_ubx_dbus_define_json()
+   local fn = write_tmp("{}", ".json")
+   local out, rc = run("ubx-dbus -n nonexistent --load-usc=" .. fn .. " -D T=1")
+   os.remove(fn)
+   assert_equals(rc, 1)
+   assert_equals(out, "-D is not supported for json models\n")
+end
+
+function TestLsdbIntf:test_ubx_dbus_define_invalid()
+   local fn = write_tmp(THRES_PARAM_USC, ".usc")
+   local out, rc = run("ubx-dbus -n nonexistent --load-usc=" .. fn .. " -D T")
+   os.remove(fn)
+   assert_equals(rc, 1)
+   assert_equals(out, "error: invalid define 'T', expected NAME=VALUE\n")
+end
+
+function TestLsdbIntf:test_ubx_dbus_load_usc_define()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_dbus_cli_def")
+   local fn = write_tmp(THRES_PARAM_USC, ".usc")
+
+   local out, rc = run("ubx-dbus -n test_dbus_cli_def --load-usc=" .. fn .. " -D X=1")
+   assert_equals(rc, 3)
+   assert_str_contains(out, "unknown parameter X; declared: T")
+
+   out, rc = run("ubx-dbus -n test_dbus_cli_def --load-usc=" .. fn .. " -D T=42")
+   os.remove(fn)
+   assert_equals(rc, 0, out)
+   assert_equals(_proxy('GetConfig', "t1", "threshold"), 42.0)
+end
+
+function TestLsdbIntf:test_ubx_dbus_load_usc_warning()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_dbus_cli_warn")
+   local fn = write_tmp([[
+bd.param("T", 1.0)
+bd.param("T", 2.0)
+return bd.system {}
+]], ".usc")
+   local out, rc = run("ubx-dbus -n test_dbus_cli_warn --load-usc=" .. fn .. " -D T=3")
+   os.remove(fn)
+   assert_equals(rc, 0, out)
+   assert_equals(out, "warning: parameter T: default 2 in <string> conflicts with 1 in <string>\n")
 end
 
 ---
@@ -312,7 +504,7 @@ return bd.system {
       { name = "t2", config = { threshold = 10.0 } },
    },
 }
-]]))
+]]), {})
 
    assert_true(cblocks_contains(_proxy.CBlocks, "t1"))
    assert_true(cblocks_contains(_proxy.CBlocks, "t2"))
@@ -586,6 +778,15 @@ function TestLsdbIntf:test_plugin_handler_error()
                               fmt(UBX_SRV, "test_plugin_err"),
                               "/testplugin", "org.test.plugin")
    assert_error_msg_contains("plugin handler failed", pp, 'Fail')
+end
+
+function TestLsdbIntf:test_plugin_load_usc_lua_number_param()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_plugin_usc_num")
+   _pm_proxy('LoadPlugin', TEST_PLUGIN)
+   local pp = lsdb.proxy.new(_bus, fmt(UBX_SRV, "test_plugin_usc_num"),
+			     "/testplugin", "org.test.plugin")
+   pp('LoadUSCParam', THRES_PARAM_USC, 12.5)
+   assert_equals(_proxy('GetConfig', "t1", "threshold"), 12.5)
 end
 
 function TestLsdbIntf:test_plugin_ctx_api()

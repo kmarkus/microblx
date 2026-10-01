@@ -214,10 +214,15 @@ local function load_usc_json(vt, str)
    vt:emitAllPropertiesChanged()
 end
 
-local function load_usc_lua(vt, str)
-   local sys = bd.load_str(str, 'lua')
+-- params: optional table of model parameters name=value (see bd.param)
+local function load_usc_lua(vt, str, params)
+   local sys, _, warnings = bd.with_params(params or {}, function()
+      return bd.load_str(str, 'lua')
+   end)
+   for _,w in ipairs(warnings) do ubx.warn(vt.nd, "lsdb-intf", "%s", w) end
    sys:launch({ nd = vt.nd })
    vt:emitAllPropertiesChanged()
+   return warnings
 end
 
 -- Return true if name matches any entry in the keeplist.
@@ -579,6 +584,8 @@ local intf = {
 
       LoadUSCLua = {
 	 { direction='in', name='usc', type='s' },
+	 { direction='in', name='params', type='a{ss}' },
+	 { direction='out', name='warnings', type='as' },
 	 handler = load_usc_lua,
       },
 

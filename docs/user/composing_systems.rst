@@ -390,6 +390,63 @@ For example, consider the example in
 ``subsystems`` entry (see :ref:`merging-subsystems`), models merged on
 the command line will *override* existing entries.
 
+Model parameters
+----------------
+
+A usc model can declare named parameters with ``bd.param(name,
+default, help)`` and use the returned value:
+
+.. code:: lua
+
+	local PERIOD  = bd.param("PERIOD",  1000, "trigger period [us]")
+	local GRIPPER = bd.param("GRIPPER", 0,    "1 = gripper attached")
+
+	return bd.system { ... }
+
+The value is set on the command line with ``-D`` and the declared
+parameters are listed with ``--params``:
+
+.. code:: sh
+
+	ubx-launch -c arm.usc --params
+	ubx-launch -c arm.usc -D PERIOD=500 -D GRIPPER=1
+
+``ubx-dbus --load-usc`` supports the same two options.
+
+- ``-D`` for a parameter that no loaded model declares is an error,
+  so a misspelled name is never silently ignored.
+- the value is converted to the type of the default: number and
+  string defaults are supported. A non-numeric value for a number
+  parameter is an error. ``nan`` and ``inf`` are numbers, a check
+  can reject them.
+- names must match ``[A-Za-z_][A-Za-z0-9_]*`` and are global across
+  all loaded models, including submodels loaded with ``bd.load()``
+  and models merged on the command line. A submodel included twice
+  reads the same value in both instances.
+- a parameter may be declared by several models only with the same
+  default. Different defaults are an error, since each model has
+  already used its own default, unless the value is given with ``-D``;
+  then it is a warning (an error with ``--werror``).
+- an optional fourth argument validates the parameter: a function or
+  callable table (e.g. a `tableshape <https://github.com/leafo/tableshape>`_
+  type) that receives the default and the converted value and returns
+  ``true``, or ``false``/``nil`` and an error message:
+
+  .. code:: lua
+
+	local PERIOD = bd.param("PERIOD", 1000, "trigger period [us], > 0",
+				function(v) return v > 0, "must be > 0" end)
+
+  Each declaration runs its own check; checks are not compared between
+  repeated declarations. Since ``--params`` cannot show a check,
+  describe the constraint in the help text.
+- declare parameters unconditionally at the top of the model: a
+  declaration in a branch not taken is unknown to ``-D`` and
+  ``--params``.
+- outside ``ubx-launch`` and ``ubx-dbus`` (e.g. ``bd.load()`` from a
+  script), ``bd.param()`` returns the default. To pass values, load
+  inside ``bd.with_params(values, func)``.
+
 Alternatives
 ------------
 

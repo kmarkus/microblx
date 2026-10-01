@@ -20,6 +20,12 @@ function M.init(ctx)
                { direction='out', name='name', type='s' },
                handler = function(vt) return ctx.nd:get_name() end,
             },
+            -- load usc with the number t as parameter T via the plugin API
+            LoadUSCParam = {
+               { direction='in', name='usc', type='s' },
+               { direction='in', name='t',   type='d' },
+               handler = function(vt, usc, t) ctx.api.load_usc_lua(usc, { T=t }) end,
+            },
          },
       },
    }

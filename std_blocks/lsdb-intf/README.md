@@ -158,6 +158,17 @@ $ ubx-dbus -C=ptrig0:^logger  # keep ptrig0 and any block matching ^logger
 Keeplist entries: plain strings match exactly; entries starting with `^` or ending with `$`
 are Lua [string.match](https://www.lua.org/manual/5.1/manual.html#pdf-string.match) patterns.
 
+### Load a model with parameters
+
+```sh
+$ ubx-dbus -l mymodel.usc --params        # list the declared parameters (locally)
+$ ubx-dbus -l mymodel.usc -D PERIOD=500   # load with PERIOD set to 500
+```
+
+See "Model parameters" in the composing systems documentation. The
+D-Bus method is `LoadUSCLua(s usc, a{ss} params) -> as warnings`; an
+unknown parameter fails the call.
+
 ### Connect blocks
 
 ```sh

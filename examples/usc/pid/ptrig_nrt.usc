@@ -1,5 +1,9 @@
 -- -*- mode: lua; -*-
 
+local PERIOD = bd.param("PERIOD", 1000, "ptrig period [us]", function(v)
+   return v % 1 == 0 and v >= 1, "must be an integer >= 1"
+end)
+
 return bd.system {
    imports = { "stdtypes", "ptrig" },
 
@@ -9,7 +13,7 @@ return bd.system {
 
    configurations = {
       { name="ptrig_1", config = {
-	   period = {sec=0, usec=1000 },
+	   period = { sec=0, usec=PERIOD },
 	   tstats_mode=1,
 	   tstats_profile_path="/tmp",
 	   chain0={
