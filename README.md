@@ -516,16 +516,20 @@ FAQ
 **`blockXY.so: cannot open shared object file`**: run `sudo ldconfig`
 after installing, or `export LD_LIBRARY_PATH=/usr/local/lib/`.
 
-**Real-time priorities**: give luajit the capability and lock memory:
+**Real-time priorities**: run with `CAP_SYS_NICE` as an ambient
+capability and lock memory:
 
 ```sh
-sudo setcap cap_sys_nice+ep $(which luajit)   # or a local luajit binary
-ubx-launch --mlockall -c app.usc
+sudo -E capsh --keep=1 --uid="$(id -u)" \
+     --inh=cap_sys_nice --caps=cap_sys_nice+eip --addamb=cap_sys_nice -- \
+     -c 'exec ubx-launch --mlockall -c app.usc'
 ```
 
-From C, pass the node attribute `ND_MLOCK_ALL` to `ubx_node_init`.
-Core dumps of such processes are disabled; re-enable with
-`--dumpable` (`ND_DUMPABLE`).
+Don't `setcap` the luajit binary: file capabilities make sd-bus ignore
+the session bus environment, which breaks `--dbus`. Example:
+[`run-pid.sh`](examples/usc/pid/run-pid.sh). From C, pass the node
+attribute `ND_MLOCK_ALL` to `ubx_node_init`. If core dumps are
+missing, pass `--dumpable` (`ND_DUMPABLE`).
 
 Getting help
 ------------
