@@ -1,0 +1,22 @@
+-- ramp -> scale -> mqueue, read with: ubx-mq read scale.out
+return bd.system {
+   imports = { "stdtypes", "ptrig", "lfrb", "mqueue", "ramp", "scale" },
+
+   blocks = {
+      { name="ramp", type="ubx/ramp" },
+      { name="scale", type="oot/scale" },
+      { name="trig", type="ubx/ptrig" },
+   },
+
+   configurations = {
+      { name="ramp", config = { type="double", slope=1 } },
+      { name="scale", config = { scale = { gain=2, offset=100 } } },
+      { name="trig", config = { period = { sec=0, usec=100000 },
+				chain0 = { { b="#ramp" }, { b="#scale" } } } },
+   },
+
+   connections = {
+      { src="ramp.out", tgt="scale.in" },
+      { src="scale.out", type="ubx/mqueue" },
+   },
+}

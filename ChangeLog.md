@@ -5,6 +5,8 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ubx-genblock` is removed. Use `examples/oot-block` as a template
+  for out-of-tree blocks.
 - `examples/platform` and its tutorial are removed.
 - docs: the Sphinx (readthedocs) documentation is replaced by
   `README.md` and the [usc reference](docs/usc.md). The cmake option

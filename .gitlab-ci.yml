@@ -138,18 +138,10 @@ examples:
     - pushd build
     - make install && ldconfig
     - popd
-    # test generating an out-of-tree block
-    - ubx-genblock -d /tmp/testblock/ -c examples/blockmodels/block_model_example.lua
-    - pushd /tmp/testblock/
-    - ./bootstrap && ./configure && make && make install
-    - ubx-launch -t 1 -c myblock.usc
-    - popd
-    # test generating an out-of-tree cpp block
-    - ubx-genblock -cpp -d /tmp/testblock-cpp/ -c examples/blockmodels/block_model_example.lua
-    - pushd /tmp/testblock-cpp/
-    - ./bootstrap && ./configure && make && make install
-    - ubx-launch -t 1 -c myblock.usc
-    - popd
+    # build and run the out-of-tree block example
+    - cmake -S examples/oot-block -B /tmp/oot-block
+    - make -C /tmp/oot-block install
+    - ubx-launch -t 1 -c examples/oot-block/scale.usc
     # run the threshold example
     - ubx-launch -t 3 -s -check unconn_inports,unconn_outports -c examples/usc/threshold.usc
     # run the pid example

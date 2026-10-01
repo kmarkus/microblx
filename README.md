@@ -38,7 +38,7 @@ configurable POSIX realtime properties.
 - [Quickstart](#quickstart)
 - [Concepts](#concepts)
 - [Developing blocks](#developing-blocks)
-    - [Generating a block](#generating-a-block)
+    - [Out-of-tree blocks](#out-of-tree-blocks)
     - [Configs](#configs)
     - [Ports](#ports)
     - [Meta-data](#meta-data)
@@ -265,39 +265,10 @@ needs configs, ports, hooks, a block declaration and a module init
 function that registers it. [skelleton](std_blocks/skelleton/) is an
 annotated template.
 
-### Generating a block
+### Out-of-tree blocks
 
-`ubx-genblock` generates a block with build files from a block model
-([example](examples/blockmodels/block_model_example.lua)). Only the
-hooks in the `.c` file need to be implemented:
-
-```sh
-$ ubx-genblock -d myblock -c /usr/local/share/ubx/examples/blockmodels/block_model_example.lua
-    generating myblock/bootstrap
-    generating myblock/configure.ac
-    generating myblock/Makefile.am
-    generating myblock/myblock.h
-    generating myblock/myblock.c
-    generating myblock/myblock.usc
-    generating myblock/types/vector.h
-    generating myblock/types/robot_data.h
-```
-
-| file              | content                                          |
-|-------------------|--------------------------------------------------|
-| `myblock.h`       | interface and module registration (don't edit)   |
-| `myblock.c`       | hooks: edit and implement                        |
-| `myblock.usc`     | composition to run the block                     |
-| `types/*.h`       | sample types: fill in the struct bodies          |
-
-Rerunning regenerates everything but the `.c` file (override with
-`-force`). `-cpp` generates a C++ block. Build and run:
-
-```sh
-cd myblock/
-./bootstrap && ./configure && make && sudo make install
-ubx-launch --webgraph -c myblock.usc
-```
+Copy [`examples/oot-block`](examples/oot-block/): a block with a
+custom type and a CMake build against an installed microblx.
 
 ### Configs
 
@@ -678,7 +649,7 @@ Messages are truncated at `UBX_LOG_MSG_MAXLEN` (see
 - blocks with configurable data type and length use the canonical
   configs `type_name` and `data_len`.
 - cache port pointers in `start` (or `init`): simpler, and saves a
-  hash lookup per `step`. `ubx-genblock` does this.
+  hash lookup per `step`.
 - add `-fvisibility=hidden` to `CFLAGS` instead of making all
   functions `static`.
 - configurable array size: see [saturation](std_blocks/saturation/saturation.c).
@@ -753,7 +724,6 @@ Tools
 | `ubx-log`      | view the real-time log                                      |
 | `ubx-mq`       | list, read and write `ubx/mqueue` iblocks                   |
 | `ubx-modinfo`  | show module, block and type info: `ubx-modinfo show ramp`   |
-| `ubx-genblock` | [generate a block](#generating-a-block)                     |
 | `ubx-tocarr`   | convert a type header to a `.hexarr` (used by builds)       |
 | `ubx-dbus`     | control a node via [lsdb-intf](std_blocks/lsdb-intf/README.md) |
 | `tools/ubx-schedstat` | per-thread CPU time of a running node, worst case per period for sizing `SCHED_DEADLINE` `runtime_ns` (not installed) |

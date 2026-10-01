@@ -375,7 +375,6 @@ install(PROGRAMS
   tools/ubx-modinfo
   tools/ubx-tocarr
   tools/ubx-mq
-  tools/ubx-genblock
   DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 #
