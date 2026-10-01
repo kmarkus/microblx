@@ -59,9 +59,6 @@ configurable POSIX realtime properties.
 - [Tracing](#tracing)
 - [Lua API docs](#lua-api-docs)
 - [FAQ](#faq)
-    - [Running](#running)
-    - [Debugging](#debugging)
-    - [Developing](#developing)
 - [Getting help](#getting-help)
 - [Related projects](#related-projects)
 - [Contributing](#contributing)
@@ -873,11 +870,8 @@ make doc-lua
 FAQ
 ---
 
-### Running
-
-**`blockXY.so: cannot open shared object file`**: the library is not
-in the search path. Run `sudo ldconfig` after installing to a standard
-location, or `export LD_LIBRARY_PATH=/usr/local/lib/`.
+**`blockXY.so: cannot open shared object file`**: run `sudo ldconfig`
+after installing, or `export LD_LIBRARY_PATH=/usr/local/lib/`.
 
 **Real-time priorities**: give luajit the capability and lock memory:
 
@@ -887,57 +881,8 @@ ubx-launch --mlockall -c app.usc
 ```
 
 From C, pass the node attribute `ND_MLOCK_ALL` to `ubx_node_init`.
-
-**No core dumps with real-time priorities**: a safety mechanism of
-`setcap` processes. Override with `ubx-launch --dumpable` or the node
-attribute `ND_DUMPABLE`.
-
-**luablock: "error object is not a string"**: the `strict` module is
-loaded (directly or via `ubx.lua`) and the C code looks up an
-undefined hook. Define all hooks or disable `strict` in the luablock.
-
-**Script exits immediately**: run it with `luajit -i`, and with
-`luajit`, not a standard Lua.
-
-### Debugging
-
-Core dump:
-
-```sh
-ulimit -c unlimited
-gdb luajit core
-(gdb) bt
-```
-
-Or run under gdb:
-
-```sh
-cd /usr/local/share/ubx/examples/usc/pid
-gdb luajit --args luajit $(which ubx-launch) -c pid_test.usc,ptrig_nrt.usc
-```
-
-valgrind: define `UBX_CONFIG_VALGRIND` in `libubx/ubx.h`, so modules
-are loaded with `RTLD_NODELETE` and traces in module code stay
-meaningful:
-
-```sh
-valgrind --leak-check=full --track-origins=yes \
-    luajit $(which ubx-launch) -t 3 -c examples/usc/threshold.usc
-```
-
-LuaJIT warnings like `Conditional jump or move depends on
-uninitialised value` can be ignored (or build LuaJIT with
-`-DLUAJIT_USE_VALGRIND`).
-
-### Developing
-
-**Block prototypes vs. instances**: prototypes are registered by
-module init (`ubx_block_register`), instances cloned from them
-(`ubx_block_create`). Use `blk_is_proto` and `blk_is_instance` to
-tell them apart.
-
-**meta-microblx: cross-compiling luajit fails with `asm/errno.h: No
-such file or directory`**: install `gcc-multilib` on the build host.
+Core dumps of such processes are disabled; re-enable with
+`--dumpable` (`ND_DUMPABLE`).
 
 Getting help
 ------------
