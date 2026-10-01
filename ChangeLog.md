@@ -5,6 +5,11 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ubx-dbus -d` / lsdb-intf `Disconnect(ssss)`: new, disconnect two
+  ports or a port and an iblock (`ubx.disconnect`).
+- `ubx.connect`: **fix** iblock name collisions when connecting from
+  another Lua state (e.g. `ubx-dbus -x` via lsdb-intf failed with
+  "failed to create block i_00000001").
 - `ubx-schedstat` is now installed.
 - `ubx-genblock` is removed. Use `examples/oot-block` as a template
   for out-of-tree blocks.

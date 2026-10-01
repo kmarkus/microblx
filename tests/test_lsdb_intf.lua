@@ -284,6 +284,35 @@ end
 --- LoadUSCLua
 ---
 
+-- Connect from lsdb-intf (its own Lua state) must not reuse an iblock
+-- name the launching state already gave out
+function TestLsdbIntf:test_connect_disconnect()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_connect")
+   ubx.load_module(_nd, "ramp")
+   local r1 = ubx.block_create(_nd, "ubx/ramp", "r1", { type="double", slope=1 })
+   ubx.block_init(r1)
+   ubx.block_create(_nd, "ubx/threshold", "t1", { threshold=1 })
+   ubx.block_create(_nd, "ubx/threshold", "t2", { threshold=1 })
+
+   local function nconns(bn)
+      return #ubx.port_conns_totab(ubx.port_get(ubx.block_get(_nd, bn), "in")).incoming
+   end
+
+   ubx.reset_block_uid()
+   assert_true(ubx.connect(_nd, "r1", "out", "t1", "in"))
+   _proxy('Connect', "r1", "out", "t2", "in", "", lsdb.tovariant(""))
+   assert_equals(nconns("t2"), 1)
+
+   local _, nib = ubx.num_blocks(_nd)
+   _proxy('Disconnect', "r1", "out", "t2", "in")
+   assert_equals(nconns("t2"), 0)
+   assert_equals(nconns("t1"), 1)
+   assert_equals(select(2, ubx.num_blocks(_nd)), nib - 1)
+
+   assert_error_msg_contains("is not connected",
+      function() _proxy('Disconnect', "r1", "out", "t2", "in") end)
+end
+
 function TestLsdbIntf:test_load_usc_lua()
    _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_load_usc")
 

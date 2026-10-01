@@ -175,6 +175,14 @@ local function connect(vt, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    vt:emitPropertiesChanged("Connections")
 end
 
+local function disconnect(vt, srcbn, srcpn, tgtbn, tgtpn)
+   srcpn = srcpn ~= "" and srcpn or nil
+   tgtpn = tgtpn ~= "" and tgtpn or nil
+   local ok, e = ubx.disconnect(vt.nd, srcbn, srcpn, tgtbn, tgtpn)
+   if not ok then lsdb.throw(err.FAILED, "%s", e) end
+   emit_blocks_changed(vt)
+end
+
 local function set_config(vt, block, config, value)
    local function resolve_blkref(v, t, k)
       if type(v) ~= 'string' then return end
@@ -421,6 +429,7 @@ local function make_ctx()
 	 switch_state = function(...) return switch_state(vt, ...) end,
 	 trigger      = function(...) return trigger_blocks(vt, ...) end,
 	 connect      = function(...) return connect(vt, ...) end,
+	 disconnect   = function(...) return disconnect(vt, ...) end,
 	 set_config   = function(...) return set_config(vt, ...) end,
 	 get_config   = function(...) return get_config(vt, ...) end,
 	 write        = function(...) return write(vt, ...) end,
@@ -547,6 +556,14 @@ local intf = {
 	 { direction='in', name='ibtype', type='s' },
 	 { direction='in', name='ibconfig', type='v' },
 	 handler = connect,
+      },
+
+      Disconnect = {
+	 { direction='in', name='srcbn', type='s' },
+	 { direction='in', name='srcpn', type='s' },
+	 { direction='in', name='tgtbn', type='s' },
+	 { direction='in', name='tgtpn', type='s' },
+	 handler = disconnect,
       },
 
       SetConfig = {

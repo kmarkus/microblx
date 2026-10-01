@@ -451,7 +451,12 @@ if opts.connect then
 end
 
 if opts.disconnect then
-   errexit(1, "disconnect: not yet implemented")
+   local args = split(opts.disconnect)
+   if #args < 3 then
+      errexit(1, "invalid arg: %s, expected at least three args", opts.disconnect)
+   end
+   get_proxy(ndname)('Disconnect', args[1], args[2] or "", args[3], args[4] or "")
+   handled = true
 end
 
 if opts.config then

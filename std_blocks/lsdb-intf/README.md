@@ -169,7 +169,12 @@ unknown parameter fails the call.
 
 ```sh
 $ ubx-dbus -x srcblock:srcport:tgtblock:tgtport:ubx/lfrb:'{buffer_len=4}'
+$ ubx-dbus -s srcblock:inactive && ubx-dbus -s tgtblock:inactive
+$ ubx-dbus -d srcblock:srcport:tgtblock:tgtport   # iblock is removed if unused
+$ ubx-dbus -d srcblock:srcport:myMQ               # port <-> iblock, iblock is kept
 ```
+
+Disconnecting requires both cblocks to be inactive.
 
 ## Plugins
 

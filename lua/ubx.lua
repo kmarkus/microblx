@@ -2027,9 +2027,15 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
    return p
 end
 
-local function gen_block_uid()
-   block_uid_cnt = block_uid_cnt+1
-   return fmt("i_%08x", block_uid_cnt)
+-- the counter is per Lua state, but names are per node: other states
+-- (e.g. luablocks) create iblocks in the same node, so skip used names
+local function gen_block_uid(nd)
+   local name
+   repeat
+      block_uid_cnt = block_uid_cnt+1
+      name = fmt("i_%08x", block_uid_cnt)
+   until ubx.ubx_block_get(nd, name) == nil
+   return name
 end
 
 --- Universal connect function — three connection modes:
@@ -2190,7 +2196,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       end
 
       if srcb == nil then
-	 srcbn = gen_block_uid()
+	 srcbn = gen_block_uid(nd)
 	 append_ibconfig('type_name', safe_tostr(tgtp.in_type.name))
 	 append_ibconfig('data_len', tonumber(tgtp.in_data_len))
 	 append_ibconfig('buffer_len', 8)
@@ -2205,7 +2211,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 
       -- create tgt iblock
       if tgtb == nil then
-	 tgtbn = gen_block_uid()
+	 tgtbn = gen_block_uid(nd)
 	 append_ibconfig('type_name', safe_tostr(srcp.out_type.name))
 	 append_ibconfig('data_len', tonumber(srcp.out_data_len))
 	 append_ibconfig('buffer_len', 8)
@@ -2225,7 +2231,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       ibconfig.data_len = ibconfig.data_len or tonumber(srcp.out_data_len)
       ibconfig.type_name = ibconfig.type_name or safe_tostr(srcp.out_type.name)
 
-      local ibname = gen_block_uid()
+      local ibname = gen_block_uid(nd)
       local ib = M.block_create(nd, ibtype, ibname, ibconfig)
       M.block_init(ib)
 
@@ -2260,6 +2266,88 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    else
       return false, fmt("connect: invalid args: %s.%s -> %s.%s, ibtype %s, config %s",
 			srcbn, srcpn, tgtbn, tgtpn, ibtype, utils.tab2str(ibconfig))
+   end
+
+   return true
+end
+
+-- true if any port of any block is connected to iblock ib
+local function iblock_is_connected(nd, ib)
+   local name = ffi.string(ib.name)
+   local res = false
+   M.blocks_map(nd, function(b)
+      M.ports_foreach(b, function(p)
+	 local c = M.port_conns_totab(p)
+	 for _, n in ipairs(c.incoming) do if n == name then res = true end end
+	 for _, n in ipairs(c.outgoing) do if n == name then res = true end end
+      end)
+   end)
+   return res
+end
+
+--- Disconnect, the reverse of `connect`:
+--
+-- **1. port → port:** disconnect the iblock(s) between `srcbn.srcpn`
+-- and `tgtbn.tgtpn`. An iblock left without connections is removed.
+--
+-- **2. port ↔ iblock:** one side names an iblock without port; the port
+-- is disconnected from it. The iblock is kept.
+--
+-- The cblocks must not be active, so no step reads or writes the
+-- ports being changed.
+-- @param nd `ubx_node_t`
+-- @param srcbn source block name
+-- @param srcpn source **out**-port name (or `nil` if `srcbn` is an iblock)
+-- @param tgtbn target block name
+-- @param tgtpn target **in**-port name (or `nil` if `tgtbn` is an iblock)
+-- @return `true` on success, `false` on failure
+-- @return error message string on failure
+function M.disconnect(nd, srcbn, srcpn, tgtbn, tgtpn)
+   local srcb = srcbn and ubx.ubx_block_get(nd, srcbn)
+   local tgtb = tgtbn and ubx.ubx_block_get(nd, tgtbn)
+   if srcb == nil then return false, fmt("no src block %s", tostring(srcbn)) end
+   if tgtb == nil then return false, fmt("no tgt block %s", tostring(tgtbn)) end
+
+   for _, b in ipairs{ srcb, tgtb } do
+      if M.is_cblock(b) and b.block_state == ffi.C.BLOCK_STATE_ACTIVE then
+	 return false, fmt("block %s is active, stop it first", ffi.string(b.name))
+      end
+   end
+
+   local srcp = srcpn and ubx.ubx_port_get(srcb, srcpn)
+   local tgtp = tgtpn and ubx.ubx_port_get(tgtb, tgtpn)
+   if srcpn and srcp == nil then return false, fmt("block %s has no port %s", srcbn, srcpn) end
+   if tgtpn and tgtp == nil then return false, fmt("block %s has no port %s", tgtbn, tgtpn) end
+
+   if srcp and tgtp then
+      local out = M.port_conns_totab(srcp).outgoing
+      local ibs = {}
+      for _, n in ipairs(M.port_conns_totab(tgtp).incoming) do
+	 for _, m in ipairs(out) do if n == m then ibs[#ibs+1] = n end end
+      end
+      if #ibs == 0 then
+	 return false, fmt("%s.%s is not connected to %s.%s", srcbn, srcpn, tgtbn, tgtpn)
+      end
+      for _, n in ipairs(ibs) do
+	 local ib = ubx.ubx_block_get(nd, n)
+	 if M.ports_disconnect(srcp, tgtp, ib) ~= 0 then
+	    return false, fmt("failed to disconnect %s.%s -[%s]-> %s.%s", srcbn, srcpn, n, tgtbn, tgtpn)
+	 end
+	 if not iblock_is_connected(nd, ib) then M.block_unload(nd, n) end
+	 info(nd, "disconnect", "%s.%s -[%s]-> %s.%s", srcbn, srcpn, n, tgtbn, tgtpn)
+      end
+   elseif srcp and M.is_iblock_instance(tgtb) then
+      if ubx.ubx_port_disconnect_out(srcp, tgtb) ~= 0 then
+	 return false, fmt("%s.%s is not connected to %s", srcbn, srcpn, tgtbn)
+      end
+      info(nd, "disconnect", "%s.%s -> %s", srcbn, srcpn, tgtbn)
+   elseif tgtp and M.is_iblock_instance(srcb) then
+      if ubx.ubx_port_disconnect_in(tgtp, srcb) ~= 0 then
+	 return false, fmt("%s is not connected to %s.%s", srcbn, tgtbn, tgtpn)
+      end
+      info(nd, "disconnect", "%s -> %s.%s", srcbn, tgtbn, tgtpn)
+   else
+      return false, "expected BLOCK.PORT and BLOCK.PORT or an iblock"
    end
 
    return true
