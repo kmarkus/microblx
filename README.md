@@ -751,12 +751,29 @@ Tools
 
 | tool           | purpose                                                     |
 |----------------|-------------------------------------------------------------|
-| `ubx-launch`   | launch usc files (`-h` for options)                         |
+| `ubx-launch`   | launch usc files, see [launching](docs/usc.md#launching)    |
+| `ubx-ilaunch`  | like `ubx-launch`, then a Lua prompt with the node as `nd`  |
 | `ubx-log`      | view the real-time log                                      |
 | `ubx-mq`       | list, read and write `ubx/mqueue` iblocks                   |
 | `ubx-modinfo`  | show module, block and type info: `ubx-modinfo show ramp`   |
 | `ubx-genblock` | [generate a block](#generating-a-block)                     |
+| `ubx-tocarr`   | convert a type header to a `.hexarr` (used by builds)       |
 | `ubx-dbus`     | control a node via [lsdb-intf](std_blocks/lsdb-intf/README.md) |
+| `tools/ubx-schedstat` | per-thread CPU time of a running node, worst case per period for sizing `SCHED_DEADLINE` `runtime_ns` (not installed) |
+
+```sh
+ubx-log            # follow, incl. old messages
+ubx-log -O         # only new messages
+ubx-log -F         # dump the buffer and exit
+ubx-log -N         # no colors
+ubx-log -s -f LOCAL3        # also forward to syslog facility LOCAL3
+ubx-log -d -s -O            # daemon, syslog only (needs libdaemon)
+
+ubx-ilaunch -c app.usc
+> ubx.block_tostate(nd:block_get("trig"), "inactive")
+
+tools/ubx-schedstat -n 60 1 1000   # 60 windows of 1 s, 1 kHz ptrig
+```
 
 Standard blocks
 ---------------

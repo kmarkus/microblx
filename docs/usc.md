@@ -345,8 +345,19 @@ ubx-launch -c app.usc --validate          # check only
 ubx-launch -c app.usc --nostart           # instantiate and configure only
 ubx-launch -c app.usc -t 10 -l 7          # run 10 s at loglevel DEBUG
 ubx-launch -c app.usc --webgraph          # live graph on http://localhost:8888
+ubx-launch -c app.usc --mlockall          # lock memory (real-time)
+ubx-launch -c app.usc -b ctrl             # shut down when block ctrl becomes inactive
+ubx-launch -c app.usc --check unconn_inports,unconn_outports  # warn about unconnected ports
+ubx-launch -c app.json                    # JSON model, same structure as usc
+ubx-launch -e --dbus                      # empty node with D-Bus interface, then:
+ubx-dbus --load-usc app.usc               #   load the model into it
 ubx-launch -h                             # all options
 ```
+
+JSON models have the same keys as `bd.system`
+([example](../examples/usc/node_config_demo.json)). The type is
+detected from the extension or set with `--ctype`. Requires
+`lua-cjson` or `lua-json`.
 
 Unless `--nostart` is given, all blocks are initialized, configured
 and started. Blocks with `BLOCK_ATTR_ACTIVE` (e.g. `ptrig`) are
