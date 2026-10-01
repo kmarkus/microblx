@@ -423,6 +423,22 @@ parameters are listed with ``--params``:
   all loaded models, including submodels loaded with ``bd.load()``
   and models merged on the command line. A submodel included twice
   reads the same value in both instances.
+- a function as default makes the parameter required: launching
+  without a ``-D`` value for it is an error, and the value is
+  converted with the function, e.g. ``tonumber`` or ``tostring``. A
+  ``nil`` result is an error. ``--params`` shows ``<required>``:
+
+  .. code:: lua
+
+	local IP   = bd.param("IP",   tostring, "target IP")
+	local PORT = bd.param("PORT", tonumber, "target port")
+
+  ``--params`` loads the model without values, so a required
+  parameter returns ``nil`` there. If the model fails on that ``nil``
+  (e.g. ``PORT + 1`` at the top level), ``--params`` lists the
+  parameters declared so far and fails with ``listing incomplete``.
+  Use the value only inside the ``bd.system`` spec to keep the
+  listing complete.
 - a parameter may be declared by several models only with the same
   default. Different defaults are an error, since each model has
   already used its own default, unless the value is given with ``-D``;

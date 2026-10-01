@@ -514,6 +514,7 @@ local PARAM_NAME_PAT = "^[A-Za-z_][A-Za-z0-9_]*$"
 
 local function param_valstr(v)
    if type(v) == 'string' then return fmt("%q", v) end
+   if type(v) == 'function' then return "<required>" end
    return ts(v)
 end
 
@@ -539,8 +540,12 @@ end
 -- Inside a parameter context (see params_begin) the declaration is
 -- recorded and a value given for name is returned, converted to the
 -- type of default. Outside a context default is returned.
+-- A function as default (e.g. tonumber or tostring) makes the
+-- parameter required: the value is converted with it and a missing
+-- value is an error, except in list mode (see params_begin), where
+-- nil is returned.
 -- @param name parameter name
--- @param default default value (number or string)
+-- @param default default value (number or string) or conversion function
 -- @param help optional description
 -- @param check optional validation function or callable (e.g. a
 --   tableshape type): check(value) returns true or false/nil and an
@@ -552,8 +557,8 @@ local function param(name, default, help, check)
    end
 
    local dtype = type(default)
-   if dtype ~= 'number' and dtype ~= 'string' then
-      error(fmt("parameter %s: default must be a number or string, got %s", name, dtype), 0)
+   if dtype ~= 'number' and dtype ~= 'string' and dtype ~= 'function' then
+      error(fmt("parameter %s: default must be a number, string or function, got %s", name, dtype), 0)
    end
 
    if help ~= nil and type(help) ~= 'string' then
@@ -564,11 +569,16 @@ local function param(name, default, help, check)
       if not is_callable(check) then
 	 error(fmt("parameter %s: check must be callable, got %s", name, type(check)), 0)
       end
-      param_check(name, check, default, "default")
+      if dtype ~= 'function' then param_check(name, check, default, "default") end
    end
 
    local P = _params
-   if not P then return default end
+   if not P then
+      if dtype == 'function' then
+	 error(fmt("parameter %s: required, but no parameter context open", name), 0)
+      end
+      return default
+   end
 
    local d = P.decls[name]
    if not d then
@@ -587,9 +597,19 @@ local function param(name, default, help, check)
    end
 
    local v = P.values[name]
-   if v == nil then return default end
+   if v == nil then
+      if dtype ~= 'function' then return default end
+      if P.list then P.missing = true; return nil end
+      error(fmt("parameter %s: required, set with -D %s=VALUE", name, name), 0)
+   end
 
-   if dtype == 'number' then
+   if dtype == 'function' then
+      local raw = v
+      v = default(v)
+      if v == nil then
+	 error(fmt("parameter %s: invalid value %s", name, param_valstr(raw)), 0)
+      end
+   elseif dtype == 'number' then
       local n = tonumber(v)
       if n == nil then
 	 error(fmt("parameter %s: invalid number %s", name, param_valstr(v)), 0)
@@ -609,7 +629,9 @@ end
 -- declarations.
 -- @param values optional table of name=value, values are strings or
 --   numbers
-local function params_begin(values)
+-- @param list optional, true for list mode: a required parameter
+--   without value returns nil instead of failing
+local function params_begin(values, list)
    if _params then error("params_begin: a parameter context is already open", 2) end
    values = values or {}
    for k,v in pairs(values) do
@@ -620,7 +642,7 @@ local function params_begin(values)
 	 error(fmt("parameter %s: value must be a string or number, got %s", k, type(v)), 0)
       end
    end
-   _params = { values=values, decls={}, warnings={} }
+   _params = { values=values, list=list, decls={}, warnings={} }
 end
 
 --- Close the parameter context.
@@ -694,13 +716,22 @@ end
 -- The context is closed also if func fails.
 -- @param values table of name=value, see params_begin
 -- @param func function to run, e.g. one loading models
+-- @param list optional, true for list mode (see params_begin). If
+--   func fails after a required parameter returned nil, the
+--   declarations collected so far are returned instead of raising
+--   the error.
 -- @return result of func, declarations and warnings (see params_end)
-local function with_params(values, func)
-   params_begin(values)
+--   and, in list mode, the error of func or nil
+local function with_params(values, func, list)
+   params_begin(values, list)
    local ok, res = pcall(func)
    if not ok then
+      local P = _params
       _params = nil
-      error(res, 0)
+      if not P.missing then error(res, 0) end
+      local decls = {}
+      for i,d in ipairs(P.decls) do decls[i] = d end
+      return nil, decls, P.warnings, res
    end
    local decls, warnings = params_end()
    return res, decls, warnings

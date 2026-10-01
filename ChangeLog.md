@@ -10,7 +10,8 @@ This file tracks user visible API changes
   `ubx-launch --params`. An undeclared `-D` name is an error. See
   "Model parameters" in the composing systems documentation. An
   optional fourth argument validates the value, e.g. with a function
-  or a tableshape type.
+  or a tableshape type. A conversion function as default, e.g.
+  `tonumber`, makes the parameter required.
 - `ubx-dbus`: new `-D` and `--params` options for `--load-usc`.
 - `lsdb-intf`: **incompatible** `LoadUSCLua` signature change from
   `(s)` to `(s usc, a{ss} params) -> as warnings`. Pass an empty dict

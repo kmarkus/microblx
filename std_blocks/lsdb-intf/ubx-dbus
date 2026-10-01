@@ -142,12 +142,13 @@ end
 -- load the model locally to list its parameters, no node needed
 if opts.params then
    local bd = require("blockdiagram")
-   local ok, res, decls, warnings = pcall(bd.with_params, usc_params, function()
+   local ok, res, decls, warnings, lerr = pcall(bd.with_params, usc_params, function()
       return bd.load(opts.load_usc)
-   end)
+   end, true)
    if not ok then errexit(1, "error: %s", tostring(res)) end
    for _,w in ipairs(warnings) do io.stderr:write("warning: ", w, "\n") end
    bd.params_write(io.stdout, decls)
+   if lerr then errexit(1, "error: listing incomplete: %s", tostring(lerr)) end
    os.exit(0)
 end
 

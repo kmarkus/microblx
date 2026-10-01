@@ -123,7 +123,7 @@ function TestParams:test_param_invalid_name()
 end
 
 function TestParams:test_param_invalid_default()
-   assert_error_msg_contains("parameter A: default must be a number or string, got boolean",
+   assert_error_msg_contains("parameter A: default must be a number, string or function, got boolean",
 			     function() bd.param("A", true) end)
    assert_error_msg_contains("got nil", function() bd.param("A") end)
    assert_error_msg_contains("got table", function() bd.param("A", {}) end)
@@ -615,6 +615,69 @@ function TestParams:test_launch_check_fails()
 end
 
 ---
+--- required parameters
+---
+
+function TestParams:test_required_value_converted()
+   assert_equals(param_val({P="5"}, tonumber), 5)
+   assert_equals(param_val({P=5}, tostring), "5")
+   assert_equals(param_val({P="a,b"}, function(v) return { v:match("(%a),(%a)") } end), { "a", "b" })
+end
+
+function TestParams:test_required_missing()
+   assert_error_msg_contains("parameter P: required, set with -D P=VALUE",
+			     function() param_val({}, tonumber) end)
+   assert_error_msg_contains("parameter P: required, but no parameter context open",
+			     function() bd.param("P", tonumber) end)
+end
+
+function TestParams:test_required_invalid_value()
+   assert_error_msg_contains('parameter P: invalid value "x"',
+			     function() param_val({P="x"}, tonumber) end)
+end
+
+function TestParams:test_required_check()
+   -- the check gets the converted value and is not run without one
+   assert_equals(checked_val({P="2"}, tonumber, positive), 2)
+   assert_error_msg_contains("parameter P: invalid value -1: must be > 0",
+			     function() checked_val({P="-1"}, tonumber, positive) end)
+end
+
+function TestParams:test_required_conflict()
+   local _, decls = bd.with_params({P="1"}, function()
+      bd.load_str(model('bd.param("P", tonumber); bd.param("P", tonumber)'), 'lua')
+   end)
+   assert_equals(#decls, 1)
+   assert_error_msg_contains("parameter P: default <required> in <string> conflicts with 1",
+			     function() eval({}, 'bd.param("P", 1); bd.param("P", tonumber)') end)
+   local _, _, warnings = bd.with_params({P="1"}, function()
+      bd.load_str(model('bd.param("P", tonumber); bd.param("P", tostring)'), 'lua')
+   end)
+   assert_equals(warnings, { "parameter P: default <required> in <string> conflicts with <required> in <string>" })
+end
+
+function TestParams:test_required_list_mode()
+   local res, decls, _, err = bd.with_params({}, function()
+      return bd.load_str(model('bd.param("A", tonumber); bd.param("B", 2)'), 'lua')
+   end, true)
+   assert_true(bd.is_system(res))
+   assert_nil(err)
+   assert_equals(#decls, 2)
+   -- a load failing on the nil returns the declarations so far
+   res, decls, _, err = bd.with_params({}, function()
+      return bd.load_str(model('local a = bd.param("A", tonumber) * 2; bd.param("B", 2)'), 'lua')
+   end, true)
+   assert_nil(res)
+   assert_equals(#decls, 1)
+   assert_str_contains(err, "arithmetic")
+   assert_error_msg_contains("no parameter context open", bd.params_end)
+   -- other errors are raised also in list mode
+   assert_error_msg_contains("boom", function()
+      bd.with_params({}, function() error("boom") end, true)
+   end)
+end
+
+---
 --- helpers
 ---
 
@@ -641,10 +704,12 @@ function TestParams:test_params_write()
    assert_equals(write_str(bd.params_write, {}), "no parameters declared\n")
    assert_equals(rtrim_lines(write_str(bd.params_write, {
 		    { name="PERIOD", default=1000, help="period [us]" },
-		    { name="N", default="x" } })),
-		 ' name    default  help\n' ..
-		 ' PERIOD  1000     period [us]\n' ..
-		 ' N       "x"\n')
+		    { name="N", default="x" },
+		    { name="R", default=tonumber } })),
+		 ' name    default     help\n' ..
+		 ' PERIOD  1000        period [us]\n' ..
+		 ' N       "x"\n' ..
+		 ' R       <required>\n')
 end
 
 ---
@@ -656,6 +721,23 @@ function TestParams:test_launch_params()
    local out, rc = run("ubx-launch -c " .. fn .. " --params")
    assert_equals(rc, 0)
    assert_equals(rtrim_lines(out), ' name    default  help\n PERIOD  1000     period [us]\n N       "x"      name\n')
+end
+
+function TestParams:test_launch_params_required()
+   local fn = wfile("a.usc", model('bd.param("R", tonumber, "r"); bd.param("N", 1)'))
+   local out, rc = run("ubx-launch -c " .. fn .. " --params")
+   assert_equals(rc, 0, out)
+   assert_equals(rtrim_lines(out), ' name  default     help\n R     <required>  r\n N     1\n')
+   out, rc = run("ubx-launch -c " .. fn .. " --nostart")
+   assert_equals(rc, 1)
+   assert_str_contains(out, "parameter R: required, set with -D R=VALUE")
+   -- listing stops where the model fails on the missing value
+   fn = wfile("b.usc", model('local r = bd.param("R", tonumber) + 1; bd.param("N", 1)'))
+   out, rc = run("ubx-launch -c " .. fn .. " --params")
+   assert_equals(rc, 1)
+   assert_str_contains(out, " R     <required>")
+   assert_not_str_contains(out, " N ")
+   assert_str_contains(out, "error: listing incomplete: ")
 end
 
 function TestParams:test_launch_params_none()

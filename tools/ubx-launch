@@ -172,13 +172,13 @@ else
 
    -- load first model and merge others into it. all files share one
    -- parameter context.
-   local ok, res, decls, warnings = pcall(bd.with_params, defines, function()
+   local ok, res, decls, warnings, lerr = pcall(bd.with_params, defines, function()
       local m = bd.load(conf_files[1], conf_types[1])
       for i=2,#conf_files do
 	 m:merge(bd.load(conf_files[i], conf_types[i]), true)
       end
       return m
-   end)
+   end, opts.params)
 
    if not ok then errexit(1, "error: %s", ts(res)) end
    model = res
@@ -192,6 +192,7 @@ else
 
    if opts.params then
       bd.params_write(io.stdout, decls)
+      if lerr then errexit(1, "error: listing incomplete: %s", ts(lerr)) end
       os.exit(0)
    end
 end

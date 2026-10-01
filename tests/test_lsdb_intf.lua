@@ -418,6 +418,15 @@ function TestLsdbIntf:test_ubx_dbus_params_local()
    assert_equals((out:gsub("[ ]+\n", "\n")), " name  default  help\n T     5        threshold\n")
 end
 
+function TestLsdbIntf:test_ubx_dbus_params_required()
+   local fn = write_tmp('local r = bd.param("R", tonumber, "r") + 1\nreturn bd.system{}', ".usc")
+   local out, rc = run("ubx-dbus --load-usc=" .. fn .. " --params")
+   os.remove(fn)
+   assert_equals(rc, 1)
+   assert_str_contains(out, " R     <required>  r")
+   assert_str_contains(out, "error: listing incomplete: ")
+end
+
 function TestLsdbIntf:test_ubx_dbus_params_define()
    -- --params applies and checks -D like ubx-launch
    local fn = write_tmp(THRES_PARAM_USC, ".usc")
