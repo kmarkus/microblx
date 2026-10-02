@@ -384,8 +384,14 @@ end
 --- ubx-dbus -D / --params
 ---
 
--- run ubx-dbus from the source tree, independent of PATH
-local UBX_DBUS = "luajit " .. TEST_DIR .. "/../std_blocks/lsdb-intf/ubx-dbus"
+-- run ubx-dbus from the source tree, independent of PATH; on
+-- installed systems (no source tree) fall back to the one in PATH
+local UBX_DBUS = TEST_DIR .. "/../std_blocks/lsdb-intf/ubx-dbus"
+
+do
+   local f = io.open(UBX_DBUS)
+   if f then f:close(); UBX_DBUS = "luajit " .. UBX_DBUS else UBX_DBUS = "ubx-dbus" end
+end
 
 --- run a shell command, return combined stdout+stderr and exit code.
 --- a leading ubx-dbus runs the source tree version.

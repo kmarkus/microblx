@@ -31,11 +31,17 @@ local function wfile(name, content)
    return fn
 end
 
--- run the tools from the source tree, independent of PATH
+-- run the tools from the source tree, independent of PATH; on
+-- installed systems (no source tree) fall back to the one in PATH
 local _src = debug.getinfo(1, 'S').source:match('@(.*)')
 local SRC_DIR = (_src:match('(.+)/[^/]+$') or '.') .. "/.."
 if SRC_DIR:sub(1,1) ~= '/' then SRC_DIR = io.popen("pwd"):read("*l") .. "/" .. SRC_DIR end
-local UBX_LAUNCH = "luajit " .. SRC_DIR .. "/tools/ubx-launch"
+local UBX_LAUNCH = SRC_DIR .. "/tools/ubx-launch"
+
+do
+   local f = io.open(UBX_LAUNCH)
+   if f then f:close(); UBX_LAUNCH = "luajit " .. UBX_LAUNCH else UBX_LAUNCH = "ubx-launch" end
+end
 
 --- run a shell command, return combined stdout+stderr and exit code.
 --- a leading ubx-launch runs the source tree version.
