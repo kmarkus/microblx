@@ -1,9 +1,14 @@
-![microblx logo](docs/img/microblx-logo.svg)
+<div align="center">
 
-microblx: hard real-time function blocks
-========================================
+<img src="docs/img/microblx-banner.svg" alt="microblx" width="460">
+
+# hard real-time function blocks
 
 [![pipeline status](https://gitlab.com/kmarkus/microblx/badges/master/pipeline.svg)](https://gitlab.com/kmarkus/microblx/-/pipelines)
+
+**[Install](#installing) · [Quickstart](#quickstart) · [Developing blocks](#developing-blocks) · [Composing systems](#composing-systems) · [Standard blocks](#standard-blocks) · [Block reference](docs/blocks.md) · [usc reference](docs/usc.md)**
+
+</div>
 
 Microblx is a lightweight and hard real-time safe function block
 framework for use-cases such as *embedded control* or *signal
@@ -27,9 +32,10 @@ configurable POSIX realtime properties.
 - **no HAL**: no arbitrary abstractions, just "configurable" POSIX
 - **minimal**: tiny memory footprint, few dependencies, embedded-friendly
 
-<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
-**Table of Contents**
+<details>
+<summary>Table of contents</summary>
 
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 - [Installing](#installing)
     - [Dependencies](#dependencies)
     - [Building](#building)
@@ -51,6 +57,8 @@ configurable POSIX realtime properties.
 - [Acknowledgement](#acknowledgement)
 
 <!-- markdown-toc end -->
+
+</details>
 
 Installing
 ----------

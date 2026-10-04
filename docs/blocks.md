@@ -1,3 +1,9 @@
+<div align="center">
+
+**[microblx](../README.md) · [Install](../README.md#installing) · [Quickstart](../README.md#quickstart) · [Developing blocks](../README.md#developing-blocks) · [Composing systems](../README.md#composing-systems) · [Standard blocks](../README.md#standard-blocks) · Block reference · [usc reference](usc.md)**
+
+</div>
+
 # Block reference
 
 Writing cblocks, iblocks and triggers in C. Snippets are from the
