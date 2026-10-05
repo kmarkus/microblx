@@ -263,10 +263,11 @@ Optional `.attrs`:
 | `BLOCK_ATTR_TRIGGER` | block steps other blocks    |
 
 `ubx-launch` starts active blocks last, the D-Bus `ClearNode` stops
-trigger blocks before removing anything. A block that steps other
-blocks (e.g. via a `struct ubx_triggee` chain) **must** declare
-`BLOCK_ATTR_TRIGGER`, otherwise it may step blocks that are being
-removed.
+trigger blocks before removing anything.
+
+> **Note**: a block that steps other blocks (e.g. via a `struct
+> ubx_triggee` chain) **must** declare `BLOCK_ATTR_TRIGGER`, otherwise
+> it may step blocks that are being removed.
 
 ## Types
 

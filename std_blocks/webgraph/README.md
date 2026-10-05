@@ -4,9 +4,9 @@ Luablock serving a live React Flow + ELK.js graph of the running node
 (blocks, states, configs, ports, connections) on
 <http://localhost:8888>. The page refreshes every 3 s.
 
-**Development tool**: it listens on all interfaces without
-authentication and allows any origin (CORS `*`). Don't run it on
-production systems or untrusted networks.
+> **Note**: development tool only. It listens on all interfaces
+> without authentication and allows any origin (CORS `*`). Don't run it
+> on production systems or untrusted networks.
 
 ## Dependencies
 

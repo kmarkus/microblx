@@ -83,10 +83,10 @@ at 0, 10, **(chain runs 20→35)**, 40, 50ms — the 30ms tick is dropped,
 The grid is only re-anchored when the block is (re)started, so an
 inactive interval is never "caught up" either.
 
-Note that the wakeup latency counts against the period budget: an
-overrun is declared when the chain exceeds `period - latency`. That
-makes `sleep_mode=0` declare an overrun slightly sooner than modes 1
-and 2 for the same chain (on an RT-tuned ARM SoC, ~12µs sooner).
+> **Note**: the wakeup latency counts against the period budget: an
+> overrun is declared when the chain exceeds `period - latency`. That
+> makes `sleep_mode=0` declare an overrun slightly sooner than modes 1
+> and 2 for the same chain (on an RT-tuned ARM SoC, ~12µs sooner).
 
 ## Trigger latency
 
@@ -135,10 +135,11 @@ sleep gives up the CPU for the bulk of the period; the busy-wait phase
 absorbs the OS wakeup latency, so the trigger fires with busy-wait
 accuracy at a fraction of the CPU cost.
 
-For this to work, **`busy_slack_ns` must exceed the platform's
-worst-case wakeup latency**. If a sleep overshoots by more than
-`busy_slack_ns`, the busy-wait phase never runs and the accuracy
-degrades to that of `sleep_mode=0` — the mode fails soft, but it fails.
+> **Note**: `busy_slack_ns` must exceed the platform's worst-case
+> wakeup latency. If a sleep overshoots by more than `busy_slack_ns`,
+> the busy-wait phase never runs and the accuracy degrades to that of
+> `sleep_mode=0`: the mode fails soft, but it fails.
+
 Size the value from the worst-case wakeup latency of the target (e.g.
 `cyclictest -m -p80` max), not from the median. The default of 50µs
 covers an RT-tuned ARM SoC; on a tuned x86 with deep C-states disabled
@@ -194,15 +195,15 @@ output port so applications can monitor overruns. As with `overrun_cnt`, each
 overrun is logged at debug level and the cumulative total is logged as a
 warning on stop.
 
-> **Note:** `SCHED_DEADLINE` requires `CAP_SYS_NICE`. Do not use
+> **Note**: `SCHED_DEADLINE` requires `CAP_SYS_NICE`. Do not use
 > `setcap cap_sys_nice+ep` on the interpreter — file capabilities set
 > the `AT_SECURE` bit on exec, which causes sd-bus to ignore
 > session-bus environment variables and breaks `--dbus`. Grant the
 > capability via `sudo capsh` with ambient capabilities instead (see
 > `examples/usc/pid/run-pid.sh` for a working example); this does not
 > require any file capability on the binary.
->
-> **CPU affinity:** A DEADLINE thread's `cpus_allowed` mask must be a
+
+> **Note**: a DEADLINE thread's `cpus_allowed` mask must be a
 > superset of its scheduling root domain. Without cpuset isolation the
 > only root domain covers all online CPUs, so combining `affinity` with
 > `SCHED_DEADLINE` will fail with `EPERM`. To pin EDF tasks to a CPU

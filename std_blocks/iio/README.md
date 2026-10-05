@@ -136,10 +136,10 @@ get the last sample instead.
 
 Input channels only. Use `ubx/iio` for DAC output.
 
-Channels from the **same device** share one buffer and must use the same
-`sampling_frequency`; configuring different rates for channels on the same
-device is an init error. Channels from **different devices** are fully
-independent.
+> **Note**: channels from the **same device** share one buffer and must
+> use the same `sampling_frequency`; configuring different rates for
+> channels on the same device is an init error. Channels from
+> **different devices** are fully independent.
 
 The ptrig should run at `max(all device sampling_frequencies)`. Slower devices
 emit every Nth step naturally.

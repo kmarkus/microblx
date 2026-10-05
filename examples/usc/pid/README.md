@@ -33,9 +33,10 @@ $ ./run-pid.sh deadline  # SCHED_DEADLINE
 $ ./run-pid.sh rt -D PERIOD=500   # further args go to ubx-launch
 ```
 
-Do **not** use `setcap cap_sys_nice+ep` on the luajit binary — file
-capabilities set the `AT_SECURE` flag on exec, which causes sd-bus to
-ignore session-bus environment variables and breaks `--dbus`.
+> **Note**: do **not** use `setcap cap_sys_nice+ep` on the luajit
+> binary: file capabilities set the `AT_SECURE` flag on exec, which
+> causes sd-bus to ignore session-bus environment variables and breaks
+> `--dbus`.
 
 **SCHED_DEADLINE: CPU affinity and cpusets**
 

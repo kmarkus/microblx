@@ -174,7 +174,7 @@ $ ubx-dbus -d srcblock:srcport:tgtblock:tgtport   # iblock is removed if unused
 $ ubx-dbus -d srcblock:srcport:myMQ               # port <-> iblock, iblock is kept
 ```
 
-Disconnecting requires both cblocks to be inactive.
+> **Note**: disconnecting requires both cblocks to be inactive.
 
 ## Plugins
 

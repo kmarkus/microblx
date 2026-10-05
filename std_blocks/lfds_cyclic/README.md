@@ -1,6 +1,6 @@
 # ubx/lfds_cyclic
 
-**Deprecated**: use [`ubx/lfrb`](../lfrb/README.md), same configs, no external dependency.
+> **Note**: deprecated, use [`ubx/lfrb`](../lfrb/README.md), same configs, no external dependency.
 
 Hard real-time, lock-free cyclic (overwriting) ring buffer i-block based on liblfds611. On overflow the oldest element is overwritten and the `overruns` port is updated.
 

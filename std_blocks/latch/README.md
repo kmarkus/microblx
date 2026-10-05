@@ -28,9 +28,10 @@ reader threads is the unsynchronised sharing this block exists to avoid.
 - Concurrency is a seqlock: the writer is wait-free, and a reader that
   catches a write in progress retries, then reports no-data rather than
   spinning forever.
-- Exactly one writer is required. Two interleave the sequence counter
-  and can publish a torn value that passes the reader's check. A
-  contract, not a checked precondition.
+
+> **Note**: exactly one writer is required. Two interleave the sequence
+> counter and can publish a torn value that passes the reader's check.
+> A contract, not a checked precondition.
 
 ## Example
 

@@ -39,8 +39,10 @@ Treat it as a configuration error, not a statistic.
 ## Example
 
 Both blocks sit in one chain of one trigger, so the precondition is
-visible in the `chain0` below. Move either to a second ptrig and the
-connection becomes cross-thread and must go back to `lfrb`.
+visible in the `chain0` below.
+
+> **Note**: move either block to a second ptrig and the connection
+> becomes cross-thread and must go back to `lfrb`.
 
 ```lua
 imports = { "stdtypes", "ptrig", "ewma", "saturation", "vstore" },

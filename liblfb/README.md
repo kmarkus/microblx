@@ -110,7 +110,7 @@ stateDiagram-v2
 |             | `lfb_get_rslot(rd, &p)` / `lfb_check_rslot(rd)` | zero-copy read ([below](#zero-copy))                |
 | **cleanup** | —                                               | free `mem` yourself once all readers are done       |
 
-> *Note*: `lfb_init` = `lfb_prepare` + `lfb_publish` — call them separately to
+> **Note**: `lfb_init` = `lfb_prepare` + `lfb_publish` — call them separately to
 > set up the user area (`lfb_user` / `lfb_cuser`, e.g. a process-shared
 > lock) before the buffer becomes attachable. Size the region with
 > `lfb_memsz(fs, d, usz)`.
@@ -128,7 +128,7 @@ Read and write with the core ops above, applied to `lfb_shm_lfb(s)`.
 | **cleanup** | `lfb_shm_destroy(s)`                  | producer: unmap and unlink                                                      |
 |             | `lfb_shm_close(s)`                    | consumer: unmap                                                                 |
 
-> *Note*: co-producers — several writers sharing one segment behind a
+> **Note**: co-producers — several writers sharing one segment behind a
 > shared lock — replace `lfb_shm_create` with `lfb_shm_join` /
 > `lfb_shm_publish`. This is how rtlog serializes its writers.
 

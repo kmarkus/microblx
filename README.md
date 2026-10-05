@@ -494,9 +494,9 @@ trace-cmd record -e sched_switch -e irq ubx-launch -c app.usc
 kernelshark trace.dat
 ```
 
-Note that the node needs write access to
-`/sys/kernel/tracing/trace_marker` (run `trace-cmd` as root, or mount
-tracefs accordingly).
+> **Note**: the node needs write access to
+> `/sys/kernel/tracing/trace_marker` (run `trace-cmd` as root, or mount
+> tracefs accordingly).
 
 Lua API docs
 ------------
@@ -526,11 +526,12 @@ sudo -E capsh --keep=1 --uid="$(id -u)" \
      -c 'exec ubx-launch --mlockall -c app.usc'
 ```
 
-Don't `setcap` the luajit binary: file capabilities make sd-bus ignore
-the session bus environment, which breaks `--dbus`. Example:
-[`run-pid.sh`](examples/usc/pid/run-pid.sh). From C, pass the node
+Example: [`run-pid.sh`](examples/usc/pid/run-pid.sh). From C, pass the node
 attribute `ND_MLOCK_ALL` to `ubx_node_init`. If core dumps are
 missing, pass `--dumpable` (`ND_DUMPABLE`).
+
+> **Note**: don't `setcap` the luajit binary: file capabilities make
+> sd-bus ignore the session bus environment, which breaks `--dbus`.
 
 Getting help
 ------------
