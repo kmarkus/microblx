@@ -186,6 +186,7 @@ struct ptrig_inf {
 	ubx_port_t *p_overrun_cnt;
 
 	int latency_stats;	/* measure trigger latency */
+	unsigned int lat_skip_first;	/* tstats_skip_first */
 	unsigned int lat_skip;	/* discard this many samples before accumulating */
 	ubx_port_t *p_latency;
 	uint64_t lat_cnt;	/* trigger latency accumulators [ns] */
@@ -434,6 +435,11 @@ void *thread_startup(void *arg)
 					 " ns, max %" PRId64 " ns, avg %" PRIu64 " ns",
 					 inf->lat_cnt, inf->lat_min, inf->lat_max,
 					 inf->lat_total / inf->lat_cnt);
+
+			/* the summary covers one run, like the tstats */
+			inf->lat_cnt = 0;
+			inf->lat_total = 0;
+			inf->lat_skip = inf->lat_skip_first;
 
 			if (inf->use_deadline && deadline_overrun_cnt > 0)
 				ubx_warn(b, "%u SCHED_DEADLINE budget overrun(s)",
@@ -744,10 +750,11 @@ int ptrig_handle_config(ubx_block_t *b)
 	inf->latency_stats = (len > 0) ? *latency_stats : 0;
 
 	/* share tstats_skip_first: same startup transient, same remedy */
-	const int *lat_skip_first;
-	len = cfg_getptr_int(b, "tstats_skip_first", &lat_skip_first);
+	const int *skip_first;
+	len = cfg_getptr_int(b, "tstats_skip_first", &skip_first);
 	assert(len >= 0);
-	inf->lat_skip = (len > 0 && *lat_skip_first > 0) ? (unsigned int)*lat_skip_first : 0;
+	inf->lat_skip_first = (len > 0 && *skip_first > 0) ? (unsigned int)*skip_first : 0;
+	inf->lat_skip = inf->lat_skip_first;
 
 	if (inf->latency_stats && inf->use_deadline)
 		ubx_warn(b, "latency_stats has no effect with SCHED_DEADLINE "

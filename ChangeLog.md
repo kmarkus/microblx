@@ -5,6 +5,8 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ptrig`: the `LATENCY` summary now covers one run, like the tstats,
+  and skips `tstats_skip_first` samples after every start.
 - `ptrig`: **fix** the first trigger after a start emitted a bogus
   `latency_ns` sample (time since anchoring the grid), which became
   the logged min. That trigger has no sample now.

@@ -925,6 +925,26 @@ local function drain(p)
    end
 end
 
+-- the rtlog buffer outlives the process: tag block names per run
+local RUN_ID = string.format("%x", os.time())
+
+local function have_ubx_log()
+   local r = os.execute("command -v ubx-log >/dev/null 2>&1")
+   return r == 0 or r == true
+end
+
+-- messages logged by block 'bname', from a dump of the rtlog buffer
+local function log_msgs(bname)
+   local res = {}
+   local f = assert(io.popen("ubx-log -N -F 2>/dev/null"))
+   for l in f:lines() do
+      local msg = l:match("^%[[%d%.]+%] " .. bname .. " %u+: (.*)$")
+      if msg then res[#res+1] = msg end
+   end
+   f:close()
+   return res
+end
+
 local function make_ptrig(nd, name, conf)
    ubx.load_module(nd, "stdtypes")
    ubx.load_module(nd, "lfrb")
@@ -979,6 +999,36 @@ function TestPtrig:TestLatencyFirstCycle()
    ubx.node_rm(nd)
 
    assert_equals(nlat, STEPS - 1)
+end
+
+-- The LATENCY summary covers one run, like the tstats, and skips the
+-- first tstats_skip_first samples after every start. The regression
+-- accumulated over all runs and skipped only after the first start.
+function TestPtrig:TestLatencySummaryPerRun()
+   luaunit.skipIf(not have_ubx_log(), "ubx-log not found")
+   local SKIP = 5
+   local bname = "latrun" .. RUN_ID
+   local nd = ubx.node_create("TestLatencySummaryPerRun",
+			      { loglevel=ffi.C.UBX_LOGLEVEL_INFO })
+   local ptrig = make_ptrig(nd, bname, { period_ns=2000000, latency_stats=1,
+					 tstats_skip_first=SKIP })
+   assert_equals(ubx.block_tostate(ptrig, 'inactive'), 0)
+   local p_lat = ubx.port_clone_conn(ptrig, "latency_ns", 1024)
+
+   local nlat = {}
+   for run = 1, 2 do
+      assert_equals(ptrig:do_start(), 0)
+      ubx.clock_mono_sleep(0, 100000000)  -- 100ms: ~50 samples
+      assert_equals(ptrig:do_stop(), 0)
+      nlat[run] = #drain(p_lat)
+   end
+   ubx.node_rm(nd)
+
+   local cnt = {}
+   for _, msg in ipairs(log_msgs(bname)) do
+      cnt[#cnt+1] = tonumber(msg:match("^LATENCY: cnt (%d+),"))
+   end
+   assert_equals(cnt, { nlat[1] - SKIP, nlat[2] - SKIP })
 end
 
 -- cpuset: the thread writes its own tid to <cpuset>/tasks before

@@ -128,11 +128,14 @@ ARM generic timer) per cycle, hence the opt-in. Connect
 `latency_ns` to a `ubx/stats` block for the standard deviation, or to a logger
 for the full series.
 
+Like the tstats, and unlike `OVERRUNS`, the summary covers one run from start
+to stop.
+
 The `latency_ns` port carries every sample; the logged min/max/avg skip the
-first `tstats_skip_first` of them, as the tstats do. That matters here: the
-first cycles after a start can be far later than steady state and swamp the
-reported max. The first trigger after a start has no sample at all, as there is
-no grid point it slept to.
+first `tstats_skip_first` of them after each start, as the tstats do. That
+matters here: the first cycles after a start can be far later than steady
+state and swamp the reported max. The first trigger after a start has no
+sample at all, as there is no grid point it slept to.
 
 The value is normally positive (late). It can be slightly negative in
 `sleep_mode` 1 and 2, where the busy-wait exits on the first clock read at or
