@@ -351,6 +351,7 @@ void *thread_startup(void *arg)
 	uint64_t remaining_ns;
 	uint64_t cur_period_ns;		/* current period [ns], may change at runtime */
 	int rearm = 1;			/* (re)initialize the deadline on (re)activation */
+	int slept = 0;			/* slept to 'next', so a latency is defined */
 	uint64_t last_overrun_cnt = 0;	/* last value emitted on the overrun_cnt port */
 	sig_atomic_t last_deadline_overrun_cnt = 0;
 
@@ -459,6 +460,7 @@ void *thread_startup(void *arg)
 			/* (re)anchor the absolute deadline grid to now */
 			next = ubx_gettime_ns();
 			rearm = 0;
+			slept = 0;
 		}
 
 		common_read_actchain(b, inf->p_actchain, inf->num_chains, &inf->actchain);
@@ -492,10 +494,12 @@ void *thread_startup(void *arg)
 		 * only counts *whole* periods lost, so on a 1ms period a
 		 * consistent 200us lateness registers as zero overruns.
 		 *
-		 * Meaningless under SCHED_DEADLINE (the kernel paces the
-		 * thread and 'next' is unused) and in free-run.
+		 * Only defined if we slept to 'next': not on the first cycle
+		 * after (re)arm, where 'next' was just anchored to now, in
+		 * free-run or under SCHED_DEADLINE (the kernel paces the
+		 * thread and 'next' is unused).
 		 */
-		if (inf->latency_stats && !inf->use_deadline && cur_period_ns > 0) {
+		if (inf->latency_stats && slept) {
 			int64_t lat;
 
 			lat = (int64_t)(ubx_gettime_ns() - next);
@@ -504,12 +508,10 @@ void *thread_startup(void *arg)
 
 			/*
 			 * The port carries every sample; the accumulator skips
-			 * the first tstats_skip_first, exactly as the tstats do.
-			 * Without this the very first cycle after rearm --
-			 * where 'next' was just anchored to now, so the
-			 * measurement spans the whole startup -- lands in
-			 * lat_max and swamps it: at a 500us period it reported
-			 * 8.6ms against a true steady-state max of 59us.
+			 * the first tstats_skip_first, exactly as the tstats do:
+			 * the first cycles after a start can be far later than
+			 * steady state, at a 500us period 8.6ms against a
+			 * steady-state max of 59us.
 			 */
 			if (inf->lat_skip > 0) {
 				inf->lat_skip--;
@@ -624,6 +626,7 @@ lat_done:		;
 			ubx_err(b, "sleep failed: %s", strerror(errno));
 			goto out;
 		}
+		slept = 1;
 	}
 
  out:

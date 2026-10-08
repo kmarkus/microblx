@@ -961,6 +961,26 @@ function TestPtrig:TestFreerunToPeriod()
    assert_true(maxlat < PERIOD_NS, "leaving free-run reported a latency of " .. maxlat .. "ns")
 end
 
+-- The first trigger after a start has no grid point it slept to, so it
+-- must not emit a latency sample. The regression emitted the time since
+-- anchoring the grid (a few us), which then became the logged min.
+function TestPtrig:TestLatencyFirstCycle()
+   local STEPS = 20
+   local nd = ubx.node_create("TestLatencyFirstCycle",
+			      { loglevel=ffi.C.UBX_LOGLEVEL_ERR })
+   local ptrig = make_ptrig(nd, "ptrig", { period_ns=1000000, latency_stats=1,
+					   autostop_steps=STEPS })
+   assert_equals(ubx.block_tostate(ptrig, 'inactive'), 0)
+   local p_lat = ubx.port_clone_conn(ptrig, "latency_ns", 1024)
+
+   assert_equals(ptrig:do_start(), 0)
+   ubx.clock_mono_sleep(0, 200000000)  -- autostop after ~20ms
+   local nlat = #drain(p_lat)
+   ubx.node_rm(nd)
+
+   assert_equals(nlat, STEPS - 1)
+end
+
 -- cpuset: the thread writes its own tid to <cpuset>/tasks before
 -- ptrig_init returns. A plain file stands in for the cgroup, so this
 -- runs unprivileged and without cgroup v1.

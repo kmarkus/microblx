@@ -5,6 +5,9 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ptrig`: **fix** the first trigger after a start emitted a bogus
+  `latency_ns` sample (time since anchoring the grid), which became
+  the logged min. That trigger has no sample now.
 - `ptrig`: **fix** leaving free-run (a period of 0 replaced via a
   port) reported every free-running period as an overrun.
 - `ptrig`: new `cpuset` config. The thread joins the given cgroup v1

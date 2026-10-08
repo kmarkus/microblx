@@ -129,10 +129,10 @@ ARM generic timer) per cycle, hence the opt-in. Connect
 for the full series.
 
 The `latency_ns` port carries every sample; the logged min/max/avg skip the
-first `tstats_skip_first` of them, as the tstats do. That matters here: on the
-first cycle after (re)start the deadline grid has just been anchored to now, so
-the measurement spans startup and is meaningless -- left in, it swamps the
-reported max.
+first `tstats_skip_first` of them, as the tstats do. That matters here: the
+first cycles after a start can be far later than steady state and swamp the
+reported max. The first trigger after a start has no sample at all, as there is
+no grid point it slept to.
 
 The value is normally positive (late). It can be slightly negative in
 `sleep_mode` 1 and 2, where the busy-wait exits on the first clock read at or
