@@ -1052,6 +1052,37 @@ function TestPtrig:TestLatencyDeadlineWarns()
    assert_true(warned, "no latency_stats warning with SCHED_DEADLINE")
 end
 
+-- A negative period_ns is rejected in the config and ignored on the
+-- port. The regression took it as ~584 years: one bogus overrun, then
+-- the thread slept forever and cleanup hung in pthread_join.
+function TestPtrig:TestPeriodNsNegativeConfig()
+   local nd = ubx.node_create("period_ns_negative",
+			      { loglevel = ffi.C.UBX_LOGLEVEL_ERR })
+   local b = make_ptrig(nd, "pt", { period_ns = -1 })
+   assert_not_equals(ubx.block_tostate(b, 'inactive'), 0,
+		     "init should fail for period_ns -1")
+   assert_equals(b.block_state, ffi.C.BLOCK_STATE_PREINIT)
+   ubx.node_rm(nd)
+end
+
+function TestPtrig:TestPeriodNsNegativePort()
+   local nd = sys_ns:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_CRIT,
+			     nodename='TestPeriodNsNegativePort' }
+   local p_period_ns = ubx.port_clone_conn(nd:b("ptrig"), "period_ns")
+   local ramp = nd:b("ramp")
+
+   sys_ns:startup(nd)
+   p_period_ns:write(-1)
+   ubx.clock_mono_sleep(0, 300000000)  -- 300ms at 20ms
+   local steps = tonumber(ramp.stat_num_steps)
+
+   -- check before stopping, which hangs on regression
+   assert_true(steps > 5, "trigger stalled after period_ns -1: " .. steps .. " steps")
+
+   nd:b("ptrig"):do_stop()
+   ubx.node_rm(nd)
+end
+
 -- cpuset: the thread writes its own tid to <cpuset>/tasks before
 -- ptrig_init returns. A plain file stands in for the cgroup, so this
 -- runs unprivileged and without cgroup v1.

@@ -487,8 +487,13 @@ void *thread_startup(void *arg)
 					(uint64_t)port_period.usec * NSEC_PER_USEC;
 
 			int64_t port_period_ns;
-			if (read_int64(inf->p_period_ns, &port_period_ns) > 0)
-				cur_period_ns = (uint64_t)port_period_ns;
+			if (read_int64(inf->p_period_ns, &port_period_ns) > 0) {
+				if (port_period_ns < 0)
+					ubx_err(b, "ignoring invalid period_ns %" PRId64,
+						port_period_ns);
+				else
+					cur_period_ns = (uint64_t)port_period_ns;
+			}
 		}
 
 		/*
@@ -776,6 +781,11 @@ int ptrig_handle_config(ubx_block_t *b)
 		inf->period_ns = (uint64_t)period->sec * NSEC_PER_SEC +
 				 (uint64_t)period->usec * NSEC_PER_USEC;
 	} else if (len_period_ns > 0) {
+		if (*period_ns < 0) {
+			ubx_err(b, "invalid period_ns %" PRId64 ", must be >= 0",
+				*period_ns);
+			goto out;
+		}
 		inf->period_ns = (uint64_t)*period_ns;
 	} else {
 		ubx_err(b, "mandatory config 'period' or 'period_ns' unconfigured");

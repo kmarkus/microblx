@@ -5,6 +5,8 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ptrig`: **fix** a negative `period_ns` was read as ~584 years. It
+  now fails init as config and is ignored on the port.
 - `ptrig`: the `LATENCY` summary now covers one run, like the tstats,
   and skips `tstats_skip_first` samples after every start.
 - `ptrig`: **fix** the first trigger after a start emitted a bogus
