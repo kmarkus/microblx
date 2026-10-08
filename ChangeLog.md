@@ -5,6 +5,8 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ptrig`: **fix** leaving free-run (a period of 0 replaced via a
+  port) reported every free-running period as an overrun.
 - `ptrig`: new `cpuset` config. The thread joins the given cgroup v1
   cpuset (e.g. `"rt"`) itself before `init` returns; `affinity` is
   then applied within it.

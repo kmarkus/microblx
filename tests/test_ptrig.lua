@@ -915,6 +915,52 @@ function TestPtrig:TestOverrunKeepsGrid()
 		  .. maxdev .. "ns (period " .. OVR_PERIOD_NS .. "ns)")
 end
 
+-- read all samples from a port_clone_conn port
+local function drain(p)
+   local res = {}
+   while true do
+      local cnt, v = p:read()
+      if cnt <= 0 then return res end
+      res[#res+1] = tonumber(v:tolua())
+   end
+end
+
+local function make_ptrig(nd, name, conf)
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "lfrb")
+   ubx.load_module(nd, "ptrig")
+   return ubx.block_create(nd, "ubx/ptrig", name, conf)
+end
+
+-- Leaving free-run via the period_ns port must start a fresh grid.
+-- The regression kept the grid anchored at start, so every period
+-- spent free-running was reported as an overrun.
+function TestPtrig:TestFreerunToPeriod()
+   local PERIOD_NS = 10000000 -- 10ms
+   local nd = ubx.node_create("TestFreerunToPeriod",
+			      { loglevel=ffi.C.UBX_LOGLEVEL_ERR })
+   local ptrig = make_ptrig(nd, "ptrig", { period_ns=0, latency_stats=1 })
+   assert_equals(ubx.block_tostate(ptrig, 'inactive'), 0)
+   local p_period_ns = ubx.port_clone_conn(ptrig, "period_ns")
+   local p_overrun = ubx.port_clone_conn(ptrig, "overrun_cnt")
+   local p_lat = ubx.port_clone_conn(ptrig, "latency_ns", 1024)
+
+   assert_equals(ptrig:do_start(), 0)
+   ubx.clock_mono_sleep(0, 200000000)  -- 200ms free-run: 20 periods
+   p_period_ns:write(PERIOD_NS)
+   ubx.clock_mono_sleep(0, 100000000)
+   ptrig:do_stop()
+
+   local overruns = drain(p_overrun)
+   overruns = overruns[#overruns] or 0
+   local maxlat = math.max(0, unpack(drain(p_lat)))
+   ubx.node_rm(nd)
+
+   -- allow one genuine overrun on a loaded machine
+   assert_true(overruns <= 1, "leaving free-run reported " .. overruns .. " overruns")
+   assert_true(maxlat < PERIOD_NS, "leaving free-run reported a latency of " .. maxlat .. "ns")
+end
+
 -- cpuset: the thread writes its own tid to <cpuset>/tasks before
 -- ptrig_init returns. A plain file stands in for the cgroup, so this
 -- runs unprivileged and without cgroup v1.

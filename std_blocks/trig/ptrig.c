@@ -568,8 +568,12 @@ lat_done:		;
 		 * ubx_gettime time source (CLOCK_MONOTONIC or TSC), which an
 		 * absolute clock_nanosleep(TIMER_ABSTIME) would not be.
 		 */
-		if (cur_period_ns == 0)
-			continue;	/* no period configured: free-run */
+		if (cur_period_ns == 0) {
+			/* free-run: 'next' is not advanced, so re-anchor the
+			 * grid once a period is set via a port */
+			rearm = 1;
+			continue;
+		}
 
 		next += cur_period_ns;
 

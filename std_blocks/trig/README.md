@@ -99,8 +99,9 @@ For a 10ms period with a chain that once takes 15ms, the triggers land
 at 0, 10, **(chain runs 20→35)**, 40, 50ms — the 30ms tick is dropped,
 `overrun_cnt` is 1, and 40ms onwards is back on the original grid.
 
-The grid is only re-anchored when the block is (re)started, so an
-inactive interval is never "caught up" either.
+The grid is only re-anchored when the block is (re)started or leaves
+free-run (a period of 0 replaced via a port), so an inactive or
+free-running interval is never "caught up" either.
 
 > **Note**: the wakeup latency counts against the period budget: an
 > overrun is declared when the chain exceeds `period - latency`. That
