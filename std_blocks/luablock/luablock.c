@@ -145,7 +145,7 @@ static void *luablock_thread(void *arg)
 	while (inf->thread_running) {
 		ret = ubx_nanosleep(&period);
 		if (ret) {
-			ubx_err(b, "ubx_nanosleep failed: %s", strerror(errno));
+			ubx_err(b, "ubx_nanosleep failed: %s", strerror(ret));
 			goto out;
 		}
 

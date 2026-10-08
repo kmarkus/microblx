@@ -145,13 +145,15 @@ uint64_t ubx_gettime_ns(void)
  * ubx_nanosleep - sleep for a relative duration using clock_nanosleep
  *
  * Uses clock_nanosleep(CLOCK_MONOTONIC) to sleep for the given
- * relative duration. Yields the CPU while waiting.
+ * relative duration. Yields the CPU while waiting. A signal handler
+ * running meanwhile does not cut the sleep short.
  *
  * @param dur relative duration to sleep
- * @return 0 or error
+ * @return 0, EINVALID_ARG or the clock_nanosleep error (errno is not set)
  */
 int ubx_nanosleep(const struct ubx_timespec *dur)
 {
+	int ret;
 	struct timespec ts;
 
 	if (dur == NULL)
@@ -159,7 +161,12 @@ int ubx_nanosleep(const struct ubx_timespec *dur)
 
 	ts.tv_sec = dur->sec;
 	ts.tv_nsec = dur->nsec;
-	return clock_nanosleep(CLOCK_MONOTONIC, 0, &ts, NULL);
+
+	/* resume with the remainder after a signal handler ran */
+	while ((ret = clock_nanosleep(CLOCK_MONOTONIC, 0, &ts, &ts)) == EINTR)
+		;
+
+	return ret;
 }
 
 /**

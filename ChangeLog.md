@@ -5,6 +5,9 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ubx_nanosleep` / `ubx.nanosleep`: **fix** a signal handler running
+  during the sleep returned EINTR, which ended the `ptrig` and
+  `luablock` threads. The sleep now resumes.
 - `ptrig`: **fix** a negative `period_ns` was read as ~584 years. It
   now fails init as config and is ignored on the port.
 - `ptrig`: the `LATENCY` summary now covers one run, like the tstats,

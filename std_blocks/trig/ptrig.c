@@ -634,7 +634,7 @@ lat_done:		;
 
 		ret = inf->sleep_fn(&remaining, inf->busy_slack_ns);
 		if (ret) {
-			ubx_err(b, "sleep failed: %s", strerror(errno));
+			ubx_err(b, "sleep failed: %s", strerror(ret));
 			goto out;
 		}
 		slept = 1;

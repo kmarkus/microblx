@@ -8,6 +8,13 @@ local tn = tonumber
 
 local ubx_timespec=ffi.typeof("struct ubx_timespec")
 
+ffi.cdef[[
+typedef void (*sighandler_t)(int);
+sighandler_t signal(int signum, sighandler_t handler);
+unsigned int ualarm(unsigned int usecs, unsigned int interval);
+void srand(unsigned int seed);
+]]
+
 
 
 -- | 1.sec | 1.nsec | 2.sec | 2.nsec | nsec wrap |
@@ -254,6 +261,24 @@ function TestTimeArith:test_nanosleep_relative()
    local elapsed_ns = tn(ubx.ts_to_ns(elapsed))
    lu.assert_true(elapsed_ns >= 50000000, "nanosleep: elapsed "..elapsed_ns.."ns < 50ms")
    lu.assert_true(elapsed_ns < 150000000, "nanosleep: elapsed "..elapsed_ns.."ns > 150ms")
+end
+
+--- a signal handler must not cut ubx_nanosleep short
+function TestTimeArith:test_nanosleep_signal()
+   local SIGALRM = 14
+   -- any C void(int) does as a no-op handler, Lua can't run in one
+   local old = ffi.C.signal(SIGALRM, ffi.cast("sighandler_t", ffi.C.srand))
+   local dur = ubx_timespec{sec=0, nsec=50000000} -- 50ms
+   local t1, t2, elapsed = ubx_timespec(), ubx_timespec(), ubx_timespec()
+   ubx.gettime(t1)
+   ffi.C.ualarm(10000, 0) -- SIGALRM after 10ms
+   local ret = ubx.ubx.ubx_nanosleep(dur)
+   ubx.gettime(t2)
+   ffi.C.signal(SIGALRM, old)
+   ubx.ts_sub(t2, t1, elapsed)
+   local elapsed_ns = tn(ubx.ts_to_ns(elapsed))
+   assert_equals(ret, 0)
+   lu.assert_true(elapsed_ns >= 50000000, "nanosleep: elapsed "..elapsed_ns.."ns < 50ms")
 end
 
 --- ubx_nanowait relative duration test
