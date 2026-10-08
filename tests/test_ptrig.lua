@@ -915,4 +915,53 @@ function TestPtrig:TestOverrunKeepsGrid()
 		  .. maxdev .. "ns (period " .. OVR_PERIOD_NS .. "ns)")
 end
 
+-- cpuset: the thread writes its own tid to <cpuset>/tasks before
+-- ptrig_init returns. A plain file stands in for the cgroup, so this
+-- runs unprivileged and without cgroup v1.
+local function cpuset_block(nd, cpuset)
+   return ubx.block_create(nd, "ubx/ptrig", "ptrig_cpuset",
+			   { period = { sec=0, usec=1000 }, cpuset=cpuset })
+end
+
+function TestPtrig:TestCpusetJoin()
+   local dir = os.tmpname()
+   os.remove(dir)
+   os.execute("mkdir " .. dir)
+   local f = io.open(dir .. "/tasks", "w"); f:close()
+
+   local nd = ubx.node_create("TestCpusetJoin", { loglevel=ffi.C.UBX_LOGLEVEL_WARN })
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "ptrig")
+   local b = cpuset_block(nd, dir)
+   local ret = ubx.block_init(b)
+
+   f = io.open(dir .. "/tasks")
+   local tid = tonumber(f:read("*l"))
+   f:close()
+
+   local st = tid and io.open("/proc/self/task/" .. tid .. "/stat")
+   local own = st ~= nil
+   if st then st:close() end
+   ubx.node_rm(nd)
+   os.remove(dir .. "/tasks")
+   os.remove(dir)
+
+   assert_equals(ret, 0)
+   assert_not_nil(tid, "no tid written to tasks")
+   assert_true(own, "tid " .. tostring(tid) .. " is not a thread of this process")
+end
+
+function TestPtrig:TestCpusetMissing()
+   local nd = ubx.node_create("TestCpusetMissing", { loglevel=ffi.C.UBX_LOGLEVEL_CRIT })
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "ptrig")
+   local b = cpuset_block(nd, "/nonexistent/cpuset")
+   local ret = ubx.block_init(b)
+   local state = b.block_state
+   ubx.node_rm(nd)
+
+   assert_not_equals(ret, 0, "init must fail if the cpuset can't be joined")
+   assert_equals(state, ffi.C.BLOCK_STATE_PREINIT)
+end
+
 if not _RUNNER then os.exit( luaunit.LuaUnit.run() ) end

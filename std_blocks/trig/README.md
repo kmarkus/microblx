@@ -28,6 +28,7 @@ Both support multiple trigger chains, per-block timing statistics, and runtime c
 | `sched_priority`  | `int`                   | thread priority; unused with `SCHED_DEADLINE`           |
 | `sched_deadline`  | `struct ptrig_deadline` | `SCHED_DEADLINE` parameters `{ runtime_ns, deadline_ns, period_ns }`; `deadline_ns` and `period_ns` default to the `period` config value when 0 (Linux ≥ 3.14) |
 | `affinity`        | `int[]`                 | list of CPUs for pthread affinity                       |
+| `cpuset`          | `char`                  | cgroup v1 cpuset to join on thread creation: a name under `/sys/fs/cgroup/cpuset` or an absolute path |
 | `stacksize`       | `size_t`                | thread stack size                                       |
 | `thread_name`     | `char`                  | thread name shown in debuggers (default: block name)    |
 | `autostop_steps`  | `int64_t`               | stop automatically after N steps                        |
@@ -35,6 +36,24 @@ Both support multiple trigger chains, per-block timing statistics, and runtime c
 | `busy_slack_ns`   | `int64_t`               | `sleep_mode=2`: duration to busy-wait before the deadline [ns] (default: 50000) |
 | `timerslack_ns`   | `int64_t`               | thread timer slack [ns]; 0 (default) leaves it unchanged |
 | `latency_stats`   | `int`                   | 1: measure trigger latency (one extra clock read per cycle); 0 = off (default) |
+
+### cpuset
+
+With `cpuset` set, the ptrig thread writes its own TID to
+`<cpuset>/tasks` before `init` returns, so only this thread runs on the
+cpuset's CPUs and the rest of the process stays where it is. `init` fails
+if the cpuset can't be joined. This is meant for isolated partitions,
+e.g. as created by `partrt create`:
+
+```lua
+{ name="ptrig1", config = { period_ns=1000000, sched_policy="SCHED_FIFO",
+                            sched_priority=80, cpuset="rt" } }
+```
+
+`affinity` then selects CPUs within the cpuset; the thread sets it after
+joining, since joining a cpuset resets the affinity to the cpuset's CPUs.
+Without `cpuset`, `affinity` must lie within the process's own cpuset.
+Only cgroup v1 (the `tasks` file) is supported.
 
 ## Ports — common
 

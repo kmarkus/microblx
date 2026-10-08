@@ -18,6 +18,7 @@
 #include <limits.h>	/* PTHREAD_STACK_MIN */
 #include <sys/syscall.h>
 #include <sys/prctl.h>
+#include <fcntl.h>
 
 /* Fall back to a local definition when the toolchain headers don't supply
  * struct sched_attr (older glibc / older kernel headers). Detected by CMake. */
@@ -56,6 +57,9 @@ static int __ubx_sched_setattr(pid_t pid, struct sched_attr *attr, unsigned int 
 
 #include "types/ptrig_deadline.h"
 #include "types/ptrig_deadline.h.hexarr"
+
+/* where a relative cpuset config resolves to */
+#define CPUSET_ROOT		"/sys/fs/cgroup/cpuset"
 
 /* wait 1 second for thread to stop */
 #define	THREAD_STOP_TIMEOUT_US	50000
@@ -112,6 +116,7 @@ ubx_proto_config_t ptrig_config[] = {
 #ifdef CONFIG_PTHREAD_SETAFFINITY
 	{ .name = "affinity", .type_name = "int", .doc = "list of CPUs to set the pthread CPU affinity to" },
 #endif
+	{ .name = "cpuset", .type_name = "char", .doc = "cgroup v1 cpuset the thread joins on creation: a name under " CPUSET_ROOT " or an absolute path" },
 	{ .name = "thread_name", .type_name = "char", .doc = "thread name (for dbg), default is block name" },
 	{ .name = "autostop_steps", .type_name = "int64_t", .doc = "if set and > 0, block stops itself after X steps", .max=1 },
 	{ .name = "num_chains", .type_name = "int", .max = 1, .doc = "number of trigger chains (def: 1)" },
@@ -196,6 +201,14 @@ struct ptrig_inf {
 	struct sched_attr deadline_attr;
 	ubx_port_t *p_deadline;
 	ubx_port_t *p_deadline_throt_cnt;
+
+	char cpuset_tasks[PATH_MAX];	/* tasks file of the cpuset to join, "" if none */
+#ifdef CONFIG_PTHREAD_SETAFFINITY
+	int thread_affinity;		/* with cpuset: thread sets the affinity itself */
+	cpu_set_t affinity;
+#endif
+	int setup_done;			/* thread_setup has run */
+	int setup_ret;			/* its result */
 };
 
 
@@ -286,6 +299,45 @@ static int ptrig_deadline_apply(ubx_block_t *b, struct ptrig_inf *inf,
 	return 0;
 }
 
+/*
+ * Join the cpuset and set the affinity from the thread itself. A thread
+ * cannot be created with an affinity outside its creator's cpuset, and
+ * joining a cpuset resets the affinity to the cpuset's CPUs, so both
+ * happen here, in that order.
+ */
+static int thread_setup(ubx_block_t *b, struct ptrig_inf *inf)
+{
+	int fd, ret;
+
+	if (inf->cpuset_tasks[0] == '\0')
+		return 0;
+
+	fd = open(inf->cpuset_tasks, O_WRONLY);
+	if (fd < 0) {
+		ubx_err(b, "failed to open %s: %s", inf->cpuset_tasks, strerror(errno));
+		return -1;
+	}
+
+	ret = dprintf(fd, "%ld\n", (long)syscall(SYS_gettid));
+	if (ret < 0)
+		ubx_err(b, "failed to join cpuset %s: %s", inf->cpuset_tasks, strerror(errno));
+	close(fd);
+
+	if (ret < 0)
+		return -1;
+
+#ifdef CONFIG_PTHREAD_SETAFFINITY
+	if (inf->thread_affinity) {
+		ret = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &inf->affinity);
+		if (ret != 0) {
+			ubx_err(b, "pthread_setaffinity_np failed: %s", strerror(ret));
+			return -1;
+		}
+	}
+#endif
+	return 0;
+}
+
 /* thread entry */
 void *thread_startup(void *arg)
 {
@@ -306,6 +358,17 @@ void *thread_startup(void *arg)
 	inf = (struct ptrig_inf *)b->private_data;
 
 	cur_period_ns = inf->period_ns;
+
+	/* report the setup result to ptrig_init, which waits for it */
+	ret = thread_setup(b, inf);
+	pthread_mutex_lock(&inf->mutex);
+	inf->setup_ret = ret;
+	inf->setup_done = 1;
+	pthread_cond_broadcast(&inf->active_cond);
+	pthread_mutex_unlock(&inf->mutex);
+
+	if (ret != 0)
+		goto out;
 
 	/* timer slack is a per-thread property, so it must be set here */
 	if (inf->timerslack_ns > 0) {
@@ -846,6 +909,7 @@ int ptrig_init(ubx_block_t *b)
 	long len;
 	int ret = EOUTOFMEM;
 	const char *threadname;
+	const char *cpuset_cfg;
 	struct ptrig_inf *inf;
 
 	b->private_data = calloc(1, sizeof(struct ptrig_inf));
@@ -894,8 +958,25 @@ int ptrig_init(ubx_block_t *b)
 	if (ret != 0)
 		goto out_err;
 
+	len = cfg_getptr_char(b, "cpuset", &cpuset_cfg);
+	assert(len >= 0);
+
+	if (len > 0) {
+		int n = (int)strnlen(cpuset_cfg, len);
+
+		ret = snprintf(inf->cpuset_tasks, sizeof(inf->cpuset_tasks), "%s%.*s/tasks",
+			       cpuset_cfg[0] == '/' ? "" : CPUSET_ROOT "/", n, cpuset_cfg);
+		if (ret < 0 || (size_t)ret >= sizeof(inf->cpuset_tasks)) {
+			ubx_err(b, "cpuset path too long: %.*s", n, cpuset_cfg);
+			ret = -1;
+			goto out_err;
+		}
+		ubx_info(b, "joining cpuset %s", inf->cpuset_tasks);
+	}
+
 #ifdef CONFIG_PTHREAD_SETAFFINITY
-	/* cpu affinity (set on attr so it is validated before thread starts) */
+	/* cpu affinity: set on attr so it is validated before the thread
+	 * starts, or with a cpuset by the thread after joining it */
 	const int *aff;
 	len = cfg_getptr_int(b, "affinity", &aff);
 	assert(len>=0);
@@ -915,7 +996,13 @@ int ptrig_init(ubx_block_t *b)
 			CPU_SET(aff[i], &cpuset);
 		}
 
-		ret = pthread_attr_setaffinity_np(&inf->attr, sizeof(cpu_set_t), &cpuset);
+		if (inf->cpuset_tasks[0] != '\0') {
+			inf->affinity = cpuset;
+			inf->thread_affinity = 1;
+			ret = 0;
+		} else {
+			ret = pthread_attr_setaffinity_np(&inf->attr, sizeof(cpu_set_t), &cpuset);
+		}
 
 		if (ret != 0) {
 			ubx_err(b, "pthread_attr_setaffinity_np failed: %s", strerror(ret));
@@ -959,6 +1046,20 @@ int ptrig_init(ubx_block_t *b)
 	if (pthread_setname_np(inf->tid, threadname))
 		ubx_err(b, "failed to set thread_name to %s", threadname);
 #endif
+
+	/* with a cpuset, fail here rather than run outside of it */
+	if (inf->cpuset_tasks[0] != '\0') {
+		pthread_mutex_lock(&inf->mutex);
+		while (!inf->setup_done)
+			pthread_cond_wait(&inf->active_cond, &inf->mutex);
+		ret = inf->setup_ret;
+		pthread_mutex_unlock(&inf->mutex);
+
+		if (ret != 0) {
+			pthread_join(inf->tid, NULL);
+			goto out_err;
+		}
+	}
 
 	/* OK */
 	ret = 0;

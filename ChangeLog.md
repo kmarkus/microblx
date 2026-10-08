@@ -5,6 +5,9 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ptrig`: new `cpuset` config. The thread joins the given cgroup v1
+  cpuset (e.g. `"rt"`) itself before `init` returns; `affinity` is
+  then applied within it.
 - `ubx-dbus -d` / lsdb-intf `Disconnect(ssss)`: new, disconnect two
   ports or a port and an iblock (`ubx.disconnect`).
 - `ubx.connect`: **fix** iblock name collisions when connecting from
