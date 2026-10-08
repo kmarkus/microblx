@@ -1083,6 +1083,29 @@ function TestPtrig:TestPeriodNsNegativePort()
    ubx.node_rm(nd)
 end
 
+-- Stats are flushed when a run ends, not at thread start. The regression
+-- also flushed during init, racing with start() configuring the chains,
+-- and logged a stray "OVERRUNS: 0".
+function TestPtrig:TestNoFlushBeforeStart()
+   luaunit.skipIf(not have_ubx_log(), "ubx-log not found")
+   local bname = "noflush" .. RUN_ID
+   local nd = ubx.node_create("TestNoFlushBeforeStart",
+			      { loglevel=ffi.C.UBX_LOGLEVEL_INFO })
+   local ptrig = make_ptrig(nd, bname, { period_ns=1000000 })
+   assert_equals(ubx.block_tostate(ptrig, 'inactive'), 0)
+   ubx.clock_mono_sleep(0, 50000000)  -- let the thread park
+   assert_equals(ptrig:do_start(), 0)
+   ubx.clock_mono_sleep(0, 20000000)
+   assert_equals(ptrig:do_stop(), 0)
+   ubx.node_rm(nd)
+
+   local n = 0
+   for _, msg in ipairs(log_msgs(bname)) do
+      if msg:match("^OVERRUNS:") then n = n + 1 end
+   end
+   assert_equals(n, 1)
+end
+
 -- cpuset: the thread writes its own tid to <cpuset>/tasks before
 -- ptrig_init returns. A plain file stands in for the cgroup, so this
 -- runs unprivileged and without cgroup v1.

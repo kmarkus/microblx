@@ -353,6 +353,7 @@ void *thread_startup(void *arg)
 	uint64_t cur_period_ns;		/* current period [ns], may change at runtime */
 	int rearm = 1;			/* (re)initialize the deadline on (re)activation */
 	int slept = 0;			/* slept to 'next', so a latency is defined */
+	int ran = 0;			/* active since the last stats flush */
 	uint64_t last_overrun_cnt = 0;	/* last value emitted on the overrun_cnt port */
 	sig_atomic_t last_deadline_overrun_cnt = 0;
 
@@ -408,12 +409,14 @@ void *thread_startup(void *arg)
 
 		pthread_mutex_lock(&inf->mutex);
 
-		if (inf->state != BLOCK_STATE_ACTIVE && !inf->shutdown) {
+		if (inf->state != BLOCK_STATE_ACTIVE && !inf->shutdown && ran) {
 			/*
 			 * going inactive: flush stats once. This must
 			 * happen before setting THREAD_INACTIVE,
 			 * since stop() unconfigures the chains after
-			 * observing that state.
+			 * observing that state. Not at thread start:
+			 * nothing ran yet, and start() may be
+			 * configuring the chains concurrently.
 			 */
 			common_output_stats(b, inf->chains, inf->num_chains);
 			common_log_stats(b, inf->chains, inf->num_chains);
@@ -444,6 +447,7 @@ void *thread_startup(void *arg)
 			if (inf->use_deadline && deadline_overrun_cnt > 0)
 				ubx_warn(b, "%u SCHED_DEADLINE budget overrun(s)",
 					 (unsigned int)deadline_overrun_cnt);
+			ran = 0;
 		}
 
 		while (inf->state != BLOCK_STATE_ACTIVE && !inf->shutdown) {
@@ -461,6 +465,7 @@ void *thread_startup(void *arg)
 
 		inf->thread_state = THREAD_ACTIVE;
 		pthread_mutex_unlock(&inf->mutex);
+		ran = 1;
 
 		if (rearm) {
 			/* (re)anchor the absolute deadline grid to now */
