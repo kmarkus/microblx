@@ -597,7 +597,7 @@ lat_done:		;
 
 		now_ns = ubx_gettime_ns();
 
-		if (now_ns >= next) {
+		if (now_ns > next) {
 			/*
 			 * Deadline already missed (overrun): drop the missed
 			 * trigger(s) and realign to the next future grid
@@ -607,7 +607,7 @@ lat_done:		;
 			 * overrun_cnt port.
 			 *
 			 * next is strictly in the future afterwards: with
-			 * d = now_ns - next >= 0, the new next is
+			 * d = now_ns - next > 0, the new next is
 			 * now_ns + cur_period_ns - (d % cur_period_ns).
 			 */
 			uint64_t missed = (now_ns - next) / cur_period_ns + 1;

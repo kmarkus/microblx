@@ -5,6 +5,8 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ptrig`: **fix** a cycle waking exactly on its deadline was counted
+  as an overrun and its trigger dropped.
 - `ubx_nanosleep` / `ubx.nanosleep`: **fix** a signal handler running
   during the sleep returned EINTR, which ended the `ptrig` and
   `luablock` threads. The sleep now resumes.
