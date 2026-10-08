@@ -756,10 +756,6 @@ int ptrig_handle_config(ubx_block_t *b)
 	inf->lat_skip_first = (len > 0 && *skip_first > 0) ? (unsigned int)*skip_first : 0;
 	inf->lat_skip = inf->lat_skip_first;
 
-	if (inf->latency_stats && inf->use_deadline)
-		ubx_warn(b, "latency_stats has no effect with SCHED_DEADLINE "
-			 "(use deadline_throt_cnt)");
-
 	/* period / period_ns: exactly one of the two must be configured */
 	const struct ptrig_period *period;
 	const int64_t *period_ns;
@@ -848,6 +844,10 @@ int ptrig_handle_config(ubx_block_t *b)
 	if (schedpol == SCHED_DEADLINE) {
 		if (ptrig_deadline_config(b, inf) != 0)
 			goto out;
+
+		if (inf->latency_stats)
+			ubx_warn(b, "latency_stats has no effect with SCHED_DEADLINE "
+				 "(use deadline_throt_cnt)");
 
 		ubx_info(b, "period %" PRIu64 "ns, policy SCHED_DEADLINE, "
 			 "runtime %lluns, deadline %lluns, sched_period %lluns, stacksize %s",

@@ -1031,6 +1031,27 @@ function TestPtrig:TestLatencySummaryPerRun()
    assert_equals(cnt, { nlat[1] - SKIP, nlat[2] - SKIP })
 end
 
+-- latency_stats is not measured under SCHED_DEADLINE, so init must warn.
+-- The regression checked the policy before parsing it and never did.
+function TestPtrig:TestLatencyDeadlineWarns()
+   luaunit.skipIf(not have_ubx_log(), "ubx-log not found")
+   local bname = "latdl" .. RUN_ID
+   local nd = ubx.node_create("TestLatencyDeadlineWarns",
+			      { loglevel=ffi.C.UBX_LOGLEVEL_WARN })
+   local ptrig = make_ptrig(nd, bname, { period_ns=1000000, latency_stats=1,
+					 sched_policy="SCHED_DEADLINE",
+					 sched_deadline={ runtime_ns=100000 } })
+   local ret = ubx.block_tostate(ptrig, 'inactive')
+   ubx.node_rm(nd)
+
+   local warned = false
+   for _, msg in ipairs(log_msgs(bname)) do
+      if msg:match("^latency_stats has no effect") then warned = true end
+   end
+   assert_equals(ret, 0)
+   assert_true(warned, "no latency_stats warning with SCHED_DEADLINE")
+end
+
 -- cpuset: the thread writes its own tid to <cpuset>/tasks before
 -- ptrig_init returns. A plain file stands in for the cgroup, so this
 -- runs unprivileged and without cgroup v1.
