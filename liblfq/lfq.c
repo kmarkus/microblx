@@ -102,6 +102,11 @@ int lfq_dequeue(lfq_t *q, void **element)
 	lfq_slot_t *slots = q->slots;
 
 	if (capacity == 1) {
+		/* a plain load keeps the line shared on empty polls,
+		 * the exchange would take it exclusive every time */
+		if (atomic_load_explicit(&slots[0].data, memory_order_relaxed) == LFQ_EMPTY)
+			return -ENODATA;
+
 		void *e = atomic_exchange_explicit(&slots[0].data, LFQ_EMPTY,
 						   memory_order_acq_rel);
 
