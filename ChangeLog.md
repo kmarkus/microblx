@@ -9,6 +9,10 @@ This file tracks user visible API changes
   every step, read and write now come first and both are allocated
   cache line aligned, so a step or port access touches one line.
   Rebuild all modules.
+- lsdb-intf `SetConfig` / `ubx-dbus -c BLOCK:loglevel:N`: `loglevel`
+  can now be changed on an inactive or active block, if it was set
+  before init (else this fails). Other configs of active blocks
+  remain read-only.
 - `ptrig`: **fix** a cycle waking exactly on its deadline was counted
   as an overrun and its trigger dropped.
 - `ubx_nanosleep` / `ubx.nanosleep`: **fix** a signal handler running

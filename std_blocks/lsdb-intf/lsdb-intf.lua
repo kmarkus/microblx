@@ -203,7 +203,20 @@ local function set_config(vt, block, config, value)
 
    local c, b = check_config(vt, block, config)
 
-   if b:get_block_state() == 'active' then
+   local state = b:get_block_state()
+
+   -- init points b->loglevel at the config data and blocks read it on
+   -- every log call, so it may change while active. write in place
+   -- after init: a resize could move the data under that pointer
+   if config == 'loglevel' and state ~= 'preinit' then
+      if b.loglevel == nil then
+	 lsdb.throw(err.FAILED, "loglevel of '%s' was not set before init", block)
+      end
+      ubx.data_set(c.value, value, false)
+      return
+   end
+
+   if state == 'active' then
       lsdb.throw(err.FAILED, "changing active block config not allowed")
    end
 

@@ -221,6 +221,64 @@ function TestLsdbIntf:test_set_get_config()
    assert_equals(val, 42.0)
 end
 
+function TestLsdbIntf:test_set_loglevel_active()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_cfg_ll")
+
+   _proxy('CreateBlock', "ubx/threshold", "t1", {})
+   _proxy('SetConfig', "t1", "threshold", lsdb.tovariant(5.0))
+   _proxy('SetConfig', "t1", "loglevel", lsdb.tovariant(6))
+   _proxy('SwitchState', "t1", "active")
+   local b = ubx.block_get(_nd, "t1")
+   local ptr = b.loglevel
+
+   _proxy('SetConfig', "t1", "loglevel", lsdb.tovariant(7))
+   assert_equals(_proxy('GetConfig', "t1", "loglevel"), 7)
+   assert_true(b.loglevel == ptr, "loglevel data moved")
+   assert_equals(b.loglevel[0], 7)
+
+   assert_error_msg_contains("changing active block config not allowed",
+      function() _proxy('SetConfig', "t1", "threshold", lsdb.tovariant(1.0)) end)
+end
+
+function TestLsdbIntf:test_set_loglevel_active_unset()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_cfg_ll_unset")
+
+   _proxy('CreateBlock', "ubx/threshold", "t1", {})
+   _proxy('SetConfig', "t1", "threshold", lsdb.tovariant(5.0))
+   _proxy('SwitchState', "t1", "active")
+   assert_error_msg_contains("was not set before init",
+      function() _proxy('SetConfig', "t1", "loglevel", lsdb.tovariant(7)) end)
+end
+
+function TestLsdbIntf:test_set_loglevel_active_set_inactive()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_cfg_ll_inact")
+
+   _proxy('CreateBlock', "ubx/threshold", "t1", {})
+   _proxy('SetConfig', "t1", "threshold", lsdb.tovariant(5.0))
+   _proxy('SwitchState', "t1", "inactive")
+   assert_error_msg_contains("was not set before init",
+      function() _proxy('SetConfig', "t1", "loglevel", lsdb.tovariant(6)) end)
+   _proxy('SwitchState', "t1", "active")
+   assert_error_msg_contains("was not set before init",
+      function() _proxy('SetConfig', "t1", "loglevel", lsdb.tovariant(7)) end)
+end
+
+function TestLsdbIntf:test_set_loglevel_inactive()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_cfg_ll_inact2")
+
+   _proxy('CreateBlock', "ubx/threshold", "t1", {})
+   _proxy('SetConfig', "t1", "threshold", lsdb.tovariant(5.0))
+   _proxy('SetConfig', "t1", "loglevel", lsdb.tovariant(6))
+   _proxy('SwitchState', "t1", "inactive")
+   local b = ubx.block_get(_nd, "t1")
+   local ptr = b.loglevel
+
+   _proxy('SetConfig', "t1", "loglevel", lsdb.tovariant(7))
+   assert_equals(_proxy('GetConfig', "t1", "loglevel"), 7)
+   assert_true(b.loglevel == ptr, "loglevel data moved")
+   assert_equals(b.loglevel[0], 7)
+end
+
 ---
 --- GetBlockInfo
 ---
