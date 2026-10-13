@@ -50,11 +50,12 @@ ubx_proto_port_t vstore_ports[] = {
 
 struct vstore_info {
 	const ubx_type_t *type;
+	long size;			/* type->size, saves touching the type per copy */
 	long data_len;			/* array length */
+	long len;			/* array elements actually written */
+	int fresh;			/* an unread value is held */
 	unsigned long overwrites;
 	ubx_port_t *p_overwrites;
-	int fresh;			/* an unread value is held */
-	long len;			/* array elements actually written */
 	uint8_t data[];			/* tail-allocated, see vstore_init */
 };
 
@@ -66,6 +67,7 @@ int vstore_init(ubx_block_t *i)
 	const char *type_name;
 	const ubx_type_t *type;
 	long data_len;
+	size_t allocsz;
 	struct vstore_info *inf;
 
 	len = cfg_getptr_uint32(i, "data_len", &val);
@@ -92,23 +94,28 @@ int vstore_init(ubx_block_t *i)
 	/* One allocation for the bookkeeping and the payload together: the
 	 * whole point of this block is to touch as few cache lines as lfrb
 	 * touches many, so the flag and the data it guards must not be two
-	 * separate mallocs. */
-	i->private_data = calloc(1, sizeof(struct vstore_info) + data_len * type->size);
+	 * separate mallocs. Cache line aligned, so a small payload shares
+	 * the first line with the flag. */
+	allocsz = sizeof(struct vstore_info) + data_len * type->size;
 
-	if (i->private_data == NULL) {
+	if (posix_memalign(&i->private_data, UBX_CACHELINE, allocsz) != 0) {
+		i->private_data = NULL;
 		ubx_err(i, "EOUTOFMEM: failed to alloc vstore_info");
 		return EOUTOFMEM;
 	}
 
+	memset(i->private_data, 0, allocsz);
+
 	inf = (struct vstore_info *)i->private_data;
 	inf->type = type;
+	inf->size = type->size;
 	inf->data_len = data_len;
 
 	inf->p_overwrites = ubx_port_get(i, "overwrites");
 	assert(inf->p_overwrites);
 
 	ubx_debug(i, "%s: %s [%ld], %zu bytes total", __func__, type_name,
-		  data_len, sizeof(struct vstore_info) + data_len * type->size);
+		  data_len, allocsz);
 
 	ret = 0;
 	return ret;
@@ -142,7 +149,7 @@ void vstore_write(ubx_block_t *i, const ubx_data_t *msg)
 
 	writelen = MIN(msg->len, inf->data_len);
 
-	memcpy(inf->data, msg->data, inf->type->size * writelen);
+	memcpy(inf->data, msg->data, inf->size * writelen);
 
 	/* Record what was actually written, not what the buffer can hold: a
 	 * writer may send fewer array elements than data_len, and the reader
@@ -180,7 +187,7 @@ long vstore_read(ubx_block_t *i, ubx_data_t *msg)
 
 	readlen = MIN((long)msg->len, inf->len);
 
-	memcpy(msg->data, inf->data, inf->type->size * readlen);
+	memcpy(msg->data, inf->data, inf->size * readlen);
 
 	inf->fresh = 0;
 

@@ -60,6 +60,15 @@ struct ubx_proto_config;
 /* config array length checking */
 #define CONFIG_LEN_MAX		UINT16_MAX
 
+/* line size for grouping hot fields, override with -DUBX_CACHELINE=n */
+#ifndef UBX_CACHELINE
+# ifdef __GCC_CONSTRUCTIVE_SIZE
+#  define UBX_CACHELINE __GCC_CONSTRUCTIVE_SIZE
+# else
+#  define UBX_CACHELINE 64
+# endif
+#endif
+
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 /*
