@@ -189,9 +189,7 @@ enum {
  *
  */
 typedef struct ubx_port {
-	const char name[UBX_PORT_NAME_MAXLEN + 1];
-	const char *doc;
-	uint32_t attrs;
+	/* hot: used by every port read/write, keep in the first 64 bytes */
 	const struct ubx_block *block;
 
 	const ubx_type_t *in_type;
@@ -200,11 +198,16 @@ typedef struct ubx_port {
 	long in_data_len;
 	long out_data_len;
 
+	const struct ubx_block **in_interaction;
+	const struct ubx_block **out_interaction;
+
+	uint32_t attrs;
+
 	struct ubx_port *prev;
 	struct ubx_port *next;
 
-	const struct ubx_block **in_interaction;
-	const struct ubx_block **out_interaction;
+	const char *doc;
+	const char name[UBX_PORT_NAME_MAXLEN + 1];
 } ubx_port_t;
 
 
@@ -322,28 +325,10 @@ enum {
  * @hh: UT_hash_handle
  */
 typedef struct ubx_block {
-	const char name[UBX_BLOCK_NAME_MAXLEN + 1];
-	const char *meta_data;
-
-	uint32_t attrs;
+	/* hot: used by every step/read/write, keep in the first 64 bytes */
 	uint16_t type;
 	uint16_t block_state;
-	uint8_t preinited;
-
-	ubx_port_t *ports;
-	ubx_config_t *configs;
-
-	const struct ubx_block *prototype;
-	struct ubx_node *nd;
-
-	const int *loglevel;
-
-	int (*preinit)(struct ubx_block *b);
-	int (*init)(struct ubx_block *b);
-	int (*start)(struct ubx_block *b);
-	void (*stop)(struct ubx_block *b);
-	void (*cleanup)(struct ubx_block *b);
-	void (*preexit)(struct ubx_block *b);
+	uint32_t attrs;
 
 	union {
 		/* BLOCK_TYPE_COMPUTATION */
@@ -364,8 +349,27 @@ typedef struct ubx_block {
 	};
 
 	void *private_data;
+	const int *loglevel;
+	struct ubx_node *nd;
+
+	uint8_t preinited;
+
+	ubx_port_t *ports;
+	ubx_config_t *configs;
+
+	const struct ubx_block *prototype;
+
+	int (*preinit)(struct ubx_block *b);
+	int (*init)(struct ubx_block *b);
+	int (*start)(struct ubx_block *b);
+	void (*stop)(struct ubx_block *b);
+	void (*cleanup)(struct ubx_block *b);
+	void (*preexit)(struct ubx_block *b);
+
 	UT_hash_handle hh;
 
+	const char *meta_data;
+	const char name[UBX_BLOCK_NAME_MAXLEN + 1];
 } ubx_block_t;
 
 

@@ -54,6 +54,24 @@ int port_is_dyn(const ubx_port_t *p) { return !port_is_cloned(p); }
 int cfg_is_cloned(const ubx_config_t *c) { return c->attrs & CONFIG_ATTR_CLONED; }
 int cfg_is_dyn(const ubx_config_t *c) { return !cfg_is_cloned(c); }
 
+/* the hot fields of blocks and ports are grouped at the start, so
+ * start them on a cache line too. the layout is designed for 64 B
+ * lines, independent of UBX_CACHELINE */
+_Static_assert(offsetof(ubx_block_t, nd) + sizeof(void *) <= 64,
+	       "ubx_block_t hot fields exceed 64 bytes");
+_Static_assert(offsetof(ubx_port_t, attrs) + sizeof(uint32_t) <= 64,
+	       "ubx_port_t hot fields exceed 64 bytes");
+
+static void *calloc_cl(size_t size)
+{
+	void *p;
+
+	if (posix_memalign(&p, UBX_CACHELINE, size) != 0)
+		return NULL;
+
+	memset(p, 0, size);
+	return p;
+}
 
 
 /* for pretty printing */
@@ -489,7 +507,7 @@ int ubx_block_register(ubx_node_t *nd, struct ubx_proto_block *prot)
 	struct ubx_proto_config *c;
 	ubx_block_t *newb;
 
-	newb = calloc(1, sizeof(ubx_block_t));
+	newb = calloc_cl(sizeof(ubx_block_t));
 
 	if (newb == NULL) {
 		logf_err(nd, "EOUTOFMEM");
@@ -1072,7 +1090,7 @@ static ubx_block_t *ubx_block_clone(ubx_block_t *prot, const char *name)
 	ubx_config_t *csrc = NULL;
 	ubx_port_t *psrc = NULL;
 
-	newb = calloc(1, sizeof(ubx_block_t));
+	newb = calloc_cl(sizeof(ubx_block_t));
 
 	if (newb == NULL) {
 		logf_err(prot->nd, "EOUTOFMEM");
@@ -1914,7 +1932,7 @@ static int __ubx_port_add(ubx_block_t *b,
 		return EINVALID_PORT_LEN;
 	}
 
-	pnew = calloc(1, sizeof(struct ubx_port));
+	pnew = calloc_cl(sizeof(struct ubx_port));
 
 	if (pnew == NULL) {
 		ubx_err(b, "EOUTOFMEM");

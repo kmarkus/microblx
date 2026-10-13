@@ -5,6 +5,10 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ubx_block_t`, `ubx_port_t`: **ABI change**: the fields used on
+  every step, read and write now come first and both are allocated
+  cache line aligned, so a step or port access touches one line.
+  Rebuild all modules.
 - `ptrig`: **fix** a cycle waking exactly on its deadline was counted
   as an overrun and its trigger dropped.
 - `ubx_nanosleep` / `ubx.nanosleep`: **fix** a signal handler running
