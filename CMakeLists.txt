@@ -142,6 +142,18 @@ endif()
 # installed header).
 set(UBX_LOG_MSG_MAXLEN 115 CACHE STRING "max ubx log message length")
 
+# hot connect/disconnect of ports while blocks are running
+option(ENABLE_URCU "Use liburcu-bp for hot connect/disconnect" OFF)
+
+if(ENABLE_URCU)
+  # urcu_bp_* names and urcu/urcu-bp.h since 0.11
+  pkg_check_modules(URCU REQUIRED liburcu-bp>=0.11)
+  set(UBX_URCU 1)
+  set(UBX_URCU_STR "yes")
+else()
+  set(UBX_URCU_STR "no")
+endif()
+
 #
 # libubx
 #
@@ -213,6 +225,11 @@ set_target_properties(ubx
   PUBLIC_HEADER "${UBX_PUBLIC_HDRS}")
 
 target_link_libraries(ubx dl rt)
+
+if(ENABLE_URCU)
+  target_include_directories(ubx PRIVATE ${URCU_INCLUDE_DIRS})
+  target_link_libraries(ubx ${URCU_LIBRARIES})
+endif()
 
 install(TARGETS ubx
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

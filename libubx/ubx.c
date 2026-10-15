@@ -13,6 +13,8 @@
 #include "ubx.h"
 #include "ubx_trace.h"
 #include <config.h>
+#include "internal/ubx_rcu.h"
+#include <pthread.h>
 
 /* core logging helpers */
 #define CORE_LOG_SRC			"ubxcore"
@@ -1269,10 +1271,28 @@ int ubx_block_rm(ubx_node_t *nd, const char *name)
 	return ret;
 }
 
+/*
+ * Port interaction arrays are NULL terminated and read by the port
+ * read/write functions without locking. They are never modified in
+ * place: a changed copy is published and the old one freed after a
+ * grace period, i.e. once no reader can hold it anymore (see
+ * internal/ubx_rcu.h). conn_mutex serializes the writers.
+ */
+static pthread_mutex_t conn_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void array_block_publish(const ubx_block_t ***arr, const ubx_block_t **newarr)
+{
+	const ubx_block_t **old = *arr;
+
+	UBX_RCU_ASSIGN(*arr, newarr);
+	if (old == NULL)
+		return;
+	UBX_RCU_SYNC();
+	free(old);
+}
+
 /**
- * array_block_add - add a block to an array
- *
- * grow/shrink the array if necessary.
+ * array_block_add - add a block to an interaction array
  *
  * @param arr array to add block to
  * @param newblock block to add
@@ -1281,61 +1301,86 @@ int ubx_block_rm(ubx_node_t *nd, const char *name)
  */
 static int array_block_add(const ubx_block_t ***arr, const ubx_block_t *newblock)
 {
-	int ret;
-	long newlen; /* new length of array including NULL element */
-	const ubx_block_t **tmpb;
+	int ret = 0;
+	long len = 0;
+	const ubx_block_t **newarr;
 
-	/*
-	 * determine newlen
-	 * with one element, the array is size two to hold the terminating NULL
-	 * element.
-	 */
-	if (*arr == NULL)
-		newlen = 2;
-	else
-		for (tmpb = *arr, newlen = 2; *tmpb != NULL; tmpb++, newlen++)
-			;
+	/* waiting for a grace period from inside a read section deadlocks */
+	if (UBX_RCU_READ_ONGOING())
+		return EWRONG_STATE;
 
-	tmpb = realloc(*arr, sizeof(ubx_block_t *) * newlen);
-	if (tmpb == NULL) {
+	pthread_mutex_lock(&conn_mutex);
+
+	if (*arr != NULL)
+		while ((*arr)[len] != NULL)
+			len++;
+
+	newarr = malloc(sizeof(ubx_block_t *) * (len + 2));
+	if (newarr == NULL) {
 		ret = EOUTOFMEM;
 		goto out;
 	}
-	*arr = tmpb;
 
-	(*arr)[newlen - 2] = newblock;
-	(*arr)[newlen - 1] = NULL;
-	ret = 0;
+	if (len > 0)
+		memcpy(newarr, *arr, sizeof(ubx_block_t *) * len);
+
+	newarr[len] = newblock;
+	newarr[len + 1] = NULL;
+
+	array_block_publish(arr, newarr);
  out:
+	pthread_mutex_unlock(&conn_mutex);
 	return ret;
 }
 
+/**
+ * array_block_rm - remove a block from an interaction array
+ *
+ * removes one occurrence, keeping the order of the others. The array
+ * becomes NULL when the last block is removed.
+ *
+ * @param arr array to remove block from
+ * @param rmblock block to remove
+ *
+ * @return < 0 if not found or in case of error, 0 otherwise.
+ */
 static int array_block_rm(const ubx_block_t ***arr, const ubx_block_t *rmblock)
 {
-	int ret = -1, cnt, match = -1;
-	const ubx_block_t **tmpb;
+	int ret = -1;
+	long len, match = -1;
+	const ubx_block_t **newarr = NULL;
+
+	if (UBX_RCU_READ_ONGOING())
+		return EWRONG_STATE;
+
+	pthread_mutex_lock(&conn_mutex);
 
 	if (*arr == NULL)
 		goto out;
 
-	for (tmpb = *arr, cnt = 0; *tmpb != NULL; tmpb++, cnt++) {
-		if (*tmpb == rmblock)
-			match = cnt;
+	for (len = 0; (*arr)[len] != NULL; len++) {
+		if ((*arr)[len] == rmblock)
+			match = len;
 	}
 
 	if (match == -1)
 		goto out;
 
-	/* case 1: remove last */
-	if (match == cnt - 1)
-		(*arr)[match] = NULL;
-	else {
-		(*arr)[match] = (*arr)[cnt - 1];
-		(*arr)[cnt - 1] = NULL;
+	if (len > 1) {
+		newarr = malloc(sizeof(ubx_block_t *) * len);
+		if (newarr == NULL) {
+			ret = EOUTOFMEM;
+			goto out;
+		}
+		memcpy(newarr, *arr, sizeof(ubx_block_t *) * match);
+		memcpy(newarr + match, *arr + match + 1,
+		       sizeof(ubx_block_t *) * (len - match)); /* incl. NULL */
 	}
 
+	array_block_publish(arr, newarr);
 	ret = 0;
-out:
+ out:
+	pthread_mutex_unlock(&conn_mutex);
 	return ret;
 }
 
@@ -2515,20 +2560,26 @@ long __port_read(const ubx_port_t *port, ubx_data_t *data)
 		goto out;
 	}
 
-	/* port completely unconnected? */
-	if (port->in_interaction == NULL)
-		goto out;
+	UBX_RCU_READ_LOCK();
 
-	for (iaptr = (ubx_block_t**)port->in_interaction; *iaptr != NULL; iaptr++) {
+	iaptr = (ubx_block_t **)UBX_RCU_DEREF(port->in_interaction);
+
+	/* port completely unconnected? */
+	if (iaptr == NULL)
+		goto out_unlock;
+
+	for (; *iaptr != NULL; iaptr++) {
 		if ((*iaptr)->block_state == BLOCK_STATE_ACTIVE) {
 			ret = (*iaptr)->read(*iaptr, data);
 			if (ret > 0) {
 				(*iaptr)->stat_num_reads++;
-				goto out;
+				break;
 			}
 		}
 	}
 
+ out_unlock:
+	UBX_RCU_READ_UNLOCK();
  out:
 	return ret;
 }
@@ -2564,20 +2615,72 @@ void __port_write(const ubx_port_t *port, const ubx_data_t *data)
 		goto out;
 	}
 
+	UBX_RCU_READ_LOCK();
+
+	iaptr = (ubx_block_t **)UBX_RCU_DEREF(port->out_interaction);
+
 	/* port completely unconnected? */
-	if (port->out_interaction == NULL)
-		goto out;
+	if (iaptr == NULL)
+		goto out_unlock;
 
 	/* pump it out */
-	for (iaptr = (ubx_block_t**)port->out_interaction; *iaptr != NULL; iaptr++) {
+	for (; *iaptr != NULL; iaptr++) {
 		if ((*iaptr)->block_state == BLOCK_STATE_ACTIVE) {
 			(*iaptr)->write(*iaptr, data);
 			(*iaptr)->stat_num_writes++;
 		}
 	}
 
+ out_unlock:
+	UBX_RCU_READ_UNLOCK();
  out:
 	return;
+}
+
+/**
+ * ubx_rcu_thread_init - prepare the calling thread for port access
+ *
+ * Optional: threads register on their first port access, which
+ * allocates. RT threads should call this before their loop. No-op
+ * without urcu support.
+ */
+void ubx_rcu_thread_init(void)
+{
+	UBX_RCU_REGISTER();
+}
+
+/**
+ * ubx_rcu_read_lock - enter a read section for walking connections
+ *
+ * For code outside of the port read/write functions that walks the
+ * port in_interaction/out_interaction arrays (e.g. introspection).
+ * Arrays and iblocks seen inside stay valid until
+ * ubx_rcu_read_unlock. Must not (dis-)connect inside. No-op without
+ * urcu support.
+ */
+void ubx_rcu_read_lock(void)
+{
+	UBX_RCU_READ_LOCK();
+}
+
+void ubx_rcu_read_unlock(void)
+{
+	UBX_RCU_READ_UNLOCK();
+}
+
+/**
+ * ubx_hot_connect - check for hot connect/disconnect support
+ *
+ * @return 1 if libubx was built with ENABLE_URCU, i.e. ports can be
+ * (dis-)connected while blocks are running, 0 otherwise.
+ */
+int ubx_hot_connect(void)
+{
+#ifdef UBX_URCU
+	return 1;
+#else
+	return 0;
+#endif
 }
 
 /**
@@ -2651,6 +2754,7 @@ const char **ubx_build_config(void)
 		"pthread_setname=" CONF_SETNAME,
 		"pthread_setaffinity=" CONF_SETAFFINITY,
 		"module_dir=" UBX_MOD_DIR_STR,
+		"urcu=" UBX_URCU_STR,
 		NULL
 	};
 

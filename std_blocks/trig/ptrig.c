@@ -373,6 +373,9 @@ void *thread_startup(void *arg)
 	if (ret != 0)
 		goto out;
 
+	/* register now, not on the first port access in the RT loop */
+	ubx_rcu_thread_init();
+
 	/* timer slack is a per-thread property, so it must be set here */
 	if (inf->timerslack_ns > 0) {
 		if (prctl(PR_SET_TIMERSLACK, (unsigned long)inf->timerslack_ns) != 0)

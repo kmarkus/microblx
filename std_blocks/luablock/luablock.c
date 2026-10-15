@@ -145,6 +145,8 @@ static void *luablock_thread(void *arg)
 	period.sec = inf->period_ms / 1000;
 	period.nsec = (inf->period_ms % 1000) * NSEC_PER_USEC * 1000;
 
+	ubx_rcu_thread_init();
+
 	while (inf->thread_running) {
 		ret = ubx_nanosleep(&period);
 		if (ret) {

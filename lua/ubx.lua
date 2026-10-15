@@ -281,6 +281,12 @@ function M.build_config()
    return res
 end
 
+--- Check for hot connect/disconnect support.
+-- @return `true` if ports can be (dis-)connected while blocks are
+-- running, i.e. libubx was built with `ENABLE_URCU`
+function M.hot_connect() return ubx.ubx_hot_connect() ~= 0 end
+local hot_connect = M.hot_connect
+
 --- Return the version and build configuration as a multi-line string.
 -- The first line is the legacy single line version output, so it can
 -- still be parsed by scripts.
@@ -685,10 +691,13 @@ function M.block_unload(nd, name)
       end
    end)
 
+   -- disconnect first: this waits until no running block accesses
+   -- the iblock anymore, so stopping it is safe afterwards
+   if M.is_iblock(b) then iblock_disconnect_all(nd, b) end
+
    M.block_tostate(b, 'preinit')
 
    triggee_configs_foreach(nd, b, function(_, c) triggee_config_scrub(c, b) end)
-   if M.is_iblock(b) then iblock_disconnect_all(nd, b) end
 
    if M.block_rm(nd, name) ~= 0 then error("block_unload: ubx_block_rm failed for '"..name.."'") end
 end
@@ -1779,23 +1788,26 @@ end
 -- @return table `{ incoming={...}, outgoing={...} }` with iblock name arrays
 function M.port_conns_totab(p)
    local res = { incoming={}, outgoing={} }
-   local i
 
-   i = 0
-   if p.in_interaction ~= nil then
-      while p.in_interaction[i] ~= nil do
-	 res.incoming[i+1] = ffi.string(p.in_interaction[i].name)
+   local function totab(arr, tab)
+      if arr == nil then return end
+      local i = 0
+      while arr[i] ~= nil do
+	 tab[i+1] = ffi.string(arr[i].name)
 	 i=i+1
       end
    end
 
-   i = 0
-   if p.out_interaction ~= nil then
-      while p.out_interaction[i] ~= nil do
-	 res.outgoing[i+1] = ffi.string(p.out_interaction[i].name)
-	 i=i+1
-      end
-   end
+   -- arrays may be replaced concurrently by hot (dis-)connects. pcall:
+   -- a read section left open would block all grace periods forever
+   ubx.ubx_rcu_read_lock()
+   local ok, err = pcall(function()
+	 totab(p.in_interaction, res.incoming)
+	 totab(p.out_interaction, res.outgoing)
+   end)
+   ubx.ubx_rcu_read_unlock()
+   if not ok then error(err, 0) end
+
    return res
 end
 
@@ -2245,12 +2257,14 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       local ib = M.block_create(nd, ibtype, ibname, ibconfig)
       M.block_init(ib)
 
+      -- start before connecting, so running blocks never see an
+      -- iblock that is still starting
+      M.block_tostate(ib, 'active')
+
       if ubx.ubx_ports_connect(srcp, tgtp, ib) ~= 0 then
 	 return false, fmt("failed to connect %s.%s -> %s.%s",
 			   srcbn, srcpn, tgtbn, tgtpn)
       end
-
-      M.block_tostate(ib, 'active')
 
       info(nd, "connect", "%s.%s -[%s,%s,%d]-> %s.%s [%s]",
 	   srcbn, srcpn,
@@ -2259,18 +2273,18 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
 
    elseif srcp and not tgtp then
       -- block.port -> iblock
+      M.block_tostate(tgtb, 'active')
       if ubx.ubx_port_connect_out(srcp, tgtb) ~= 0 then
 	 return false, fmt("failed to connect %s.%s to iblock %s", srcbn, srcpn, tgtbn)
       end
-      M.block_tostate(tgtb, 'active')
       info(nd, "connect", "%s.%s -> %s [%s]",
 	   srcbn, srcpn, tgtbn, M.block_prototype(tgtb))
    elseif not srcp and tgtp then
       -- iblock -> block.port
+      M.block_tostate(srcb, 'active')
       if ubx.ubx_port_connect_in(tgtp, srcb) ~= 0 then
 	 return false, fmt("failed to connect iblock %s to %s.%s", srcbn, tgtbn, tgtpn)
       end
-      M.block_tostate(srcb, 'active')
       info(nd, "connect", "%s [%s] -> %s.%s",
 	   srcbn, M.block_prototype(srcb), tgtbn, tgtpn)
    else
@@ -2303,8 +2317,8 @@ end
 -- **2. port ↔ iblock:** one side names an iblock without port; the port
 -- is disconnected from it. The iblock is kept.
 --
--- The cblocks must not be active, so no step reads or writes the
--- ports being changed.
+-- Without `ENABLE_URCU` the cblocks must not be active, so no step
+-- reads or writes the ports being changed.
 -- @param nd `ubx_node_t`
 -- @param srcbn source block name
 -- @param srcpn source **out**-port name (or `nil` if `srcbn` is an iblock)
@@ -2319,7 +2333,7 @@ function M.disconnect(nd, srcbn, srcpn, tgtbn, tgtpn)
    if tgtb == nil then return false, fmt("no tgt block %s", tostring(tgtbn)) end
 
    for _, b in ipairs{ srcb, tgtb } do
-      if M.is_cblock(b) and b.block_state == ffi.C.BLOCK_STATE_ACTIVE then
+      if not hot_connect() and M.is_cblock(b) and b.block_state == ffi.C.BLOCK_STATE_ACTIVE then
 	 return false, fmt("block %s is active, stop it first", ffi.string(b.name))
       end
    end

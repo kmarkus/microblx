@@ -38,3 +38,7 @@
 #cmakedefine HAVE_SCHED_FLAG_DL_OVERRUN 1
 #cmakedefine HAVE_PTHREAD_SETNAME_NP 1
 #cmakedefine HAVE_PTHREAD_SETAFFINITY_NP 1
+
+/* hot connect/disconnect via liburcu-bp */
+#cmakedefine UBX_URCU 1
+#define UBX_URCU_STR "@UBX_URCU_STR@"

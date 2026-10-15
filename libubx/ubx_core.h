@@ -137,5 +137,9 @@ const char *block_state_tostr(unsigned int state);
 const char *ubx_git_version(void);
 const char *ubx_mod_version(void);
 const char **ubx_build_config(void);
+void ubx_rcu_thread_init(void);
+void ubx_rcu_read_lock(void);
+void ubx_rcu_read_unlock(void);
+int ubx_hot_connect(void);
 
 #endif /* UBX_CORE_H */

@@ -5,9 +5,22 @@ This file tracks user visible API changes
 
 ## unreleased
 
+- hot connect/disconnect: with the new cmake option `ENABLE_URCU`
+  (liburcu-bp) ports can be connected and disconnected while blocks
+  run, and `ubx.disconnect` no longer requires stopping them. See
+  [Runtime reconfiguration](docs/runtime.md). `ubx-launch --version`
+  reports `urcu: yes|no`.
+- new C API `ubx_rcu_thread_init()`, `ubx_rcu_read_lock()`,
+  `ubx_rcu_read_unlock()` (no-ops without `ENABLE_URCU`), and
+  `ubx_hot_connect()`/`ubx.hot_connect()` to check for it.
+- `ubx.connect` starts the iblock of a new connection before
+  connecting it, `ubx.block_unload` disconnects an iblock before
+  stopping it.
 - libubx binds calls to its own functions at link time
   (`-Bsymbolic-functions`): interposing them (e.g. via `LD_PRELOAD`)
   no longer affects calls from within libubx.
+- ports and configs may only be added or removed in the life-cycle
+  hooks, not in `step` (also not via luablock `exec_str`).
 - `ubx.port_read_timed`: **fix** the timeout ended at the next full
   second, i.e. after 0..1 s, and a fractional timeout returned
   without reading. It now waits the full timeout and reads at least

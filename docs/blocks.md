@@ -1,6 +1,6 @@
 <div align="center">
 
-**[microblx](../README.md) · [Install](../README.md#installing) · [Quickstart](../README.md#quickstart) · [Developing blocks](../README.md#developing-blocks) · [Composing systems](../README.md#composing-systems) · [Standard blocks](../README.md#standard-blocks) · Block reference · [usc reference](usc.md)**
+**[microblx](../README.md) · [Install](../README.md#installing) · [Quickstart](../README.md#quickstart) · [Developing blocks](../README.md#developing-blocks) · [Composing systems](../README.md#composing-systems) · [Standard blocks](../README.md#standard-blocks) · Block reference · [usc reference](usc.md) · [Runtime reconfiguration](runtime.md)**
 
 </div>
 
@@ -118,7 +118,8 @@ interface. The deployment applies configs between them (see the
 [launch sequence](usc.md#launch-sequence)): `preinit` sees only
 the static configs, `init` also the configs created by `preinit`.
 `ubx_block_init` runs `preinit` automatically. Blocks with a fixed
-interface only need `init`..`cleanup`.
+interface only need `init`..`cleanup`. What may change while a block
+is active is described in [Runtime reconfiguration](runtime.md).
 
 ## Block local state
 
@@ -508,3 +509,44 @@ ubx_chain_cleanup(&inf->chain);
 
 Reference: [trig](../std_blocks/trig/trig.c) and
 [common.c](../std_blocks/trig/common.c).
+
+## Runtime reconfiguration
+
+With `ENABLE_URCU`, ports can be connected and disconnected while
+blocks run (see [Runtime reconfiguration](runtime.md)). For block
+authors this means:
+
+- a port can become connected or unconnected between two steps:
+  handle `read_*` returning 0 in every step, not only after `start`.
+- read configs in `init`/`start` as usual: they do not change while
+  the block is active.
+- add and remove ports and configs only in the life-cycle hooks
+  (`preinit`, `init`, `start`, `stop`, `cleanup`, `preexit`), never
+  in `step`: connect and disconnect walk the port lists of all blocks
+  from the control thread.
+- blocks that create their own threads (triggers, I/O threads) and
+  access ports from them should call `ubx_rcu_thread_init()` at
+  thread start, before the RT loop. Otherwise the thread registers
+  with liburcu on its first port access, which allocates and can
+  wait for a concurrent disconnect (priority inversion). It is a
+  no-op without `ENABLE_URCU`.
+
+```c
+static void *mytrig_thread(void *arg)
+{
+	ubx_block_t *b = arg;
+
+	ubx_rcu_thread_init();
+
+	while (running) {
+		/* wait for the next period, trigger the chain */
+	}
+	return NULL;
+}
+```
+
+- do not connect or disconnect from `step` of an RT block: both
+  allocate, take a mutex and wait for running port accesses.
+- do not walk `port->in_interaction`/`out_interaction` yourself;
+  if needed, only between `ubx_rcu_read_lock()` and
+  `ubx_rcu_read_unlock()`, and keep no pointers after the unlock.
