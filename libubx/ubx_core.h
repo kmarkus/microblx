@@ -18,6 +18,7 @@ int port_is_dyn(const ubx_port_t *p);
 
 int cfg_is_cloned(const ubx_config_t *c);
 int cfg_is_dyn(const ubx_config_t *c);
+int cfg_settable(const ubx_config_t *c);
 
 /* node API */
 int ubx_node_init(ubx_node_t *nd, const char *name, uint32_t attrs);

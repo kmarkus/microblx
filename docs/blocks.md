@@ -518,8 +518,8 @@ authors this means:
 
 - a port can become connected or unconnected between two steps:
   handle `read_*` returning 0 in every step, not only after `start`.
-- read configs in `init`/`start` as usual: they do not change while
-  the block is active.
+- read configs in `init`/`start` as usual: they can not be set while
+  the block is active (`set_config` raises an error).
 - add and remove ports and configs only in the life-cycle hooks
   (`preinit`, `init`, `start`, `stop`, `cleanup`, `preexit`), never
   in `step`: connect and disconnect walk the port lists of all blocks

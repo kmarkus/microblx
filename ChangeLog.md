@@ -21,6 +21,10 @@ This file tracks user visible API changes
 - libubx binds calls to its own functions at link time
   (`-Bsymbolic-functions`): interposing them (e.g. via `LD_PRELOAD`)
   no longer affects calls from within libubx.
+- `ubx.set_config`/`ubx.config_set`: **incompatible**, raise an error
+  if the block is active; `ubx_config_assign` returns `EWRONG_STATE`.
+  Stop the block, set the config, start it. Exception: lsdb-intf
+  `SetConfig` still changes `loglevel` of active blocks in place.
 - ports and configs may only be added or removed in the life-cycle
   hooks, not in `step` (also not via luablock `exec_str`).
 - `ubx.port_read_timed`: **fix** the timeout ended at the next full

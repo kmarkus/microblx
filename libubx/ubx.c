@@ -75,6 +75,13 @@ static void *calloc_cl(size_t size)
 	return p;
 }
 
+/* configs can not be set while the block is active: blocks read them
+ * in init/start and cache pointers to the data */
+int cfg_settable(const ubx_config_t *c)
+{
+	return c->block == NULL || c->block->block_state != BLOCK_STATE_ACTIVE;
+}
+
 
 /* for pretty printing */
 const char *block_states[] = {	"preinit", "inactive", "active" };
@@ -1017,12 +1024,18 @@ static void ubx_config_free(ubx_config_t *c)
  * @param config
  * @param data ubx_data_t to assign
  *
- * @return 0 if OK, ETYPE_MISMATCH for mismatching types
+ * @return 0 if OK, ETYPE_MISMATCH for mismatching types, EWRONG_STATE
+ *         if the block is active
  */
 int ubx_config_assign(ubx_config_t *c, ubx_data_t *d)
 {
 	if (c->type != d->type)
 		return ETYPE_MISMATCH;
+
+	if (!cfg_settable(c)) {
+		ubx_err(c->block, "config %s: block is active", c->name);
+		return EWRONG_STATE;
+	}
 
 	if (c->value)
 		ubx_data_free(c->value);

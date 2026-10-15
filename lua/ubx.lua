@@ -955,9 +955,9 @@ end
 -- @param name config name string
 -- @param val value to assign (LuaJIT FFI init rules apply)
 function M.set_config(b, name, val)
-   local d = ubx.ubx_config_get_data(b, name)
-   if d == nil then error("set_config: unknown config '"..name.."'") end
-   return M.data_set(d, val, true)
+   local c = ubx.ubx_config_get(b, name)
+   if c == nil then error("set_config: unknown config '"..name.."'") end
+   return M.config_set(c, val)
 end
 
 --- Configure a block with a table of `{name=value}` pairs.
@@ -1597,9 +1597,15 @@ function M.config_isnull(c)
 end
 
 --- Set a configuration value (resizes buffer as needed).
+-- **Errors** if the block is active: blocks read configs in
+-- init/start. Use ports for values that change at runtime.
 -- @param c `ubx_config_t`
 -- @param val value to assign (LuaJIT FFI init rules apply)
 function M.config_set(c, val)
+   if ubx.cfg_settable(c) == 0 then
+      error(fmt("set_config: block %s is active, stop it first (config %s)",
+		ffi.string(c.block.name), ffi.string(c.name)))
+   end
    return M.data_set(c.value, val, true)
 end
 

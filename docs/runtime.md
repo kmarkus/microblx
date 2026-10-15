@@ -22,11 +22,15 @@ constraints that must hold.
 ## What can't
 
 - **configs**: blocks read them in `init`/`start` and cache pointers
-  to the data. Setting a config of an active block races with its
-  `step`, and a length change frees the buffer the block still
-  uses. Stop the block (or its trigger), set it, start again. Values
-  that must change at run time belong on an input port, like the
-  ptrig `period`.
+  to the data, so setting a config of an active block would race
+  with its `step`, and a length change would free the buffer the
+  block still uses. `ubx.set_config`/`ubx.config_set` raise an error
+  and `ubx_config_assign` returns `EWRONG_STATE` for active blocks.
+  Stop the block (or its trigger), set it, start again. Values that
+  must change at run time belong on an input port, like the ptrig
+  `period`. C code writing to config data directly is not checked.
+  The exception is `loglevel`: lsdb-intf `SetConfig` (`ubx-dbus -c
+  BLOCK:loglevel:N`) writes it in place, if it was set before init.
 - **trigger chain contents**: stop the trigger first. To switch
   between known configurations, configure several chains and switch
   with the `active_chain` port.
