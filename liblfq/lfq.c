@@ -22,6 +22,16 @@ typedef struct lfq_slot {
 static char lfq_empty_sentinel;
 #define LFQ_EMPTY ((void *)&lfq_empty_sentinel)
 
+/* mask power of 2 capacities: the modulo is a udiv on aarch64 and a
+ * libgcc call on 32 bit arm */
+static inline lfq_slot_t *lfq_slot(lfq_slot_t *slots, uint64_t pos, size_t capacity)
+{
+	if ((capacity & (capacity - 1)) == 0)
+		return &slots[pos & (capacity - 1)];
+
+	return &slots[pos % capacity];
+}
+
 int lfq_init(lfq_t *q, size_t capacity)
 {
 	if (!q || capacity < 1)
@@ -77,7 +87,7 @@ int lfq_enqueue(lfq_t *q, void *element)
 
 	while (1) {
 		uint64_t head = atomic_load_explicit(&q->head, memory_order_relaxed);
-		lfq_slot_t *slot = &slots[head % capacity];
+		lfq_slot_t *slot = lfq_slot(slots, head, capacity);
 		uint64_t seq = atomic_load_explicit(&slot->seq, memory_order_acquire);
 		intptr_t diff = (intptr_t)seq - (intptr_t)head;
 
@@ -119,7 +129,7 @@ int lfq_dequeue(lfq_t *q, void **element)
 
 	while (1) {
 		uint64_t tail = atomic_load_explicit(&q->tail, memory_order_relaxed);
-		lfq_slot_t *slot = &slots[tail % capacity];
+		lfq_slot_t *slot = lfq_slot(slots, tail, capacity);
 		uint64_t seq = atomic_load_explicit(&slot->seq, memory_order_acquire);
 		intptr_t diff = (intptr_t)seq - (intptr_t)(tail + 1);
 
