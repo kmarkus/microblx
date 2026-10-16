@@ -110,4 +110,17 @@ function TestMqueue:TestFifoOverflow()
    assert_equals(tonumber(ubx.interaction_read(mq, rdat)), 0)
 end
 
+--- blocking mode: rejected with urcu (it would stall all connects)
+function TestMqueue:TestBlockingUrcu()
+   local urcu = ubx.hot_connect()
+
+   nd = ubx.node_create("TestMqBlocking", { loglevel = ffi.C.UBX_LOGLEVEL_CRIT })
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "mqueue")
+
+   local mq = ubx.block_create(nd, "ubx/mqueue", "mq1")
+   ubx.set_config_tab(mq, { mq_id = MQ_ID .. "b", type_name = "int", buffer_len = 4, blocking = 1 })
+   assert_equals(ubx.block_init(mq), urcu and ffi.C.EINVALID_CONFIG or 0)
+end
+
 if not _RUNNER then os.exit(lu.LuaUnit.run()) end

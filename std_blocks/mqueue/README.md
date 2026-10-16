@@ -12,7 +12,7 @@ so a reader can find the type and length from the name.
 | `type_name`  | `char`     | ubx type to transport (required)                   |
 | `data_len`   | `long`     | array length per element (default: 1)              |
 | `buffer_len` | `long`     | max number of elements in the queue (required)     |
-| `blocking`   | `uint32_t` | blocking mode (default: 0)                         |
+| `blocking`   | `uint32_t` | blocking mode (default: 0, not with `ENABLE_URCU`) |
 | `unlink`     | `uint32_t` | `mq_unlink` in cleanup (default: 1)                |
 
 In usc, a connection with only `src` or `tgt` and `type="ubx/mqueue"`

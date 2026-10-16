@@ -155,6 +155,13 @@ int mqueue_init(ubx_block_t *i)
 
 	if (len == 0 || (len > 0 && *val == 0))
 		mq_flags = O_NONBLOCK;
+	else if (ubx_hot_connect()) {
+		/* read/write run in an RCU read section: blocking there
+		 * stalls every connect and disconnect of the process */
+		ubx_err(i, "blocking mode is not supported with urcu");
+		ret = EINVALID_CONFIG;
+		goto out_free_info;
+	}
 
 	ubx_info(i, "creating %s queue for %lu x %s[%lu] with id %s",
 		 (mq_flags & O_NONBLOCK) ? "non-blocking" : "blocking",

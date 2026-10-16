@@ -107,7 +107,8 @@ disconnects hang.
   RT block's `step` that is how long the step blocks.
 - **iblock `read`/`write` must not block.** They run inside the read
   section, so a blocking one stalls every connect and disconnect of
-  the process until it returns.
+  the process until it returns. `ubx/mqueue` with `blocking=1` fails
+  to init with `ENABLE_URCU`.
 - **Ports may change between steps.** Blocks must handle a port
   that becomes unconnected (`read_*` returns 0) or connected.
 - **One control thread for creating and removing blocks.** The global
