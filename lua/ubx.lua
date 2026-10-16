@@ -742,11 +742,22 @@ local function iblock_ports_foreach(nd, ib, fun)
    for _, h in ipairs(hits) do fun(h[1], h[2], h[3], h[4]) end
 end
 
--- remove all references to iblock ib from the ports of all blocks
+-- remove all references to iblock ib from the ports of all blocks.
+-- Errors if a disconnect fails (e.g. EOUTOFMEM), so ib is not freed
+-- while still connected.
 local function iblock_disconnect_all(nd, ib)
-   iblock_ports_foreach(nd, ib, function(_, p, rd, wr)
-      if rd then while ubx.ubx_port_disconnect_in(p, ib) == 0 do end end
-      if wr then while ubx.ubx_port_disconnect_out(p, ib) == 0 do end end
+   local function rm_all(f, b, p)
+      local ret
+      repeat ret = f(p, ib) until ret ~= 0
+      -- -1: no connection left
+      if ret ~= -1 then
+	 error(fmt("failed to disconnect %s from %s.%s: %s", ffi.string(ib.name),
+		   ffi.string(b.name), ffi.string(p.name), M.retval_tostr[ret] or ret), 0)
+      end
+   end
+   iblock_ports_foreach(nd, ib, function(b, p, rd, wr)
+      if rd then rm_all(ubx.ubx_port_disconnect_in, b, p) end
+      if wr then rm_all(ubx.ubx_port_disconnect_out, b, p) end
    end)
 end
 
@@ -788,6 +799,14 @@ function M.block_unload(nd, name)
    if tn then
       error(fmt("block_unload: '%s' is triggered by active block '%s', stop it first",
 		name, tn))
+   end
+
+   if M.is_iblock(b) and not hot_connect() then
+      local u = iblock_running_user(nd, b)
+      if u then
+	 error(fmt("block_unload: '%s' is connected to running block '%s', stop it first",
+		   name, u))
+      end
    end
 
    -- disconnect first: this waits until no running block accesses
@@ -2076,6 +2095,7 @@ end
 --- Create an inverse clone of a port, connected via a new iblock.
 -- The cloned port has swapped in/out types relative to the original.
 -- The returned port is **garbage collected** (the iblock(s) are not).
+-- Without `ENABLE_URCU` **errors** if `block` is running.
 -- @param block `ubx_block_t` owning the port to clone
 -- @param pname name of port to clone
 -- @param buff_len1 *optional* buffer length in→out direction (default `1`)
@@ -2084,6 +2104,11 @@ end
 -- @param allow_partial *optional* allow-partial flag for the iblock
 -- @return new inverse `ubx_port_t`
 function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns, allow_partial)
+
+   if not hot_connect() and block_running(block.nd, block) then
+      error(fmt("port_clone_conn: block %s is running, stop it first",
+		ffi.string(block.name)))
+   end
 
    local ibtype = M.get_default_iblock(block.nd)
 
@@ -2121,6 +2146,16 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 
    loglevel_overruns = loglevel_overruns or ffi.C.UBX_LOGLEVEL_INFO
 
+   -- start before connecting, so running blocks never see an iblock
+   -- that is still starting. Unloads ib on failure.
+   local function start_connect(ib, outp, inp)
+      if M.block_tostate(ib, 'active') == 0 and M.ports_connect(outp, inp, ib) == 0 then
+	 return true
+      end
+      M.block_unload(block.nd, ffi.string(ib.name))
+      return false
+   end
+
    -- New port is an out-port?
    local i_p_to_prot
    if p.out_type~=nil then
@@ -2136,12 +2171,9 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 				   }
       )
 
-      M.block_init(i_p_to_prot)
-
-      if M.ports_connect(p, prot, i_p_to_prot) ~= 0 then
+      if not start_connect(i_p_to_prot, p, prot) then
 	 error("failed to connect port "..ffi.string(p.name))
       end
-      M.block_start(i_p_to_prot)
       info(block.nd, "lua", "port_clone_conn: %s, buffer_len: %d, data_len: %d",
 	   iname, buff_len1, tonumber(p.out_data_len))
    end
@@ -2160,16 +2192,13 @@ function M.port_clone_conn(block, pname, buff_len1, buff_len2, loglevel_overruns
 				   }
       )
 
-      M.block_init(i_prot_to_p)
-
-      if M.ports_connect(prot, p, i_prot_to_p) ~= 0 then
+      if not start_connect(i_prot_to_p, prot, p) then
 	 if i_p_to_prot then
 	    M.ports_disconnect(p, prot, i_p_to_prot)
 	    M.block_unload(block.nd, ffi.string(i_p_to_prot.name))
 	 end
 	 error("failed to connect port "..ffi.string(p.name))
       end
-      M.block_start(i_prot_to_p)
       info(block.nd, "lua", "port_clone_conn: %s, buffer_len: %d, data_len: %d",
 	   iname, buff_len2, tonumber(p.in_data_len))
    end
@@ -2254,6 +2283,12 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
    -- check: one of src and target must exist
    if srcb == nil and tgtb == nil then
       return false, fmt("both src %s and tgt %s blocks don't exist", srcbn, tgtbn)
+   end
+
+   for _, b in ipairs{ srcb or false, tgtb or false } do
+      if b and not hot_connect() and M.is_cblock(b) and block_running(nd, b) then
+	 return false, fmt("block %s is running, stop it first", ffi.string(b.name))
+      end
    end
 
    -- get src port and check that src port exists and is an outport
@@ -2390,6 +2425,7 @@ function M.connect(nd, srcbn, srcpn, tgtbn, tgtpn, ibtype, ibconfig)
       M.block_tostate(ib, 'active')
 
       if ubx.ubx_ports_connect(srcp, tgtp, ib) ~= 0 then
+	 M.block_unload(nd, ibname)
 	 return false, fmt("failed to connect %s.%s -> %s.%s",
 			   srcbn, srcpn, tgtbn, tgtpn)
       end
@@ -2452,8 +2488,8 @@ function M.disconnect(nd, srcbn, srcpn, tgtbn, tgtpn)
    if tgtb == nil then return false, fmt("no tgt block %s", tostring(tgtbn)) end
 
    for _, b in ipairs{ srcb, tgtb } do
-      if not hot_connect() and M.is_cblock(b) and b.block_state == ffi.C.BLOCK_STATE_ACTIVE then
-	 return false, fmt("block %s is active, stop it first", ffi.string(b.name))
+      if not hot_connect() and M.is_cblock(b) and block_running(nd, b) then
+	 return false, fmt("block %s is running, stop it first", ffi.string(b.name))
       end
    end
 

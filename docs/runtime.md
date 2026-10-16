@@ -57,8 +57,12 @@ constraints that must hold.
   `ubx.block_unload` walk the port lists of all blocks and could
   read a port while it is freed. Not checked.
 - **connections without `ENABLE_URCU`**: only while the blocks
-  involved are stopped. `ubx.disconnect` refuses with "stop it
-  first", `connect` does not check.
+  involved are not running (see above). `ubx.connect`,
+  `ubx.disconnect`, `ubx.port_clone_conn` and `ubx.block_unload` of
+  an iblock refuse with "stop it first"; the C API is not checked.
+  lsdb-intf `Read`/`Write` (`ubx-dbus -r/-w`) clone the port on first
+  use, so they refuse a running block unless the port was used
+  before it was started.
 
 ## Hot connect/disconnect
 

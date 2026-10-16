@@ -1,4 +1,4 @@
--- stopping blocks used by running blocks
+-- stopping, connecting and unloading blocks used by running blocks
 
 local lu = require("luaunit")
 local ubx = require("ubx")
@@ -8,8 +8,12 @@ local ffi = require("ffi")
 local assert_equals = lu.assert_equals
 local assert_true = lu.assert_true
 local assert_false = lu.assert_false
+local assert_str_contains = lu.assert_str_contains
+local assert_error_msg_contains = lu.assert_error_msg_contains
 
 local EWRONG_STATE = ffi.C.EWRONG_STATE
+
+local hot_connect = ubx.hot_connect()
 
 local sink = [[
 local ubx = require("ubx")
@@ -76,6 +80,37 @@ function TestRunningChecks:TestStop()
    assert_equals(ubx.block_tostate(nd:b("inner"), 'inactive'), 0)
    assert_equals(ubx.block_tostate(ramp, 'inactive'), 0)
    assert_equals(ubx.block_tostate(ib, 'preinit'), 0)
+end
+
+function TestRunningChecks:TestConnectUnload()
+   local ok, msg = ubx.connect(nd, "ramp", "out", "sink", "in2")
+   assert_equals(ok, hot_connect)
+   if not hot_connect then assert_str_contains(msg, "is running, stop it first") end
+
+   local name = ffi.string(ib.name)
+   if hot_connect then
+      ubx.block_unload(nd, name)
+      assert_true(ubx.ubx.ubx_block_get(nd, name) == nil)
+   else
+      assert_error_msg_contains("connected to running block",
+				ubx.block_unload, nd, name)
+      assert_equals(ubx.block_tostate(nd:b("trig"), 'inactive'), 0)
+      assert_equals(ubx.block_tostate(nd:b("inner"), 'inactive'), 0)
+      ubx.block_unload(nd, name)
+   end
+end
+
+function TestRunningChecks:TestPortCloneConn()
+   local ramp = nd:b("ramp")
+   if not hot_connect then
+      assert_error_msg_contains("is running, stop it first", ubx.port_clone_conn, ramp, "out")
+      assert_equals(ubx.block_tostate(nd:b("trig"), 'inactive'), 0)
+   end
+   assert_true(ubx.port_clone_conn(ramp, "out") ~= nil)
+   -- the clone iblock is started before it is connected
+   for _, n in ipairs(ubx.port_conns_totab(ubx.port_get(ramp, "out")).outgoing) do
+      assert_equals(nd:b(n):get_block_state(), "active")
+   end
 end
 
 -- passive triggers stepped by no thread, one pair in a chain cycle

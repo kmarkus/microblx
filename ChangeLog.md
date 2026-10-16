@@ -23,6 +23,11 @@ This file tracks user visible API changes
 - `ubx.block_tostate`: returns `EWRONG_STATE` instead of racing when
   stopping or cleaning up a block in the chain of an active trigger,
   or an iblock connected to a running block.
+- without `ENABLE_URCU`, `ubx.connect`, `ubx.port_clone_conn` (and
+  so lsdb-intf `Read`/`Write`) and `ubx.block_unload` of an iblock
+  refuse when a connected cblock is running, like
+  `ubx.disconnect`. That one now refuses only for running blocks
+  instead of all active ones.
 - `ubx/luablock`: with `thread=1` the block has `BLOCK_ATTR_ACTIVE`.
 - libubx binds calls to its own functions at link time
   (`-Bsymbolic-functions`): interposing them (e.g. via `LD_PRELOAD`)

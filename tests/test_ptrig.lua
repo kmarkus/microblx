@@ -312,13 +312,16 @@ local sys4 = bd.system {
 }
 
 function TestPtrig:TestMultichainPtrig()
-   local nd = sys4:launch{ loglevel=LOGLEVEL, nodename='TestPtrigMultichain' }
+   -- clone before starting: without hot connect it is refused on
+   -- running blocks
+   local nd = sys4:launch{ nostart=true, loglevel=LOGLEVEL, nodename='TestPtrigMultichain' }
 
    local p_actchain = ubx.port_clone_conn(nd:b("ptrig0"), "active_chain")
    local p_const0 = ubx.port_clone_conn(nd:b("const0"), "out")
    local p_const1 = ubx.port_clone_conn(nd:b("const1"), "out")
    local p_const2 = ubx.port_clone_conn(nd:b("const2"), "out")
    local p_const3 = ubx.port_clone_conn(nd:b("const3"), "out")
+   sys4:startup(nd)
    local b_ptrig0 = nd:b("ptrig0")
 
    local function rdports()
