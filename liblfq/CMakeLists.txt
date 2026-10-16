@@ -1,5 +1,14 @@
 add_library(lfq SHARED lfq.c)
 
+# aarch64: inline the atomics instead of calling the libgcc helpers
+# that pick LSE at runtime. Inline LL/SC is ~15% faster per lfrb
+# write+read on Cortex-A53; LSE cores get it inline with -march
+include(CheckCCompilerFlag)
+check_c_compiler_flag(-mno-outline-atomics HAVE_MNO_OUTLINE_ATOMICS)
+if(HAVE_MNO_OUTLINE_ATOMICS)
+  target_compile_options(lfq PRIVATE -mno-outline-atomics)
+endif()
+
 set_target_properties(lfq PROPERTIES
   VERSION "${PROJECT_VERSION}"
   PUBLIC_HEADER lfq.h
