@@ -8,7 +8,7 @@ image: gcc:trixie
 
 .setup_deps:
   before_script:
-    - apt update && apt -y install cmake pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck libcmocka-dev libsystemd-dev libmxml-dev lua-compat53 lua-compat53-dev dbus libgpiod-dev libiio-dev libiio-utils libgps-dev gpsd libcap2-bin lua-json
+    - apt update && apt -y install cmake pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck libcmocka-dev libsystemd-dev libmxml-dev lua-compat53 lua-compat53-dev dbus libgpiod-dev libiio-dev libiio-utils libgps-dev gpsd libcap2-bin lua-json liburcu-dev
     - cd /builds/
     - git clone --depth=1 https://github.com/kmarkus/uutils.git
     - git clone --depth=1 https://github.com/corsix/ffi-reflect.git
@@ -51,12 +51,23 @@ build:
       - build/
     expire_in: 1 hour
 
+# hot connect/disconnect (liburcu-bp)
+build-urcu:
+  extends: build
+  script:
+    - cd $CI_PROJECT_DIR
+    - mkdir build && pushd build
+    - cmake -DBLOCK_LSDB_INTF=ON -DENABLE_URCU=ON ..
+    - make -j10
+    - popd
+
 test:
   # NOTE: SCHED_DEADLINE tests require CAP_SYS_NICE. Grant it by adding
   #   cap_add = ["SYS_NICE"]
   # to the [runners.docker] section of the runner's config.toml.
   stage: test
   extends: .setup_deps
+  needs: [build]
   script:
     - cd $CI_PROJECT_DIR
     - pushd build
@@ -80,6 +91,26 @@ test:
     - test-rtlog
     - test-rtlog -w 32 -r 8 -n 50
     - test-rtlog -w 1 -r 1 -n 20
+  artifacts:
+    when: always
+    reports:
+      junit: test-results.xml
+
+# the lua test suite against the ENABLE_URCU build, incl. the hot
+# connect stress test (skipped without urcu)
+test-urcu:
+  stage: test
+  extends: .setup_deps
+  needs: [build-urcu]
+  script:
+    - cd $CI_PROJECT_DIR
+    - pushd build
+    - make install && ldconfig
+    - popd
+    - "ubx-launch --version | grep -q 'urcu: *yes'"
+    - export JUNIT_OUTPUT=test-results.xml
+    - mkdir -p /run/dbus
+    - dbus-run-session --config-file tests/dbus-test.conf -- ./run_tests.sh
   artifacts:
     when: always
     reports:
@@ -133,6 +164,7 @@ test-rtlog-tsan:
 examples:
   stage: test
   extends: .setup_deps
+  needs: [build]
   script:
     - cd $CI_PROJECT_DIR
     - pushd build
