@@ -36,6 +36,8 @@ This file tracks user visible API changes
 - a passive trigger stepped by no thread (e.g. only via `ubx-dbus
   -t`) no longer counts as running: its ports can be connected and
   its chain members stopped while it is active.
+- `ubx/gpio` now declares `BLOCK_ATTR_TRIGGER`. Only blocks with
+  this attribute are searched for chains of running triggers.
 - ports and configs may only be added or removed in the life-cycle
   hooks, not in `step` (also not via luablock `exec_str`).
 - `ubx.port_read_timed`: **fix** the timeout ended at the next full

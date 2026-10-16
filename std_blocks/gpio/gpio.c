@@ -339,6 +339,7 @@ ubx_proto_block_t gpio_comp = {
 	.name = "ubx/gpio",
 	.meta_data = gpio_meta,
 	.type = BLOCK_TYPE_COMPUTATION,
+	.attrs = BLOCK_ATTR_TRIGGER,	/* steps trigee */
 	.configs = gpio_configs,
 	.init = gpio_init,
 	.start = gpio_start,
