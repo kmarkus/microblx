@@ -20,6 +20,7 @@ This file tracks user visible API changes
 - `ubx.connect` starts the iblock of a new connection before
   connecting it, `ubx.block_unload` disconnects an iblock before
   stopping it.
+- `ubx/luablock`: with `thread=1` the block has `BLOCK_ATTR_ACTIVE`.
 - libubx binds calls to its own functions at link time
   (`-Bsymbolic-functions`): interposing them (e.g. via `LD_PRELOAD`)
   no longer affects calls from within libubx.

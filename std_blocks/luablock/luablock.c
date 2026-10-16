@@ -265,6 +265,13 @@ int luablock_preinit(ubx_block_t *b)
 
 	inf->use_thread = (len > 0 && *thread_cfg == 1) ? 1 : 0;
 
+	/* owns a thread: stopped first by ubx_node_clear, ubx.lua
+	 * treats it as running while active */
+	if (inf->use_thread)
+		b->attrs |= BLOCK_ATTR_ACTIVE;
+	else
+		b->attrs &= ~BLOCK_ATTR_ACTIVE;
+
 	if (inf->use_thread) {
 		const int *period_cfg;
 		len = cfg_getptr_int(b, "period", &period_cfg);
