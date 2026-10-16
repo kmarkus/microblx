@@ -864,6 +864,66 @@ return bd.system {
    end
 end
 
+-- a kept running block reads from an iblock that ClearNode removes.
+-- Without hot connect that is refused before removing anything.
+function TestLsdbIntf:test_clearnode_kept_running_reader()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_clearnode_reader")
+
+   ubx.load_module(_nd, "luablock")
+   local sys = bd.load_str(make_thres_usc("t1", 5.0), 'lua')
+   sys:launch{ nd=_nd }
+   local lg = ubx.block_create(_nd, "ubx/luablock", "logger", { thread=1, period=10, lua_str = [[
+local ubx = require("ubx")
+function init(b) ubx.inport_add(b, "in", "", 0, "int", 1); return true end
+function cleanup(b) ubx.port_rm(b, "in") end
+]] })
+   assert_equals(ubx.block_tostate(lg, 'inactive'), 0)
+   assert_true(ubx.connect(_nd, "t1", "state", "logger", "in"))
+   assert_equals(ubx.block_tostate(lg, 'active'), 0)
+
+   if ubx.hot_connect() then
+      _proxy('ClearNode', { "logger" })
+      assert_true(not cblocks_contains(_proxy.CBlocks, "t1"))
+      assert_equals(lg:get_block_state(), "active")
+   else
+      assert_error_msg_contains("connected to running blocks",
+         function() _proxy('ClearNode', { "logger" }) end)
+      assert_true(cblocks_contains(_proxy.CBlocks, "t1"))
+   end
+end
+
+-- a kept passive trigger stepped by a kept ptrig is stopped too,
+-- although it comes first in the node
+function TestLsdbIntf:test_clearnode_stops_nested_trigger()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_clearnode_nest")
+
+   ubx.load_module(_nd, "ptrig")
+   ubx.load_module(_nd, "trig")
+   local sys = bd.load_str([[
+return bd.system {
+   imports = { "stdtypes", "lfrb", "threshold", "ptrig", "trig" },
+   blocks = {
+      { name = "t1", type = "ubx/threshold" },
+      { name = "inner", type = "ubx/trig" },
+      { name = "pt", type = "ubx/ptrig" },
+   },
+   configurations = {
+      { name = "t1", config = { threshold = 5.0 } },
+      { name = "inner", config = { chain0 = { { b="#t1" } } } },
+      { name = "pt", config = { period = { sec=0, usec=1000 }, chain0 = { { b="#inner" } } } },
+   },
+}
+]], 'lua')
+   sys:launch{ nd=_nd }
+   assert_equals(ubx.block_get(_nd, "inner"):get_block_state(), "active")
+
+   _proxy('ClearNode', { "pt", "inner" })
+
+   assert_true(not cblocks_contains(_proxy.CBlocks, "t1"))
+   assert_equals(ubx.block_get(_nd, "pt"):get_block_state(), "inactive")
+   assert_equals(ubx.block_get(_nd, "inner"):get_block_state(), "inactive")
+end
+
 -- removing a block also removes the iblocks of its port clones
 function TestLsdbIntf:test_remove_block_removes_pccs()
    _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_rm_pccs")

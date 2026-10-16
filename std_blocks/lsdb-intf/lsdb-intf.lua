@@ -274,13 +274,36 @@ local function clear_node(vt, keeplist)
    end
 
    -- stop all triggers first, including kept ones: their chains
-   -- reference the blocks removed below
-   local function is_trigger(b)
-      return ubx.is_instance(b) and ubx.block_istrigger(b) and b:get_name() ~= vt.blkname
+   -- reference the blocks removed below. Likewise the thread owners
+   -- to be removed. Top down, since block_tostate refuses to stop a
+   -- block stepped by an active trigger.
+   local function stop_first(b)
+      if not ubx.is_instance(b) or b:get_name() == vt.blkname then return false end
+      return ubx.block_istrigger(b) or (ubx.block_isactive(b) and filter(b))
    end
-   ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'inactive') end, is_trigger)
+   repeat
+      local stopped = 0
+      ubx.blocks_map(vt.nd, function(b)
+	 if b:get_block_state() == 'active' and not ubx.block_triggered_by(vt.nd, b) and
+	    ubx.block_tostate(b, 'inactive') == 0 then
+	    stopped = stopped + 1
+	 end
+      end, stop_first)
+   until stopped == 0
 
    ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'inactive') end, filter)
+
+   -- without hot connect an iblock used by a kept running block
+   -- stays active (block_tostate refuses): fail before removing any
+   if not ubx.hot_connect() then
+      local busy = ubx.blocks_map(vt.nd, function(b) return b:get_name() end, function(b)
+	 return filter(b) and ubx.is_iblock(b) and b:get_block_state() == 'active'
+      end)
+      if #busy > 0 then
+	 lsdb.throw(err.FAILED, "clear_node: %s connected to running blocks, stop them first",
+		    table.concat(busy, ", "))
+      end
+   end
    ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'preinit') end, filter)
    -- collect the names first: removing frees the block that
    -- blocks_map would read the next pointer from

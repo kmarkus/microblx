@@ -114,6 +114,10 @@ Options
   -h  --help                      display this help, then exit
       --version                   display version information, then exit
   --                              end of options
+
+Notes
+  Without hot connect (libubx built without ENABLE_URCU), -x, -d and
+  the first -w/-r/-R/-W of a port refuse blocks that are running.
 ]]
 
 local parser = optparse(help)

@@ -43,6 +43,10 @@ This file tracks user visible API changes
   its chain members stopped while it is active.
 - `ubx/gpio` now declares `BLOCK_ATTR_TRIGGER`. Only blocks with
   this attribute are searched for chains of running triggers.
+- lsdb-intf `ClearNode`: stops nested triggers top down and stops
+  the thread owning blocks to be removed before the others. Without
+  `ENABLE_URCU` it fails before removing anything if a kept running
+  block is connected to an iblock to be removed.
 - ports and configs may only be added or removed in the life-cycle
   hooks, not in `step` (also not via luablock `exec_str`).
 - `ubx.port_read_timed`: **fix** the timeout ended at the next full
