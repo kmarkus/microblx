@@ -3,6 +3,13 @@ ChangeLog
 
 This file tracks user visible API changes
 
+## unreleased
+
+- libubx binds calls to its own functions at link time
+  (`-Bsymbolic-functions`): interposing them (e.g. via `LD_PRELOAD`)
+  no longer affects calls from within libubx.
+- cmake: minimum version 3.13.
+
 ## 1.0.0
 
 - `luablock`: a threaded luablock now gets a Lua global `stop_fd`,

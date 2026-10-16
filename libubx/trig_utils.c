@@ -23,10 +23,18 @@ def_cfg_getptr_fun(cfg_getptr_triggee, struct ubx_triggee);
 
 void tstat_init2(struct ubx_tstat *ts, const char *block_name, const char *chain_id)
 {
+	/* long ids are truncated on purpose */
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
 	snprintf(ts->id, UBX_TSTAT_ID_MAXLEN + 1, "%s%s%s",
 		 (chain_id == NULL) ? "" : chain_id,
 		 (chain_id == NULL) ? "" : ",",
 		 block_name);
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 	ts->min.sec = LONG_MAX;
 	ts->min.nsec = LONG_MAX;

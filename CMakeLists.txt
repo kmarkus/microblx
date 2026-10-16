@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 
 set(VERSION_MAJOR 0)
 set(VERSION_MINOR 9)
@@ -194,6 +194,17 @@ add_library(ubx SHARED ${UBX_SRCS})
 
 # for config.h
 target_include_directories(ubx PRIVATE ${CMAKE_BINARY_DIR})
+
+# call libubx functions from within libubx directly instead of via
+# the PLT and allow inlining them (e.g. port_is_in in __port_read,
+# __port_write from write_int). Interposing libubx functions is not
+# supported.
+include(CheckCCompilerFlag)
+check_c_compiler_flag(-fno-semantic-interposition HAVE_NO_SEMANTIC_INTERPOSITION)
+if(HAVE_NO_SEMANTIC_INTERPOSITION)
+  target_compile_options(ubx PRIVATE -fno-semantic-interposition)
+endif()
+target_link_options(ubx PRIVATE -Wl,-Bsymbolic-functions)
 
 set_target_properties(ubx
   PROPERTIES
