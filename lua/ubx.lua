@@ -1701,31 +1701,28 @@ function M.port_read(p, rval)
 end
 
 --- Read from a port, blocking up to `timeout` seconds.
--- Polls every 10 ms until data arrives or the timeout expires.
+-- Polls every 10 ms until data arrives or the timeout expires, reads
+-- at least once.
 -- @param p `ubx_port_t`
--- @param timeout maximum wait in seconds
+-- @param timeout maximum wait in seconds (default 0)
 -- @param data *optional* `ubx_data_t` to store result (allocated if `nil`)
 -- @return number of items read, or **-1** on timeout
 -- @return `ubx_data_t` or `nil`
 function M.port_read_timed(p, timeout, data)
-   timeout = timeout or 0
-   local ts_start = ffi.new("struct ubx_timespec")
-   local ts_cur = ffi.new("struct ubx_timespec")
+   local ts = ffi.new("struct ubx_timespec")
+   local function now() M.gettime(ts); return to_sec(ts.sec, ts.nsec) end
+   local t_end = now() + (timeout or 0)
 
    if not M.is_data(data) then
       data = M.port_alloc_read_sample(p)
    end
 
-   M.gettime(ts_start)
-   M.gettime(ts_cur)
-
-   while ts_cur.sec - ts_start.sec < timeout do
+   while true do
       local len = ubx.__port_read(p, data)
       if len>0 then return len, data end
+      if now() >= t_end then return -1 end
       M.nanosleep(0, 10*1000^2)
-      M.gettime(ts_cur)
    end
-   return -1
 end
 
 --- Write to a port.

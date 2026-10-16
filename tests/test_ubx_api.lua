@@ -489,4 +489,25 @@ function TestIterators:test_ports_foreach_with_pred()
    ae(count, 1)  -- only "rnd" is an outport
 end
 
+------------------------------------------------------------------------------
+-- port_read_timed
+------------------------------------------------------------------------------
+
+TestPortReadTimed = {}
+TestPortReadTimed.setupClass  = setup
+TestPortReadTimed.teardownClass = teardown
+
+-- waits the full timeout, not until the next full second
+function TestPortReadTimed:test_timeout()
+   local p = ubx.port_clone_conn(b_rand, "rnd")
+   local t0 = ubx.gettime()
+   ae(ubx.port_read_timed(p, 0.25), -1)
+   local dt = ubx.gettime() - t0
+   at(dt >= 0.25 and dt < 0.45, "waited "..dt.." s")
+
+   ae(ubx.block_tostate(b_rand, 'active'), 0)
+   b_rand:do_step()
+   ae(tonumber((ubx.port_read_timed(p, 0))), 1)
+end
+
 if not _RUNNER then os.exit(lu.LuaUnit.run()) end

@@ -8,6 +8,10 @@ This file tracks user visible API changes
 - libubx binds calls to its own functions at link time
   (`-Bsymbolic-functions`): interposing them (e.g. via `LD_PRELOAD`)
   no longer affects calls from within libubx.
+- `ubx.port_read_timed`: **fix** the timeout ended at the next full
+  second, i.e. after 0..1 s, and a fractional timeout returned
+  without reading. It now waits the full timeout and reads at least
+  once.
 - cmake: minimum version 3.13.
 
 ## 1.0.0
