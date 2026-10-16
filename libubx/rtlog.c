@@ -114,8 +114,12 @@ void ubx_log_cleanup(struct ubx_node *nd)
 #define LOG_JOIN_RETRIES	1000
 #define LOG_JOIN_RETRY_US	1000
 
+/* the segment is mapped once per process and shared by all nodes:
+ * joined by the first ubx_log_init, closed by the last cleanup */
 static lfb_shm_t log_shm;
 static log_user_t *log_user;
+static int log_nodes;
+static pthread_mutex_t log_nodes_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /**
  * log_join - create or attach to the log segment
@@ -189,11 +193,9 @@ static void ubx_log_shm(const struct ubx_node *nd, const struct ubx_log_msg *msg
 	pthread_mutex_unlock(&log_user->wlock);
 }
 
-int ubx_log_init(struct ubx_node *nd)
+static int log_open(void)
 {
 	int ret;
-
-	nd->log_data = NULL;
 
 	ret = log_join();
 
@@ -232,17 +234,46 @@ int ubx_log_init(struct ubx_node *nd)
 		lfb_shm_publish(&log_shm);
 	}
 
-	nd->log = ubx_log_shm;
-
 	return 0;
+}
+
+int ubx_log_init(struct ubx_node *nd)
+{
+	int ret = 0;
+
+	nd->log_data = NULL;
+
+	pthread_mutex_lock(&log_nodes_lock);
+
+	if (log_nodes == 0)
+		ret = log_open();
+
+	if (ret == 0) {
+		log_nodes++;
+		nd->log = ubx_log_shm;
+	}
+
+	pthread_mutex_unlock(&log_nodes_lock);
+	return ret;
 }
 
 void ubx_log_cleanup(struct ubx_node *nd)
 {
+	/* not joined (failed init, repeated cleanup) */
+	if (nd->log != ubx_log_shm)
+		return;
+
+	nd->log = NULL;
+
+	pthread_mutex_lock(&log_nodes_lock);
+
 	/* close but don't unlink: other processes may still be logging
 	 * into this segment (and the lock lives in it) */
-	nd->log = NULL;
-	log_user = NULL;
-	lfb_shm_close(&log_shm);
+	if (--log_nodes == 0) {
+		log_user = NULL;
+		lfb_shm_close(&log_shm);
+	}
+
+	pthread_mutex_unlock(&log_nodes_lock);
 }
 #endif

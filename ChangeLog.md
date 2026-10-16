@@ -12,6 +12,8 @@ This file tracks user visible API changes
   second, i.e. after 0..1 s, and a fractional timeout returned
   without reading. It now waits the full timeout and reads at least
   once.
+- rtlog: **fix** removing a node closed the log segment for all other
+  nodes of the process, whose next log call segfaulted.
 - cmake: minimum version 3.13.
 
 ## 1.0.0

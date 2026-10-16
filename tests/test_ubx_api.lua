@@ -510,4 +510,23 @@ function TestPortReadTimed:test_timeout()
    ae(tonumber((ubx.port_read_timed(p, 0))), 1)
 end
 
+------------------------------------------------------------------------------
+-- several nodes per process
+------------------------------------------------------------------------------
+
+TestMultiNode = {}
+
+-- the log segment is shared: removing one node must not close it for
+-- the others (segfaulted in the next log call)
+function TestMultiNode:test_log_after_other_node_rm()
+   local a = ubx.node_create("test_mn_a")
+   local b = ubx.node_create("test_mn_b")
+   ubx.node_rm(a)
+   ubx.notice(b, "test", "node a removed")
+   ubx.node_rm(b)
+   local c = ubx.node_create("test_mn_c")
+   ubx.notice(c, "test", "rejoined")
+   ubx.node_rm(c)
+end
+
 if not _RUNNER then os.exit(lu.LuaUnit.run()) end
