@@ -10,6 +10,8 @@ This file tracks user visible API changes
   run, and `ubx.disconnect` no longer requires stopping them. See
   [Runtime reconfiguration](docs/runtime.md). `ubx-launch --version`
   reports `urcu: yes|no`.
+- with `ENABLE_URCU`, libubx inlines the liburcu-bp read side
+  (LGPL-2.1, `_LGPL_SOURCE`): rebuild libubx on liburcu updates.
 - new C API `ubx_rcu_thread_init()`, `ubx_rcu_read_lock()`,
   `ubx_rcu_read_unlock()` (no-ops without `ENABLE_URCU`), and
   `ubx_hot_connect()`/`ubx.hot_connect()` to check for it.

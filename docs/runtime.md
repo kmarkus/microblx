@@ -47,7 +47,10 @@ constraints that must hold.
 ## Hot connect/disconnect
 
 Build with `-DENABLE_URCU=ON`, which requires liburcu-bp >= 0.11
-(`apt install liburcu-dev`; in Yocto `liburcu` from oe-core). Check
+(`apt install liburcu-dev`; in Yocto `liburcu` from oe-core).
+libubx then inlines LGPL-2.1 code from liburcu (`_LGPL_SOURCE`) and
+must be rebuilt when liburcu is updated. Blocks only call `ubx_*`
+functions and are not affected. Check
 the build:
 
 ```sh
@@ -127,8 +130,18 @@ own threads should do the same. Without `ENABLE_URCU` it is a no-op.
 
 ## Cost
 
-- **Per port read/write**: two calls into liburcu-bp (read lock and
-  unlock), no locks, no syscalls.
+- **Per port read/write**: the inlined liburcu-bp read lock and
+  unlock, i.e. a few loads and stores, no calls, no barriers, no
+  locks, no syscalls. This requires `membarrier(2)`
+  (`MEMBARRIER_CMD_PRIVATE_EXPEDITED`, Linux >= 4.14, not blocked by
+  seccomp): without it liburcu-bp falls back to a full memory
+  barrier in every read lock and unlock. Measured with an lfrb,
+  write+read pair:
+
+  | board                 | without urcu | with urcu | delta  |
+  |-----------------------|--------------|-----------|--------|
+  | BeagleBone (AM335x)   | 1431 ns      | ~1560 ns  | ~+8%   |
+  | BeaglePlay (AM625)    | 464 ns       | 516 ns    | +11%   |
 - **Per connect/disconnect**: liburcu-bp uses `membarrier(2)`, which
   interrupts (IPI) the CPUs that are running a thread of the process
   at that moment, i.e. an RT thread only while it is in a step.

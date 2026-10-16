@@ -15,11 +15,24 @@
 
 #ifdef UBX_URCU
 
-/* no _LGPL_SOURCE: libubx is MPL-2.0, so read lock/unlock stay
- * library calls. INLINE_SMALL_FUNCTIONS is allowed for any license
- * and inlines rcu_dereference/rcu_assign_pointer. */
-#define URCU_INLINE_SMALL_FUNCTIONS
+/* inline read lock/unlock: as library calls they cost ~4x per port
+ * access. This compiles LGPL-2.1 code into libubx (MPL-2.0 allows
+ * that combination) and ties it to the liburcu version it was built
+ * against: rebuild libubx on liburcu updates. Blocks only call ubx_*
+ * functions and are not affected. */
+#define _LGPL_SOURCE
+/* rcu_dereference as a volatile load with address dependency instead
+ * of consume, which gcc emits as acquire (a dmb per port access on
+ * ARMv7). Requires comparing dereferenced pointers only with NULL or
+ * via cmm_ptr_eq. Honored since liburcu 0.15. */
+#define URCU_DEREFERENCE_USE_VOLATILE
 #include <urcu/urcu-bp.h>
+
+/* the reader lives in liburcu-bp.so: initial-exec avoids a
+ * __tls_get_addr/TLS descriptor call per access. When libubx is
+ * dlopen'ed, glibc's static TLS surplus has room for it. */
+extern __thread struct urcu_bp_reader *urcu_bp_reader
+	__attribute__((tls_model("initial-exec")));
 
 #define UBX_RCU_READ_LOCK()	urcu_bp_read_lock()
 #define UBX_RCU_READ_UNLOCK()	urcu_bp_read_unlock()
