@@ -130,15 +130,16 @@ int mqueue_init(ubx_block_t *i)
 	/* construct mq_name */
 	ubx_type_hashstr(inf->type, hexhash);
 
-	ret = snprintf(inf->mq_name, NAME_MAX+1, "/ubx_%s_%li_%s",
+	/* len, not ret: the error paths below return ret */
+	len = snprintf(inf->mq_name, NAME_MAX+1, "/ubx_%s_%li_%s",
 		       hexhash, inf->data_len, inf->mq_id);
 
-	if (ret < 0) {
+	if (len < 0) {
 		ubx_err(i, "failed to construct mqueue name");
 		goto out_free_info;
 	}
 
-	if (ret >= NAME_MAX+1) {
+	if (len >= NAME_MAX+1) {
 		ubx_err(i, "mqueue name truncated (mq_id too long): /ubx_%s_%li_%s",
 			hexhash, inf->data_len, inf->mq_id);
 		goto out_free_info;
@@ -148,6 +149,7 @@ int mqueue_init(ubx_block_t *i)
 	len = cfg_getptr_uint32(i, "blocking", &val);
 	if (len < 0) {
 		ubx_err(i, "failed to get blocking config");
+		ret = EINVALID_CONFIG;
 		goto out_free_info;
 	}
 
@@ -170,6 +172,7 @@ int mqueue_init(ubx_block_t *i)
 
  out_free_info:
 	free(inf);
+	i->private_data = NULL;
  out:
 	return ret;
 }
