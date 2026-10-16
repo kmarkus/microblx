@@ -20,6 +20,9 @@ This file tracks user visible API changes
 - `ubx.connect` starts the iblock of a new connection before
   connecting it, `ubx.block_unload` disconnects an iblock before
   stopping it.
+- `ubx.block_tostate`: returns `EWRONG_STATE` instead of racing when
+  stopping or cleaning up a block in the chain of an active trigger,
+  or an iblock connected to a running block.
 - `ubx/luablock`: with `thread=1` the block has `BLOCK_ATTR_ACTIVE`.
 - libubx binds calls to its own functions at link time
   (`-Bsymbolic-functions`): interposing them (e.g. via `LD_PRELOAD`)
@@ -28,6 +31,11 @@ This file tracks user visible API changes
   if the block is active; `ubx_config_assign` returns `EWRONG_STATE`.
   Stop the block, set the config, start it. Exception: lsdb-intf
   `SetConfig` still changes `loglevel` of active blocks in place.
+- new `ubx.block_triggered_by(nd, b)`: name of the thread owning
+  block stepping `b` via (nested) trigger chains, or `nil`.
+- a passive trigger stepped by no thread (e.g. only via `ubx-dbus
+  -t`) no longer counts as running: its ports can be connected and
+  its chain members stopped while it is active.
 - ports and configs may only be added or removed in the life-cycle
   hooks, not in `step` (also not via luablock `exec_str`).
 - `ubx.port_read_timed`: **fix** the timeout ended at the next full

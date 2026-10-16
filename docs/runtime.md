@@ -34,8 +34,20 @@ constraints that must hold.
 - **trigger chain contents**: stop the trigger first. To switch
   between known configurations, configure several chains and switch
   with the `active_chain` port.
-- **stopping a single block in a running chain**: its `stop` hook
-  would run concurrently with its `step`. Stop the trigger first.
+- **stopping a block used by running blocks**: its `stop`/`cleanup`
+  hooks would run concurrently with a `step` or port access.
+  `ubx.block_tostate` returns `EWRONG_STATE` for a running block in
+  the chain of a trigger (stop the trigger first) and for an iblock
+  connected to a running block (disconnect it first). A block is
+  running if it is active and owns a thread (`BLOCK_ATTR_ACTIVE`,
+  e.g. ptrig or a luablock with `thread=1`) or is in the chain of an
+  active trigger that is running, also via nested chains. A passive
+  trigger stepped only by the caller (e.g. `ubx-dbus -t`) is not
+  running. `ubx.block_unload` still refuses a block in the chain of
+  any active trigger: triggers cache their chains in `start`. Blocks
+  stepped from another thread by other means than a trigger chain
+  (e.g. `ubx.block_step` in a threaded luablock) are not detected.
+  `ubx_block_stop` is not checked.
 - **adding, removing or resizing ports and configs**: resizing ports
   only in state `preinit` (enforced). Adding and removing ports and
   configs only in the life-cycle hooks, which the control thread

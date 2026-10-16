@@ -635,18 +635,66 @@ function M.block_get(nd, bname)
    return b
 end
 
--- call fun(b, c) for each trigger chain config c (of any block) that
--- references block tgt
-local function triggee_configs_foreach(nd, tgt, fun)
+-- call fun(b, c) for each trigger chain config c that references
+-- block tgt, searching the blocks matching pred (def: all instances)
+local function triggee_configs_foreach(nd, tgt, fun, pred)
+   local tt = ubx.ubx_type_get(nd, "struct ubx_triggee")
+   if tt == nil then return end
    M.blocks_map(nd, function(b)
-      M.configs_map(b, function(c)
-	 if safe_tostr(c.type.name) ~= "struct ubx_triggee" then return end
-	 local t = ffi.cast("struct ubx_triggee*", c.value.data)
-	 for i=0,tonumber(c.value.len)-1 do
-	    if t[i].b == tgt then fun(b, c); return end
+      local c = b.configs
+      while c ~= nil do
+	 if c.type == tt then
+	    local t = ffi.cast("struct ubx_triggee*", c.value.data)
+	    for i=0,tonumber(c.value.len)-1 do
+	       if t[i].b == tgt then fun(b, c); break end
+	    end
 	 end
-      end)
-   end, M.is_instance)
+	 c = c.next
+      end
+   end, pred or M.is_instance)
+end
+
+local function is_trigger_instance(b)
+   return M.block_istrigger(b) and M.is_instance(b)
+end
+
+-- thread owning block stepping b via (nested) chains of active
+-- triggers, or nil. seen breaks chain cycles.
+local function thread_trigger_of(nd, b, seen)
+   local res
+   triggee_configs_foreach(nd, b, function(tb)
+      local k = ptr_key(tb)
+      if res or seen[k] or tb.block_state ~= ffi.C.BLOCK_STATE_ACTIVE then return end
+      seen[k] = true
+      if M.block_isactive(tb) then res = tb
+      else res = thread_trigger_of(nd, tb, seen) end
+   end, is_trigger_instance)
+   return res
+end
+
+--- Return the name of the thread owning block (e.g. a ptrig) that
+-- steps `b` via the chains of active triggers, or `nil`. Nested
+-- chains are followed: a passive trigger stepped by no thread does
+-- not count. Only blocks with `BLOCK_ATTR_TRIGGER` are searched:
+-- blocks stepping others must declare it.
+-- @param nd `ubx_node_t`
+-- @param b `ubx_block_t`
+-- @return trigger name string or `nil`
+function M.block_triggered_by(nd, b)
+   local tb = thread_trigger_of(nd, b, { [ptr_key(b)] = true })
+   if tb then return ffi.string(tb.name) end
+end
+local active_trigger_of = M.block_triggered_by
+
+-- name of any active trigger with b in a chain, or nil. Triggers
+-- cache their chains in start, so b must not be freed while one is
+-- active, even if no thread steps it.
+local function chain_owner_active(nd, b)
+   local res
+   triggee_configs_foreach(nd, b, function(tb)
+      if tb.block_state == ffi.C.BLOCK_STATE_ACTIVE then res = ffi.string(tb.name) end
+   end, is_trigger_instance)
+   return res
 end
 
 -- remove all entries for block tgt from trigger chain config c
@@ -659,18 +707,70 @@ local function triggee_config_scrub(c, tgt)
    M.data_resize(c.value, n)
 end
 
+-- true if iblock ib is in the NULL terminated interaction array arr
+local function interaction_has(arr, ib)
+   if arr == nil then return false end
+   local i = 0
+   while arr[i] ~= nil do
+      if arr[i] == ib then return true end
+      i = i + 1
+   end
+   return false
+end
+
+-- call fun(b, p, rd, wr) for each port p of any block that reads from
+-- (rd) or writes to (wr) iblock ib. fun runs after the read section,
+-- so it may (dis-)connect.
+local function iblock_ports_foreach(nd, ib, fun)
+   local hits = {}
+
+   -- arrays may be replaced by hot (dis-)connects. pcall: a read
+   -- section left open would block all grace periods forever
+   ubx.ubx_rcu_read_lock()
+   local ok, err = pcall(M.blocks_map, nd, function(b)
+      local p = b.ports
+      while p ~= nil do
+	 local rd = interaction_has(p.in_interaction, ib)
+	 local wr = interaction_has(p.out_interaction, ib)
+	 if rd or wr then hits[#hits+1] = { b, p, rd, wr } end
+	 p = p.next
+      end
+   end)
+   ubx.ubx_rcu_read_unlock()
+   if not ok then error(err, 0) end
+
+   for _, h in ipairs(hits) do fun(h[1], h[2], h[3], h[4]) end
+end
+
 -- remove all references to iblock ib from the ports of all blocks
 local function iblock_disconnect_all(nd, ib)
-   M.blocks_map(nd, function(b)
-      M.ports_foreach(b, function(p)
-	 if M.is_inport(p) then
-	    while ubx.ubx_port_disconnect_in(p, ib) == 0 do end
-	 end
-	 if M.is_outport(p) then
-	    while ubx.ubx_port_disconnect_out(p, ib) == 0 do end
-	 end
-      end)
+   iblock_ports_foreach(nd, ib, function(_, p, rd, wr)
+      if rd then while ubx.ubx_port_disconnect_in(p, ib) == 0 do end end
+      if wr then while ubx.ubx_port_disconnect_out(p, ib) == 0 do end end
    end)
+end
+
+-- set of blocks with a port connected to iblock ib
+local function iblock_users(nd, ib)
+   local res = {}
+   iblock_ports_foreach(nd, ib, function(b) res[b] = true end)
+   return res
+end
+
+-- true if another thread may step b or access its ports: b is active
+-- and owns a thread or is stepped by one via trigger chains. Steps
+-- from the calling thread itself can not race.
+local function block_running(nd, b)
+   if b.block_state ~= ffi.C.BLOCK_STATE_ACTIVE then return false end
+   if M.block_isactive(b) then return true end
+   return active_trigger_of(nd, b) ~= nil
+end
+
+-- name of a running block connected to iblock ib, or nil
+local function iblock_running_user(nd, ib)
+   for u in pairs(iblock_users(nd, ib)) do
+      if block_running(nd, u) then return ffi.string(u.name) end
+   end
 end
 
 --- Unload a block: transition to `preinit`, drop all references to
@@ -684,12 +784,11 @@ end
 function M.block_unload(nd, name)
    local b = M.block_get(nd, name)
 
-   triggee_configs_foreach(nd, b, function(tb, c)
-      if tb.block_state == ffi.C.BLOCK_STATE_ACTIVE then
-	 error(fmt("block_unload: '%s' is triggered by active block '%s', stop it first",
-		   name, ffi.string(tb.name)))
-      end
-   end)
+   local tn = chain_owner_active(nd, b)
+   if tn then
+      error(fmt("block_unload: '%s' is triggered by active block '%s', stop it first",
+		name, tn))
+   end
 
    -- disconnect first: this waits until no running block accesses
    -- the iblock anymore, so stopping it is safe afterwards
@@ -799,6 +898,29 @@ function M.block_tostate(b, tgtstate)
    local ret
 
    if b.block_state == tgtstate then return 0 end
+
+   -- stop/cleanup hooks would run concurrently with a running step
+   -- or port access of the block
+   if tgtstate == 'preinit' or
+      (tgtstate == 'inactive' and b.block_state == ffi.C.BLOCK_STATE_ACTIVE) then
+      local nd, name = b.nd, ffi.string(b.name)
+      if M.is_iblock(b) then
+	 local u = iblock_running_user(nd, b)
+	 if u then
+	    err(nd, "block_tostate", "%s: connected to running block %s, disconnect it first",
+		name, u)
+	    return ffi.C.EWRONG_STATE
+	 end
+      elseif not M.block_isactive(b) then
+	 -- passive triggers too: a running trigger may step them
+	 local tn = active_trigger_of(nd, b)
+	 if tn then
+	    err(nd, "block_tostate", "%s: triggered by active block %s, stop it first",
+		name, tn)
+	    return ffi.C.EWRONG_STATE
+	 end
+      end
+   end
 
    -- starting it up
    if (b.block_state == ffi.C.BLOCK_STATE_PREINIT and
@@ -2303,16 +2425,7 @@ end
 
 -- true if any port of any block is connected to iblock ib
 local function iblock_is_connected(nd, ib)
-   local name = ffi.string(ib.name)
-   local res = false
-   M.blocks_map(nd, function(b)
-      M.ports_foreach(b, function(p)
-	 local c = M.port_conns_totab(p)
-	 for _, n in ipairs(c.incoming) do if n == name then res = true end end
-	 for _, n in ipairs(c.outgoing) do if n == name then res = true end end
-      end)
-   end)
-   return res
+   return next(iblock_users(nd, ib)) ~= nil
 end
 
 --- Disconnect, the reverse of `connect`:
