@@ -47,16 +47,17 @@ local function create_ib(btype, config)
 end
 
 --- writing buffer_len+1 msgs overwrites the oldest and reports an overrun
-local function check_overruns(btype)
+local function check_overruns(btype, blen)
+   blen = blen or 2
    local ib = create_ib(btype, {
-      type_name = "int", buffer_len = 2, loglevel_overruns = -1 })
+      type_name = "int", buffer_len = blen, loglevel_overruns = -1 })
 
    local po = ubx.port_clone_conn(ib, "overruns", nil, 1, 7, 0)
 
    local wdat = ubx.data_alloc(nd, "int", 1)
    local rdat = ubx.data_alloc(nd, "int", 1)
 
-   for v = 1, 3 do
+   for v = 1, blen + 1 do
       ubx.data_set(wdat, v)
       ubx.interaction_write(ib, wdat)
    end
@@ -66,11 +67,11 @@ local function check_overruns(btype)
    assert_equals(tonumber(len), 1)
    assert_equals(tonumber(val:tolua()), 1)
 
-   -- oldest msg was overwritten: 2, 3 remain
-   assert_equals(tonumber(ubx.interaction_read(ib, rdat)), 1)
-   assert_equals(rdat:tolua(), 2)
-   assert_equals(tonumber(ubx.interaction_read(ib, rdat)), 1)
-   assert_equals(rdat:tolua(), 3)
+   -- oldest msg was overwritten: 2 .. blen+1 remain
+   for v = 2, blen + 1 do
+      assert_equals(tonumber(ubx.interaction_read(ib, rdat)), 1)
+      assert_equals(rdat:tolua(), v)
+   end
    assert_equals(tonumber(ubx.interaction_read(ib, rdat)), 0)
 end
 
@@ -106,6 +107,12 @@ end
 function TestIblockOverruns:TestLfrbOverruns()
    setup_node("TestLfrbOverruns", "lfrb")
    check_overruns("ubx/lfrb")
+end
+
+--- buffer_len is kept although the queues are rounded up to 4
+function TestIblockOverruns:TestLfrbOverrunsBufferLen3()
+   setup_node("TestLfrbOverrunsBufferLen3", "lfrb")
+   check_overruns("ubx/lfrb", 3)
 end
 
 --- lfrb with buffer_len=1: overwrite semantics, no spinning/hanging

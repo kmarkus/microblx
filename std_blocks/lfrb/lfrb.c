@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdatomic.h>
 #include <errno.h>
+#include <limits.h>
 #include "ubx.h"
 #include "lfq.h"
 
@@ -64,6 +65,7 @@ int lfrb_init(ubx_block_t *i)
 {
 	int ret = -1;
 	long len;
+	unsigned long qcap;
 	const int *ival;
 	const uint32_t *val;
 	const char *type_name;
@@ -127,8 +129,17 @@ int lfrb_init(ubx_block_t *i)
 	ubx_debug(i, "%s: alloc ringbuf of %lu x %s [%lu]",
 		  __func__, inf->buffer_len, type_name, inf->data_len);
 
+	/* queues hold at most buffer_len elements, so a power of 2
+	 * capacity (faster indexing) does not change the semantics.
+	 * Beyond the largest one keep buffer_len (lfq_init fails) */
+	qcap = 1;
+	while (qcap < (unsigned long)inf->buffer_len && qcap <= ULONG_MAX / 2)
+		qcap <<= 1;
+	if (qcap < (unsigned long)inf->buffer_len)
+		qcap = inf->buffer_len;
+
 	/* free_queue */
-	ret = lfq_init(&inf->freeq, inf->buffer_len);
+	ret = lfq_init(&inf->freeq, qcap);
 
 	if (ret != 0) {
 		ubx_debug(i, "%s: lfq_init failed for freeq: %s",
@@ -138,7 +149,7 @@ int lfrb_init(ubx_block_t *i)
 	}
 
 	/* used_queue */
-	ret = lfq_init(&inf->usedq, inf->buffer_len);
+	ret = lfq_init(&inf->usedq, qcap);
 
 	if (ret != 0) {
 		ubx_debug(i, "%s: lfq_init failed for usedq: %s",
@@ -278,7 +289,7 @@ void lfrb_write(ubx_block_t *i, const ubx_data_t *msg)
 		}
 	}
 
-	len = data_size(msg);
+	len = msg->len * inf->type->size;
 	memcpy(elem->data, msg->data, len);
 	elem->data_len = msg->len;
 
