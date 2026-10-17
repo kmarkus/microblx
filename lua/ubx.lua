@@ -1156,9 +1156,21 @@ function M.data_alloc(nd, type_name, num)
    return M.__data_alloc(t, num)
 end
 
+-- per node (by pointer): cur_seqid at the last complete ffi_load_types scan
+local ffi_types_seqid = {}
+
 --- Load the registered C types into the luajit ffi.
+-- Returns at once if no type was registered since the last call: the scan
+-- costs ~0.75 ms and ~6 KB of garbage per call with 67 types (arm64 A53),
+-- and lsdb-intf runs it on every call.
+-- Limit: a node cleanup resets cur_seqid, so the exact same count of
+-- types registered again after a cleanup is not noticed.
 -- @param nd node_info_t*
 function M.ffi_load_types(nd)
+   -- nd is the struct from node_create or a pointer to it
+   local nd_key = ptr_key(ffi.cast("const void*", nd))
+   local seqid = tonumber(nd.cur_seqid)
+   if ffi_types_seqid[nd_key] == seqid then return end
 
    local function ffi_struct_type_is_loaded(t)
       return pcall(ffi.typeof, ffi.string(t.name))
@@ -1194,6 +1206,7 @@ function M.ffi_load_types(nd)
 
    table.sort(typ_list, function (tr1,tr2) return tr1.seqid<tr2.seqid end)
    utils.foreach(ffi_load_no_ns, typ_list)
+   ffi_types_seqid[nd_key] = seqid
 end
 
 -- Set of ubx_type_t we allocated from Lua (keyed by pointer address), so
