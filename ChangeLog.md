@@ -5,6 +5,16 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `luablock`: a threaded luablock now gets a Lua global `stop_fd`,
+  an eventfd written on stop, so a `step` that blocks in an event
+  loop can return.
+- `lsdb-intf`: `step` runs the bus without timeout until stopped
+  instead of polling. An idle node no longer wakes ~3 times per
+  second and a D-Bus call is no longer delayed by up to 100 ms.
+  **fix** a plugin timer (`ctx.bus:add_periodic`) under 200 ms kept
+  the block from stopping. lsdb-intf now requires `thread=1` and
+  lsdbus 7f60472 or newer (64 bit `bus:run` timeout). Note that
+  sd-event coalesces timers by 250 ms unless an accuracy is passed.
 - `ubx_block_t`, `ubx_port_t`: **ABI change**: the fields used on
   every step, read and write now come first and both are allocated
   cache line aligned, so a step or port access touches one line.

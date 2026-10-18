@@ -141,6 +141,81 @@ local function create_node(ndname)
    return nd, blk, bus, proxy, pm_proxy
 end
 
+local function now_ms()
+   local ts = ubx.gettime()
+   return tonumber(ts.sec) * 1e3 + tonumber(ts.nsec) / 1e6
+end
+
+local function sleep_ms(ms)
+   ubx.nanosleep(math.floor(ms / 1000), (ms % 1000) * 1e6)
+end
+
+---
+--- Wakeups and latency
+---
+
+-- voluntary context switches of the thread named thname. step never
+-- returns while active, so stat_num_steps can't show wakeups
+local function thread_wakeups(thname)
+   local pid = io.open("/proc/self/stat"):read("*n")
+   local p = io.popen(fmt("grep -lx %s /proc/%d/task/*/comm", thname, pid))
+   local comm = p:read("*l")
+   p:close()
+   assert_not_nil(comm, "no thread " .. thname)
+   local st = io.open((comm:gsub("comm$", "status"))):read("*a")
+   return tonumber(st:match("voluntary_ctxt_switches:%s*(%d+)"))
+end
+
+-- an idle lsdb0 sleeps on the bus fd: no periodic wakeups
+function TestLsdbIntf:test_idle_no_wakeups()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_idle")
+   assert_not_nil(_proxy.Node)
+   sleep_ms(100)
+   local n0 = thread_wakeups("lsdb0")
+   sleep_ms(1000)
+   local n1 = thread_wakeups("lsdb0")
+   assert_true(n1 - n0 <= 1, fmt("%d wakeups while idle", n1 - n0))
+end
+
+-- a call after an idle period is handled at once. 220 ms idle hit
+-- the old fixed 100 ms sleep that followed a 200 ms bus:run.
+function TestLsdbIntf:test_call_latency_after_idle()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_latency")
+   assert_not_nil(_proxy.Node)
+   local max = 0
+   for i = 1, 3 do
+      sleep_ms(220)
+      local t0 = now_ms()
+      local _ = _proxy.Node
+      max = math.max(max, now_ms() - t0)
+   end
+   assert_true(max < 20, fmt("max call latency %.1f ms", max))
+end
+
+function TestLsdbIntf:test_stop_idle_is_fast_and_restart()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_stop")
+   assert_not_nil(_proxy.Node)
+   sleep_ms(50)
+   local t0 = now_ms()
+   ubx.block_stop(_lsdb_blk)
+   local dt = now_ms() - t0
+   assert_true(dt < 50, fmt("stop took %.1f ms", dt))
+   -- restart: start opens a new bus
+   assert_equals(ubx.block_start(_lsdb_blk), 0)
+   assert_equals(_proxy.Node, "test_stop")
+end
+
+-- ctx.bus timers wake the thread without any D-Bus traffic
+function TestLsdbIntf:test_plugin_timer_fires()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_timer")
+   _pm_proxy('LoadPlugin', TEST_PLUGIN)
+   local tp = lsdb.proxy.new(_bus, fmt(UBX_SRV, "test_timer"), "/testplugin", "org.test.plugin")
+   tp('StartTimer', 20000)
+   sleep_ms(500)
+   local ticks = tp('Ticks')
+   assert_true(ticks >= 15 and ticks <= 30, fmt("%d ticks in 500 ms at 20 ms", ticks))
+end
+
 ---
 --- Properties
 ---

@@ -11,7 +11,8 @@ local _missing_deps = {}
 if not _lsdb_ok then _missing_deps[#_missing_deps+1] = "lsdbus" end
 if not _err_ok  then _missing_deps[#_missing_deps+1] = "lsdbus.error" end
 
-local BUS_RUN_TIMEOUT_USEC = 200000
+local EPOLLIN = 1
+local USEC_INFINITY = 0xffffffffffffffffULL	-- sd-event: no timeout
 
 local SERVICE =	"org.ubx.%s"
 
@@ -69,7 +70,7 @@ local plugins_reg = {}
 local ctx
 
 -- bus connection and org.ubx.node vtable; set in start(), used by step/stop and plugins
-local bus, vt, ndname
+local bus, vt, ndname, stop_src, stopping
 
 local function vt_errhdl(e, bt, ctx)
    local estr = tostring(e)
@@ -669,12 +670,20 @@ function start(block)
    ndname = ubx.safe_tostr(nd.name)
    ubx.ffi_load_types(nd)
 
+   if not stop_fd then
+      ubx.err(nd, "lsdb-intf", "must run as a threaded luablock (thread=1)")
+      return false
+   end
+
    if bus then
       pcall(bus.release_name, bus, fmt(SERVICE, ndname))
       bus = nil
    end
 
    bus = lsdb.open()
+   -- luablock writes stop_fd on stop: leave step. not exit_loop:
+   -- sd-event exit closes the bus, which stop still needs
+   stop_src = bus:add_io(stop_fd, EPOLLIN, function() stopping = true end)
    bus:request_name(fmt(SERVICE, ndname))
 
    vt = lsdb.server.new(bus, "/", intf, vt_errhdl)
@@ -705,8 +714,10 @@ function start(block)
    return true
 end
 
+-- runs the bus until the block is stopped
 function step(block)
-   while bus:run(BUS_RUN_TIMEOUT_USEC) > 0 do end
+   stopping = false
+   repeat bus:run(USEC_INFINITY) until stopping
 end
 
 function stop(block)
@@ -717,6 +728,7 @@ function stop(block)
    for _, name in ipairs(names) do do_unload_plugin(name) end
    bus:release_name(fmt(SERVICE, ndname))
    bus = nil
+   stop_src = nil
 end
 
 function cleanup(block)
