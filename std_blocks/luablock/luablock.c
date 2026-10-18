@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <unistd.h>
+#include <sys/eventfd.h>
 
 #include "ubx.h"
 
@@ -53,6 +55,7 @@ struct luablock_info {
 	pthread_t tid;
 	pthread_mutex_t mutex;
 	volatile int thread_running;
+	int stop_fd;	/* eventfd, Lua global stop_fd, written on stop */
 };
 
 const char *predef_hooks =
@@ -238,6 +241,7 @@ int luablock_preinit(ubx_block_t *b)
 		goto out;
 
 	b->private_data = inf;
+	inf->stop_fd = -1;
 
 	len = cfg_getptr_char(b, "lua_file", &lua_file);
 	if (len < 0)
@@ -268,6 +272,12 @@ int luablock_preinit(ubx_block_t *b)
 			goto out_free1;
 		}
 		inf->period_ms = *period_cfg;
+
+		inf->stop_fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+		if (inf->stop_fd < 0) {
+			ubx_err(b, "eventfd failed: %s", strerror(errno));
+			goto out_free1;
+		}
 		pthread_mutex_init(&inf->mutex, NULL);
 	}
 
@@ -279,6 +289,12 @@ int luablock_preinit(ubx_block_t *b)
 
 	if (init_lua_state(b, lua_file, lua_str) != 0)
 		goto out_free2;
+
+	/* a step that blocks (e.g. in an event loop) must wake on it */
+	if (inf->use_thread) {
+		lua_pushinteger(inf->L, inf->stop_fd);
+		lua_setglobal(inf->L, "stop_fd");
+	}
 
 	ret = call_hook(b, "preinit", 0, 1);
 	if (ret != 0)
@@ -295,8 +311,10 @@ int luablock_preinit(ubx_block_t *b)
 	}
 	ubx_data_free(inf->exec_str_buff);
  out_free1:
-	if (inf->use_thread)
+	if (inf->use_thread && inf->stop_fd >= 0) {
 		pthread_mutex_destroy(&inf->mutex);
+		close(inf->stop_fd);
+	}
 	free(inf);
 	b->private_data = NULL;
  out:
@@ -376,8 +394,12 @@ void luablock_stop(ubx_block_t *b)
 	struct luablock_info *inf = (struct luablock_info *)b->private_data;
 
 	if (inf->use_thread && inf->thread_running) {
+		eventfd_t cnt;
+
 		inf->thread_running = 0;
+		eventfd_write(inf->stop_fd, 1);
 		pthread_join(inf->tid, NULL);
+		eventfd_read(inf->stop_fd, &cnt);
 		ubx_info(b, "self-trigger thread stopped");
 	}
 
@@ -400,8 +422,10 @@ void luablock_preexit(ubx_block_t *b)
 	call_hook(b, "preexit", 0, 0);
 	lua_close(inf->L);
 
-	if (inf->use_thread)
+	if (inf->use_thread) {
 		pthread_mutex_destroy(&inf->mutex);
+		close(inf->stop_fd);
+	}
 
 	ubx_data_free(inf->exec_str_buff);
 	free(b->private_data);

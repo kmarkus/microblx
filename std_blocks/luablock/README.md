@@ -32,6 +32,10 @@ function cleanup(block) end
 
 The `block` argument is the raw `ubx_block_t*`; cast with `ffi.cast("ubx_block_t*", block)` for full API access.
 
+With `thread=1`, the global `stop_fd` holds an eventfd that becomes
+readable when the block is stopped. A `step` that blocks, e.g. in an
+event loop, must watch it and return (see `lsdb-intf.lua`).
+
 ## Usage
 
 ```lua
