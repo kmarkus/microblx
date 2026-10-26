@@ -3,7 +3,7 @@ ChangeLog
 
 This file tracks user visible API changes
 
-## unreleased
+## 1.0.0
 
 - hot connect/disconnect: with the new cmake option `ENABLE_URCU`
   (liburcu-bp) ports can be connected and disconnected while blocks
@@ -66,9 +66,14 @@ This file tracks user visible API changes
   until the block is removed; before, the new value was silently
   ignored. `luablock`: `lua_file`, `lua_str`, `thread` and `period`
   have it.
-
-## 1.0.0
-
+- `ubx.block_tostate`: **fix** return 0 if the block is already in
+  the target state, instead of `EWRONG_STATE` from the running block
+  checks.
+- `ubx/mqueue`: **fix** several init failures returned a positive
+  value instead of an error code.
+- `ubx/lfrb`: the internal queues round `buffer_len` up to a power of
+  2 for faster indexing; the capacity seen by users is unchanged.
+  liblfq inlines its atomics on aarch64.
 - `luablock`: a threaded luablock now gets a Lua global `stop_fd`,
   an eventfd written on stop, so a `step` that blocks in an event
   loop can return.
