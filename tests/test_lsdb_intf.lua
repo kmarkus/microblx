@@ -894,10 +894,24 @@ function cleanup(b) ubx.port_rm(b, "in") end
    assert_true(ubx.connect(_nd, "t1", "state", "logger", "in"))
    assert_equals(ubx.block_tostate(lg, 'active'), 0)
 
+   -- block_tostate errors for the iblock, from the rtlog buffer
+   local function refusals()
+      local f = io.popen("ubx-log -N -F 2>/dev/null")
+      if not f then return 0 end
+      local n = 0
+      for l in f:lines() do
+	 if l:find("connected to running block logger", 1, true) then n = n + 1 end
+      end
+      f:close()
+      return n
+   end
+
    if ubx.hot_connect() then
+      local nref = refusals()
       _proxy('ClearNode', { "logger" })
       assert_true(not cblocks_contains(_proxy.CBlocks, "t1"))
       assert_equals(lg:get_block_state(), "active")
+      assert_equals(refusals(), nref, "ClearNode logged block_tostate errors")
    else
       assert_error_msg_contains("connected to running blocks",
          function() _proxy('ClearNode', { "logger" }) end)

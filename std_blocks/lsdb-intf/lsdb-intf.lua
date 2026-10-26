@@ -297,7 +297,13 @@ local function clear_node(vt, keeplist)
       end, stop_first)
    until stopped == 0
 
-   ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'inactive') end, filter)
+   -- with hot connect leave iblocks to block_unload, which disconnects
+   -- them first: block_tostate refuses those used by kept running blocks
+   local function stop_filter(b)
+      return filter(b) and not (ubx.hot_connect() and ubx.is_iblock(b))
+   end
+
+   ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'inactive') end, stop_filter)
 
    -- without hot connect an iblock used by a kept running block
    -- stays active (block_tostate refuses): fail before removing any
@@ -310,7 +316,7 @@ local function clear_node(vt, keeplist)
 		    table.concat(busy, ", "))
       end
    end
-   ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'preinit') end, filter)
+   ubx.blocks_map(vt.nd, function(b) ubx.block_tostate(b, 'preinit') end, stop_filter)
    -- collect the names first: removing frees the block that
    -- blocks_map would read the next pointer from
    local names = ubx.blocks_map(vt.nd, function(b) return b:get_name() end, filter)
