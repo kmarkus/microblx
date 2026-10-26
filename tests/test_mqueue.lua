@@ -75,7 +75,8 @@ function TestMqueue:TestUbxMqRead()
    ubx.data_set(wdat, 4711)
    ubx.interaction_write(mq, wdat)
 
-   local f = assert(io.popen("timeout 1 ubx-mq read " .. MQ_ID .. "t 2>&1"))
+   -- no timeout(1) on busybox targets
+   local f = assert(io.popen("ubx-mq read " .. MQ_ID .. "t 2>&1 & sleep 1; kill $!"))
    local out = f:read("*a")
    f:close()
    assert_equals(out, "4711\n")
