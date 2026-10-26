@@ -11,6 +11,9 @@ local utils = require("utils")
 
 local MQPATH="/dev/mqueue"
 
+-- show each sample at once when piped, e.g. to grep
+io.stdout:setvbuf("line")
+
 local ts = tostring
 local fmt = string.format
 
@@ -79,8 +82,7 @@ local function newmq(mqtab, preloads)
 		       type_name = ubx.safe_tostr(typ.name),
 		       data_len = mqtab.data_len,
 		       buffer_len = 32,
-		       unlink=0,
-		       blocking = 1 } )
+		       unlink=0 } )
 
    local mq = nd:b("mq")
 
@@ -112,6 +114,9 @@ local function read(mqtab, preloads)
       elseif ret < 0 then
 	 print("reading mq failed")
 	 os.exit(1)
+      else
+	 -- non-blocking: mqueue rejects blocking mode with urcu
+	 ubx.nanosleep(0, 1000000)
       end
    end
 end

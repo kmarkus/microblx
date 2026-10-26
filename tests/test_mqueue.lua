@@ -57,6 +57,30 @@ function TestMqueue:TestScalarRoundtrip()
    assert_equals(tonumber(ubx.interaction_read(mq, rdat)), 0)
 end
 
+--- ubx-mq reads a queue of a running node (it used blocking mode,
+--- which fails with urcu)
+function TestMqueue:TestUbxMqRead()
+   local r = os.execute("command -v ubx-mq >/dev/null 2>&1")
+   lu.skipIf(not (r == 0 or r == true), "ubx-mq not found")
+
+   nd = ubx.node_create("TestUbxMq", { loglevel = LOGLEVEL })
+   ubx.load_module(nd, "stdtypes")
+   ubx.load_module(nd, "mqueue")
+   ubx.ffi_load_types(nd)
+
+   local mq = create_mq("mq1", {
+      mq_id = MQ_ID .. "t", type_name = "int", buffer_len = 4 })
+
+   local wdat = ubx.data_alloc(nd, "int", 1)
+   ubx.data_set(wdat, 4711)
+   ubx.interaction_write(mq, wdat)
+
+   local f = assert(io.popen("timeout 1 ubx-mq read " .. MQ_ID .. "t 2>&1"))
+   local out = f:read("*a")
+   f:close()
+   assert_equals(out, "4711\n")
+end
+
 --- array data roundtrip
 function TestMqueue:TestArrayRoundtrip()
    local DATA_LEN = 3
