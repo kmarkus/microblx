@@ -135,8 +135,8 @@ sudo make install && sudo ldconfig
 Timing-sensitive systems should enable a hardware time source: a
 timestamp costs 65 ns with the default POSIX clock (vDSO) vs. 15 ns
 with `CNTVCT` (1.25 GHz Cortex-A53). A `ptrig` with `tstats_mode=2`
-over four blocks takes eleven per cycle, and the `sleep_mode` 1/2
-busy-wait resolution follows the same ratio (~68 vs. ~9 ns).
+over four blocks takes 11 timestamps per cycle, and the `sleep_mode`
+1/2 busy-wait resolution follows the same ratio (~68 vs. ~9 ns).
 
 Query the options of an installation (also `ubx-modinfo -version`;
 timesource and tracing backend are logged at `INFO` on node init):
@@ -577,9 +577,8 @@ Mozilla Public License Version 2.0 (MPL-2.0). Standard blocks are
 mostly licensed under the permissive BSD 3-Clause "New" or "Revised"
 License or also under the MPLv2.
 
-It boils down to the following. Use microblx as you wish in free and
-proprietary applications. You can distribute binary function blocks as
-modules. Only if you make changes to the core files (mostly the files
+Use microblx as you wish in free and proprietary applications. You
+can distribute binary function blocks as modules. Only if you make changes to the core files (mostly the files
 in `libubx/`), and distribute these, then you are required to
 release these under the conditions of the MPL-2.0.
 

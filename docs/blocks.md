@@ -200,13 +200,13 @@ int rnd_start(ubx_block_t *b)
 ```
 
 Copying to `private_data` is only needed for defaults; otherwise use
-the pointer directly. Permitted config changes per state:
+the pointer directly. Configs can be set:
 
-| block state | allowed config changes |
-|-------------|------------------------|
-| `preinit`   | resize and change      |
-| `inactive`  | change values          |
-| `active`    | none                   |
+| block state                            | settable configs                           |
+|----------------------------------------|--------------------------------------------|
+| `preinit`, before the `preinit` hook   | all                                        |
+| `preinit` after the hook, `inactive`   | all except `CONFIG_ATTR_PREINIT` ones      |
+| `active`                               | none                                       |
 
 Configs may be resized in `preinit`, so re-retrieve pointer and length
 in `init`.
@@ -469,7 +469,10 @@ ubx_proto_block_t myib_block = {
 ```
 
 Check `msg->type` against the configured type and use
-`data_size(msg)` for the size in bytes. A minimal real one:
+`data_size(msg)` for the size in bytes. `read` and `write` must not
+block: they run inside the RCU read section of the port access, so a
+blocking one stalls all connects and disconnects (see [Runtime
+reconfiguration](runtime.md#constraints)). A minimal real one:
 [vstore](../std_blocks/vstore/vstore.c).
 
 ## Triggers
@@ -519,30 +522,23 @@ Reference: [trig](../std_blocks/trig/trig.c) and
 
 ## Runtime reconfiguration
 
-With `ENABLE_URCU` (the default), ports can be connected and
-disconnected while blocks run (see [Runtime
-reconfiguration](runtime.md)). For block authors this means:
+Ports can be connected and disconnected while blocks run (see
+[Runtime reconfiguration](runtime.md)). For block authors:
 
 - a port can become connected or unconnected between two steps:
-  handle `read_*` returning 0 in every step, not only after `start`.
-- read configs in `init`/`start` as usual: they can not be set while
-  the block is active (`set_config` raises an error).
-- add and remove ports and configs only in the life-cycle hooks
-  (`preinit`, `init`, `start`, `stop`, `cleanup`, `preexit`), never
-  in `step`: connect and disconnect walk the port lists of all blocks
-  from the control thread.
-- blocks that create their own threads (triggers, I/O threads) and
-  access ports from them should call `ubx_rcu_thread_init()` at
-  thread start, before the RT loop. Otherwise the thread registers
-  with liburcu on its first port access, which allocates and can
-  wait for a concurrent disconnect (priority inversion). It is a
-  no-op without `ENABLE_URCU`.
+  handle `read_*` returning 0 in every step.
+- configs can not be set while the block is active: read them in
+  `init`/`start` as usual.
+- add and remove ports and configs only in the life-cycle hooks,
+  never in `step`.
+- do not connect or disconnect from the `step` of an RT block: it
+  allocates and waits for running port accesses.
+- threads created by a block that access ports call
+  `ubx_rcu_thread_init()` before their loop:
 
 ```c
 static void *mytrig_thread(void *arg)
 {
-	ubx_block_t *b = arg;
-
 	ubx_rcu_thread_init();
 
 	while (running) {
@@ -551,9 +547,3 @@ static void *mytrig_thread(void *arg)
 	return NULL;
 }
 ```
-
-- do not connect or disconnect from `step` of an RT block: both
-  allocate, take a mutex and wait for running port accesses.
-- do not walk `port->in_interaction`/`out_interaction` yourself;
-  if needed, only between `ubx_rcu_read_lock()` and
-  `ubx_rcu_read_unlock()`, and keep no pointers after the unlock.

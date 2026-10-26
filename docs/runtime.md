@@ -36,18 +36,19 @@ constraints that must hold.
   with the `active_chain` port.
 - **stopping a block used by running blocks**: its `stop`/`cleanup`
   hooks would run concurrently with a `step` or port access.
-  `ubx.block_tostate` returns `EWRONG_STATE` for a running block in
-  the chain of a trigger (stop the trigger first) and for an iblock
-  connected to a running block (disconnect it first). A block is
-  running if it is active and owns a thread (`BLOCK_ATTR_ACTIVE`,
-  e.g. ptrig or a luablock with `thread=1`) or is in the chain of an
-  active trigger that is running, also via nested chains. A passive
-  trigger stepped only by the caller (e.g. `ubx-dbus -t`) is not
-  running. `ubx.block_unload` still refuses a block in the chain of
-  any active trigger: triggers cache their chains in `start`. Blocks
-  stepped from another thread by other means than a trigger chain
-  (e.g. `ubx.block_step` in a threaded luablock) are not detected.
-  `ubx_block_stop` is not checked.
+  `ubx.block_tostate` returns `EWRONG_STATE` for
+  - a block in the chain of a running trigger: stop the trigger first.
+  - an iblock connected to a running block: disconnect it first.
+
+  A block is *running* if it is active and owns a thread
+  (`BLOCK_ATTR_ACTIVE`, e.g. ptrig or a luablock with `thread=1`), or
+  is in the chain of a running trigger, also via nested chains. A
+  passive trigger stepped only by the caller (e.g. `ubx-dbus -t`) is
+  not running. `ubx.block_unload` refuses a block in the chain of any
+  active trigger, as triggers cache their chains in `start`. Not
+  detected: blocks stepped from another thread without a trigger chain
+  (e.g. `ubx.block_step` in a threaded luablock), and the C API
+  (`ubx_block_stop`).
 - **adding, removing or resizing ports and configs**: resizing ports
   only in state `preinit` (enforced). Adding and removing ports and
   configs only in the life-cycle hooks, which the control thread
@@ -92,11 +93,14 @@ and an iblock is disconnected before it is stopped and removed.
 Connection introspection (`ubx.port_conns_totab`,
 `ubx.build_conntab`) is safe against concurrent changes.
 
-```lua
--- while the trigger is running
-assert(ubx.connect(nd, "ramp", "out", "sink", "in", "ubx/lfrb", { buffer_len=4 }))
-assert(ubx.disconnect(nd, "ramp", "out", "sink", "in"))
+```sh
+$ ubx-ilaunch -c /usr/local/share/ubx/examples/usc/threshold.usc
+> ubx.disconnect(nd, "sin", "y", "thres", "in")   -- thres gets no more data
+> ubx.connect(nd, "sin", "y", "thres", "in")      -- reconnect via a new ubx/lfrb
 ```
+
+The same via D-Bus: `ubx-dbus -d sin:y:thres:in` and `ubx-dbus -x
+sin:y:thres:in` (see [lsdb-intf](../std_blocks/lsdb-intf/README.md)).
 
 ### Using the C API: up to the author
 
@@ -131,23 +135,15 @@ disconnects hang.
   mutex serializes connection changes from several threads, but
   block creation and removal (`ubx.block_create`, `ubx.block_rm`,
   ...) are not thread safe.
-- **RT threads should call `ubx_rcu_thread_init()`** before their
-  loop (see below).
+- **Threads should call `ubx_rcu_thread_init()`** at start, before
+  the RT loop. Otherwise liburcu-bp registers the thread on its first
+  port access, which allocates and can wait up to a grace period
+  behind a non-RT writer (priority inversion). `ubx/ptrig` and
+  `ubx/luablock` do this. No-op without `ENABLE_URCU`.
 - Connecting from inside a read section, i.e. from an iblock's
   `read`/`write` hook or between `ubx_rcu_read_lock/unlock`, would
   deadlock on the grace period. The call fails with `EWRONG_STATE`
   instead.
-
-### Threads
-
-liburcu-bp registers each thread on its first port access. That
-one-time registration allocates and takes liburcu's registry mutex,
-which a writer holds while it waits for a grace period. For an RT
-thread this means a one-time delay of up to a grace period, with
-priority inversion behind a non-RT writer. Avoid it by calling
-`ubx_rcu_thread_init()` at thread start, before the RT loop.
-`ubx/ptrig` and `ubx/luablock` do this; blocks that create their
-own threads should do the same. Without `ENABLE_URCU` it is a no-op.
 
 ## Cost
 
