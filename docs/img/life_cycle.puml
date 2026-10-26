@@ -4,20 +4,38 @@
 hide empty description
 title microblx block life-cycle
 
-[*] --> preinit : <color:RoyalBlue>ubx_block_create()</color>\n<color:RoyalBlue>apply_config #1 (static / meta)</color>\n<color:DarkGreen>preinit()</color>
+state preinit {
+  state created
+  state preinited
+  created --> preinited : <color:DarkGreen>preinit()</color>\n<color:RoyalBlue>(ubx_block_preinit or the first ubx_block_init)</color>
+  preinited : preinit configs locked
+}
 
-preinit --> inactive : <color:RoyalBlue>apply_config #2 (preinit-created)</color>\n<color:DarkGreen>init()</color>\n<color:RoyalBlue>reapply_config #3 (init-created)</color>
-inactive --> preinit  : <color:DarkGreen>cleanup()</color>
+[*] --> created : <color:RoyalBlue>ubx_block_create()</color>\n<color:RoyalBlue>apply_config #1 (static / meta)</color>
+
+preinited --> inactive : <color:RoyalBlue>apply_config #2 (preinit-created)</color>\n<color:DarkGreen>init()</color>\n<color:RoyalBlue>reapply_config #3 (init-created)</color>
+inactive --> preinited : <color:DarkGreen>cleanup()</color>
 
 inactive --> active : <color:DarkGreen>start()</color>
 active --> inactive : <color:DarkGreen>stop()</color>
 
-preinit --> [*] : <color:DarkGreen>preexit()</color>\n<color:RoyalBlue>ubx_block_rm()</color>
+created --> [*] : <color:RoyalBlue>ubx_block_rm()</color>
+preinited --> [*] : <color:DarkGreen>preexit()</color>\n<color:RoyalBlue>ubx_block_rm()</color>
 
 active : <color:DarkGreen>step()  /  read() / write()</color>
+active : all configs locked
+inactive : preinit configs locked
+
+note right of active
+  ubx.block_tostate refuses stop/cleanup
+  (EWRONG_STATE) of a block stepped by a
+  running trigger or an iblock connected
+  to a running block
+end note
 
 legend bottom
   <color:RoyalBlue>**blue**</color> = framework / external step (API call, config apply)
   <color:DarkGreen>**green**</color> = block hook (transition effect, never entry/exit)
+  preinit runs once per block: cleanup returns to preinited
 endlegend
 @enduml
