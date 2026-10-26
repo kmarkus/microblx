@@ -1739,11 +1739,16 @@ end
 
 --- Set a configuration value (resizes buffer as needed).
 -- **Errors** if the block is active: blocks read configs in
--- init/start. Use ports for values that change at runtime.
+-- init/start. Use ports for values that change at runtime. Also
+-- errors for a preinit config (`CONFIG_ATTR_PREINIT`) after preinit.
 -- @param c `ubx_config_t`
 -- @param val value to assign (LuaJIT FFI init rules apply)
 function M.config_set(c, val)
    if ubx.cfg_settable(c) == 0 then
+      if ubx.cfg_is_preinit(c) ~= 0 then
+	 error(fmt("set_config: %s.%s is a preinit config, it can not be set after preinit",
+		   ffi.string(c.block.name), ffi.string(c.name)))
+      end
       error(fmt("set_config: block %s is active, stop it first (config %s)",
 		ffi.string(c.block.name), ffi.string(c.name)))
    end

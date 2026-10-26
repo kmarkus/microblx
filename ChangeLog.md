@@ -56,6 +56,12 @@ This file tracks user visible API changes
 - rtlog: **fix** removing a node closed the log segment for all other
   nodes of the process, whose next log call segfaulted.
 - cmake: minimum version 3.13.
+- `CONFIG_ATTR_PREINIT`: marks a config that the block reads in
+  `preinit`. Setting it after `preinit` (`ubx_config_assign`,
+  `ubx.set_config`, `config_set`, lsdb-intf `SetConfig`) now fails
+  until the block is removed; before, the new value was silently
+  ignored. `luablock`: `lua_file`, `lua_str`, `thread` and `period`
+  have it.
 
 ## 1.0.0
 

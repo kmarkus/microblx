@@ -121,6 +121,13 @@ the static configs, `init` also the configs created by `preinit`.
 interface only need `init`..`cleanup`. What may change while a block
 is active is described in [Runtime reconfiguration](runtime.md).
 
+`preinit` runs once per block: `cleanup` returns to state `preinit`,
+but the next `init` does not run `preinit` again, only removing the
+block does (`preexit`). Mark the prototype configs that `preinit`
+reads with `.attrs = CONFIG_ATTR_PREINIT`: setting them after
+`preinit` then fails (`EWRONG_STATE`, or a Lua error) instead of
+having no effect. A config created in `preinit` must not have it.
+
 ## Block local state
 
 No globals: a block type can have many instances. Use

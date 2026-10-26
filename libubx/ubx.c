@@ -55,6 +55,7 @@ int port_is_dyn(const ubx_port_t *p) { return !port_is_cloned(p); }
 
 int cfg_is_cloned(const ubx_config_t *c) { return c->attrs & CONFIG_ATTR_CLONED; }
 int cfg_is_dyn(const ubx_config_t *c) { return !cfg_is_cloned(c); }
+int cfg_is_preinit(const ubx_config_t *c) { return c->attrs & CONFIG_ATTR_PREINIT; }
 
 /* the hot fields of blocks and ports are grouped at the start, so
  * start them on a cache line too. the layout is designed for 64 B
@@ -76,10 +77,18 @@ static void *calloc_cl(size_t size)
 }
 
 /* configs can not be set while the block is active: blocks read them
- * in init/start and cache pointers to the data */
+ * in init/start and cache pointers to the data. A preinit config is
+ * read once by the preinit hook, so setting it afterwards would
+ * silently have no effect */
 int cfg_settable(const ubx_config_t *c)
 {
-	return c->block == NULL || c->block->block_state != BLOCK_STATE_ACTIVE;
+	if (c->block == NULL)
+		return 1;
+
+	if (cfg_is_preinit(c) && c->block->preinited)
+		return 0;
+
+	return c->block->block_state != BLOCK_STATE_ACTIVE;
 }
 
 
@@ -1025,7 +1034,7 @@ static void ubx_config_free(ubx_config_t *c)
  * @param data ubx_data_t to assign
  *
  * @return 0 if OK, ETYPE_MISMATCH for mismatching types, EWRONG_STATE
- *         if the block is active
+ *         if the block is active or for a preinit config after preinit
  */
 int ubx_config_assign(ubx_config_t *c, ubx_data_t *d)
 {
@@ -1033,7 +1042,11 @@ int ubx_config_assign(ubx_config_t *c, ubx_data_t *d)
 		return ETYPE_MISMATCH;
 
 	if (!cfg_settable(c)) {
-		ubx_err(c->block, "config %s: block is active", c->name);
+		if (cfg_is_preinit(c))
+			ubx_err(c->block, "config %s: preinit config, can not be set after preinit",
+				c->name);
+		else
+			ubx_err(c->block, "config %s: block is active", c->name);
 		return EWRONG_STATE;
 	}
 

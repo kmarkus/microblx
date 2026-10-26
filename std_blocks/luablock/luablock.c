@@ -27,10 +27,11 @@ ubx_proto_port_t lua_ports[] = {
 };
 
 ubx_proto_config_t lua_conf[] = {
-	{ .name = "lua_file", .type_name = "char" },
-	{ .name = "lua_str", .type_name = "char" },
-	{ .name = "thread", .type_name = "int", .max = 1, .doc = "if 1, spawn a self-triggering thread" },
-	{ .name = "period", .type_name = "int", .max = 1, .doc = "thread period in msec (required if thread=1)" },
+	/* all read by preinit */
+	{ .name = "lua_file", .type_name = "char", .attrs = CONFIG_ATTR_PREINIT },
+	{ .name = "lua_str", .type_name = "char", .attrs = CONFIG_ATTR_PREINIT },
+	{ .name = "thread", .type_name = "int", .max = 1, .attrs = CONFIG_ATTR_PREINIT, .doc = "if 1, spawn a self-triggering thread" },
+	{ .name = "period", .type_name = "int", .max = 1, .attrs = CONFIG_ATTR_PREINIT, .doc = "thread period in msec (required if thread=1)" },
 	{ .name = "loglevel", .type_name = "int" },
 	{ 0 }
 };

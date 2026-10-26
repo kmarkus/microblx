@@ -255,11 +255,18 @@ typedef struct ubx_config {
  * @CONFIG_ATTR_CHECKLATE: perform checking of min and max before
  *			   start instead of before init hook
  *
+ * @CONFIG_ATTR_PREINIT: the block reads this config in its preinit
+ *			 hook. Once preinit has run it can no longer be
+ *			 set, until the block is removed. Only for
+ *			 prototype configs: a config created in preinit
+ *			 could never be set.
+ *
  * The first 8 bit are reserved, the others can be used freely.
  */
 enum {
 	CONFIG_ATTR_CLONED = 	1<<0,
 	CONFIG_ATTR_CHECKLATE = 1<<1,
+	CONFIG_ATTR_PREINIT =	1<<2,
 	/* ... */
 	CONFIG_ATTR_RESERVED =	1<<7,
 };
