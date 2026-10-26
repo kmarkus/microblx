@@ -916,7 +916,7 @@ end
 function M.block_tostate(b, tgtstate)
    local ret
 
-   if b.block_state == tgtstate then return 0 end
+   if M.block_state_tostr[b.block_state] == tgtstate then return 0 end
 
    -- stop/cleanup hooks would run concurrently with a running step
    -- or port access of the block

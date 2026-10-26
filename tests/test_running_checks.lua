@@ -82,6 +82,19 @@ function TestRunningChecks:TestStop()
    assert_equals(ubx.block_tostate(ib, 'preinit'), 0)
 end
 
+-- no check (and no EWRONG_STATE) if already in the target state
+function TestRunningChecks:TestSameState()
+   local trig = nd:b("trig")
+   local ib2 = ubx.block_create(nd, "ubx/lfrb", "ib2")
+
+   -- connect while nothing runs: without urcu that is unsafe
+   assert_equals(ubx.block_tostate(trig, 'inactive'), 0)
+   assert_equals(ubx.ubx.ubx_port_connect_in(ubx.port_get(nd:b("sink"), "in2"), ib2), 0)
+   assert_equals(ubx.block_tostate(trig, 'active'), 0)
+
+   assert_equals(ubx.block_tostate(ib2, 'preinit'), 0)
+end
+
 function TestRunningChecks:TestConnectUnload()
    local ok, msg = ubx.connect(nd, "ramp", "out", "sink", "in2")
    assert_equals(ok, hot_connect)
