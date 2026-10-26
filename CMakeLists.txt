@@ -143,11 +143,15 @@ endif()
 set(UBX_LOG_MSG_MAXLEN 115 CACHE STRING "max ubx log message length")
 
 # hot connect/disconnect of ports while blocks are running
-option(ENABLE_URCU "Use liburcu-bp for hot connect/disconnect" OFF)
+option(ENABLE_URCU "Use liburcu-bp for hot connect/disconnect" ON)
 
 if(ENABLE_URCU)
   # urcu_bp_* names and urcu/urcu-bp.h since 0.11
-  pkg_check_modules(URCU REQUIRED liburcu-bp>=0.11)
+  pkg_check_modules(URCU liburcu-bp>=0.11)
+  if(NOT URCU_FOUND)
+    message(FATAL_ERROR "liburcu-bp >= 0.11 not found (apt install liburcu-dev). "
+      "Configure with -DENABLE_URCU=OFF to build without hot connect/disconnect.")
+  endif()
   set(UBX_URCU 1)
   set(UBX_URCU_STR "yes")
 else()

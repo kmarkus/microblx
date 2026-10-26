@@ -13,7 +13,7 @@ constraints that must hold.
 
 | change                                   | how                                                           | requires      |
 |------------------------------------------|---------------------------------------------------------------|---------------|
-| connect/disconnect ports                 | `ubx.connect`, `ubx.disconnect`, D-Bus `Connect`/`Disconnect` | `ENABLE_URCU` |
+| connect/disconnect ports                 | `ubx.connect`, `ubx.disconnect`, D-Bus `Connect`/`Disconnect` | `ENABLE_URCU` (default) |
 | trigger period                           | ptrig `period`, `period_ns`, `sched_deadline` ports           | -             |
 | active trigger chain                     | `active_chain` port of `ubx/ptrig` and `ubx/trig`             | -             |
 | start/stop a trigger                     | block state of the trigger (stops its whole chain)            | -             |
@@ -66,12 +66,12 @@ constraints that must hold.
 
 ## Hot connect/disconnect
 
-Build with `-DENABLE_URCU=ON`, which requires liburcu-bp >= 0.11
+`ENABLE_URCU` is on by default and requires liburcu-bp >= 0.11
 (`apt install liburcu-dev`; in Yocto `liburcu` from oe-core).
-libubx then inlines LGPL-2.1 code from liburcu (`_LGPL_SOURCE`) and
-must be rebuilt when liburcu is updated. Blocks only call `ubx_*`
-functions and are not affected. Check
-the build:
+`-DENABLE_URCU=OFF` builds without it. libubx inlines LGPL-2.1 code
+from liburcu (`_LGPL_SOURCE`) and must be rebuilt when liburcu is
+updated. Blocks only call `ubx_*` functions and are not affected.
+Check the build:
 
 ```sh
 $ ubx-launch --version | grep urcu

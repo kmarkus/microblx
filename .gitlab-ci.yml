@@ -42,7 +42,8 @@ build:
   script:
     - cd $CI_PROJECT_DIR
     - mkdir build && pushd build
-    - cmake -DBLOCK_LSDB_INTF=ON ..
+    # without urcu, the default is covered by build-urcu
+    - cmake -DBLOCK_LSDB_INTF=ON -DENABLE_URCU=OFF ..
     # - make cppcheck
     - make -j10
     - popd
@@ -51,7 +52,7 @@ build:
       - build/
     expire_in: 1 hour
 
-# hot connect/disconnect (liburcu-bp)
+# hot connect/disconnect (liburcu-bp, the default)
 build-urcu:
   extends: build
   script:
@@ -73,6 +74,7 @@ test:
     - pushd build
     - make install && ldconfig
     - popd
+    - "ubx-launch --version | grep -q 'urcu: *no'"
     - export JUNIT_OUTPUT=test-results.xml
     - mkdir -p /run/dbus
     - dbus-run-session --config-file tests/dbus-test.conf -- ./run_tests.sh

@@ -10,8 +10,12 @@ This file tracks user visible API changes
   run, and `ubx.disconnect` no longer requires stopping them. See
   [Runtime reconfiguration](docs/runtime.md). `ubx-launch --version`
   reports `urcu: yes|no`.
-- `ubx/mqueue`: `blocking=1` fails to init with `ENABLE_URCU`: a
-  blocking read or write would stall every connect and disconnect.
+- **incompatible**: `ENABLE_URCU` is on by default, so liburcu-bp >=
+  0.11 is a build dependency (`apt install liburcu-dev`). Configure
+  with `-DENABLE_URCU=OFF` to build without it.
+- `ubx/mqueue`: **incompatible**, `blocking=1` fails to init with
+  `ENABLE_URCU`: a blocking read or write would stall every connect
+  and disconnect.
 - with `ENABLE_URCU`, libubx inlines the liburcu-bp read side
   (LGPL-2.1, `_LGPL_SOURCE`): rebuild libubx on liburcu updates.
 - new C API `ubx_rcu_thread_init()`, `ubx_rcu_read_lock()`,

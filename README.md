@@ -69,7 +69,7 @@ Mandatory (Debian/Ubuntu):
 
 ```sh
 apt install cmake pkg-config luajit libluajit-5.1-dev uthash-dev \
-    libsystemd-dev libmxml-dev
+    libsystemd-dev libmxml-dev liburcu-dev
 ```
 
 Mandatory, from source:
@@ -98,7 +98,6 @@ Optional blocks are built if their dependencies are found:
 | `ubx/gpio`                  | libgpiod >= 2.0      | `apt install libgpiod-dev`                  |
 | `ubx/iio`, `ubx/iio_buf`    | libiio >= 0.21       | `apt install libiio-dev libiio-utils`       |
 | `ubx-log -d` (daemon)       | libdaemon            | `apt install libdaemon-dev`                 |
-| hot connect (`ENABLE_URCU`) | liburcu-bp           | `apt install liburcu-dev`                   |
 | tests                       | luaunit              | `apt install lua-unit`                      |
 
 ```sh
@@ -128,7 +127,7 @@ sudo make install && sudo ldconfig
 | `-DUBX_LOG_MSG_MAXLEN=<n>`      | max log message length; part of the log shm layout, writers and `ubx-log` must agree |
 | `-DUBX_LOG_DAEMON=AUTO\|ON\|OFF` | `ubx-log` daemon mode (`-d`), requires libdaemon                 |
 | `-DBUILD_LUA_DOCS=ON`           | Lua API docs, see [Lua API docs](#lua-api-docs)                   |
-| `-DENABLE_URCU=ON`              | hot connect/disconnect, see [Runtime reconfiguration](docs/runtime.md) |
+| `-DENABLE_URCU=OFF`             | no hot connect/disconnect and no liburcu, see [Runtime reconfiguration](docs/runtime.md) |
 | `-DCMAKE_BUILD_TYPE=<type>`     | default `RelWithDebInfo`                                          |
 
 Timing-sensitive systems should enable a hardware time source: a
@@ -155,7 +154,7 @@ build options:
   pthread_setname:     yes
   pthread_setaffinity: yes
   module_dir:          /usr/local/lib/ubx/0.9/
-  urcu:                no
+  urcu:                yes
 ```
 
 ### Yocto

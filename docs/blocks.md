@@ -519,9 +519,9 @@ Reference: [trig](../std_blocks/trig/trig.c) and
 
 ## Runtime reconfiguration
 
-With `ENABLE_URCU`, ports can be connected and disconnected while
-blocks run (see [Runtime reconfiguration](runtime.md)). For block
-authors this means:
+With `ENABLE_URCU` (the default), ports can be connected and
+disconnected while blocks run (see [Runtime
+reconfiguration](runtime.md)). For block authors this means:
 
 - a port can become connected or unconnected between two steps:
   handle `read_*` returning 0 in every step, not only after `start`.
