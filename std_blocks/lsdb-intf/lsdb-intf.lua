@@ -221,6 +221,12 @@ local function set_config(vt, block, config, value)
       lsdb.throw(err.FAILED, "changing active block config not allowed")
    end
 
+   -- before the resize, which would truncate the value
+   if ubx.ubx.cfg_settable(c) == 0 then
+      lsdb.throw(err.FAILED, "%s.%s is a preinit config, it can not be set after preinit",
+		 block, config)
+   end
+
    ubx.data_resize(c.value, 1)
    ubx.config_set(c, value)
 end

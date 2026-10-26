@@ -296,6 +296,19 @@ function TestLsdbIntf:test_set_get_config()
    assert_equals(val, 42.0)
 end
 
+-- a rejected preinit config keeps its value
+function TestLsdbIntf:test_set_preinit_config_after_preinit()
+   _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_cfg_preinit")
+
+   local lua_str = "function init() return true end"
+   _proxy('CreateBlock', "ubx/luablock", "lb", {})
+   _proxy('SetConfig', "lb", "lua_str", lsdb.tovariant(lua_str))
+   _proxy('SwitchState', "lb", "inactive")
+   assert_error_msg_contains("is a preinit config",
+      function() _proxy('SetConfig', "lb", "lua_str", lsdb.tovariant("x = 1")) end)
+   assert_equals(_proxy('GetConfig', "lb", "lua_str"), lua_str)
+end
+
 function TestLsdbIntf:test_set_loglevel_active()
    _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_cfg_ll")
 
