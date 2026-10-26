@@ -168,6 +168,6 @@ own threads should do the same. Without `ENABLE_URCU` it is a no-op.
   at that moment, i.e. an RT thread only while it is in a step.
   Measured on a BeaglePlay (AM625, PREEMPT_RT): at 10
   connects/disconnects per second, ~16 IPIs/s on the RT core with no
-  measurable effect on step time or wakeup latency. Under 700 ops/s
+  measurable effect on step time or wakeup latency. At ~700 ops/s
   the average step time grew by ~6 us. Details:
   [design note](dev/008-urcu-runtime-reconfig.md).

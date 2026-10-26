@@ -3,7 +3,9 @@ Run-time reconfiguration with liburcu
 
 2026-10-07, mk
 
-Status: phase 1 (hot connect/disconnect) implemented.
+Status: phase 1 (hot connect/disconnect) implemented, and setting
+configs of active blocks is rejected (design item 4, without live
+configs).
 
 Goal
 ----
@@ -53,7 +55,7 @@ then waits for a grace period (`synchronize_rcu()`) or defers the
 free (`call_rcu()`), both in the control thread. The RT thread never
 calls `malloc`/`free`.
 
-liburcu is LGPL-2.1 (linking from BSD-3 microblx is fine), packaged in
+liburcu is LGPL-2.1 (linking from MPL-2.0 libubx is fine), packaged in
 Debian (`liburcu-dev`) and in oe-core (`recipes-support/liburcu`,
 used by lttng-ust), so meta-microblx needs no new layer.
 
@@ -276,7 +278,7 @@ Block authors
   fine, as today.
 - Thread registration is optional with bp. Registration happens on the
   first port access of a thread and allocates; RT threads should call
-  `ubx_rcu_thread_init()` before their loop (ptrig and luablock will).
+  `ubx_rcu_thread_init()` before their loop (ptrig and luablock do).
 - Never cache `in/out_interaction`; only `ubx.lua` port introspection
   reads them, from the control thread.
 

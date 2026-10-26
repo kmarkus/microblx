@@ -12,6 +12,10 @@ Generic LuaJIT-based c-block. Implement block behavior in a Lua file or string b
 | `period`    | `int`  | thread period in milliseconds (required if thread=1) |
 | `loglevel`  | `int`  | optional log level                                   |
 
+`lua_file`, `lua_str`, `thread` and `period` are read by `preinit`
+(`CONFIG_ATTR_PREINIT`): setting them afterwards fails until the
+block is removed. With `thread=1` the block has `BLOCK_ATTR_ACTIVE`.
+
 ## Ports
 
 | port       | direction | type   | description                                      |
