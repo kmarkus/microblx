@@ -6,7 +6,7 @@
 
 [![pipeline status](https://gitlab.com/kmarkus/microblx/badges/master/pipeline.svg)](https://gitlab.com/kmarkus/microblx/-/pipelines)
 
-**[Install](#installing) · [Quickstart](#quickstart) · [Developing blocks](#developing-blocks) · [Composing systems](#composing-systems) · [Standard blocks](#standard-blocks) · [Block reference](docs/blocks.md) · [usc reference](docs/usc.md) · [Runtime reconfiguration](docs/runtime.md)**
+**[Install](#installing) · [Quickstart](#quickstart) · [Developing blocks](#developing-blocks) · [Composing systems](#composing-systems) · [Runtime reconfiguration](docs/runtime.md) · [Standard blocks](#standard-blocks) · [Block reference](docs/blocks.md) · [usc reference](docs/usc.md)**
 
 </div>
 
@@ -18,6 +18,8 @@ criticality domains, real-time safe logging or triggers with
 configurable POSIX realtime properties.
 
 - **hard real-time safe**: no run-time allocations or non-deterministic system calls
+- **hot reconnect**: connect and disconnect ports while the system
+  runs, without stopping it (see [Runtime reconfiguration](docs/runtime.md))
 - **simple model**: everything is a block
 - **extensible**: easy to add a new type, trigger block or connection
 - **composing applications**: applications are described using a simple textual language

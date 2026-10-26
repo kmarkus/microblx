@@ -1,6 +1,6 @@
 <div align="center">
 
-**[microblx](../README.md) · [Install](../README.md#installing) · [Quickstart](../README.md#quickstart) · [Developing blocks](../README.md#developing-blocks) · [Composing systems](../README.md#composing-systems) · [Standard blocks](../README.md#standard-blocks) · Block reference · [usc reference](usc.md) · [Runtime reconfiguration](runtime.md)**
+**[microblx](../README.md) · [Install](../README.md#installing) · [Quickstart](../README.md#quickstart) · [Developing blocks](../README.md#developing-blocks) · [Composing systems](../README.md#composing-systems) · [Runtime reconfiguration](runtime.md) · [Standard blocks](../README.md#standard-blocks) · Block reference · [usc reference](usc.md)**
 
 </div>
 
