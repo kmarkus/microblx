@@ -8,7 +8,7 @@ image: gcc:trixie
 
 .setup_deps:
   before_script:
-    - apt update && apt -y install cmake pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck libcmocka-dev libsystemd-dev libmxml-dev lua-compat53 lua-compat53-dev dbus libgpiod-dev libiio-dev libiio-utils libgps-dev gpsd libcap2-bin lua-json liburcu-dev
+    - apt update && apt -y install cmake pkg-config gcc g++ git-core luajit libluajit-5.1-dev uthash-dev cppcheck libcmocka-dev libsystemd-dev libmxml-dev lua-compat53 lua-compat53-dev dbus libgpiod-dev libiio-dev libiio-utils libgps-dev gpsd libcap2-bin lua-json liburcu-dev systemtap-sdt-dev
     - cd /builds/
     - git clone --depth=1 https://github.com/kmarkus/uutils.git
     - git clone --depth=1 https://github.com/corsix/ffi-reflect.git
@@ -43,7 +43,7 @@ build:
     - cd $CI_PROJECT_DIR
     - mkdir build && pushd build
     # without urcu, the default is covered by build-urcu
-    - cmake -DBLOCK_LSDB_INTF=ON -DENABLE_URCU=OFF ..
+    - cmake -DBLOCK_LSDB_INTF=ON -DENABLE_URCU=OFF -DTRACING=SDT ..
     # - make cppcheck
     - make -j10
     - popd
