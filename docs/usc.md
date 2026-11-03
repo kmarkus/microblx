@@ -355,6 +355,7 @@ ubx-launch -c app.usc --nostart           # instantiate and configure only
 ubx-launch -c app.usc -t 10 -l 7          # run 10 s at loglevel DEBUG
 ubx-launch -c app.usc --webgraph          # live graph on http://localhost:8888
 ubx-launch -c app.usc --mlockall          # lock memory (real-time)
+ubx-launch -c app.usc --dma-latency=0     # no deep cpu idle while running (root)
 ubx-launch -c app.usc -b ctrl             # shut down when block ctrl becomes inactive
 ubx-launch -c app.usc --check unconn_inports,unconn_outports  # warn about unconnected ports
 ubx-launch -c app.json                    # JSON model, same structure as usc

@@ -56,6 +56,9 @@ Options:
   -b, --monitor=BLOCK      monitor BLOCK and shutdown when it becomes inactive
       --nodename=NAME      set nodename to NAME
       --mlockall           call mlockall to lock memory
+      --dma-latency=US     request a cpu wakeup latency of US microseconds
+                           via /dev/cpu_dma_latency while running (0 keeps
+                           cpus out of deep idle states, needs root)
       --dumpable           enable core dumps even for priviledged processes
       --nostart            instantiate and configure, but don't start
   -t, --duration=SECONDS   run for SECONDS and then shutdown
@@ -128,7 +131,7 @@ end
 -- multiply given options are returned as tables: keep the last one
 -- (as the legacy proc_args based parsing did)
 for _,o in ipairs{"conf", "ctype", "check", "nodename", "loglevel",
-		  "duration", "monitor", "webgraph"} do
+		  "duration", "monitor", "webgraph", "dma_latency"} do
    if type(opts[o]) == "table" then opts[o] = opts[o][#opts[o]] end
 end
 
@@ -209,6 +212,23 @@ if opts.loglevel then
    if loglevel == nil then
       errexit(1, "error: invalid loglevel argument '%s'", opts.loglevel)
    end
+end
+
+-- the pm qos request holds only while the fd is open, so keep it in
+-- a global until exit
+if opts.dma_latency then
+   local us = tonumber(opts.dma_latency)
+   if us == nil or us < 0 or us > MAXINT or us % 1 ~= 0 then
+      errexit(1, "error: invalid dma-latency argument '%s'", opts.dma_latency)
+   end
+   local f, err = io.open("/dev/cpu_dma_latency", "wb")
+   if not f then errexit(1, "error: --dma-latency: %s", err) end
+   -- binary s32: an ascii write of exactly 4 chars is parsed as binary
+   local ffi = require("ffi")
+   f:setvbuf("no")
+   local ok, werr = f:write(ffi.string(ffi.new("int32_t[1]", us), 4))
+   if not ok then errexit(1, "error: --dma-latency: %s", werr) end
+   _G.cpu_dma_latency_fd = f
 end
 
 local checks
