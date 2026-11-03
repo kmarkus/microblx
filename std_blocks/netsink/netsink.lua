@@ -264,6 +264,10 @@ function start(b)
    b = ffi.cast("ubx_block_t*", b)
    local nd = b.nd
 
+   -- this lua_State only knows the struct types it declares itself:
+   -- without, data_tolua fails on struct ports in every step
+   ubx.ffi_load_types(nd)
+
    -- select encoder. JSON is newline-delimited (each datagram/message is
    -- one object, PlotJuggler-friendly); msgpack frames are self-delimiting
    -- so no separator is added.

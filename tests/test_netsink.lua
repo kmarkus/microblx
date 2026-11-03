@@ -98,7 +98,7 @@ local function launch_sink(ports_decl, extra)
       (extra or "")
 
    local sys = bd.system {
-      imports = { "stdtypes", "lfrb" },
+      imports = { "stdtypes", "lfrb", "ptrig" },
       blocks = {
 	 { name = "sink", type = "luablock:" .. NETSINK_LUA },
       },
@@ -229,6 +229,26 @@ function TestNetsink:Test_json_array_port()
 
    lu.assert_not_nil(o)
    lu.assert_equals(o.pos, { 1.5, -2.5, 3.5 })
+end
+
+--- a struct port serializes as a nested JSON object
+function TestNetsink:Test_json_struct_port()
+   local sink, udp_port = launch_sink("ports = { ts='double', per='struct ptrig_period' }")
+   local rx = make_receiver(udp_port)
+
+   local p_ts  = ubx.port_clone_conn(sink, "ts",  1, nil, 7, 0)
+   local p_per = ubx.port_clone_conn(sink, "per", 1, nil, 7, 0)
+   ubx.block_tostate(sink, 'active')
+
+   p_ts:write(1.0)
+   p_per:write({ sec = 2, usec = 500 })
+   sink:do_step()
+
+   local o = recv(rx, json.decode)
+   ffi.C.close(rx)
+
+   lu.assert_not_nil(o)
+   lu.assert_equals(o.per, { sec = 2, usec = 500 })
 end
 
 --- a zero-length array suffix is rejected at init

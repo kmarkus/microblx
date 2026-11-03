@@ -5,6 +5,9 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `netsink`: **fix** struct ports (e.g. `struct ukd_frame`): every
+  step failed with "undeclared or implicit tag", as the block's Lua
+  state never loaded the registered types into the FFI.
 - `ubx-launch --validate`: **fix** exit status, it was always 1. Now
   0 if valid, 1 on errors (or warnings with `--werror`).
 - hot connect/disconnect: with the new cmake option `ENABLE_URCU`
