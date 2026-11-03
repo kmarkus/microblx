@@ -498,6 +498,10 @@ trace-cmd record -e sched_switch -e irq ubx-launch -c app.usc
 kernelshark trace.dat
 ```
 
+To end the trace at a latency spike, use the ptrig
+[`latency_break_ns`](std_blocks/trig/README.md#stopping-ftrace-on-a-spike)
+config, which is available with `SDT` and `MARKER`.
+
 > **Note**: the node needs write access to
 > `/sys/kernel/tracing/trace_marker` (run `trace-cmd` as root, or mount
 > tracefs accordingly).

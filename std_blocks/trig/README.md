@@ -36,6 +36,7 @@ Both support multiple trigger chains, per-block timing statistics, and runtime c
 | `busy_slack_ns`   | `int64_t`               | `sleep_mode=2`: duration to busy-wait before the deadline [ns] (default: 50000) |
 | `timerslack_ns`   | `int64_t`               | thread timer slack [ns]; 0 (default) leaves it unchanged |
 | `latency_stats`   | `int`                   | 1: measure trigger latency (one extra clock read per cycle); 0 = off (default) |
+| `latency_break_ns` | `int64_t`              | stop ftrace when the latency exceeds this [ns]; 0 = off (default). Not with `TRACING=OFF` |
 
 ### cpuset
 
@@ -141,6 +142,25 @@ The value is normally positive (late). It can be slightly negative in
 `sleep_mode` 1 and 2, where the busy-wait exits on the first clock read at or
 past the deadline. It is not measured under `SCHED_DEADLINE` (the kernel paces
 the thread; use `deadline_throt_cnt`) or when no period is configured.
+
+### Stopping ftrace on a spike
+
+`latency_break_ns` turns the first sample above the limit in each run into a
+`ubx:latency_break` trace marker and stops ftrace, so that the buffer ends at
+the spike and shows what caused it:
+
+```sh
+trace-cmd record -e sched_switch -e irq ubx-launch -c app.usc
+trace-cmd report | tail
+```
+
+The trigger keeps running and tracing stays off until re-enabled. The config
+is compiled out with `TRACING=OFF` and exists with `SDT` or `MARKER`; prefer
+`SDT`, as `MARKER` adds a `write(2)` per event to the timing under test. It
+requires `latency_stats = 1` and write access to tracefs, which is checked at
+init, and is rejected under `SCHED_DEADLINE`. Samples within
+`tstats_skip_first` are ignored, so set it to skip the startup transient, which
+would otherwise fire the break at once.
 
 ## Sleep modes
 

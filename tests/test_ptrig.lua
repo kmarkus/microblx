@@ -1034,6 +1034,32 @@ function TestPtrig:TestLatencySummaryPerRun()
    assert_equals(cnt, { nlat[1] - SKIP, nlat[2] - SKIP })
 end
 
+local function tracing_build()
+   for _, kv in ipairs(ubx.build_config()) do
+      if kv[1] == "tracing" then return kv[2] ~= "OFF" end
+   end
+end
+
+-- latency_break_ns never fires without a latency sample, so reject
+-- the configs that cannot produce one rather than silently not tracing.
+function TestPtrig:TestLatencyBreakInvalidConfig()
+   luaunit.skipIf(not tracing_build(), "needs a TRACING build")
+   local nd = ubx.node_create("TestLatencyBreakInvalidConfig",
+			      { loglevel=ffi.C.UBX_LOGLEVEL_EMERG })
+   local confs = {
+      { period_ns=1000000, latency_stats=1, latency_break_ns=-1 },
+      { period_ns=1000000, latency_break_ns=1000 },
+      { period_ns=1000000, latency_stats=1, latency_break_ns=1000,
+	sched_policy="SCHED_DEADLINE",
+	sched_deadline={ runtime_ns=100000 } },
+   }
+   for i, conf in ipairs(confs) do
+      local ptrig = make_ptrig(nd, "ptrig"..i, conf)
+      assert_not_equals(ubx.block_tostate(ptrig, 'inactive'), 0)
+   end
+   ubx.node_rm(nd)
+end
+
 -- latency_stats is not measured under SCHED_DEADLINE, so init must warn.
 -- The regression checked the policy before parsing it and never did.
 function TestPtrig:TestLatencyDeadlineWarns()

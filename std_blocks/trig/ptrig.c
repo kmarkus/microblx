@@ -128,6 +128,9 @@ ubx_proto_config_t ptrig_config[] = {
 	{ .name = "sleep_mode", .type_name = "int", .max = 1, .doc = "0: OS sleep (ubx_nanosleep, def), 1: busy-wait (ubx_nanowait), 2: hybrid (sleep, then busy-wait the last busy_slack_ns)",  },
 	{ .name = "busy_slack_ns", .type_name = "int64_t", .max = 1, .doc = "sleep_mode=2: duration to busy-wait before the deadline [ns] (def: 50000). Must exceed the platform's worst-case wakeup latency", },
 	{ .name = "latency_stats", .type_name = "int", .max = 1, .doc = "1: measure trigger latency (one extra clock read per cycle), emit it on latency_ns and log min/max/avg on stop. 0: off (def)", },
+#ifdef UBX_TRACE_ENABLED
+	{ .name = "latency_break_ns", .type_name = "int64_t", .max = 1, .doc = "stop ftrace once per run when the trigger latency exceeds this [ns], keeping the buffer that led up to the spike. Requires latency_stats=1 and tracefs write access; samples within tstats_skip_first are ignored. 0: off (def)", },
+#endif
 	{ .name = "timerslack_ns", .type_name = "int64_t", .max = 1, .doc = "thread timer slack [ns] (prctl(PR_SET_TIMERSLACK)); 0 (def): leave unchanged. Only affects SCHED_OTHER, where Linux defaults to 50us", },
 	{ .name = "loglevel", .type_name = "int" },
 	{ .name = "sched_deadline", .type_name = "struct ptrig_deadline", .max = 1,
@@ -194,6 +197,13 @@ struct ptrig_inf {
 	int64_t lat_max;
 	uint64_t lat_total;
 
+#ifdef UBX_TRACE_ENABLED
+	int64_t lat_break_ns;	/* stop ftrace above this latency, 0: off */
+	int lat_broken;		/* stopped it already in this run */
+	int marker_fd;		/* opened in init, the RT path only writes */
+	int tracing_on_fd;
+#endif
+
 	ubx_port_t *p_actchain;
 	ubx_port_t *p_period;
 	ubx_port_t *p_period_ns;
@@ -235,6 +245,120 @@ static int ptrig_wait(const struct ubx_timespec *dur, uint64_t slack_ns)
 	(void)slack_ns;
 	return ubx_nanowait(dur);
 }
+
+#ifdef UBX_TRACE_ENABLED
+
+/* tracing off also drops marker writes, so the marker must go first */
+static __attribute__((cold, noinline))
+void ptrig_lat_break(ubx_block_t *b, struct ptrig_inf *inf, int64_t lat)
+{
+	char buf[128];
+	int len;
+
+	inf->lat_broken = 1;
+
+	len = snprintf(buf, sizeof(buf), "ubx:latency_break: %s latency %" PRId64
+		       " ns > %" PRId64 " ns", b->name, lat, inf->lat_break_ns);
+	if (len >= (int)sizeof(buf))
+		len = sizeof(buf) - 1;
+
+	if (write(inf->marker_fd, buf, len) == -1)
+		ubx_err(b, "trace_marker write failed: %s", strerror(errno));
+
+	if (write(inf->tracing_on_fd, "0", 1) == -1)
+		ubx_err(b, "tracing_on write failed: %s", strerror(errno));
+
+	ubx_warn(b, "latency %" PRId64 " ns above latency_break_ns: stopped ftrace", lat);
+}
+
+static inline void ptrig_lat_check(ubx_block_t *b, struct ptrig_inf *inf, int64_t lat)
+{
+	if (__builtin_expect(inf->lat_break_ns > 0 && !inf->lat_broken &&
+			     lat > inf->lat_break_ns, 0))
+		ptrig_lat_break(b, inf, lat);
+}
+
+static inline void ptrig_lat_rearm(struct ptrig_inf *inf)
+{
+	inf->lat_broken = 0;
+}
+
+static void ptrig_break_close(struct ptrig_inf *inf)
+{
+	if (inf->lat_break_ns == 0)
+		return;
+
+	close(inf->marker_fd);
+	close(inf->tracing_on_fd);
+}
+
+/* after ptrig_handle_config, which sets latency_stats and use_deadline */
+static int ptrig_break_init(ubx_block_t *b, struct ptrig_inf *inf)
+{
+	const int64_t *break_ns;
+	int marker_fd, tracing_on_fd, err;
+	long len;
+
+	len = cfg_getptr_int64(b, "latency_break_ns", &break_ns);
+	assert(len >= 0);
+
+	if (len == 0 || *break_ns == 0)
+		return 0;
+
+	if (*break_ns < 0) {
+		ubx_err(b, "invalid latency_break_ns %" PRId64 ", must be >= 0",
+			*break_ns);
+		return EINVALID_CONFIG;
+	}
+
+	if (!inf->latency_stats) {
+		ubx_err(b, "latency_break_ns requires latency_stats=1");
+		return EINVALID_CONFIG;
+	}
+
+	if (inf->use_deadline) {
+		ubx_err(b, "latency_break_ns is not supported with SCHED_DEADLINE");
+		return EINVALID_CONFIG;
+	}
+
+	marker_fd = ubx_tracefs_open("trace_marker");
+	err = errno;
+	tracing_on_fd = ubx_tracefs_open("tracing_on");
+
+	if (marker_fd == -1 || tracing_on_fd == -1) {
+		if (tracing_on_fd == -1)
+			err = errno;
+		ubx_err(b, "latency_break_ns: failed to open tracefs: %s", strerror(err));
+		if (marker_fd != -1)
+			close(marker_fd);
+		if (tracing_on_fd != -1)
+			close(tracing_on_fd);
+		return EINVALID_CONFIG;
+	}
+
+	inf->marker_fd = marker_fd;
+	inf->tracing_on_fd = tracing_on_fd;
+	inf->lat_break_ns = *break_ns;
+	return 0;
+}
+
+#else /* compiled out, see UBX_TRACE_ENABLED */
+
+static inline void ptrig_lat_check(ubx_block_t *b, struct ptrig_inf *inf, int64_t lat)
+{
+	(void)b; (void)inf; (void)lat;
+}
+
+static inline void ptrig_lat_rearm(struct ptrig_inf *inf) { (void)inf; }
+static inline void ptrig_break_close(struct ptrig_inf *inf) { (void)inf; }
+
+static inline int ptrig_break_init(ubx_block_t *b, struct ptrig_inf *inf)
+{
+	(void)b; (void)inf;
+	return 0;
+}
+
+#endif /* UBX_TRACE_ENABLED */
 
 /* TLS overrun counter: incremented by the signal handler, read in the thread loop. */
 static __thread volatile sig_atomic_t deadline_overrun_cnt;
@@ -446,6 +570,7 @@ void *thread_startup(void *arg)
 			inf->lat_cnt = 0;
 			inf->lat_total = 0;
 			inf->lat_skip = inf->lat_skip_first;
+			ptrig_lat_rearm(inf);
 
 			if (inf->use_deadline && deadline_overrun_cnt > 0)
 				ubx_warn(b, "%u SCHED_DEADLINE budget overrun(s)",
@@ -536,6 +661,8 @@ void *thread_startup(void *arg)
 				inf->lat_skip--;
 				goto lat_done;
 			}
+
+			ptrig_lat_check(b, inf, lat);
 
 			if (inf->lat_cnt == 0 || lat < inf->lat_min)
 				inf->lat_min = lat;
@@ -990,6 +1117,10 @@ int ptrig_init(ubx_block_t *b)
 	if (ret != 0)
 		goto out_err;
 
+	ret = ptrig_break_init(b, inf);
+	if (ret != 0)
+		goto out_err;
+
 	len = cfg_getptr_char(b, "cpuset", &cpuset_cfg);
 	assert(len >= 0);
 
@@ -1098,6 +1229,7 @@ int ptrig_init(ubx_block_t *b)
 	goto out;
 
  out_err:
+	ptrig_break_close(inf);
 	common_cleanup(b, &inf->chains, (inf->num_chains > 0) ? inf->num_chains : 0);
 	free(b->private_data);
  out:
@@ -1184,6 +1316,7 @@ void ptrig_cleanup(ubx_block_t *b)
 	/* even though we call ubx_chain_init in start, it is OK to do
 	 * this in cleanup only since start calls realloc which will
 	 * just resize to the current size */
+	ptrig_break_close(inf);
 	common_cleanup(b, &inf->chains, inf->num_chains);
 	free(b->private_data);
 }
