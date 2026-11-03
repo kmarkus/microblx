@@ -17,11 +17,37 @@
  * ...) recorded e.g. with trace-cmd. Each event costs one write(2)
  * syscall.
  *
+ * UBX_TRACE_ENABLED is defined with any backend. It also guards
+ * features built on tracefs, so that they cost nothing with TRACING=OFF.
+ *
  * SPDX-License-Identifier: MPL-2.0
  */
 
 #ifndef UBX_TRACE_H
 #define UBX_TRACE_H
+
+#if defined(CONFIG_TRACE_SDT) || defined(CONFIG_TRACE_MARKER)
+
+#define UBX_TRACE_ENABLED
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * ubx_tracefs_open - open a tracefs file for writing
+ *
+ * @file: name relative to the tracefs root, e.g. "tracing_on"
+ *
+ * Return: file descriptor or -1 with errno set
+ */
+int ubx_tracefs_open(const char *file);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* UBX_TRACE_ENABLED */
 
 #if defined(CONFIG_TRACE_SDT)
 

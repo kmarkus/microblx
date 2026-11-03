@@ -180,7 +180,7 @@ set(UBX_SRCS
   ${UBX_SRC_DIR}/accessors.c
 )
 
-if(TRACING STREQUAL "MARKER")
+if(NOT TRACING STREQUAL "OFF")
   list(APPEND UBX_SRCS ${UBX_SRC_DIR}/ubx_trace.c)
 endif()
 

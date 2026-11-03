@@ -1,7 +1,8 @@
 /*
- * ubx_trace: ftrace trace_marker backend
+ * ubx_trace: tracefs access and the ftrace trace_marker backend
  *
- * Only built with TRACING=MARKER (see ubx_trace.h).
+ * Not built with TRACING=OFF, the marker backend only with
+ * TRACING=MARKER (see ubx_trace.h).
  *
  * SPDX-License-Identifier: MPL-2.0
  */
@@ -13,6 +14,24 @@
 
 #include "ubx_trace.h"
 
+int ubx_tracefs_open(const char *file)
+{
+	static const char *const roots[] = {
+		"/sys/kernel/tracing", "/sys/kernel/debug/tracing",
+	};
+	char path[128];
+	int fd = -1;
+
+	for (size_t i = 0; i < sizeof(roots) / sizeof(roots[0]) && fd == -1; i++) {
+		snprintf(path, sizeof(path), "%s/%s", roots[i], file);
+		fd = open(path, O_WRONLY);
+	}
+
+	return fd;
+}
+
+#ifdef CONFIG_TRACE_MARKER
+
 #define MARKER_MSG_MAXLEN 128
 
 static int marker_fd = -1;
@@ -21,10 +40,7 @@ static int marker_fd = -1;
  * syscalls besides the write itself */
 static void __attribute__((constructor)) marker_init(void)
 {
-	marker_fd = open("/sys/kernel/tracing/trace_marker", O_WRONLY);
-
-	if (marker_fd == -1)
-		marker_fd = open("/sys/kernel/debug/tracing/trace_marker", O_WRONLY);
+	marker_fd = ubx_tracefs_open("trace_marker");
 
 	if (marker_fd == -1)
 		fprintf(stderr, "ubx_trace: failed to open trace_marker, tracing disabled\n");
@@ -59,3 +75,5 @@ void ubx_trace_marker(const char *fmt, ...)
 		/* silently drop, tracing must never disturb the RT path */
 	}
 }
+
+#endif /* CONFIG_TRACE_MARKER */
