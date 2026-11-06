@@ -11,6 +11,7 @@ thread to non-RT observers.
 - delivered frames always intact (torn reads detected and dropped)
 - two variants: **core** (`lfb.h`, buffer in any memory, no syscalls)
   and **shm** (`lfb_shm.h`, cross-process POSIX shm)
+- **multi-producer** mode (`lfbm.h`): many writers, no lock
 
 ## Quick start (shm)
 
@@ -170,6 +171,48 @@ a scratch buffer, publish only after. **A torn frame holds arbitrary
 bytes** — bounds-check any length or offset read from it. Reading within
 `frame_size` is always safe.
 
+## Multiple producers (`lfbm.h`)
+
+Any number of threads or processes write to one ring without a lock: no writer
+waits for another. It uses the same header and the `lfb_shm.h` lifecycle, but
+its own write and read calls: `lfbm_attach` and `lfbm_shm_open` refuse a plain
+buffer, as `lfb_attach` and `lfb_shm_open` refuse a multi-producer one.
+
+```c
+#include <lfbm_shm.h>
+
+/* sizeof(struct sample) must be a multiple of 8, the depth a power of 2 */
+ret = lfbm_shm_join(&s, "samples", sizeof(struct sample), 4096, 0);
+if (ret == 1)
+	lfb_shm_publish(&s);
+
+lfbm_write(lfb_shm_lfb(&s), &smp);	/* 0 or -EBUSY: dropped */
+
+lfbm_rd_init(b, &rd, LFB_OLDEST);
+ret = lfbm_read(&rd, &smp);		/* 1, 0 or -EPIPE, as lfb_read */
+```
+
+| Call           | Use                                               |
+|----------------|---------------------------------------------------|
+| `lfbm_init`    | set up a ring in any memory, see `lfbm_memsz`     |
+| `lfbm_write`   | write a frame; overwrites the oldest when full    |
+| `lfbm_rd_init` | set up a reader at `LFB_OLDEST` or `LFB_NEWEST`   |
+| `lfbm_seek`    | move it there again, keeps its counters           |
+| `lfbm_read`    | copy the next frame out, validated                |
+| `lfbm_lag`     | unread tickets, clamped to depth                  |
+
+Each writer takes a ticket with `fetch_add` and claims the slot it maps to
+with a CAS on the slot's sequence word. If the slot is occupied by a stalled
+writer or a newer ticket, it takes the next ticket. Compared to `lfb.h`:
+
+- a reader stops at a slot still being written, returning 0, and gives up after
+  `rd.stall_limit_ns` (default `LFBM_STALL_NS`, 1 s; counted in `rd.skipped`)
+- a writer killed mid-write costs the ring that one slot for good
+- `lfbm_write` drops the frame with `-EBUSY` after `LFBM_MAX_TRIES` (16)
+  occupied slots, which takes that many writers stalled at once
+- per-writer order holds, order across writers is that of the tickets
+- 64 bit atomics only, and the depth must be a power of two
+
 ## Configuration (optional)
 
 Defaults suit 64-bit. To override, define before including `lfb.h` (all
@@ -194,6 +237,8 @@ headers to `include/ubx/`.
 
 - `test-lfb-unit`, `test-lfb-shm-unit`: cmocka unit tests.
 - `test-lfb`: multi-reader stress test; `-O` forces and checks overrun recovery.
+- `test-lfbm-unit`, `test-lfbm`: `lfbm` tests; the latter has forked writers and
+  readers overwrite heavily, and kills one writer half-way through.
 - `bench-lfb-shm`: multi-process benchmark (`-P` zero-copy, `-R` rate,
   `-p` pin cores; `-h` for all).
 
@@ -203,7 +248,7 @@ caller's own frame accesses show up as races.
 
 ## Limitations
 
-- one producer (serialize extra writers with a lock, as rtlog does)
+- `lfb.h`: one producer; use `lfbm.h` for more
 - lossy: slow readers lose data, detectably. Not a queue — see liblfq for MPMC
 - needs lock-free (address-free) C11 atomics of the chosen width
 

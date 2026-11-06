@@ -125,6 +125,9 @@ _Static_assert(ATOMIC_INT_LOCK_FREE == 2,
 /* maximum ring depth for this configuration */
 #define LFB_MAX_DEPTH	(((lfb_word_t)1) << LFB_OFF_BITS)
 
+/* lfb_t.mode of a multi-producer ring, see lfbm.h */
+#define LFB_MODE_MP	1
+
 /*
  * number of frames of headroom kept when (re)positioning a reader at
  * the oldest frame (LFB_OLDEST or after an overrun): without it, the
@@ -163,6 +166,7 @@ typedef struct lfb {
 	_Atomic uint32_t magic;
 	uint32_t frame_size;
 	uint32_t user_sz;
+	uint32_t mode;		/* 0, or a variant such as LFB_MODE_MP */
 	lfb_word_t depth;
 	_Atomic lfb_word_t w;	/* combined wrap|off write position:
 				 * stored with release order after the
@@ -245,7 +249,7 @@ static inline lfb_word_t lfb_w_back(lfb_word_t w, lfb_word_t n,
  * means "uninitialized".
  */
 static inline uint32_t lfb_fingerprint(uint32_t frame_size, lfb_word_t depth,
-				       uint32_t user_sz)
+				       uint32_t user_sz, uint32_t mode)
 {
 	uint32_t h = 0x4c464200u | 1;	/* "LFB" + protocol version */
 
@@ -255,6 +259,11 @@ static inline uint32_t lfb_fingerprint(uint32_t frame_size, lfb_word_t depth,
 	h = (h ^ user_sz) * 16777619u;
 	h = (h ^ (uint32_t)depth) * 16777619u;
 	h = (h ^ (uint32_t)((uint64_t)depth >> 32)) * 16777619u;
+
+	/* a variant's slots can't be read with the plain calls: its
+	 * magic must differ, also from what older binaries compute */
+	if (mode != 0)
+		h = (h ^ mode) * 16777619u;
 
 	return (h != 0) ? h : 1;
 }
@@ -376,8 +385,9 @@ static inline size_t lfb_memsz(uint32_t frame_size, lfb_word_t depth,
  * @return the prepared buffer (== mem), or NULL if mem is NULL,
  *         misaligned, too small or the parameters are invalid
  */
-static inline lfb_t *lfb_prepare(void *mem, size_t memsz, uint32_t frame_size,
-			      lfb_word_t depth, uint32_t user_sz)
+static inline lfb_t *lfb_prepare_mode(void *mem, size_t memsz,
+				      uint32_t frame_size, lfb_word_t depth,
+				      uint32_t user_sz, uint32_t mode)
 {
 	lfb_t *b = (lfb_t *)mem;
 	size_t sz = lfb_memsz(frame_size, depth, user_sz);
@@ -391,12 +401,19 @@ static inline lfb_t *lfb_prepare(void *mem, size_t memsz, uint32_t frame_size,
 	b->frame_size = frame_size;
 	b->depth = depth;
 	b->user_sz = user_sz;
+	b->mode = mode;
 	atomic_store_explicit(&b->w, 0, memory_order_relaxed);
 
 	if (user_sz > 0)
 		memset((uint8_t *)b + LFB_HDR_SZ, 0, user_sz);
 
 	return b;
+}
+
+static inline lfb_t *lfb_prepare(void *mem, size_t memsz, uint32_t frame_size,
+				 lfb_word_t depth, uint32_t user_sz)
+{
+	return lfb_prepare_mode(mem, memsz, frame_size, depth, user_sz, 0);
 }
 
 /**
@@ -412,7 +429,7 @@ static inline void lfb_publish(lfb_t *b)
 {
 	atomic_store_explicit(&b->magic,
 			      lfb_fingerprint(b->frame_size, b->depth,
-					      b->user_sz),
+					      b->user_sz, b->mode),
 			      memory_order_release);
 }
 
@@ -450,7 +467,7 @@ static inline lfb_t *lfb_init(void *mem, size_t memsz, uint32_t frame_size,
  * @param memsz size of the region
  * @return the buffer (== mem), or NULL on any mismatch
  */
-static inline lfb_t *lfb_attach(void *mem, size_t memsz)
+static inline lfb_t *lfb_attach_mode(void *mem, size_t memsz, uint32_t mode)
 {
 	lfb_t *b = (lfb_t *)mem;
 	uint32_t magic;
@@ -464,7 +481,7 @@ static inline lfb_t *lfb_attach(void *mem, size_t memsz)
 	magic = atomic_load_explicit(&b->magic, memory_order_acquire);
 
 	if (magic == 0 ||
-	    magic != lfb_fingerprint(b->frame_size, b->depth, b->user_sz))
+	    magic != lfb_fingerprint(b->frame_size, b->depth, b->user_sz, mode))
 		return NULL;
 
 	sz = lfb_memsz(b->frame_size, b->depth, b->user_sz);
@@ -473,6 +490,11 @@ static inline lfb_t *lfb_attach(void *mem, size_t memsz)
 		return NULL;
 
 	return b;
+}
+
+static inline lfb_t *lfb_attach(void *mem, size_t memsz)
+{
+	return lfb_attach_mode(mem, memsz, 0);
 }
 
 /**

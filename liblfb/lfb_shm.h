@@ -33,14 +33,15 @@
  * event-driven wakeup.
  *
  * Besides the default single-producer mode (lfb_shm_create), a
- * second lifecycle mode supports *cooperating co-producers*
- * serialized by an external lock: lfb_shm_join creates the segment
- * if absent (leaving it unpublished so the creator can initialize
- * the user area, e.g. with that shared lock) or attaches read-write
- * to an existing matching one. Note that the never-reuse robustness
- * guarantee belongs to lfb_shm_create only; with join, crash
- * recovery of the write side is the external lock's job (e.g. a
- * robust mutex).
+ * second lifecycle mode supports *cooperating co-producers*:
+ * lfb_shm_join creates the segment if absent (leaving it unpublished
+ * so the creator can initialize the user area) or attaches read-write
+ * to an existing matching one. With lfb.h such producers must be
+ * serialized by an external lock, for which the user area can be
+ * used; lfbm_shm.h does the same for lock-free producers. Note that
+ * the never-reuse robustness guarantee belongs to lfb_shm_create
+ * only; with join, crash recovery of the write side is the job of the
+ * external lock (e.g. a robust mutex) or of lfbm (see lfbm.h).
  *
  * All functions return 0 or a negative errno, in keeping with
  * lfb.h. This header requires POSIX (shm_open, mmap); link with -lrt
@@ -199,9 +200,9 @@ out_close_unlink:
  *         not yet published, retry), -EPROTO (incompatible), or the
  *         shm_open / ftruncate / mmap errno
  */
-static inline int lfb_shm_join(lfb_shm_t *s, const char *name,
-			       uint32_t frame_size, lfb_word_t depth,
-			       uint32_t user_sz)
+static inline int lfb_shm_join_mode(lfb_shm_t *s, const char *name,
+				    uint32_t frame_size, lfb_word_t depth,
+				    uint32_t user_sz, uint32_t mode)
 {
 	int fd, ret, created = 1;
 	void *map;
@@ -267,7 +268,7 @@ static inline int lfb_shm_join(lfb_shm_t *s, const char *name,
 	}
 
 	if (created) {
-		b = lfb_prepare(map, sz, frame_size, depth, user_sz);
+		b = lfb_prepare_mode(map, sz, frame_size, depth, user_sz, mode);
 
 		if (b == NULL) {
 			munmap(map, (size_t)st.st_size);
@@ -278,7 +279,7 @@ static inline int lfb_shm_join(lfb_shm_t *s, const char *name,
 		b = (lfb_t *)map;
 		magic = atomic_load_explicit(&b->magic, memory_order_acquire);
 
-		if (magic != lfb_fingerprint(frame_size, depth, user_sz)) {
+		if (magic != lfb_fingerprint(frame_size, depth, user_sz, mode)) {
 			munmap(map, (size_t)st.st_size);
 			/* magic 0: creator mid-setup, else a foreign
 			 * segment or one of different geometry */
@@ -299,6 +300,13 @@ static inline int lfb_shm_join(lfb_shm_t *s, const char *name,
 	s->ino = st.st_ino;
 	strcpy(s->name, name);
 	return created;
+}
+
+static inline int lfb_shm_join(lfb_shm_t *s, const char *name,
+			       uint32_t frame_size, lfb_word_t depth,
+			       uint32_t user_sz)
+{
+	return lfb_shm_join_mode(s, name, frame_size, depth, user_sz, 0);
 }
 
 /**
@@ -331,7 +339,8 @@ static inline void lfb_shm_publish(lfb_shm_t *s)
  *         exists but is not yet initialized), -EPROTO (incompatible
  *         buffer), or the shm_open / fstat / mmap errno
  */
-static inline int lfb_shm_open(lfb_shm_t *s, const char *name)
+static inline int lfb_shm_open_mode(lfb_shm_t *s, const char *name,
+				    uint32_t mode)
 {
 	int fd, ret;
 	void *map;
@@ -368,7 +377,7 @@ static inline int lfb_shm_open(lfb_shm_t *s, const char *name)
 	if (map == MAP_FAILED)
 		return -errno;
 
-	b = lfb_attach(map, (size_t)st.st_size);
+	b = lfb_attach_mode(map, (size_t)st.st_size, mode);
 
 	if (b == NULL) {
 		magic = atomic_load_explicit(&((lfb_t *)map)->magic,
@@ -385,6 +394,11 @@ static inline int lfb_shm_open(lfb_shm_t *s, const char *name)
 	s->ino = st.st_ino;
 	strcpy(s->name, name);
 	return 0;
+}
+
+static inline int lfb_shm_open(lfb_shm_t *s, const char *name)
+{
+	return lfb_shm_open_mode(s, name, 0);
 }
 
 /**

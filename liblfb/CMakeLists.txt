@@ -3,13 +3,18 @@
 add_library(lfb INTERFACE)
 target_include_directories(lfb INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
-install(FILES lfb.h lfb_shm.h
+install(FILES lfb.h lfbm.h lfb_shm.h lfbm_shm.h
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ubx/ COMPONENT dev)
 
 # stress test
 add_executable(test-lfb test-lfb.c)
 target_link_libraries(test-lfb PRIVATE lfb rt pthread)
 install(TARGETS test-lfb RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# multi-producer stress test
+add_executable(test-lfbm test-lfbm.c)
+target_link_libraries(test-lfbm PRIVATE lfb rt pthread)
+install(TARGETS test-lfbm RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # multi-process (forked readers) latency/throughput benchmark
 add_executable(bench-lfb-shm bench-lfb-shm.c)
@@ -27,6 +32,12 @@ else(NOT CMOCKA_FOUND)
     -Wall -Wextra -Werror -Wno-null-dereference)
   target_link_libraries(test-lfb-unit lfb ${CMOCKA_LIBRARIES})
   install(TARGETS test-lfb-unit RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+  add_executable(test-lfbm-unit test-lfbm-unit.c)
+  target_compile_options(test-lfbm-unit PRIVATE
+    -Wall -Wextra -Werror -Wno-null-dereference)
+  target_link_libraries(test-lfbm-unit lfb ${CMOCKA_LIBRARIES})
+  install(TARGETS test-lfbm-unit RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
   add_executable(test-lfb-shm-unit test-lfb-shm-unit.c)
   target_compile_options(test-lfb-shm-unit PRIVATE
