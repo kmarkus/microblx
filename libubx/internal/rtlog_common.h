@@ -11,40 +11,30 @@
  * rtlog_common.h - definitions shared by the aggregator side
  * (producer) and the consumer side.
  *
- * The ring itself is lfb (see liblfb/): a lossy broadcast buffer for
- * one producer and any number of independent consumers. rtlog adds
- * only the two things lfb deliberately leaves to the application:
- *
- *  - writer serialization. lfb is single-producer, whereas several
- *    ubx nodes (in one or more processes) log into one buffer, so
- *    writes are serialized by a process-shared robust PI mutex kept
- *    in lfb's user area (see log_user_t and lfb_shm_join).
- *
- *  - the segment lifecycle policy: whoever gets there first creates
- *    and initializes the buffer, everybody else attaches to it.
+ * The ring is lfbm (see liblfb/): a lossy broadcast buffer for any
+ * number of producers and independent consumers. Several ubx nodes,
+ * in one or more processes, log into one buffer without a lock, so a
+ * logging thread never waits for another one. rtlog only adds the
+ * segment lifecycle policy: whoever gets there first creates the
+ * buffer, everybody else attaches to it.
  */
 
-#include <pthread.h>
-#include <stdatomic.h>
+#include "lfbm.h"
 
-#include "lfb.h"
-
-#define LOG_BUFFER_DEPTH 10000
+#define LOG_BUFFER_DEPTH 8192
 #define LOG_SHM_FILENAME "rtlog.logshm"
 
+/* lfb frame_size of a log message */
+#define LOG_SLOT_SZ LFBM_SLOT_SZ((uint32_t)sizeof(struct ubx_log_msg))
+
 /*
- * lfb user area: writers hold this lock across lfb_write.
+ * lfb user area. Its size also aligns the slots to the cache line.
  *
- * It is robust because a writer may die holding it, which is
- * recoverable here: lfb_write copies the frame into the slot and
- * only then advances the write position with a release store, so a
- * writer dying mid-copy leaves the buffer consistent -- the partial
- * frame sits in a slot that was never published, and the next writer
- * overwrites it. Hence pthread_mutex_consistent() rather than
- * tearing the segment down.
+ * @dropped: messages no slot could be claimed for
  */
 typedef struct log_user {
-	pthread_mutex_t wlock;
+	_Atomic uint64_t dropped;
+	uint8_t pad[24];
 } log_user_t;
 
 /*

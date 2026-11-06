@@ -40,7 +40,7 @@ void logc_seek_to_oldest(logc_info_t *inf)
 	if (b == NULL)
 		return;		/* not open */
 
-	lfb_seek(b, &inf->rd, LFB_OLDEST);
+	lfbm_seek(b, &inf->rd, LFB_OLDEST);
 }
 
 /**
@@ -55,7 +55,7 @@ void logc_reset_read(logc_info_t *inf)
 	if (b == NULL)
 		return;		/* not open */
 
-	lfb_seek(b, &inf->rd, LFB_NEWEST);
+	lfbm_seek(b, &inf->rd, LFB_NEWEST);
 }
 
 /**
@@ -64,7 +64,8 @@ void logc_reset_read(logc_info_t *inf)
  * @param inf local data
  * @param filename name of shm file created by aggregator block.
  * @param frame_size total frame size (from JSON meta-data). Must
- *        match the frame size the producer created the segment with.
+ *        match the frame size the producer created the segment with
+ *        (the slots hold an lfbm sequence word on top of this).
  *
  * @return 0 if successfull, non-zero (errno) in case of failure.
  */
@@ -77,10 +78,10 @@ int logc_init(logc_info_t *inf,
 
 	memset(inf, 0, sizeof(*inf));
 
-	ret = lfb_shm_open(&inf->shm, filename);
+	ret = lfbm_shm_open(&inf->shm, filename);
 
 	if (ret != 0) {
-		DBG("lfb_shm_open failed: %s", strerror(-ret));
+		DBG("lfbm_shm_open failed: %s", strerror(-ret));
 		return -ret;
 	}
 
@@ -91,9 +92,10 @@ int logc_init(logc_info_t *inf,
 	 * means it disagrees with the producer about the log message
 	 * layout: refuse rather than mis-parse every frame
 	 */
-	if (b->frame_size != frame_size) {
-		DBG("frame size mismatch: segment %u, caller %u",
-		    b->frame_size, frame_size);
+	if (b->frame_size != LFBM_SLOT_SZ(frame_size) ||
+	    b->user_sz != sizeof(log_user_t)) {
+		DBG("mismatch: segment slot %u user %u, caller frame %u",
+		    b->frame_size, b->user_sz, frame_size);
 		lfb_shm_close(&inf->shm);
 		return EPROTO;
 	}
@@ -106,7 +108,7 @@ int logc_init(logc_info_t *inf,
 		return ENOMEM;
 	}
 
-	logc_reset_read(inf);
+	lfbm_rd_init(b, &inf->rd, LFB_NEWEST);
 
 	DBG("frame_size: %u, depth: %lu",
 	    inf->frame_size, (unsigned long)b->depth);
@@ -132,6 +134,10 @@ void logc_close(logc_info_t *inf)
  * Non-consuming: unlike logc_read_frame this only reports the state
  * and never advances the read cursor or resyncs after an overrun.
  *
+ * NEW_DATA counts frames claimed by writers, so logc_read_frame can
+ * return NO_DATA until the next one is finished. Sleep then, to not
+ * spin on a stalled writer.
+ *
  * @param inf
  * @return READ_STATUS
  */
@@ -143,7 +149,7 @@ enum READ_STATUS logc_has_data(const logc_info_t *inf)
 	if (b == NULL)
 		return ERROR;	/* not open */
 
-	lag = lfb_lag(&inf->rd);
+	lag = lfbm_lag(&inf->rd);
 
 	if (lag == 0)
 		return NO_DATA;
@@ -160,7 +166,7 @@ enum READ_STATUS logc_has_data(const logc_info_t *inf)
  * this is a consuming read, in that the readptr is advanced.
  *
  * The frame is copied into client-owned memory and validated against
- * the write position afterwards, so a frame the producer overwrote
+ * its slot's sequence word afterwards, so a frame a producer overwrote
  * while it was being read is never handed out (it is reported as an
  * OVERRUN instead). @frame stays valid until the next call.
  *
@@ -169,13 +175,16 @@ enum READ_STATUS logc_has_data(const logc_info_t *inf)
  * explicit logc_seek_to_oldest is no longer required (but remains
  * harmless).
  *
+ * NO_DATA is also returned while the next frame's writer has not
+ * finished it, even if logc_has_data reports newer frames.
+ *
  * @param inf
  * @param frame outvalue to store the read frame.
  * @return READ_STATUS
  */
 enum READ_STATUS logc_read_frame(logc_info_t *inf, volatile log_frame_t **frame)
 {
-	int ret = lfb_read(&inf->rd, inf->frame);
+	int ret = lfbm_read(&inf->rd, inf->frame);
 
 	if (ret == 1) {
 		*frame = (volatile log_frame_t *)inf->frame;
@@ -203,7 +212,31 @@ void logc_print_stat(const logc_info_t *inf)
 {
 	(void)inf;
 
-	DBG("lag: %lu, overruns: %lu",
-	    (unsigned long)lfb_lag(&inf->rd),
-	    (unsigned long)inf->rd.overruns);
+	DBG("lag: %lu, overruns: %lu, skipped: %lu",
+	    (unsigned long)lfbm_lag(&inf->rd),
+	    (unsigned long)inf->rd.overruns,
+	    (unsigned long)inf->rd.skipped);
+}
+
+/**
+ * logc_lost - count messages lost other than by an OVERRUN
+ *
+ * These are the ones skipped by this client because their writer
+ * stalled, and all those dropped by writers.
+ *
+ * @param inf
+ * @return number of messages. Starts over with a new segment.
+ */
+unsigned long logc_lost(const logc_info_t *inf)
+{
+	const lfb_t *b = lfb_shm_lfb(&inf->shm);
+	const log_user_t *u;
+
+	if (b == NULL)
+		return 0;	/* not open */
+
+	u = lfb_cuser(b);
+
+	return inf->rd.skipped + (unsigned long)
+		atomic_load_explicit(&u->dropped, memory_order_relaxed);
 }

@@ -147,7 +147,7 @@ microblx v1.0.0-rc3-4-ge7ba646 (modver 0.9)
 build options:
   timesrc:             POSIX
   tracing:             OFF
-  log_msg_maxlen:      115
+  log_msg_maxlen:      107
   build_type:          RelWithDebInfo
   compiler:            GNU 16.2.0
   arch:                x86_64

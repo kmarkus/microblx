@@ -187,6 +187,11 @@ static void *reader_thread(void *arg)
 	}
 
 	logc_reset_read(&ci);
+
+	/* no frame may be given up on, however stalled its writer is:
+	 * if one never shows up, wait_consumed fails */
+	ci.rd.stall_limit_ns = UINT64_MAX;
+
 	atomic_fetch_add(&readers_ready, 1);
 
 	while (cnt < total_expected) {

@@ -98,6 +98,13 @@ static void log_data(logc_info_t *inf, int color)
 	ret = logc_read_frame(inf, (volatile log_frame_t **)&msg);
 	switch (ret) {
 	case NO_DATA:
+		/* its writer has not finished: don't spin on it */
+		usleep(1000);
+		break;
+
+	case OVERRUN:
+		/* already resynced by the read */
+		diag_log(LOG_WARNING, color, "OVERRUN\n");
 		break;
 
 	case NEW_DATA:
@@ -308,7 +315,9 @@ static int lc_init(struct ubx_log_info *inf)
 			goto out_close_infd;
 		}
 
-		if (ret == ENOENT) {
+		/* EPROTO: a segment of an older version, which the next
+		 * writer replaces */
+		if (ret == ENOENT || (ret == EPROTO && follow)) {
 			int done = 0;
 
 			/* nothing to dump and we are not going to wait */
@@ -509,6 +518,7 @@ int main(int argc, char **argv)
 	struct ubx_log_info *inf;
 	struct termios tp;
 	char c;
+	unsigned long lost, now_lost;
 
 	while ((opt = getopt(argc, argv, "ONFhsf:"
 #ifdef HAVE_LIBDAEMON
@@ -645,7 +655,17 @@ int main(int argc, char **argv)
 	if(show_old)
 		logc_seek_to_oldest(inf->lcinf);
 
+	lost = logc_lost(inf->lcinf);
+
 	while (!quit) {
+		now_lost = logc_lost(inf->lcinf);
+
+		if (now_lost > lost)
+			diag_log(LOG_WARNING, color, "LOST %lu messages\n",
+				 now_lost - lost);
+
+		lost = now_lost;
+
 		/* check for create shm event */
 		if (follow) {
 			ret = check_new_shm(inf, show_old, color);
@@ -674,8 +694,13 @@ int main(int argc, char **argv)
 			break;
 
 		case OVERRUN:
-			diag_log(LOG_WARNING, color, "OVERRUN - reset read side\n");
-			logc_reset_read(inf->lcinf);
+			/*
+			 * unlike with a reader falling behind, this can
+			 * hit one which waited for a stalled writer: keep
+			 * the frames it held back
+			 */
+			diag_log(LOG_WARNING, color, "OVERRUN - resync to oldest\n");
+			logc_seek_to_oldest(inf->lcinf);
 			break;
 
 		case ERROR:

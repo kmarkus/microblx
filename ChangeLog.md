@@ -10,6 +10,23 @@ This file tracks user visible API changes
   config, default: the block name. UDP is unchanged.
 - `netsink`: add `format="raw"`, port bytes with their type hash, and
   `handlers` for types that hold pointers.
+- `rtlog`: writers are lock-free, using the new `lfbm` multi-producer mode of
+  `liblfb`: a thread claims a slot with one atomic operation and moves on to the
+  next slot if it is occupied, so logging no longer blocks on another logging
+  thread or process. The writer mutex is gone. A full log still overwrites its
+  oldest messages. Messages of different threads can be slightly out of
+  timestamp order, and a reader skips a message whose writer stalls for over 1 s
+  (`ubx-log` reports those as `LOST`, see the new `logc_lost`). A process killed
+  while writing a message costs the log one of its slots until the segment is
+  replaced. The log holds 8192 messages, was 10000.
+- **incompatible**: `UBX_LOG_MSG_MAXLEN` shrank from 115 to 107, as each log
+  slot now holds an 8 byte sequence word. Valid values are now 64*k - 85 (43,
+  107, 171, ...). In an existing build tree, set `-DUBX_LOG_MSG_MAXLEN=107`, as
+  cmake keeps the cached value. The log shm layout changed: all processes must
+  be rebuilt, a stale segment is replaced and old `ubx-log` binaries refuse a
+  new one.
+- **incompatible**: rtlog requires lock-free 64 bit atomics: a target built with
+  `LFB_CTR_BITS=32` can't use it anymore.
 - `netsink`: **fix** struct ports (e.g. `struct ukd_frame`): every
   step failed with "undeclared or implicit tag", as the block's Lua
   state never loaded the registered types into the FFI.

@@ -22,17 +22,6 @@
 #include "ubx.h"
 #include "rtlog.h"
 
-/*
- * The log frame must stay a multiple of the 64 byte cache line, so
- * that a writer filling one frame never dirties a line a reader is
- * copying the neighbouring frame from. If this fires, adjust the
- * UBX_LOG_MSG_MAXLEN CMake cache variable (values 64*k - 77, e.g. 51,
- * 115, 179) for this target -- it cannot be asserted in ubx_types.h,
- * which has to remain luajit-ffi parsable.
- */
-_Static_assert(sizeof(struct ubx_log_msg) % 64 == 0,
-	       "ubx_log_msg must be a multiple of the 64 byte cache line");
-
 const char *loglevel_str[] = {
 	"EMERG", "ALERT", "CRIT", "ERROR",
 	"WARN", "NOTICE", "INFO", "DEBUG"
@@ -108,7 +97,23 @@ void ubx_log_cleanup(struct ubx_node *nd)
 #ifdef CONFIG_LOGGING_SHM
 
 #include "internal/rtlog_common.h"
-#include "lfb_shm.h"
+#include "lfbm_shm.h"
+
+/*
+ * A log slot (frame + lfbm sequence word) must stay a multiple of the
+ * 64 byte cache line, so that a writer filling one slot never dirties
+ * a line another writer or a reader is using for the neighbouring
+ * slot. If this fires, adjust the UBX_LOG_MSG_MAXLEN CMake cache
+ * variable (values 64*k - 85, e.g. 43, 107, 171) for this target -- it
+ * cannot be asserted in ubx_types.h, which has to remain luajit-ffi
+ * parsable.
+ */
+_Static_assert(LOG_SLOT_SZ % 64 == 0,
+	       "log slot must be a multiple of the 64 byte cache line");
+
+/* slot 0 starts on a cache line, given a page aligned mapping */
+_Static_assert((LFB_HDR_SZ + sizeof(log_user_t)) % 64 == 0,
+	       "log user area must align the slots to the cache line");
 
 /* bound the retries when another party is mid-create (see log_join) */
 #define LOG_JOIN_RETRIES	1000
@@ -124,23 +129,20 @@ static pthread_mutex_t log_nodes_lock = PTHREAD_MUTEX_INITIALIZER;
 /**
  * log_join - create or attach to the log segment
  *
- * lfb_shm_join creates the segment if absent -- leaving it
- * *unpublished* so that we can initialize the writer lock before
- * anybody can see it -- or attaches read-write to an existing one
- * after checking it matches our geometry exactly.
+ * lfbm_shm_join creates the segment if absent, or attaches read-write
+ * to an existing one after checking it matches our geometry exactly.
  *
- * @return 1 if created (caller must init the user area and publish),
- *         0 if an existing segment was joined, negative errno on
- *         failure
+ * @return 1 if created (caller must publish), 0 if an existing segment
+ *         was joined, negative errno on failure
  */
 static int log_join(void)
 {
 	int ret, unlinked = 0;
 
 	for (int i = 0; i < LOG_JOIN_RETRIES; i++) {
-		ret = lfb_shm_join(&log_shm, LOG_SHM_FILENAME,
-				   sizeof(struct ubx_log_msg),
-				   LOG_BUFFER_DEPTH, sizeof(log_user_t));
+		ret = lfbm_shm_join(&log_shm, LOG_SHM_FILENAME,
+				    sizeof(struct ubx_log_msg),
+				    LOG_BUFFER_DEPTH, sizeof(log_user_t));
 
 		if (ret >= 0)
 			return ret;
@@ -171,26 +173,12 @@ static int log_join(void)
 
 static void ubx_log_shm(const struct ubx_node *nd, const struct ubx_log_msg *msg)
 {
-	int ret;
 	(void)(nd);
 
-	ret = pthread_mutex_lock(&log_user->wlock);
-
-	if (ret == EOWNERDEAD) {
-		/*
-		 * the previous owner died holding the lock. The buffer
-		 * is still consistent, since lfb_write only advances
-		 * the write position once the frame is complete; at
-		 * worst a partial frame sits in a slot that was never
-		 * published and gets overwritten now.
-		 */
-		pthread_mutex_consistent(&log_user->wlock);
-	} else if (ret != 0) {
-		return;	/* ENOTRECOVERABLE: drop the message */
-	}
-
-	lfb_write(lfb_shm_lfb(&log_shm), msg);
-	pthread_mutex_unlock(&log_user->wlock);
+	/* too many writers stalled at once */
+	if (lfbm_write(lfb_shm_lfb(&log_shm), msg) != 0)
+		atomic_fetch_add_explicit(&log_user->dropped, 1,
+					  memory_order_relaxed);
 }
 
 static int log_open(void)
@@ -207,32 +195,8 @@ static int log_open(void)
 
 	log_user = lfb_user(lfb_shm_lfb(&log_shm));
 
-	if (ret == 1) {
-		/*
-		 * we created the segment: initialize the writer lock,
-		 * then publish. Until lfb_shm_publish, other writers
-		 * and all readers get -EAGAIN, so nobody can observe
-		 * the uninitialized lock.
-		 */
-		pthread_mutexattr_t mattr;
-
-		pthread_mutexattr_init(&mattr);
-		pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-		pthread_mutexattr_setprotocol(&mattr, PTHREAD_PRIO_INHERIT);
-		pthread_mutexattr_setrobust(&mattr, PTHREAD_MUTEX_ROBUST);
-
-		ret = pthread_mutex_init(&log_user->wlock, &mattr);
-		pthread_mutexattr_destroy(&mattr);
-
-		if (ret != 0) {
-			fprintf(stderr, "%s: mutex init failed: %s\n",
-				__func__, strerror(ret));
-			lfb_shm_destroy(&log_shm);
-			return -1;
-		}
-
+	if (ret == 1)
 		lfb_shm_publish(&log_shm);
-	}
 
 	return 0;
 }
@@ -268,7 +232,7 @@ void ubx_log_cleanup(struct ubx_node *nd)
 	pthread_mutex_lock(&log_nodes_lock);
 
 	/* close but don't unlink: other processes may still be logging
-	 * into this segment (and the lock lives in it) */
+	 * into this segment */
 	if (--log_nodes == 0) {
 		log_user = NULL;
 		lfb_shm_close(&log_shm);

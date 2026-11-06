@@ -88,6 +88,9 @@ test:
     - test-lfb-shm-unit
     - test-lfb
     - test-lfb -r 8 -O
+    - test-lfbm-unit
+    - test-lfbm
+    - test-lfbm -d 16
     # run the rtlog stress test (multi-writer/multi-reader shm log
     # verification): defaults, high contention and the SPSC fast path
     - test-rtlog
@@ -145,9 +148,14 @@ test-lfb-tsan:
     - gcc -fsanitize=thread -g -O1 -Iliblfb liblfb/test-lfb.c -lpthread -lrt -o tsan-lfb
     - ./tsan-lfb -r 4 -n 20
     - ./tsan-lfb -r 4 -O
+    - gcc -fsanitize=thread -g -O1 -Iliblfb liblfb/test-lfbm-unit.c -lcmocka -lpthread -lrt -o tsan-lfbm-unit
+    - ./tsan-lfbm-unit
+    - gcc -fsanitize=thread -g -O1 -Iliblfb liblfb/test-lfbm.c -lpthread -lrt -o tsan-lfbm
+    - ./tsan-lfbm -T -d 16
 
 # run the rtlog stress test under ThreadSanitizer (validates the shm
-# writer mutex and the release/acquire publication of the write offset)
+# lock-free slot claim without overwriting; test-lfb-tsan has that. In
+# both, gcc's TSAN doesn't check the atomic_thread_fence calls)
 test-rtlog-tsan:
   stage: test
   before_script:
@@ -157,7 +165,7 @@ test-rtlog-tsan:
     # for this standalone build fake config.h and substitute the
     # ubx_types.h template with the default log message length
     - touch config.h
-    - sed 's/@UBX_LOG_MSG_MAXLEN@/115/' libubx/ubx_types.h.in > libubx/ubx_types.h
+    - sed 's/@UBX_LOG_MSG_MAXLEN@/107/' libubx/ubx_types.h.in > libubx/ubx_types.h
     - gcc -fsanitize=thread -g -O1 -Ilibubx -Iliblfb -I. tools/test-rtlog.c libubx/rtlog.c libubx/rtlog_client.c libubx/ubx_time.c -lpthread -lrt -o tsan-rtlog
     - ./tsan-rtlog -w 8 -r 4 -n 10
     - ./tsan-rtlog -w 32 -r 8 -n 5

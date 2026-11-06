@@ -134,13 +134,13 @@ else()
   set(UBX_TIMESRC "POSIX")
 endif()
 
-# Max length of a log message. The default (115) sizes struct
-# ubx_log_msg to 192 bytes = 3 cache lines; keep it 64*k - 77 (51,
-# 115, 179, ...) so the frame stays a cache-line multiple (asserted in
-# rtlog.c). ubx_types.h is generated from ubx_types.h.in so the value
+# Max length of a log message. The default (107) sizes a log slot,
+# i.e. struct ubx_log_msg plus 8 bytes of ring sequence word, to 192
+# bytes = 3 cache lines; keep it 64*k - 85 (43, 107, 171, ...) so the
+# slot stays a cache-line multiple (asserted in rtlog.c). ubx_types.h is generated from ubx_types.h.in so the value
 # is visible to both the C build and the luajit FFI (which reads the
 # installed header).
-set(UBX_LOG_MSG_MAXLEN 115 CACHE STRING "max ubx log message length")
+set(UBX_LOG_MSG_MAXLEN 107 CACHE STRING "max ubx log message length")
 
 # hot connect/disconnect of ports while blocks are running
 option(ENABLE_URCU "Use liburcu-bp for hot connect/disconnect" ON)
