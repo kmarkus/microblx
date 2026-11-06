@@ -2,9 +2,8 @@
 --
 -- Test the netsink luablock: dynamic port creation from the `ports`
 -- lua_str config, the real (config_add) runtime settings, and both
--- encodings (JSON and MessagePack) over UDP. ZeroMQ transport is not
--- exercised here (its PUB/SUB slow-joiner makes a self-contained test
--- flaky); see std_blocks/netsink/README.md for manual verification.
+-- encodings (JSON and MessagePack) over UDP, and the ZeroMQ framing.
+-- The subscriber joins late, so the zmq tests write until it receives.
 --
 
 local lu = require("luaunit")
@@ -44,6 +43,7 @@ int bind(int fd, const void *addr, unsigned int addrlen);
 long recvfrom(int fd, void *buf, unsigned long len, int flags,
 	      void *src_addr, unsigned int *addrlen);
 int close(int fd);
+int getpid(void);
 int setsockopt(int fd, int level, int optname, const void *optval, unsigned int optlen);
 unsigned short htons(unsigned short hostshort);
 struct nt_in_addr { uint32_t s_addr; };
@@ -117,6 +117,7 @@ TestNetsink = {}
 function TestNetsink:teardown()
    if ni then ubx.node_rm(ni) end
    ni = nil
+   os.execute("rm -f /tmp/test_netsink_*")
 end
 
 --- ports are created from the lua_str `ports` table with the right types
@@ -266,6 +267,173 @@ end
 --- an unknown type in `ports` fails block init
 function TestNetsink:Test_bad_type_fails()
    lu.assert_false(pcall(launch_sink, "ports = { a='no_such_type' }"))
+end
+
+
+-- zmq subscriber
+ffi.cdef[[
+void *zmq_ctx_new(void);
+int zmq_ctx_term(void *c);
+void *zmq_socket(void *c, int type);
+int zmq_close(void *s);
+int zmq_connect(void *s, const char *addr);
+int zmq_setsockopt(void *s, int option, const void *val, size_t len);
+int zmq_getsockopt(void *s, int option, void *val, size_t *len);
+int zmq_recv(void *s, void *buf, size_t len, int flags);
+]]
+
+local has_zmq, zmq = pcall(ffi.load, "zmq")
+local ZMQ_SUB, ZMQ_SUBSCRIBE, ZMQ_RCVTIMEO, ZMQ_RCVMORE = 2, 6, 27, 13
+local next_ipc = 0
+
+local function ipc_uri()
+   next_ipc = next_ipc + 1
+   return ("ipc:///tmp/test_netsink_%d_%d"):format(ffi.C.getpid(), next_ipc)
+end
+
+local function sub_open(uri, prefix)
+   local ctx = zmq.zmq_ctx_new()
+   local s = zmq.zmq_socket(ctx, ZMQ_SUB)
+   local tmo = ffi.new("int[1]", 20)
+   zmq.zmq_setsockopt(s, ZMQ_RCVTIMEO, tmo, ffi.sizeof(tmo))
+   zmq.zmq_setsockopt(s, ZMQ_SUBSCRIBE, prefix or "", #(prefix or ""))
+   assert(zmq.zmq_connect(s, uri) == 0)
+   return { ctx=ctx, s=s }
+end
+
+local function sub_close(sub)
+   zmq.zmq_close(sub.s)
+   zmq.zmq_ctx_term(sub.ctx)
+end
+
+-- all frames of one message, nil on timeout
+local function sub_recv(sub)
+   local buf = ffi.new("char[?]", 4096)
+   local more, msize = ffi.new("int[1]"), ffi.new("size_t[1]", ffi.sizeof("int"))
+   local frames = {}
+   repeat
+      local n = zmq.zmq_recv(sub.s, buf, 4096, 0)
+      if n < 0 then return nil end
+      frames[#frames+1] = ffi.string(buf, n)
+      zmq.zmq_getsockopt(sub.s, ZMQ_RCVMORE, more, msize)
+   until more[0] == 0
+   return frames
+end
+
+-- write and step until a message arrives
+local function exchange(sink, sub, write)
+   for _ = 1, 200 do
+      write()
+      sink:do_step()
+      local m = sub_recv(sub)
+      if m then return m end
+   end
+end
+
+local function hashstr(nd, tname)
+   local buf = ffi.new("char[33]")
+   ubx.type_hashstr(ubx.type_get(nd, tname), buf)
+   return ffi.string(buf)
+end
+
+local function start_fails(sink)
+   return ubx.block_tostate(sink, 'active') ~= 0
+end
+
+--- json with the default topic reads like in PlotJuggler's ZMQ
+--- subscriber: first frame topic, second frame payload
+function TestNetsink:Test_zmq_json_topic()
+   if not has_zmq then return end
+   local uri = ipc_uri()
+   local sink = launch_sink("ports = { ts='double', a='double' }",
+			    ("transport='zmq'\nuri='%s'\n"):format(uri))
+   local p_ts = ubx.port_clone_conn(sink, "ts", 1, nil, 7, 0)
+   local p_a  = ubx.port_clone_conn(sink, "a",  1, nil, 7, 0)
+   ubx.block_tostate(sink, 'active')
+   local sub = sub_open(uri)
+
+   local m = exchange(sink, sub, function() p_ts:write(1.5); p_a:write(42.0) end)
+   sub_close(sub)
+   lu.assert_not_nil(m)
+   lu.assert_equals(#m, 2)
+   lu.assert_equals(m[1], "sink")
+   lu.assert_almost_equals(json.decode(m[2]).a, 42.0, 1e-9)
+end
+
+--- subscribers filter on the configured topic
+function TestNetsink:Test_zmq_topic_filter()
+   if not has_zmq then return end
+   local uri = ipc_uri()
+   local sink = launch_sink("ports = { ts='double' }",
+			    ("transport='zmq'\nuri='%s'\ntopic='arm'\n"):format(uri))
+   local p_ts = ubx.port_clone_conn(sink, "ts", 1, nil, 7, 0)
+   ubx.block_tostate(sink, 'active')
+   local other, sub = sub_open(uri, "cam"), sub_open(uri, "arm")
+
+   local m = exchange(sink, sub, function() p_ts:write(1.0) end)
+   lu.assert_not_nil(m)
+   lu.assert_equals(m[1], "arm")
+   lu.assert_nil(sub_recv(other))
+   sub_close(other)
+   sub_close(sub)
+end
+
+--- raw: one message per port, type frame and the port bytes
+function TestNetsink:Test_zmq_raw_array()
+   if not has_zmq then return end
+   local uri = ipc_uri()
+   local sink = launch_sink("ports = { pos='double[3]' }",
+			    ("transport='zmq'\nformat='raw'\nuri='%s'\n"):format(uri))
+   local p = ubx.port_clone_conn(sink, "pos", 1, nil, 7, 0)
+   ubx.block_tostate(sink, 'active')
+   local sub = sub_open(uri)
+
+   local m = exchange(sink, sub, function() p:write({ 1.0, 2.0, 3.0 }) end)
+   sub_close(sub)
+   lu.assert_not_nil(m)
+   lu.assert_equals(#m, 3)
+   lu.assert_equals(m[1], "sink/pos")
+   lu.assert_equals(m[2], hashstr(ni, "double") .. " 3")
+   lu.assert_equals(#m[3], 24)
+   local d = ffi.cast("const double *", m[3])
+   lu.assert_equals({ d[0], d[1], d[2] }, { 1.0, 2.0, 3.0 })
+end
+
+--- a handler makes the buffers of a by-reference type explicit
+function TestNetsink:Test_zmq_raw_handler()
+   if not has_zmq then return end
+   local uri = ipc_uri()
+   local sink = launch_sink("ports = { r='struct ubx_tstat' }",
+      ("transport='zmq'\nformat='raw'\nuri='%s'\n"):format(uri) ..
+      ("package.path=%q .. package.path\n"):format(here .. "?.lua;") ..
+      "handlers = { ['struct ubx_tstat'] = 'netsink_test_handler' }\n")
+   local p = ubx.port_clone_conn(sink, "r", 1, nil, 7, 0)
+   ubx.block_tostate(sink, 'active')
+   local sub = sub_open(uri)
+
+   local m = exchange(sink, sub, function() p:write({ cnt=5 }) end)
+   sub_close(sub)
+   lu.assert_not_nil(m)
+   lu.assert_equals(#m, 5)
+   lu.assert_equals(m[1], "sink/r")
+   lu.assert_equals(m[2], hashstr(ni, "struct ubx_tstat") .. " 1")
+   lu.assert_equals(m[4], hashstr(ni, "int32_t") .. " 2")
+   local d = ffi.cast("const int32_t *", m[5])
+   lu.assert_equals({ d[0], d[1] }, { 11, 22 })
+end
+
+function TestNetsink:Test_zmq_config_errors()
+   if not has_zmq then return end
+   local uri = ipc_uri()
+   lu.assert_true(start_fails(launch_sink("ports = { a='double' }", "topic='x'\n")))
+   ubx.node_rm(ni); ni = nil
+   lu.assert_true(start_fails(launch_sink("ports = { a='double' }", "format='raw'\n")))
+   ubx.node_rm(ni); ni = nil
+   lu.assert_true(start_fails(launch_sink("ports = { a='double' }",
+      ("transport='zmq'\nuri='%s'\nhandlers={ double='x' }\n"):format(uri))))
+   ubx.node_rm(ni); ni = nil
+   lu.assert_true(start_fails(launch_sink("ports = { a='double' }",
+      ("transport='zmq'\nformat='raw'\nuri='%s'\nhandlers={ double='no_such_module' }\n"):format(uri))))
 end
 
 if not _RUNNER then

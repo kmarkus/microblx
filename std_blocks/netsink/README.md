@@ -46,11 +46,14 @@ optional and default as shown.
 |-------------|----------|-------------------------------------------------|
 | `ports`     | table    | required: `{ name = "type", ... }` (see below)  |
 | `transport` | string   | `"udp"` (default) or `"zmq"`                     |
-| `format`    | string   | `"json"` (default) or `"msgpack"`               |
+| `format`    | string   | `"json"` (default), `"msgpack"` or `"raw"`      |
 | `host`      | string   | udp: target host, default `127.0.0.1`           |
 | `port`      | number   | udp: target port, default `9870` (PlotJuggler)  |
 | `uri`       | string   | zmq: PUB endpoint, default `tcp://*:9870`        |
 | `zmq_bind`  | number   | zmq: `1`=bind (default), `0`=connect            |
+| `topic`     | string   | zmq: topic frame, default: the block name       |
+| `zmq_sndhwm`| number   | zmq: send queue, messages. `raw` default: 4     |
+| `handlers`  | table    | raw: `{ ["type"] = "lua.module" }`, see below   |
 
 `ports` maps each output key / input-port name to a registered ubx type
 name, e.g. `ports = { x="double", n="int32_t" }`. A bare type name is a
@@ -142,3 +145,35 @@ Quick UDP/JSON check without PlotJuggler:
 ```sh
 nc -u -l 9870
 ```
+
+## zmq framing
+
+Every zmq message starts with a topic frame, so subscribers can filter
+by prefix. `json` and `msgpack` send `[topic][payload]`, which is the
+topic and payload layout of PlotJuggler's ZMQ subscriber.
+
+`raw` sends each port sample as it is read, as its own message, without
+the frame alignment of the other formats:
+
+```
+[topic/port]
+["<type hash> <array len>"][bytes]    one pair per buffer
+```
+
+The hash is the one in the `mqueue` names, `ubx_type_get_by_hashstr`
+resolves it. `raw` needs transport `zmq`.
+
+A type with a pointer needs a handler, a Lua module that returns
+`function(data)`, called with a pointer to the sample. It returns the
+buffers as `{ { "type name", ptr, len }, ... }`:
+
+```lua
+ports = { cloud="struct u3d_cloud" }
+handlers = { ["struct u3d_cloud"]="u3d.netsink" }
+format = "raw"
+transport = "zmq"
+```
+
+A type with a pointer and without a handler sends the pointer value,
+this is not detected. By-reference data must be valid when the sink
+runs: put the sink behind the producer in the same chain.

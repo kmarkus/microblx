@@ -6,8 +6,9 @@
 --
 --   * transport : "udp" (raw UDP datagrams) or "zmq" (a ZeroMQ PUB
 --                 socket, one message per frame)
---   * format    : "json" (newline-delimited, PlotJuggler-friendly) or
---                 "msgpack" (compact binary, via lua-MessagePack)
+--   * format    : "json" (newline-delimited, PlotJuggler-friendly),
+--                 "msgpack" (compact binary, via lua-MessagePack) or
+--                 "raw" (the port bytes with their type, zmq only)
 --
 -- This is an ordinary `ubx/luablock`: instantiate it as
 -- `luablock:netsink`. All configuration -- the port set and the network
@@ -20,6 +21,7 @@
 --           transport = "zmq"              -- "udp" (default) | "zmq"
 --           format    = "msgpack"          -- "json" (default) | "msgpack"
 --           uri       = "tcp://*:9870"     -- zmq endpoint
+--           topic     = "robot"            -- zmq topic, default: block name
 --           -- host/port are the UDP equivalents (transport="udp")
 --        ]],
 --   } },
@@ -33,6 +35,25 @@
 -- the block interface -- so they exist by the time the USC connections
 -- are wired up. The network settings (transport/format/host/port/uri)
 -- are read in `start`.
+--
+-- zmq messages always start with a topic frame, so subscribers can
+-- filter: [topic][payload] for json and msgpack. "raw" sends one message
+-- per port sample, [topic/port] and then a pair of frames per buffer:
+-- ["<type hash> <array len>"][bytes]. The hash is the one in the mqueue
+-- names, ubx_type_get_by_hashstr resolves it. Frame alignment does not
+-- apply, the sample is sent as it is read.
+--
+-- A port type with a pointer needs a handler, which makes its buffers
+-- explicit. `handlers` maps type names to Lua modules that return
+-- function(data) -> { { "type name", ptr, len }, ... }; data points to the
+-- port sample:
+--
+--   ports = { cloud="struct u3d_cloud" }
+--   handlers = { ["struct u3d_cloud"]="u3d.netsink" }
+--
+-- limit: without a handler the pointer value is sent, this is not
+-- detected. A by-reference type requires the sink in the producer's
+-- chain, see the type's documentation.
 --
 -- No core extension is required: no custom block type, no struct type
 -- registration -- just the stock luablock and its lua_str/lua_file
@@ -78,6 +99,7 @@ void *zmq_socket(void *context, int type);
 int   zmq_close(void *s);
 int   zmq_bind(void *s, const char *addr);
 int   zmq_connect(void *s, const char *addr);
+int   zmq_setsockopt(void *s, int option, const void *val, size_t len);
 int   zmq_send(void *s, const void *buf, size_t len, int flags);
 ]]
 
@@ -85,6 +107,11 @@ local AF_INET = 2
 local SOCK_DGRAM = 2
 local ZMQ_PUB = 1
 local ZMQ_DONTWAIT = 1
+local ZMQ_SNDMORE = 2
+local ZMQ_SNDHWM = 23
+-- a queued sample of "raw" can be a whole image: bound the memory
+local RAW_SNDHWM = 4
+local TYPE_HASHSTR_LEN = 32
 
 -- per-instance state: each luablock instance has its own lua_State, so
 -- these file-locals are private to the instance.
@@ -101,6 +128,11 @@ local destlen = 0
 local zmq = nil        -- ffi.load("zmq") handle
 local zctx = nil
 local zsock = nil
+local topic = nil
+
+local nodeptr = nil    -- ubx_node_t, for the type frames
+local hashes = {}      -- type name -> { hash=, size= }
+local handlers_by_type = {}
 
 local portlist = {}  -- ordered { {id=, typ=}, ... }   built in preinit
 local portobjs = {}  -- { {id=, port=, rbuf=, pending=, miss=}, ... } resolved in start
@@ -211,7 +243,7 @@ local function setup_udp(nd)
    return true
 end
 
-local function setup_zmq(nd)
+local function setup_zmq(nd, name, sndhwm)
    local uri = opt_str("uri", "tcp://*:9870")
    local do_bind = opt_num("zmq_bind", 1) ~= 0   -- default: bind
 
@@ -242,6 +274,12 @@ local function setup_zmq(nd)
       return false
    end
 
+   sndhwm = opt_num("zmq_sndhwm", sndhwm)
+   if sndhwm then
+      local v = ffi.new("int[1]", sndhwm)
+      zmq.zmq_setsockopt(zsock, ZMQ_SNDHWM, v, ffi.sizeof(v))
+   end
+
    local rc = do_bind and zmq.zmq_bind(zsock, uri) or zmq.zmq_connect(zsock, uri)
    if rc ~= 0 then
       zmq.zmq_close(zsock); zsock = nil
@@ -252,17 +290,72 @@ local function setup_zmq(nd)
 
    -- DONTWAIT: a PUB with no (or a slow) subscriber must never block the
    -- decoupled sink thread; ZMQ drops such messages, which is fine here.
+   topic = opt_str("topic", name)
    send = function(msg)
+      if zmq.zmq_send(zsock, topic, #topic, ZMQ_DONTWAIT + ZMQ_SNDMORE) < 0 then return end
       zmq.zmq_send(zsock, msg, #msg, ZMQ_DONTWAIT)
    end
 
-   ubx.info(nd, "netsink", "zmq PUB %s %s", do_bind and "bind" or "connect", uri)
+   ubx.info(nd, "netsink", "zmq PUB %s %s, topic %s", do_bind and "bind" or "connect", uri, topic)
+   return true
+end
+
+-- hash and size of a registered type, nil and logged if unknown
+local function type_info(tname)
+   local e = hashes[tname]
+   if e == nil then
+      local t = ubx.type_get(nodeptr, tname)
+      if t == nil then
+	 ubx.err(nodeptr, "netsink", "unknown type '%s'", tname)
+	 hashes[tname] = false
+	 return nil
+      end
+      local buf = ffi.new("char[?]", TYPE_HASHSTR_LEN + 1)
+      ubx.type_hashstr(t, buf)
+      e = { hash=ffi.string(buf), size=tonumber(t.size) }
+      hashes[tname] = e
+   end
+   return e or nil
+end
+
+-- one raw message: buffers are { "type name", ptr, len }
+local function send_raw(ptopic, bufs)
+   local frames = {}
+   for _, buf in ipairs(bufs) do
+      local info = type_info(buf[1])
+      if info == nil then return end
+      local len = tonumber(buf[3])
+      if len > 0 then
+	 frames[#frames+1] = { info.hash .. " " .. len, buf[2], len * info.size }
+      end
+   end
+   if #frames == 0 then return end
+
+   local more = ZMQ_DONTWAIT + ZMQ_SNDMORE
+   if zmq.zmq_send(zsock, ptopic, #ptopic, more) < 0 then return end
+   for i, f in ipairs(frames) do
+      zmq.zmq_send(zsock, f[1], #f[1], more)
+      zmq.zmq_send(zsock, f[2], f[3], i < #frames and more or ZMQ_DONTWAIT)
+   end
+end
+
+local function load_handlers(nd)
+   for tname, mod in pairs(type(handlers) == "table" and handlers or {}) do
+      local ok, h = pcall(require, mod)
+      if not ok or type(h) ~= "function" then
+	 ubx.err(nd, "netsink", "handler '%s': %s", tostring(mod),
+		 ok and "must return a function" or tostring(h))
+	 return false
+      end
+      handlers_by_type[tname] = h
+   end
    return true
 end
 
 function start(b)
    b = ffi.cast("ubx_block_t*", b)
    local nd = b.nd
+   nodeptr = nd
 
    -- this lua_State only knows the struct types it declares itself:
    -- without, data_tolua fails on struct ports in every step
@@ -284,16 +377,30 @@ function start(b)
 	 return false
       end
       encode = function(sample) return mp.pack(sample) end
-   else
-      ubx.err(nd, "netsink", "unknown format '%s' (use 'json' or 'msgpack')", tostring(fmt))
+   elseif fmt ~= "raw" then
+      ubx.err(nd, "netsink", "unknown format '%s' (use 'json', 'msgpack' or 'raw')", tostring(fmt))
       return false
    end
 
    -- select and open transport
    transport = opt_str("transport", "udp")
+   if transport == "udp" and _G.topic ~= nil then
+      ubx.err(nd, "netsink", "config 'topic' needs transport 'zmq'")
+      return false
+   end
+   if fmt == "raw" and transport ~= "zmq" then
+      ubx.err(nd, "netsink", "format 'raw' needs transport 'zmq'")
+      return false
+   end
+   if fmt ~= "raw" and _G.handlers ~= nil then
+      ubx.err(nd, "netsink", "config 'handlers' needs format 'raw'")
+      return false
+   end
+   if not load_handlers(nd) then return false end
+
    local ok
    if transport == "udp" then ok = setup_udp(nd)
-   elseif transport == "zmq" then ok = setup_zmq(nd)
+   elseif transport == "zmq" then ok = setup_zmq(nd, ffi.string(b.name), fmt == "raw" and RAW_SNDHWM or nil)
    else
       ubx.err(nd, "netsink", "unknown transport '%s' (use 'udp' or 'zmq')", tostring(transport))
       return false
@@ -303,12 +410,27 @@ function start(b)
    -- resolve port pointers and pre-allocate one read buffer per port
    for _, e in ipairs(portlist) do
       local pt = ubx.block_port_get(b, e.id)
-      portobjs[#portobjs+1] = { id=e.id, port=pt, rbuf=ubx.port_alloc_read_sample(pt),
-				pending=nil, miss=0 }
+      portobjs[#portobjs+1] = { id=e.id, typ=e.typ, port=pt,
+				rbuf=ubx.port_alloc_read_sample(pt), pending=nil, miss=0,
+				topic=topic and (topic .. "/" .. e.id),
+				handler=handlers_by_type[e.typ] }
    end
+
+   step = (fmt == "raw") and step_raw or step_encoded
 
    ubx.info(nd, "netsink", "streaming %s/%s (%d ports)", transport, fmt, #portobjs)
    return true
+end
+
+function step_raw(b)
+   for _, p in ipairs(portobjs) do
+      while true do
+	 local n = ubx.port_read(p.port, p.rbuf)
+	 if n <= 0 then break end
+	 local bufs = p.handler and p.handler(p.rbuf.data) or { { p.typ, p.rbuf.data, n } }
+	 send_raw(p.topic, bufs)
+      end
+   end
 end
 
 -- Drain all buffered samples, emitting one datagram/message per frame
@@ -329,7 +451,7 @@ end
 -- read time. When decoupled the auto "ts" is the sink's read time (same
 -- for every frame in a step), so feed a "ts" port for a real per-sample
 -- axis (see netsink.usc).
-function step(b)
+function step_encoded(b)
    if send == nil then return end
 
    while true do
@@ -372,13 +494,19 @@ function step(b)
    end
 end
 
+step = step_encoded
+
 function stop(b)
+   step = step_encoded
    if sock >= 0 then ffi.C.close(sock); sock = -1 end
    if zsock ~= nil then zmq.zmq_close(zsock); zsock = nil end
    if zctx ~= nil then zmq.zmq_ctx_term(zctx); zctx = nil end
    send = nil
    portobjs = {}
    dest = nil
+   topic = nil
+   hashes = {}
+   handlers_by_type = {}
 end
 
 function cleanup(b)

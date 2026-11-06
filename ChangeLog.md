@@ -5,6 +5,11 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `netsink`: **breaking** zmq messages start with a topic frame: subscribers
+  get `[topic][payload]` instead of one frame. Set by the new `topic`
+  config, default: the block name. UDP is unchanged.
+- `netsink`: add `format="raw"`, port bytes with their type hash, and
+  `handlers` for types that hold pointers.
 - `netsink`: **fix** struct ports (e.g. `struct ukd_frame`): every
   step failed with "undeclared or implicit tag", as the block's Lua
   state never loaded the registered types into the FFI.
