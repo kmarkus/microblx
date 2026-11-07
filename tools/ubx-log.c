@@ -92,7 +92,7 @@ static void log_data(logc_info_t *inf, int color)
 {
 	struct ubx_log_msg *msg;
 	int ret;
-	const char *level_str;
+	const char *level_str, *level_color = RESET;
 	int prio;
 
 	ret = logc_read_frame(inf, (volatile log_frame_t **)&msg);
@@ -114,6 +114,7 @@ static void log_data(logc_info_t *inf, int color)
 			prio = LOG_ERR;
 		} else {
 			level_str = loglevel_str[msg->level];
+			level_color = loglevel_color[msg->level];
 			prio = syslog_prio[msg->level];
 		}
 
@@ -123,7 +124,7 @@ static void log_data(logc_info_t *inf, int color)
 				msg->ts / NSEC_PER_SEC,
 				(msg->ts % NSEC_PER_SEC) / NSEC_PER_USEC,
 				msg->src,
-				loglevel_color[msg->level],
+				level_color,
 				level_str, msg->msg);
 		else
 			fprintf(stdout, "[%" PRId64 ".%06" PRId64 "] %s %s: %s\n",
