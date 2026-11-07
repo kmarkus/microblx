@@ -5,6 +5,11 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- several nodes in a process can load the same module: each node now keeps its
+  own copy of a registered type, which used to be the module's static struct.
+- **incompatible**: `ubx_type_unregister` returns 0 or `EINVALID_TYPE` instead
+  of the type. `ubx_type_register` takes a `const` type, and doesn't write to
+  it: use `ubx_type_get` to look up a type, not the pointer registered.
 - `netsink`: **breaking** zmq messages start with a topic frame: subscribers
   get `[topic][payload]` instead of one frame. Set by the new `topic`
   config, default: the block name. UDP is unchanged.

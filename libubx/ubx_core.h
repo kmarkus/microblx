@@ -73,8 +73,8 @@ void __ubx_cleanup_module(struct ubx_node *ni);
 int ubx_block_register(ubx_node_t *nd, struct ubx_proto_block *prot);
 int ubx_block_unregister(ubx_node_t *nd, const char *name);
 
-int ubx_type_register(ubx_node_t *nd, ubx_type_t *type);
-ubx_type_t *ubx_type_unregister(ubx_node_t *nd, const char *name);
+int ubx_type_register(ubx_node_t *nd, const ubx_type_t *type);
+int ubx_type_unregister(ubx_node_t *nd, const char *name);
 
 /* types (ubx_type_t) */
 ubx_type_t *ubx_type_get(ubx_node_t *nd, const char *name);

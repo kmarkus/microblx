@@ -734,11 +734,12 @@ int ubx_block_unregister(ubx_node_t *nd, const char *name)
  * ubx_type_register - register a type with a node.
  *
  * @param nd node to register type with
- * @param type type to register
+ * @param type type to register. The node keeps a copy, the strings it
+ *        points to must stay valid until it is unregistered.
  *
  * @return 0 if OK, error code otherwise
  */
-int ubx_type_register(ubx_node_t *nd, ubx_type_t *type)
+int ubx_type_register(ubx_node_t *nd, const ubx_type_t *type)
 {
 	ubx_type_t *tmp;
 
@@ -767,16 +768,26 @@ int ubx_type_register(ubx_node_t *nd, ubx_type_t *type)
 		return EALREADY_REGISTERED;
 	}
 
-	type->seqid = nd->cur_seqid++;
-	type->nd = nd;
+	/* the node's own copy: types are usually static in a module, which
+	 * several nodes in a process can load */
+	tmp = malloc(sizeof(*tmp));
+
+	if (tmp == NULL) {
+		logf_err(nd, "failed to allocate type %s", type->name);
+		return EOUTOFMEM;
+	}
+
+	*tmp = *type;
+	tmp->seqid = nd->cur_seqid++;
+	tmp->nd = nd;
 
 	/* compute md5 fingerprint for type */
-	md5((const unsigned char *)type->name, strlen(type->name), type->hash);
+	md5((const unsigned char *)tmp->name, strlen(tmp->name), tmp->hash);
 
-	HASH_ADD_KEYPTR(hh, nd->types, type->name, strlen(type->name), type);
+	HASH_ADD_KEYPTR(hh, nd->types, tmp->name, strlen(tmp->name), tmp);
 
 	logf_debug(nd, "registered type %s: seqid %lu, ptr %p",
-		   type->name, type->seqid, type);
+		   tmp->name, tmp->seqid, tmp);
 	return 0;
 }
 
@@ -789,23 +800,22 @@ int ubx_type_register(ubx_node_t *nd, ubx_type_t *type)
  * @param nd node to unregister type from
  * @param name type name to unregister
  *
- * @return pointer to unregistered type or NULL if not found
+ * @return 0 if ok, EINVALID_TYPE if not found
  */
-ubx_type_t *ubx_type_unregister(ubx_node_t *nd, const char *name)
+int ubx_type_unregister(ubx_node_t *nd, const char *name)
 {
-	ubx_type_t *ret;
+	ubx_type_t *type;
 
-	HASH_FIND_STR(nd->types, name, ret);
+	HASH_FIND_STR(nd->types, name, type);
 
-	if (ret == NULL) {
+	if (type == NULL) {
 		logf_err(nd, "type %s not registered", name);
-		goto out;
+		return EINVALID_TYPE;
 	}
 
-	HASH_DEL(nd->types, ret);
-
- out:
-	return ret;
+	HASH_DEL(nd->types, type);
+	free(type);
+	return 0;
 }
 
 /**

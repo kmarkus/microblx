@@ -1424,9 +1424,9 @@ function M.type_add(nd, name, cdecl, doc)
       error(fmt("type_add: cannot size '%s' (does cdecl define it?)", name))
    end
 
-   -- persistent storage: ubx_type_register keeps these pointers verbatim
-   -- (name is the hash key, private_data the cdecl), so they must outlive
-   -- this scope. Freed only by type_rm.
+   -- persistent storage: the copy ubx_type_register makes keeps these
+   -- pointers verbatim (name is the hash key, private_data the cdecl), so
+   -- they must outlive this scope. Freed only by type_rm.
    local t = ffi.C.malloc(ffi.sizeof("ubx_type_t"))
    if t == nil then error("type_add: out of memory") end
    ffi.fill(t, ffi.sizeof("ubx_type_t"))
@@ -1447,6 +1447,8 @@ function M.type_add(nd, name, cdecl, doc)
       error(fmt("type_add: failed to register '%s' (error %d)", name, tonumber(ret)))
    end
 
+   ffi.C.free(t)
+   t = M.type_get(nd, name)
    lua_types[ptr_key(t)] = true
    return t
 end
@@ -1470,12 +1472,13 @@ function M.type_rm(nd, name)
       error(fmt("type_rm: '%s' was not registered via type_add", name))
    end
 
-   t = ubx.ubx_type_unregister(nd, name)
+   -- unregistering frees t
+   local tname, cdecl, doc = t.name, t.private_data, t.doc
    lua_types[ptr_key(t)] = nil
-   ffi.C.free(ffi.cast("void*", t.name))
-   ffi.C.free(ffi.cast("void*", t.private_data))
-   if t.doc ~= nil then ffi.C.free(ffi.cast("void*", t.doc)) end
-   ffi.C.free(t)
+   ubx.ubx_type_unregister(nd, name)
+   ffi.C.free(ffi.cast("void*", tname))
+   ffi.C.free(ffi.cast("void*", cdecl))
+   if doc ~= nil then ffi.C.free(ffi.cast("void*", doc)) end
    return true
 end
 

@@ -49,4 +49,23 @@ function TestNodeName:TestOtherProcess()
    ubx.node_rm(nd)
 end
 
+--- several nodes in a process can use one module: its types are static,
+--- but each node has a copy
+function TestNodeName:TestSharedModule()
+   local nd1 = create("TestNodeNameMod1")
+   local nd2 = create("TestNodeNameMod2")
+
+   for _, m in ipairs { "stdtypes", "lfrb", "trig", "ramp_uint64" } do
+      ubx.load_module(nd1, m)
+      ubx.load_module(nd2, m)
+   end
+
+   lu.assert_false(ubx.type_get(nd1, "double") == ubx.type_get(nd2, "double"))
+   assert_equals(ubx.type_get(nd2, "double").nd, nd2)
+
+   ubx.node_rm(nd1)
+   ubx.block_create(nd2, "ubx/ramp_uint64", "r1")	-- still intact
+   ubx.node_rm(nd2)
+end
+
 if not _RUNNER then os.exit(lu.LuaUnit.run()) end
