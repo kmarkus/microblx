@@ -13,13 +13,22 @@ TestNodeName = {}
 
 local function create(name) return ubx.node_create(name, { loglevel = LOGLEVEL }) end
 
+-- in a child process, to check and not print the stderr message
 function TestNodeName:TestTaken()
-   local nd = create("TestNodeNameTaken")
-   lu.assert_false(pcall(create, "TestNodeNameTaken"))
+   local cmd = [[luajit -e 'local ubx = require("ubx")
+      local nd = ubx.node_create("TestNodeNameTaken", { loglevel = 2 })
+      print(pcall(ubx.node_create, "TestNodeNameTaken", { loglevel = 2 }))' 2>&1]]
+   local p = io.popen(cmd)
+   local out = p:read("*a")
+   p:close()
+   lu.assert_str_contains(out, "a node named TestNodeNameTaken is already running")
+   lu.assert_str_contains(out, "false")
+end
 
-   -- a name freed by node_rm can be used again
-   ubx.node_rm(nd)
-   ubx.node_rm(create("TestNodeNameTaken"))
+-- a name freed by node_rm can be used again
+function TestNodeName:TestReuse()
+   ubx.node_rm(create("TestNodeNameReuse"))
+   ubx.node_rm(create("TestNodeNameReuse"))
 end
 
 --- as does the garbage collector
