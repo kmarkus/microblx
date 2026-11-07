@@ -1,0 +1,528 @@
+#!/usr/bin/env luajit
+-- -*- lua -*-
+--
+-- List ubx/pack blocks and read their frames, via ubx/unpack.
+--
+-- SPDX-License-Identifier: BSD-3-Clause
+--
+
+local ffi = require("ffi")
+local ubx = require("ubx")
+local utils = require("utils")
+
+local SHMPATH = "/dev/shm"
+local LFB_HDR_SZ = 32
+
+-- show each row at once when piped
+io.stdout:setvbuf("line")
+
+local fmt = string.format
+
+-- the head of a segment: lfb_t, and pack_layout.h in its user area
+ffi.cdef[[
+struct ubx_pack_lfb {
+	uint32_t magic;
+	uint32_t frame_size;
+	uint32_t user_sz;
+	uint32_t mode;
+	uint64_t depth;
+};
+struct ubx_pack_lport {
+	char id[40];
+	char type[64];
+	uint32_t len;
+	uint32_t offset;
+	uint32_t size;
+};
+struct ubx_pack_ltab {
+	uint32_t version;
+	uint32_t nports;
+	struct ubx_pack_lport ports[?];
+};
+]]
+
+local function usage()
+   print([[
+usage: ubx-pack <command> [<args>]
+commands:
+   list          list all ubx/pack segments, as <node>.<block>
+   read PACK-ID   read new frames of PACK-ID, stop with Ctrl-C
+      -n NUM        stop after NUM rows
+      -f FORMAT     one line per frame, of the ports with new data:
+                    csv (default): a header, then rows, with empty cells
+                    plain: a Lua table, exact and with a header for write,
+                           { count=200, vec={1,2,3} }
+                    json: an object, needs the lua module cjson or json
+   write PACK-ID  publish frames recorded by read -f plain from stdin
+      -r RATE       frames per second, default: as fast as they come
+      -w SEC        wait SEC before the first frame, for readers to start
+      -b NUM        buffer_len, must match if the segment exists already
+
+PACK-ID is the name shown by list, <node>.<path>: n.pk, n.sub.pk
+
+global parameters:
+   -p m1,m2     list of modules to preload, for types of ports
+                (stdtypes is loaded by default)
+   -h           show help
+]])
+end
+
+--- Parse the head of a segment
+-- @param id segment name
+-- @return table with depth and ports, or nil if it is no pack segment
+local function pack_get(id)
+   local f = io.open(SHMPATH.."/"..id, "rb")
+   if not f then return end
+
+   local head = f:read(LFB_HDR_SZ)
+
+   if not head or #head < LFB_HDR_SZ then f:close() return end
+
+   local lfb = ffi.cast("struct ubx_pack_lfb*", head)
+   local user_sz = tonumber(lfb.user_sz)
+   local depth = tonumber(lfb.depth)
+   local data = lfb.magic ~= 0 and user_sz >= 8 and user_sz < 2^24 and f:read(user_sz)
+   f:close()
+
+   if not data or #data < user_sz then return end
+
+   local lt = ffi.cast("struct ubx_pack_ltab*", data)
+
+   if lt.version ~= 1 or lt.nports == 0 or
+      user_sz ~= ffi.sizeof("struct ubx_pack_ltab", lt.nports) then
+      return
+   end
+
+   local ports = {}
+
+   for i = 0, lt.nports - 1 do
+      local p = lt.ports[i]
+      ports[#ports+1] = { id = ffi.string(p.id), type = ffi.string(p.type),
+			  len = tonumber(p.len) }
+   end
+
+   return { id = id, depth = depth, ports = ports }
+end
+
+local function packs_get()
+   local res = {}
+
+   for file in ubx.dir(SHMPATH) do
+      local p = file:find(".", 1, true) and pack_get(file)
+      if p then res[#res+1] = p end
+   end
+
+   table.sort(res, function(a, b) return a.id < b.id end)
+   return res
+end
+
+local function list()
+   local tab = {}
+
+   for _, p in ipairs(packs_get()) do
+      local ports = utils.map(function(q)
+	    return q.len > 1 and fmt("%s:%s[%d]", q.id, q.type, q.len)
+	       or fmt("%s:%s", q.id, q.type)
+      end, p.ports)
+      tab[#tab+1] = { p.id, tostring(p.depth - 1), table.concat(ports, " ") }
+   end
+
+   if #tab == 0 then
+      print("no ubx/pack segments found")
+      return
+   end
+
+   utils.write_table(io.stdout, { "pack id", "buffer_len", "ports" }, tab)
+end
+
+--- the shortest decimal that reads back as exactly v
+local function num_str(v)
+   for prec = 15, 16 do
+      local s = fmt("%."..prec.."g", v)
+      if tonumber(s) == v then return s end
+   end
+   return fmt("%.17g", v)
+end
+
+--- The value of a port for lua_str. tolua turns all numbers into doubles,
+-- which 64 bit integers don't fit in.
+local function exact_val(p, val)
+   if p.type ~= "uint64_t" and p.type ~= "int64_t" then return val:tolua() end
+
+   local ptr = ffi.cast(p.type.."*", val.data)
+
+   if p.len == 1 then return ptr[0] end
+
+   local res = {}
+   for i = 1, tonumber(val.len) do res[i] = ptr[i-1] end
+   return res
+end
+
+--- A value as a one line Lua expression that reads back exactly
+local function lua_str(v)
+   if type(v) == "number" then
+      if v ~= v then return "0/0" end
+      if v == math.huge then return "1/0" end
+      if v == -math.huge then return "-1/0" end
+      return num_str(v)
+   elseif type(v) == "cdata" then
+      if math.abs(tonumber(v)) < 2^53 then return tostring(tonumber(v)) end
+      return tostring(v)	-- 1234ULL
+   elseif type(v) == "string" then
+      return (fmt("%q", v):gsub("\\\n", "\\n"))
+   elseif type(v) ~= "table" then
+      return tostring(v)
+   end
+
+   local items, keys = {}, {}
+
+   for i = 1, #v do items[i] = lua_str(v[i]) end
+
+   for k in pairs(v) do
+      if type(k) ~= "number" then keys[#keys+1] = k end
+   end
+
+   table.sort(keys)
+
+   for _, k in ipairs(keys) do
+      items[#items+1] = fmt("%s=%s", k, lua_str(v[k]))
+   end
+
+   return "{"..table.concat(items, ",").."}"
+end
+
+local function cell(v)
+   if type(v) == "number" then return num_str(v) end
+   if type(v) == "cdata" then return (tostring(v):gsub("[UL]+$", "")) end
+   return tostring(v)
+end
+
+local function csv_str(s)
+   if not s:find('[,"\n]') then return s end
+   return '"'..s:gsub('"', '""')..'"'
+end
+
+--- Flatten arrays and structs into name = string pairs
+-- @param name column name of v
+-- @param v result of tolua
+-- @param cols filled with name = value
+-- @param order if given, names are appended in order
+local function flatten(name, v, cols, order)
+   if type(v) ~= "table" then
+      cols[name] = cell(v)
+      if order then order[#order+1] = name end
+      return
+   end
+
+   local keys = {}
+   for k in pairs(v) do keys[#keys+1] = k end
+   table.sort(keys)
+
+   for _, k in ipairs(keys) do
+      local sub = type(k) == "number" and fmt("%s[%d]", name, k - 1)
+	 or name.."."..k
+      flatten(sub, v[k], cols, order)
+   end
+end
+
+--- Find a JSON module
+-- @return encode function, or nil if there is none
+local function json_get()
+   for _, name in ipairs { "cjson", "json" } do
+      local ok, mod = pcall(require, name)
+      if ok then return mod.encode end
+   end
+end
+
+--- Turn tolua results into plain Lua values
+local function frame_val(v)
+   if type(v) == "cdata" then v = tonumber(v) end
+
+   if type(v) == "number" and (v ~= v or v == math.huge or v == -math.huge) then
+      return nil		-- neither JSON nor a Lua literal has them
+   end
+
+   if type(v) ~= "table" then return v end
+
+   local res = {}
+   for k, e in pairs(v) do res[k] = frame_val(e) end
+   return res
+end
+
+--- The packid config of a segment
+local function packid_of(id)
+   local node, path = id:match("^([^.]+)%.(.+)$")
+   return node and fmt("%s:/%s", node, (path:gsub("%.", "/")))
+end
+
+--- Read from a pack block
+-- @param pack from pack_get
+-- @param preloads modules to preload
+-- @param format csv or plain
+-- @param num stop after this many rows, nil: never
+local function read(pack, preloads, format, num)
+   local nd = ubx.node_create(ubx.tool_nodename("ubx-pack"), { loglevel = 3 })
+
+   for _, m in ipairs { "stdtypes", "lfrb", "pack", unpack(preloads) } do
+      ubx.load_module(nd, m)
+   end
+
+   ubx.ffi_load_types(nd)
+
+   for _, p in ipairs(pack.ports) do
+      if ubx.type_get(nd, p.type) == nil then
+	 io.stderr:write(fmt("unknown type %s of port %s, use -p to preload it\n",
+			     p.type, p.id))
+	 os.exit(1)
+      end
+   end
+
+   local up = ubx.block_create(nd, "ubx/unpack", "up")
+   ubx.do_configure(up, { packid = packid_of(pack.id) })
+
+   local p_over = ubx.port_clone_conn(up, "overruns", 8)
+   local cols = {}
+
+   for _, p in ipairs(pack.ports) do
+      p.port = ubx.port_clone_conn(up, p.id, 8)
+
+      -- struct fields are only known from a value
+      flatten(p.id, ubx.data_alloc(nd, p.type, p.len):tolua(), {}, cols)
+   end
+
+   if ubx.block_tostate(up, 'active') ~= 0 then
+      io.stderr:write("failed to start unpack block\n")
+      os.exit(1)
+   end
+
+   if format == "csv" then
+      print(table.concat(utils.map(csv_str, cols), ","))
+   elseif format == "plain" then
+      local spec = utils.map(function(p)
+	    return { id = p.id, type = p.type, len = p.len }
+      end, pack.ports)
+      print("--ports="..lua_str(spec))
+   end
+
+   local rows = 0
+   local encode = json_get()
+
+   while not num or rows < num do
+      local row, frame, any = {}, {}, false
+
+      up:do_step()
+
+      for _, p in ipairs(pack.ports) do
+	 local len, val = p.port:read()
+
+	 if len > 0 then
+	    any = true
+	    if format == "csv" then
+	       flatten(p.id, val:tolua(), row)
+	    elseif format == "json" then
+	       frame[p.id] = frame_val(val:tolua())
+	    else
+	       frame[#frame+1] = fmt("%s=%s", p.id, lua_str(exact_val(p, val)))
+	    end
+	 end
+      end
+
+      local len, over = p_over:read()
+
+      if len > 0 then
+	 io.stderr:write(fmt("overruns: %s\n", cell(over:tolua())))
+      end
+
+      if any then
+	 rows = rows + 1
+
+	 if format == "csv" then
+	    print(table.concat(utils.map(function(c)
+		  return csv_str(row[c] or "")
+	    end, cols), ","))
+	 elseif format == "json" then
+	    print(encode(frame))
+	 else
+	    print("{"..table.concat(frame, ",").."}")
+	 end
+      else
+	 ubx.clock_mono_sleep(0, 1000000)
+      end
+   end
+
+   ubx.node_rm(nd)
+end
+
+--- Publish recorded frames from stdin
+-- @param id pack id <node>.<block>
+-- @param preloads modules to preload
+-- @param rate frames per second, nil: as they come
+-- @param wait seconds to wait before the first frame
+-- @param buffer_len nil to take what the segment has
+local function write(id, preloads, rate, wait, buffer_len)
+   local packid = packid_of(id)
+
+   if not packid then
+      print(fmt("invalid PACK-ID %s, expected <node>.<path>", id))
+      os.exit(1)
+   end
+
+   local head = io.read("*l")
+   local spec = head and head:match("^%-%-ports=(.*)$")
+   local ok, ports = false
+
+   if spec then ok, ports = utils.eval_sandbox("return "..spec) end
+
+   if not ok or type(ports) ~= "table" then
+      print("stdin has no --ports= header, record with: ubx-pack read -f plain")
+      os.exit(1)
+   end
+
+   local nd = ubx.node_create(ubx.tool_nodename("ubx-pack"), { loglevel = 3 })
+
+   for _, m in ipairs { "stdtypes", "lfrb", "pack", unpack(preloads) } do
+      ubx.load_module(nd, m)
+   end
+
+   ubx.ffi_load_types(nd)
+
+   local pk = ubx.block_create(nd, "ubx/pack", "pk")
+   local cfg_ok = pcall(ubx.do_configure, pk, { packid = packid, ports = ports,
+						buffer_len = buffer_len })
+
+   if not cfg_ok then
+      io.stderr:write(fmt("can't write to %s: it has a writer, or differs from the "
+			  .."recording in ports or buffer_len\n", id))
+      ubx.node_rm(nd)
+      os.exit(1)
+   end
+
+   local out = {}
+   for _, p in ipairs(ports) do out[p.id] = ubx.port_clone_conn(pk, p.id) end
+
+   if ubx.block_tostate(pk, 'active') ~= 0 then
+      io.stderr:write("failed to start pack block\n")
+      os.exit(1)
+   end
+
+   if wait > 0 then
+      ubx.clock_mono_sleep(math.floor(wait), (wait % 1) * 1e9)
+   end
+
+   local period = rate and 1 / rate
+   local cnt = 1
+
+   -- removes the segment too
+   local function fail(msg)
+      io.stderr:write(fmt("line %d: %s\n", cnt, msg))
+      ubx.node_rm(nd)
+      os.exit(1)
+   end
+
+   for line in io.lines() do
+      cnt = cnt + 1
+
+      if line ~= "" and line:sub(1, 2) ~= "--" then
+	 local ok, frame = utils.eval_sandbox("return "..line)
+
+	 if not ok or type(frame) ~= "table" then
+	    fail("invalid frame: "..line)
+	 end
+
+	 for pid, val in pairs(frame) do
+	    if not out[pid] then fail("unknown port "..tostring(pid)) end
+	    out[pid]:write(val)
+	 end
+
+	 pk:do_step()
+
+	 if period then
+	    ubx.clock_mono_sleep(math.floor(period), (period % 1) * 1e9)
+	 end
+      end
+   end
+
+   ubx.node_rm(nd)
+end
+
+--- prog starts here
+if #arg < 1 then
+   usage(); os.exit(1)
+end
+
+local opttab = utils.proc_args(arg)
+
+if opttab['-h'] then
+   usage(); os.exit(0)
+end
+
+local preloads = {}
+
+if opttab['-p'] then
+   if not opttab['-p'][1] then
+      print("-p requires an argument")
+      os.exit(1)
+   end
+   preloads = utils.split(opttab['-p'][1], ',')
+end
+
+local cmd = opttab[0][1]
+
+if cmd == "list" then
+   list()
+elseif cmd == "read" then
+   local id = opttab[0][2]
+   local format = opttab['-f'] and opttab['-f'][1] or "csv"
+   local num = opttab['-n'] and tonumber(opttab['-n'][1])
+
+   if not id then
+      print("read expects an argument PACK-ID")
+      os.exit(1)
+   end
+
+   if format ~= "csv" and format ~= "plain" and format ~= "json" then
+      print(fmt("unknown format %s", format))
+      os.exit(1)
+   end
+
+   if format == "json" and not json_get() then
+      print("format json requires the lua module cjson or json")
+      os.exit(1)
+   end
+
+   if opttab['-n'] and not num then
+      print("-n requires a number")
+      os.exit(1)
+   end
+
+   local pack = pack_get(id)
+
+   if not pack then
+      print(fmt("no ubx/pack segment %s", id))
+      os.exit(1)
+   end
+
+   read(pack, preloads, format, num)
+elseif cmd == "write" then
+   local id = opttab[0][2]
+
+   if not id then
+      print("write expects an argument PACK-ID")
+      os.exit(1)
+   end
+
+   local function optnum(o, default)
+      if not opttab[o] then return default end
+      local v = tonumber(opttab[o][1])
+      if not v or v <= 0 then
+	 print(fmt("%s requires a positive number", o))
+	 os.exit(1)
+      end
+      return v
+   end
+
+   write(id, preloads, optnum('-r'), optnum('-w', 0), optnum('-b'))
+else
+   print(fmt("unknown command %s", tostring(cmd)))
+   os.exit(1)
+end

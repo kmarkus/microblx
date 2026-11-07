@@ -401,6 +401,7 @@ Tools
 | `ubx-ilaunch`  | like `ubx-launch`, then a Lua prompt with the node as `nd`  |
 | `ubx-log`      | view the real-time log                                      |
 | `ubx-mq`       | list, read and write `ubx/mqueue` iblocks                   |
+| `ubx-pack`     | list, read and replay [`ubx/pack`](std_blocks/pack/README.md) blocks |
 | `ubx-modinfo`  | show module, block and type info: `ubx-modinfo show ramp`   |
 | `ubx-tocarr`   | convert a type header to a `.hexarr` (used by builds)       |
 | `ubx-dbus`     | control a node via [lsdb-intf](std_blocks/lsdb-intf/README.md) |
@@ -436,6 +437,7 @@ Standard blocks
 | [ubx/ewma](std_blocks/ewma/README.md)                                 | c-block   | exponentially weighted moving average filter (any numeric type)        |
 | [ubx/movavg](std_blocks/movavg/README.md)                             | c-block   | sliding-window filter: mean, median, min or max (any numeric type)     |
 | [ubx/mux, ubx/demux](std_blocks/mux/README.md)                        | c-block   | concatenate/partition array signals, incl. sub-vector slicing          |
+| [ubx/pack, ubx/unpack](std_blocks/pack/README.md)                     | c-block   | pass a set of ports as one frame via a shm broadcast buffer            |
 | [ubx/stats](std_blocks/stats/README.md)                               | c-block   | running signal statistics: min, max, mean, stddev                      |
 | [ubx/pid](std_blocks/pid/README.md)                                   | c-block   | discrete-time PID controller                                           |
 | [ubx/ramp](std_blocks/ramp/README.md)                                 | c-block   | ramp signal generator (any numeric type)                               |

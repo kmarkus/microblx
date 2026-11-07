@@ -12,6 +12,9 @@
 #include "types/triggee.h"
 #include "types/triggee.h.hexarr"
 
+#include "types/port_spec.h"
+#include "types/port_spec.h.hexarr"
+
 /* declare types */
 ubx_type_t basic_types[] = {
 	/* basic types */
@@ -33,6 +36,7 @@ ubx_type_t basic_types[] = {
 	/* std struct types */
 	def_struct_type(struct ubx_tstat, &tstat_h),
 	def_struct_type(struct ubx_triggee, &triggee_h),
+	def_struct_type(struct ubx_port_spec, &port_spec_h),
 };
 
 static int stdtypes_init(ubx_node_t* nd)

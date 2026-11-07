@@ -5,6 +5,8 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- new tool `ubx-pack`: `list` the `ubx/pack` blocks, `read` one as CSV, Lua
+  or JSON, and `write` to replay a recording.
 - several nodes in a process can load the same module: each node now keeps its
   own copy of a registered type, which used to be the module's static struct.
 - **incompatible**: `ubx_type_unregister` returns 0 or `EINVALID_TYPE` instead
@@ -36,6 +38,10 @@ This file tracks user visible API changes
   fails with "a node named X is already running" if the name is taken. Give
   each `ubx-launch` its own `--nodename` (the default is `n`). `ubx_node_t`
   gained the field `name_fd`.
+- new blocks `ubx/pack` and `ubx/unpack`: pass a set of ports between threads
+  or processes as one frame, via an lfb broadcast buffer in POSIX shm, named by
+  their `packid` config. New std type `struct ubx_port_spec` ({id, type, len})
+  for their `ports` config. C clients can use `pack_shm.h`.
 - `ubx/latch`: a single scalar of up to 8 bytes is passed with one
   atomic store-release/load-acquire instead of the seqlock.
 - `ubx/trig`, `ubx/ptrig`: new ports `sync_req` and `sync_ack`

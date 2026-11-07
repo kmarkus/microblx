@@ -8,17 +8,20 @@ file(MAKE_DIRECTORY ${MOD_BUILD_DIR}/types)
 set(MOD_HDRS
   ${MOD_SRC_DIR}/types/tstat.h
   ${MOD_SRC_DIR}/types/triggee.h
+  ${MOD_SRC_DIR}/types/port_spec.h
 )
 
 set(MOD_GEN_HDRS
   ${MOD_BUILD_DIR}/types/tstat.h.hexarr
   ${MOD_BUILD_DIR}/types/triggee.h.hexarr
+  ${MOD_BUILD_DIR}/types/port_spec.h.hexarr
 )
 
 add_library(${MOD_NAME} MODULE ${MOD_SRC_DIR}/stdtypes.c ${MOD_HDRS} ${MOD_GEN_HDRS})
 
 generate_hexarr(${MOD_SRC_DIR}/types/tstat.h ${MOD_BUILD_DIR}/types/tstat.h.hexarr)
 generate_hexarr(${MOD_SRC_DIR}/types/triggee.h ${MOD_BUILD_DIR}/types/triggee.h.hexarr)
+generate_hexarr(${MOD_SRC_DIR}/types/port_spec.h ${MOD_BUILD_DIR}/types/port_spec.h.hexarr)
 
 target_include_directories(${MOD_NAME} PRIVATE ${MOD_BUILD_DIR} )
 target_link_libraries(${MOD_NAME} PRIVATE ubx)

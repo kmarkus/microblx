@@ -324,6 +324,7 @@ add_block_subdir(BLOCK_MATH_DOUBLE "std_blocks/math_double" ON)
 add_block_subdir(BLOCK_MOVAVG      "std_blocks/movavg"      ON)
 add_block_subdir(BLOCK_MQUEUE      "std_blocks/mqueue"      ON)
 add_block_subdir(BLOCK_MUX         "std_blocks/mux"         ON)
+add_block_subdir(BLOCK_PACK        "std_blocks/pack"        ON)
 add_block_subdir(BLOCK_NETSINK     "std_blocks/netsink"     ON)
 add_block_subdir(BLOCK_PID         "std_blocks/pid"         ON)
 add_block_subdir(BLOCK_RAMP        "std_blocks/ramp"        ON)
@@ -407,6 +408,7 @@ install(PROGRAMS
   tools/ubx-modinfo
   tools/ubx-tocarr
   tools/ubx-mq
+  tools/ubx-pack
   tools/ubx-schedstat
   DESTINATION ${CMAKE_INSTALL_BINDIR})
 

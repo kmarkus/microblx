@@ -1,0 +1,78 @@
+-- pack.usc: an echo of a counter and the timing statistics of the trigger
+--
+--                                   n.pk
+--   count.out --> +------+  shm  ............   ubx-pack read n.pk -f plain
+--   tstats -----> |  pk  | ----> : segment  : ----------------------------.
+--                 +------+       :..........:                             |
+--                                                       rec.txt or a pipe |
+--                                   n.echo_up                             |
+--                 +---------+  shm ..........   ubx-pack write n.echo_up  |
+--     echo_pk <-- | echo_up | <--- : segment : <--------------------------'
+--                 +---------+      :.........:
+--                      |
+--                      | count, tstats
+--                      v
+--                 +---------+  shm ..........
+--                 | echo_pk | ---> : segment : ---> ubx-pack read n.echo_pk
+--                 +---------+      :.........:
+--                                   n.echo_pk
+--
+-- pk publishes the data. echo_up is a reader without a writer: its segment
+-- has no block writing to it, ubx-pack write does. What it gets goes on to
+-- echo_pk. All blocks run in one chain of the same trigger at 10 Hz.
+--
+-- Terminal 1:
+--   cd examples/usc
+--   ubx-launch -c pack.usc
+--
+-- Terminal 2, see the data:
+--   ubx-pack list
+--   ubx-pack read n.pk                  # stop with Ctrl-C
+--
+-- Terminal 2, send it around the loop, directly:
+--   ubx-pack read n.pk -f plain | ubx-pack write n.echo_up
+--
+-- or with a recording, at the rate it was recorded:
+--   ubx-pack read n.pk -f plain -n 50 > rec.txt
+--   ubx-pack write n.echo_up -r 10 < rec.txt
+--
+-- Terminal 3, see what came back:
+--   ubx-pack read n.echo_pk
+
+local PORTS = {
+   { id = "count", type = "uint64_t" },
+   { id = "tstats", type = "struct ubx_tstat" },
+}
+
+return bd.system {
+   imports = { "stdtypes", "lfrb", "ptrig", "ramp", "pack" },
+
+   blocks = {
+      { name = "count", type = "ubx/ramp" },
+      { name = "pk", type = "ubx/pack" },
+      { name = "echo_up", type = "ubx/unpack" },
+      { name = "echo_pk", type = "ubx/pack" },
+      { name = "ptrig", type = "ubx/ptrig" },
+   },
+
+   configurations = {
+      { name = "count", config = { type = "uint64_t", slope = 1 } },
+      { name = "pk", config = { packid = "pk", ports = PORTS } },
+      -- with ports, it creates its segment: there is no writer yet
+      { name = "echo_up", config = { packid = "echo_up", ports = PORTS, buffer_len = 16 } },
+      { name = "echo_pk", config = { packid = "echo_pk", ports = PORTS } },
+      { name = "ptrig", config = {
+	   period_ns = 100000000,
+	   tstats_mode = 1,
+	   tstats_output_rate = 1,
+	   chain0 = { { b = "#count" }, { b = "#pk" }, { b = "#echo_up" }, { b = "#echo_pk" } },
+      } },
+   },
+
+   connections = {
+      { src = "count.out", tgt = "pk.count" },
+      { src = "ptrig.tstats", tgt = "pk.tstats" },
+      { src = "echo_up.count", tgt = "echo_pk.count" },
+      { src = "echo_up.tstats", tgt = "echo_pk.tstats" },
+   },
+}
