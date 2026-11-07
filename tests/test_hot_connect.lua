@@ -38,6 +38,11 @@ local NX = tonumber(os.getenv("HOTC_NX") or 4)		-- rewirer lfrbs
 local MAXC = tonumber(os.getenv("HOTC_MAXCONN") or 16)	-- main thread conns
 local PERIOD_US = tonumber(os.getenv("HOTC_PERIOD_US") or 100)
 local SEED = tonumber(os.getenv("HOTC_SEED") or os.time())
+-- stats only when run on its own or with HOTC_VERBOSE, not in the
+-- full suite; failure messages always carry the seed
+local VERBOSE = not _RUNNER or os.getenv("HOTC_VERBOSE")
+local function info(...) if VERBOSE then print(string.format(...)) end end
+local function msg(m) return m .. " (HOTC_SEED=" .. SEED .. ")" end
 
 -- latency measurement knobs
 local SEC = tonumber(os.getenv("HOTC_SEC"))		-- run for N s instead of HOTC_ITER
@@ -219,8 +224,8 @@ function TestHotConnect:TestStress()
    end
 
    math.randomseed(SEED)
-   print(string.format("\nhot connect: iter %d, triggers %d, rewirer lfrbs %d, seed %d",
-		       ITER, NTRIG, NX, SEED))
+   info("\nhot connect: iter %d, triggers %d, rewirer lfrbs %d, seed %d",
+		ITER, NTRIG, NX, SEED)
 
    local sys = build_sys()
    local nd = sys:launch { nostart = true, loglevel = LOGLEVEL, nodename = 'hotc' }
@@ -262,13 +267,13 @@ function TestHotConnect:TestStress()
       elseif #conns < MAXC and (#conns == 0 or math.random() < 0.55) then
 	 local wi, cj = math.random(FIRST, NTRIG), math.random(FIRST, NTRIG)
 	 local ok, e = ubx.connect(nd, "w"..wi, "out", "c"..cj, "in", "ubx/lfrb", IBCONF)
-	 lu.assert_true(ok, e)
+	 lu.assert_true(ok, msg(tostring(e)))
 	 conns[#conns+1] = { wi, cj }
 	 nconn = nconn + 1
       else
 	 local c = conns[math.random(#conns)]
 	 local ok, e = ubx.disconnect(nd, "w"..c[1], "out", "c"..c[2], "in")
-	 lu.assert_true(ok, e)
+	 lu.assert_true(ok, msg(tostring(e)))
 	 -- disconnect removes all iblocks between the pair
 	 for i = #conns, 1, -1 do
 	    if conns[i][1] == c[1] and conns[i][2] == c[2] then table.remove(conns, i) end
@@ -291,25 +296,25 @@ function TestHotConnect:TestStress()
 
    local rws = rw and last_stat(p_rwstat) or { 0, 0 }
    local dur = ubx.gettime() - t0
-   print(string.format("main: %d connects, %d disconnects in %.1fs; rewirer: %d ops, %d errors",
-		       nconn, ndisc, dur, rws[1], rws[2]))
-   if rw then lu.assert_true(rws[1] > 0, "rewirer did not run") end
-   lu.assert_equals(rws[2], 0, "rewirer connect/disconnect errors")
+   info("main: %d connects, %d disconnects in %.1fs; rewirer: %d ops, %d errors",
+		nconn, ndisc, dur, rws[1], rws[2])
+   if rw then lu.assert_true(rws[1] > 0, msg("rewirer did not run")) end
+   lu.assert_equals(rws[2], 0, msg("rewirer connect/disconnect errors"))
 
    for i = FIRST, NTRIG do
       local s = last_stat(p_cstat[i])
-      print(string.format("c%d: %d reads, %d errors", i, s[1], s[2]))
-      if not IDLE or rw then lu.assert_true(s[1] > 0, "checker c"..i.." read nothing") end
-      lu.assert_equals(s[2], 0, "checker c"..i.." read invalid values")
+      info("c%d: %d reads, %d errors", i, s[1], s[2])
+      if not IDLE or rw then lu.assert_true(s[1] > 0, msg("checker c"..i.." read nothing")) end
+      lu.assert_equals(s[2], 0, msg("checker c"..i.." read invalid values"))
 
       local cc = ubx.port_conns_totab(ubx.port_get(nd:b("c"..i), "in"))
-      lu.assert_equals(#cc.incoming, 0, "c"..i..".in still connected")
+      lu.assert_equals(#cc.incoming, 0, msg("c"..i..".in still connected"))
       cc = ubx.port_conns_totab(ubx.port_get(nd:b("c"..i), "in2"))
-      lu.assert_equals(#cc.incoming, 0, "c"..i..".in2 still connected")
+      lu.assert_equals(#cc.incoming, 0, msg("c"..i..".in2 still connected"))
    end
 
    local _, nib = ubx.num_blocks(nd)
-   lu.assert_equals(nib, nib_before, "leaked iblocks")
+   lu.assert_equals(nib, nib_before, msg("leaked iblocks"))
 
    ubx.node_rm(nd)
 end
