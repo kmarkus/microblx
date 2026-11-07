@@ -5,6 +5,7 @@
 #include <cmocka.h>
 #include <errno.h>
 #include <pthread.h>
+#include <sched.h>
 
 #include "lfq.h"
 
@@ -179,11 +180,17 @@ static void *shuttle(void *arg)
 	void *e;
 
 	for (int i = 0; i < SHUTTLE_ITERS;) {
-		if (lfq_dequeue(c->src, &e) != 0)
+		/* yield on retry: on a single cpu, spinning takes the whole
+		 * time slice from the thread holding the elements */
+		if (lfq_dequeue(c->src, &e) != 0) {
+			sched_yield();
 			continue;
+		}
 
-		while (lfq_enqueue(c->dst, e) != 0)
+		while (lfq_enqueue(c->dst, e) != 0) {
 			c->enospc++;
+			sched_yield();
+		}
 
 		i++;
 	}
@@ -268,6 +275,8 @@ static void *order_producer(void *arg)
 	for (uintptr_t i = 1; i <= ORDER_ITERS;) {
 		if (lfq_enqueue(q, (void *)i) == 0)
 			i++;
+		else
+			sched_yield();
 	}
 	return NULL;
 }
@@ -282,8 +291,10 @@ static void run_spsc_order(size_t capacity)
 	assert_int_equal(pthread_create(&tid, NULL, order_producer, &q), 0);
 
 	for (uintptr_t expect = 1; expect <= ORDER_ITERS;) {
-		if (lfq_dequeue(&q, &e) != 0)
+		if (lfq_dequeue(&q, &e) != 0) {
+			sched_yield();
 			continue;
+		}
 		assert_int_equal((uintptr_t)e, expect);
 		expect++;
 	}
