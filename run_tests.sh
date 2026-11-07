@@ -13,7 +13,8 @@ if [ "$(id -u)" = "0" ]; then
     capsh --inh='cap_sys_nice' --addamb=cap_sys_nice -- \
         -c 'exec luajit tests/run_all_tests.lua "$@"' -- "$@"
 else
-    sudo -E capsh --keep=1 --uid="$(id -u)" \
+    # sudo replaces PATH by secure_path: keep it to find the tools
+    sudo -E env PATH="$PATH" capsh --keep=1 --uid="$(id -u)" \
         --inh='cap_sys_nice' --caps='cap_sys_nice+eip' --addamb=cap_sys_nice -- \
         -c 'exec luajit tests/run_all_tests.lua "$@"' -- "$@"
 fi
