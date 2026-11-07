@@ -836,12 +836,16 @@ local BURN_AT = $BURN_AT   -- step index at which to overrun
 local BURN_NS = $BURN_NS   -- how long to overrun for
 local SKIP    = 2          -- startup steps to ignore
 
-local p_maxdev
-local cnt, t0s, t0ns, maxdev = 0, nil, nil, 0
+local p_postdev, p_offgrid
+local cnt, t0s, t0ns, offgrid = 0, nil, nil, 0
 
 function init(b)
-   ubx.outport_add(b, "maxdev", "max phase deviation [ns]", 0, "int64_t", 1)
-   p_maxdev = ubx.port_get(b, "maxdev")
+   ubx.outport_add(b, "postdev", "phase deviation after the overrun [ns]",
+		   0, "int64_t", 1)
+   ubx.outport_add(b, "offgrid", "triggers off by more than PERIOD/4",
+		   0, "int64_t", 1)
+   p_postdev = ubx.port_get(b, "postdev")
+   p_offgrid = ubx.port_get(b, "offgrid")
    return true
 end
 
@@ -858,16 +862,21 @@ function step(b)
       local ph = rel % PERIOD
 
       if ph > PERIOD/2 then ph = ph - PERIOD end
+      ph = math.abs(ph)
 
-      if math.abs(ph) > maxdev then maxdev = math.abs(ph) end
-      ubx.port_write(p_maxdev, maxdev)
+      if cnt == BURN_AT + 1 then ubx.port_write(p_postdev, ph) end
+      if ph > PERIOD/4 then
+	 offgrid = offgrid + 1
+	 ubx.port_write(p_offgrid, offgrid)
+      end
    end
 
    if cnt == BURN_AT then ubx.nanowait(0, BURN_NS) end
 end
 
 function cleanup(b)
-   ubx.port_rm(b, "maxdev")
+   ubx.port_rm(b, "postdev")
+   ubx.port_rm(b, "offgrid")
 end
 ]]
 
@@ -894,17 +903,20 @@ function TestPtrig:TestOverrunKeepsGrid()
    local nd = sys_overrun:launch{ nodename="TestPtrig", nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
 				  nodename='TestOverrunKeepsGrid' }
    local ptrig = nd:b("ptrig")
-   local p_maxdev = ubx.port_clone_conn(nd:b("ovr"), "maxdev")
+   local p_postdev = ubx.port_clone_conn(nd:b("ovr"), "postdev")
+   local p_offgrid = ubx.port_clone_conn(nd:b("ovr"), "offgrid")
    local p_overrun = ubx.port_clone_conn(ptrig, "overrun_cnt")
 
    sys_overrun:startup(nd)
    ubx.clock_mono_sleep(0, 600000000)  -- 600ms: ~30 periods
    ptrig:do_stop()
 
-   local _, maxdev = p_maxdev:read()
+   local pcnt, postdev = p_postdev:read()
+   local cnt, offgrid = p_offgrid:read()
    local _, overruns = p_overrun:read()
 
-   maxdev = tonumber(maxdev:tolua())
+   postdev = pcnt > 0 and tonumber(postdev:tolua()) or nil
+   offgrid = cnt > 0 and tonumber(offgrid:tolua()) or 0
    overruns = tonumber(overruns:tolua())
 
    ubx.node_rm(nd)
@@ -912,10 +924,19 @@ function TestPtrig:TestOverrunKeepsGrid()
    assert_true(overruns > 0,
 	       "the injected overrun was not detected (overrun_cnt=0)")
 
-   -- a shifted grid would show up as a phase deviation of ~half a period
-   assert_true(maxdev < OVR_PERIOD_NS / 4,
-	       "trigger grid shifted after the overrun: max phase deviation "
-		  .. maxdev .. "ns (period " .. OVR_PERIOD_NS .. "ns)")
+   assert_not_nil(postdev, "no trigger after the overrun")
+
+   -- the regression fired the first trigger after the overrun at ~half
+   -- a period off the grid
+   assert_true(postdev < OVR_PERIOD_NS / 4,
+	       "first trigger after the overrun off the grid by "
+		  .. postdev .. "ns (period " .. OVR_PERIOD_NS .. "ns)")
+
+   -- a shifted grid moves all later triggers; tolerate single late
+   -- wakeups (5-9ms seen on a single cpu bbb)
+   assert_true(offgrid <= 2,
+	       "trigger grid shifted after the overrun: " .. offgrid
+		  .. " triggers off by more than a quarter period")
 end
 
 -- read all samples from a port_clone_conn port
