@@ -14,12 +14,17 @@
 /* trig metadata */
 char trig_meta[] =
 	"{ doc='simple, activity-less trigger',"
+	"  description=[[ Steps the active chain on each step. If sync_req"
+	"                 is connected, only steps it when sync_req holds a"
+	"                 value greater than the last served one, then writes"
+	"                 that value to sync_ack. ]],"
 	"  realtime=true,"
 	"}";
 
 ubx_proto_port_t trig_ports[] = {
 	{ .name = "active_chain", .in_type_name = "int", .doc = "switch the active trigger chain" },
 	{ .name = "tstats", .out_type_name = "struct ubx_tstat", .doc = "timing statistics (if enabled)"},
+	TRIG_SYNC_PORTS,
 	{ 0 },
 };
 
@@ -40,6 +45,7 @@ ubx_proto_config_t trig_config[] = {
  * @chains: pointer to array of struct ubx_chain of size num_chains
  * @actchain: active chain
  * @p_actchain: pointer to active_chain port
+ * @sync: sync_req/sync_ack state
  */
 struct block_info {
 	struct ubx_chain *chains;
@@ -47,6 +53,7 @@ struct block_info {
 
 	int actchain;
 	ubx_port_t *p_actchain;
+	struct trig_sync sync;
 };
 
 
@@ -57,7 +64,7 @@ void trig_step(ubx_block_t *b)
 
 	common_read_actchain(b, inf->p_actchain, inf->num_chains, &inf->actchain);
 
-	if (ubx_chain_trigger(&inf->chains[inf->actchain]) != 0)
+	if (common_trigger(&inf->sync, &inf->chains[inf->actchain]) < 0)
 		ubx_err(b, "ubx_chain_trigger failed for chain%i", inf->actchain);
 }
 
@@ -90,6 +97,8 @@ int trig_start(ubx_block_t *b)
 	/* cache active chain port */
 	inf->p_actchain = ubx_port_get(b, "active_chain");
 	assert(inf->p_actchain != NULL);
+
+	common_sync_init(b, &inf->sync);
 
 	return common_config_chains(b, inf->chains, inf->num_chains);
 }

@@ -212,6 +212,46 @@ void common_read_actchain(const ubx_block_t *b,
 	*actchain = tmp;
 }
 
+/**
+ * common_sync_init - cache the sync ports and forget the last served
+ * value. To be run in the start hook.
+ */
+void common_sync_init(const ubx_block_t *b, struct trig_sync *sync)
+{
+	sync->p_req = ubx_port_get(b, "sync_req");
+	sync->p_ack = ubx_port_get(b, "sync_ack");
+	assert(sync->p_req != NULL && sync->p_ack != NULL);
+	sync->last = 0;
+}
+
+/**
+ * common_sync_trigger - step the chain once per new sync_req value
+ *
+ * Values that are not greater than the last served one are skipped,
+ * as are values overtaken before this was called (no catch-up).
+ *
+ * @return 1 if the chain was stepped, 0 if skipped, < 0 on error
+ */
+int common_sync_trigger(struct trig_sync *sync, struct ubx_chain *chain)
+{
+	uint64_t req;
+
+	if (read_uint64(sync->p_req, &req) <= 0 || req <= sync->last)
+		return 0;
+
+	/* a failed step is not retried: that would be an error per pass
+	 * in free-run. Nor is it acked, the peer must not count on it */
+	sync->last = req;
+
+	if (ubx_chain_trigger(chain) != 0)
+		return -1;
+
+	if (__atomic_load_n(&sync->p_ack->out_interaction, __ATOMIC_RELAXED) != NULL)
+		write_uint64(sync->p_ack, &req);
+
+	return 1;
+}
+
 /* undo common_config (for stop hook) */
 void common_unconfig(struct ubx_chain *chains, int num_chains)
 {

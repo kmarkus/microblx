@@ -74,6 +74,14 @@ static int __ubx_sched_setattr(pid_t pid, struct sched_attr *attr, unsigned int 
 
 char ptrig_meta[] =
 	"{ doc='pthread based trigger',"
+	"  description=[[ Steps the active chain once per period, or"
+	"                 continuously with a period of 0. If sync_req is"
+	"                 connected, a pass only steps the chain when sync_req"
+	"                 holds a value greater than the last served one, and"
+	"                 then writes that value to sync_ack. With period 0"
+	"                 this polls sync_req, with a period it samples it"
+	"                 once per period. Skipped passes count neither as"
+	"                 overruns nor in the tstats or autostop_steps. ]],"
 	"  realtime=true,"
 	"}";
 
@@ -91,6 +99,7 @@ ubx_proto_port_t ptrig_ports[] = {
 	  .doc = "cumulative count of missed trigger deadlines (sleep/busy-wait modes)" },
 	{ .name = "latency_ns", .out_type_name = "int64_t",
 	  .doc = "trigger latency: how late this trigger fired relative to its deadline grid point [ns] (requires latency_stats=1)" },
+	TRIG_SYNC_PORTS,
 	{ 0 },
 };
 
@@ -205,6 +214,7 @@ struct ptrig_inf {
 #endif
 
 	ubx_port_t *p_actchain;
+	struct trig_sync sync;
 	ubx_port_t *p_period;
 	ubx_port_t *p_period_ns;
 
@@ -673,11 +683,13 @@ void *thread_startup(void *arg)
 lat_done:		;
 		}
 
-		if (ubx_chain_trigger(&inf->chains[inf->actchain]) != 0)
+		ret = common_trigger(&inf->sync, &inf->chains[inf->actchain]);
+
+		if (ret < 0)
 			ubx_err(b, "ubx_chain_trigger failed for chain%i", inf->actchain);
 
 		/* check autostop_steps */
-		if (inf->autostop_steps > 0) {
+		if (ret != 0 && inf->autostop_steps > 0) {
 			if (--inf->autostop_steps == 0) {
 				ubx_info(b, "autostop_steps reached 0, stopping block");
 
@@ -1247,6 +1259,9 @@ int ptrig_start(ubx_block_t *b)
 
 	if (ret != 0)
 		goto out;
+
+	/* published to the thread by the mutex */
+	common_sync_init(b, &inf->sync);
 
 	pthread_mutex_lock(&inf->mutex);
 	inf->state = BLOCK_STATE_ACTIVE;

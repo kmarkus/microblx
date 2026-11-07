@@ -27,6 +27,10 @@ This file tracks user visible API changes
   new one.
 - **incompatible**: rtlog requires lock-free 64 bit atomics: a target built with
   `LFB_CTR_BITS=32` can't use it anymore.
+- `ubx/trig`, `ubx/ptrig`: new ports `sync_req` and `sync_ack`
+  (`uint64_t`). If `sync_req` is connected, the active chain is only
+  stepped once per value greater than the last one served, which is
+  then echoed on `sync_ack`. Unconnected, behaviour is unchanged.
 - `netsink`: **fix** struct ports (e.g. `struct ukd_frame`): every
   step failed with "undeclared or implicit tag", as the block's Lua
   state never loaded the registered types into the FFI.

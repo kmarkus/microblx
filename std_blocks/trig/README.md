@@ -23,7 +23,7 @@ Both support multiple trigger chains, per-block timing statistics, and runtime c
 
 | field             | type                    | description                                             |
 |-------------------|-------------------------|---------------------------------------------------------|
-| `period`          | `struct ptrig_period`   | trigger period `{ sec, usec }` (required)               |
+| `period`          | `struct ptrig_period`   | trigger period `{ sec, usec }` (required, or `period_ns`); 0: free-run |
 | `sched_policy`    | `char`                  | scheduling policy: `SCHED_OTHER` (default), `SCHED_FIFO`, `SCHED_RR`, `SCHED_DEADLINE` (Linux ≥ 3.14) |
 | `sched_priority`  | `int`                   | thread priority; unused with `SCHED_DEADLINE`           |
 | `sched_deadline`  | `struct ptrig_deadline` | `SCHED_DEADLINE` parameters `{ runtime_ns, deadline_ns, period_ns }`; `deadline_ns` and `period_ns` default to the `period` config value when 0 (Linux ≥ 3.14) |
@@ -62,6 +62,41 @@ Only cgroup v1 (the `tasks` file) is supported.
 |----------------|-----------|-------------------|-------------------------------------|
 | `active_chain` | in        | `int`             | switch the active chain at runtime  |
 | `tstats`       | out       | `struct ubx_tstat`| timing statistics (if enabled)      |
+| `sync_req`     | in        | `uint64_t`        | if connected: step the chain once per new value, see [Sync ports](#sync-ports) |
+| `sync_ack`     | out       | `uint64_t`        | the `sync_req` value served by the last chain step |
+
+### Sync ports
+
+`sync_req` couples a trigger to a counter written by another thread, e.g.
+to run part of a chain on a second core in lockstep with the first.
+
+- **unconnected** (the default): every step triggers the active chain,
+  as without the port. The cost is one pointer check.
+- **connected**: a step reads `sync_req`. If it has no data, or a value
+  not greater than the last one served, the chain is not stepped. If the
+  value is greater, the chain is stepped **once**, the value becomes the
+  last one served and is written to `sync_ack` (if connected). Values
+  overtaken in between are not caught up.
+
+The last served value is reset to 0 on start, so requests start at 1.
+Connect `sync_req` with `ubx/lfrb`: a read consumes the value. A
+`ubx/latch` holds on to it, so after a restart the last value counts
+as new, for one more chain step and ack.
+If the chain fails, i.e. a block in it is not active, the value counts
+as served but `sync_ack` is not written.
+
+For `ptrig` each loop pass is a step: with a period it samples `sync_req`
+once per period, with a period of 0 (`period_ns = 0`) it polls it
+continuously, which keeps one core busy. A skipped pass is not an
+overrun and adds neither to the tstats nor to `autostop_steps`.
+
+```lua
+-- second core: step chain0 once per value of the first core's counter
+{ name="ptrig2", config = { period_ns=0, sched_policy="SCHED_FIFO",
+                            sched_priority=80, chain0={ { b="#ctrl" } } } },
+...
+{ src="ramp1.out", tgt="ptrig2.sync_req", type="ubx/lfrb" },
+```
 
 ## Ports — ptrig only
 

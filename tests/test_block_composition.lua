@@ -138,7 +138,9 @@ function TestComp:test_leaf()
       },
       trig={
 	 {active_chain={incoming={}, outgoing={}}},
-	 {tstats={incoming={}, outgoing={}}}
+	 {tstats={incoming={}, outgoing={}}},
+	 {sync_req={incoming={}, outgoing={}}},
+	 {sync_ack={incoming={}, outgoing={}}}
       }
    }
    lu.assert_equals(conntab_act, conntab_exp)
@@ -173,7 +175,9 @@ function TestComp:test_comp1()
       },
       ["leaf/trig"] = {
 	 {active_chain={incoming={}, outgoing={}}},
-	 {tstats={incoming={}, outgoing={}}}
+	 {tstats={incoming={}, outgoing={}}},
+	 {sync_req={incoming={}, outgoing={}}},
+	 {sync_ack={incoming={}, outgoing={}}}
       },
       rnd1={
 	 {seed={incoming={"i_00000003"}, outgoing={}}},
@@ -185,7 +189,9 @@ function TestComp:test_comp1()
       },
       trig={
 	 {active_chain={incoming={}, outgoing={}}},
-	 {tstats={incoming={}, outgoing={}}}
+	 {tstats={incoming={}, outgoing={}}},
+	 {sync_req={incoming={}, outgoing={}}},
+	 {sync_ack={incoming={}, outgoing={}}}
       }
    }
 
