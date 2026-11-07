@@ -46,7 +46,8 @@ end
 --- run a shell command, return combined stdout+stderr and exit code.
 --- a leading ubx-launch runs the source tree version.
 local function run(cmd)
-   cmd = cmd:gsub("^ubx%-launch", UBX_LAUNCH)
+   -- node names are unique on a device, and a node n may be running
+   cmd = cmd:gsub("^ubx%-launch", UBX_LAUNCH .. " --nodename=test_params")
    local p = io.popen(cmd .. " 2>&1; echo \"rc=$?\"")
    local out = p:read("*a")
    p:close()

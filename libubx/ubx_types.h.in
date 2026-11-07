@@ -433,6 +433,7 @@ typedef struct ubx_node {
 	int loglevel;
 	void (*log)(const struct ubx_node *inf, const struct ubx_log_msg *msg);
 	void *log_data;
+	int name_fd; /* holds the node name, see node_name_claim */
 } ubx_node_t;
 
 

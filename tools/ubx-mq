@@ -59,7 +59,7 @@ end
 -- @return mq message queue
 -- @return sample a sampe value of the queue
 local function newmq(mqtab, preloads)
-   nd = ubx.node_create("ubx-mq", { loglevel=8})
+   nd = ubx.node_create(ubx.tool_nodename("ubx-mq"), { loglevel=8})
 
    ubx.load_module(nd, "stdtypes")
    ubx.load_module(nd, "mqueue")
@@ -187,7 +187,7 @@ if opttab[0][1] == "list" then
       print("no microblx mqueues found")
       os.exit(0)
    end
-   nd = ubx.node_create("ubx-mq", { loglevel=8})
+   nd = ubx.node_create(ubx.tool_nodename("ubx-mq"), { loglevel=8})
    ubx.load_module(nd, "stdtypes")
    ubx.load_module(nd, "mqueue")
 

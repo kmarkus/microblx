@@ -27,6 +27,10 @@ This file tracks user visible API changes
   new one.
 - **incompatible**: rtlog requires lock-free 64 bit atomics: a target built with
   `LFB_CTR_BITS=32` can't use it anymore.
+- **incompatible**: only one node per name can run on a device: `ubx_node_init`
+  fails with "a node named X is already running" if the name is taken. Give
+  each `ubx-launch` its own `--nodename` (the default is `n`). `ubx_node_t`
+  gained the field `name_fd`.
 - `ubx/latch`: a single scalar of up to 8 bytes is passed with one
   atomic store-release/load-acquire instead of the seqlock.
 - `ubx/trig`, `ubx/ptrig`: new ports `sync_req` and `sync_ack`

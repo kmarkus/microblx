@@ -69,7 +69,7 @@ local sys1 = bd.system {
 }
 
 function TestPtrig:TestCountNumTrigs()
-   local nd = sys1:launch{ nostart=true, loglevel=LOGLEVEL, nodename='sys1' }
+   local nd = sys1:launch{ nodename="TestPtrig", nostart=true, loglevel=LOGLEVEL, nodename='sys1' }
    local p_result = ubx.port_clone_conn(nd:b("tester"), "test_result")
    sys1:startup(nd)
    ubx.clock_mono_sleep(1)
@@ -147,7 +147,7 @@ function TestPtrig:TestTstats()
 		     block_dur_us[res.id]*(1+max_eps)..")")
    end
 
-   local nd = sys2:launch{ nostart=true, loglevel=LOGLEVEL, nodename='sys2' }
+   local nd = sys2:launch{ nodename="TestPtrig", nostart=true, loglevel=LOGLEVEL, nodename='sys2' }
    local p_tstats = ubx.port_clone_conn(nd:b("trig"), "tstats", 4)
 
    sys2:startup(nd)
@@ -314,7 +314,7 @@ local sys4 = bd.system {
 function TestPtrig:TestMultichainPtrig()
    -- clone before starting: without hot connect it is refused on
    -- running blocks
-   local nd = sys4:launch{ nostart=true, loglevel=LOGLEVEL, nodename='TestPtrigMultichain' }
+   local nd = sys4:launch{ nodename="TestPtrig", nostart=true, loglevel=LOGLEVEL, nodename='TestPtrigMultichain' }
 
    local p_actchain = ubx.port_clone_conn(nd:b("ptrig0"), "active_chain")
    local p_const0 = ubx.port_clone_conn(nd:b("const0"), "out")
@@ -395,7 +395,7 @@ local sys5 = bd.system {
 }
 
 function TestPtrig:TestPeriodPort()
-   local nd = sys5:launch{ nostart=true, loglevel=LOGLEVEL, nodename='TestPeriodPort' }
+   local nd = sys5:launch{ nodename="TestPtrig", nostart=true, loglevel=LOGLEVEL, nodename='TestPeriodPort' }
    local p_period = ubx.port_clone_conn(nd:b("ptrig"), "period")
    local p_ramp   = ubx.port_clone_conn(nd:b("ramp"), "out", 1)
 
@@ -445,7 +445,7 @@ local sys_sec = bd.system {
 }
 
 function TestPtrig:TestPeriodSeconds()
-   local nd = sys_sec:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
+   local nd = sys_sec:launch{ nodename="TestPtrig", nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
 			      nodename='TestPeriodSeconds' }
    local ramp = nd:b("ramp")
 
@@ -483,7 +483,7 @@ local sys_ns = bd.system {
 }
 
 function TestPtrig:TestPeriodNsConfig()
-   local nd = sys_ns:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
+   local nd = sys_ns:launch{ nodename="TestPtrig", nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
 			     nodename='TestPeriodNsConfig' }
    local ramp = nd:b("ramp")
 
@@ -515,7 +515,7 @@ end
 
 -- the period_ns input port adopts a new period on the fly, like 'period'
 function TestPtrig:TestPeriodNsPort()
-   local nd = sys_ns:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
+   local nd = sys_ns:launch{ nodename="TestPtrig", nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
 			     nodename='TestPeriodNsPort' }
    local p_period_ns = ubx.port_clone_conn(nd:b("ptrig"), "period_ns")
    local ramp = nd:b("ramp")
@@ -697,7 +697,7 @@ local sys_dl = bd.system {
 function TestPtrig:TestDeadlineRuns()
    luaunit.skipIf(not deadline_permitted(),
       "SCHED_DEADLINE not permitted (needs CAP_SYS_NICE in root userns)")
-   local nd = sys_dl:launch{ nostart=true, loglevel=LOGLEVEL, nodename='TestDeadlineRuns' }
+   local nd = sys_dl:launch{ nodename="TestPtrig", nostart=true, loglevel=LOGLEVEL, nodename='TestDeadlineRuns' }
    local p_ramp = ubx.port_clone_conn(nd:b("ramp"), "out", 1)
 
    sys_dl:startup(nd)
@@ -734,7 +734,7 @@ local sys_cycle = bd.system {
 }
 
 function TestPtrig:TestStartStopCycles()
-   local nd = sys_cycle:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
+   local nd = sys_cycle:launch{ nodename="TestPtrig", nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
 				nodename='TestStartStopCycles' }
    local ptrig = nd:b("ptrig")
    local ramp = nd:b("ramp")
@@ -777,7 +777,7 @@ local sys_hybrid = bd.system {
 
 -- hybrid sleep_mode: the block must init, run and produce steps
 function TestPtrig:TestSleepModeHybrid()
-   local nd = sys_hybrid:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
+   local nd = sys_hybrid:launch{ nodename="TestPtrig", nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
 				 nodename='TestSleepModeHybrid' }
    local ramp = nd:b("ramp")
 
@@ -891,7 +891,7 @@ local sys_overrun = bd.system {
 }
 
 function TestPtrig:TestOverrunKeepsGrid()
-   local nd = sys_overrun:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
+   local nd = sys_overrun:launch{ nodename="TestPtrig", nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN,
 				  nodename='TestOverrunKeepsGrid' }
    local ptrig = nd:b("ptrig")
    local p_maxdev = ubx.port_clone_conn(nd:b("ovr"), "maxdev")
@@ -1095,7 +1095,7 @@ function TestPtrig:TestPeriodNsNegativeConfig()
 end
 
 function TestPtrig:TestPeriodNsNegativePort()
-   local nd = sys_ns:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_CRIT,
+   local nd = sys_ns:launch{ nodename="TestPtrig", nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_CRIT,
 			     nodename='TestPeriodNsNegativePort' }
    local p_period_ns = ubx.port_clone_conn(nd:b("ptrig"), "period_ns")
    local ramp = nd:b("ramp")

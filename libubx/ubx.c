@@ -14,6 +14,8 @@
 #include "ubx_trace.h"
 #include <config.h>
 #include "internal/ubx_rcu.h"
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <pthread.h>
 
 /* core logging helpers */
@@ -279,6 +281,57 @@ void ubx_module_unload(ubx_node_t *nd, const char *lib)
 
 
 /**
+ * node_name_claim - allow only one running node per name
+ *
+ * Node names identify a node towards the outside, e.g. in shm segment
+ * and D-Bus names. Binding an abstract unix socket claims the name: it
+ * leaves no file behind, and the kernel releases it when the process
+ * ends, however it ends.
+ *
+ * @param nd node, with name set
+ * @return 0 if ok, -1 if the name is taken or on failure.
+ */
+static int node_name_claim(ubx_node_t *nd)
+{
+	socklen_t len;
+	struct sockaddr_un addr = { .sun_family = AF_UNIX };
+	int n = snprintf(addr.sun_path + 1, sizeof(addr.sun_path) - 1,
+			 "ubx-node/%s", nd->name);
+
+	if (n < 0 || (size_t)n >= sizeof(addr.sun_path) - 1) {
+		logf_err(nd, "node name %s too long", nd->name);
+		return -1;
+	}
+
+	nd->name_fd = socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+
+	if (nd->name_fd < 0) {
+		logf_err(nd, "failed to create name socket: %m");
+		return -1;
+	}
+
+	len = (socklen_t)(offsetof(struct sockaddr_un, sun_path) + 1 + n);
+
+	if (bind(nd->name_fd, (const struct sockaddr *)&addr, len) != 0) {
+		if (errno == EADDRINUSE) {
+			logf_err(nd, "a node named %s is already running", nd->name);
+
+			/* also there if nobody reads the log */
+			fprintf(stderr, "error: a node named %s is already running\n",
+				nd->name);
+		} else {
+			logf_err(nd, "failed to claim node name %s: %m", nd->name);
+		}
+
+		close(nd->name_fd);
+		nd->name_fd = -1;
+		return -1;
+	}
+
+	return 0;
+}
+
+/**
  * ubx_node_init - initialize node_info
  *
  * @param nd node to initialize
@@ -291,6 +344,7 @@ int ubx_node_init(ubx_node_t *nd, const char *name, uint32_t attrs)
 {
 	int ret = -1;
 
+	nd->name_fd = -1;
 	nd->loglevel = (nd->loglevel == 0) ?
 		UBX_LOGLEVEL_DEFAULT : nd->loglevel;
 
@@ -314,6 +368,9 @@ int ubx_node_init(ubx_node_t *nd, const char *name, uint32_t attrs)
 
 	strncpy((char*)nd->name, name, UBX_NODE_NAME_MAXLEN);
 	((char*)nd->name)[UBX_NODE_NAME_MAXLEN] = '\0';
+
+	if (node_name_claim(nd) != 0)
+		goto out;
 
 	if (attrs & ND_DUMPABLE) {
 		if (prctl(PR_SET_DUMPABLE, 1, 0, 0, 0) != 0) {
@@ -347,6 +404,11 @@ int ubx_node_init(ubx_node_t *nd, const char *name, uint32_t attrs)
 
 	ret = 0;
  out:
+	if (ret != 0 && nd->name_fd >= 0) {
+		close(nd->name_fd);
+		nd->name_fd = -1;
+	}
+
 	return ret;
 }
 
@@ -444,6 +506,12 @@ void ubx_node_cleanup(ubx_node_t *nd)
 		logf_warn(nd, "%d modules after cleanup", cnt);
 
 	nd->cur_seqid = 0;
+
+	/* here, as a node collected by Lua only gets a cleanup */
+	if (nd->name_fd >= 0) {
+		close(nd->name_fd);
+		nd->name_fd = -1;
+	}
 }
 
 /**

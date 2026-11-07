@@ -40,7 +40,7 @@ local sys1 = bd.system {
 local nd=nil
 
 local function setup()
-   nd = sys1:launch{ nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN }
+   nd = sys1:launch{ nodename="TestNodeCfg", nostart=true, loglevel=ffi.C.UBX_LOGLEVEL_WARN }
 end
 
 local function teardown()

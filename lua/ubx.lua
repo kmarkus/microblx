@@ -207,7 +207,8 @@ local function load_ubx_ffi()
 
    -- declare std functions
    ffi.cdef [[
-   void *malloc(size_t size);
+   int getpid(void);
+void *malloc(size_t size);
    void free(void *ptr);
    void *calloc(size_t nmemb, size_t size);
    void *realloc(void *ptr, size_t size);
@@ -518,6 +519,13 @@ ffi.metatype("struct ubx_timespec", ubx_timespec_mt)
 function M.node_rm(nd)
    ffi.gc(nd, nil)
    ubx.ubx_node_rm(nd)
+end
+
+--- Node name for a tool: names are unique, and a tool can run several times.
+-- @param name name of the tool
+-- @return name with the process id
+function M.tool_nodename(name)
+   return string.format("%s-%d", name, ffi.C.getpid())
 end
 
 --- Create and initialize a new node.
