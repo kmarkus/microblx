@@ -1,6 +1,5 @@
 --
--- Test overruns reporting and allow_partial of the lfrb and
--- lfds_cyclic iblocks
+-- Test overruns reporting and allow_partial of the lfrb iblock
 --
 
 local lu = require("luaunit")
@@ -25,16 +24,6 @@ local function setup_node(name, mod)
    nd = ubx.node_create(name, { loglevel = LOGLEVEL })
    ubx.load_module(nd, "stdtypes")
    ubx.load_module(nd, mod)
-   ubx.ffi_load_types(nd)
-end
-
--- like setup_node, but skip the test if the module is unavailable
--- (e.g. lfds_cyclic is only built with -DBLOCK_LFDS_CYCLIC=ON)
-local function setup_node_or_skip(name, mod)
-   nd = ubx.node_create(name, { loglevel = LOGLEVEL })
-   ubx.load_module(nd, "stdtypes")
-   lu.skipIf(not pcall(ubx.load_module, nd, mod),
-	     "module " .. mod .. " not available")
    ubx.ffi_load_types(nd)
 end
 
@@ -146,21 +135,6 @@ end
 function TestIblockOverruns:TestLfrbPartialRejected()
    setup_node("TestLfrbPartialRej", "lfrb")
    check_partial_rejected("ubx/lfrb")
-end
-
-function TestIblockOverruns:TestLfdsCyclicOverruns()
-   setup_node_or_skip("TestCyclicOverruns", "lfds_cyclic")
-   check_overruns("ubx/lfds_cyclic")
-end
-
-function TestIblockOverruns:TestLfdsCyclicAllowPartial()
-   setup_node_or_skip("TestCyclicPartial", "lfds_cyclic")
-   check_allow_partial("ubx/lfds_cyclic")
-end
-
-function TestIblockOverruns:TestLfdsCyclicPartialRejected()
-   setup_node_or_skip("TestCyclicPartialRej", "lfds_cyclic")
-   check_partial_rejected("ubx/lfds_cyclic")
 end
 
 if not _RUNNER then os.exit(lu.LuaUnit.run()) end

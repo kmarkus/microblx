@@ -429,7 +429,6 @@ Standard blocks
 | [ubx/cconst, ubx/iconst](std_blocks/const/README.md)                  | c/i-block | constant value of any registered type                                  |
 | [ubx/hexdump](std_blocks/hexdump/README.md)                           | i-block   | hex-dump written data to stdout (debug)                                |
 | [ubx/lfrb](std_blocks/lfrb/README.md)                                 | i-block   | hard-RT lock-free ring buffer                                          |
-| [ubx/lfds_cyclic](std_blocks/lfds_cyclic/README.md)                   | i-block   | deprecated, use `ubx/lfrb`                                             |
 | [ubx/vstore](std_blocks/vstore/README.md)                             | i-block   | single-slot value store for same-thread connections                    |
 | [ubx/latch](std_blocks/latch/README.md)                               | i-block   | single-writer multi-reader latest-value store (seqlock)                |
 | [ubx/mqueue](std_blocks/mqueue/README.md)                             | i-block   | POSIX message queue inter-process communication                        |

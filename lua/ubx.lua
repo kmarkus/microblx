@@ -619,18 +619,15 @@ function M.block_create(nd, type, name, conf)
    return b
 end
 
---- Return the default iblock prototype name (`ubx/lfds_cyclic` or `ubx/lfrb`).
--- Prefers `lfds_cyclic`; falls back to `lfrb`; errors if neither is loaded.
+--- Return the default iblock prototype name (`ubx/lfrb`).
+-- Errors if the lfrb module is not loaded.
 -- @param nd `ubx_node_t`
 -- @return prototype name string
 function M.get_default_iblock(nd)
-   if ubx.ubx_block_get(nd, "ubx/lfds_cyclic") ~= nil then
-      return "ubx/lfds_cyclic"
-   elseif ubx.ubx_block_get(nd, "ubx/lfrb") ~= nil then
+   if ubx.ubx_block_get(nd, "ubx/lfrb") ~= nil then
       return "ubx/lfrb"
-   else
-      error("neither lfds_cyclic or lfrb iblocks found")
    end
+   error("default iblock ubx/lfrb not found (module lfrb not loaded)")
 end
 
 --- Get a block by name; **errors** if not found.
@@ -2253,7 +2250,7 @@ end
 -- @param srcpn source **out**-port name (or `nil`)
 -- @param tgtbn target block name (or `nil` for a new tgt iblock)
 -- @param tgtpn target **in**-port name (or `nil`)
--- @param ibtype *optional* iblock prototype name (defaults to `lfds_cyclic`/`lfrb`)
+-- @param ibtype *optional* iblock prototype name (defaults to `lfrb`)
 -- @param ibconfig *optional* iblock configuration table
 -- @return `true` on success, `false` on failure
 -- @return error message string on failure

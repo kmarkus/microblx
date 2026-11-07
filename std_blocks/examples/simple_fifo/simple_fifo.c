@@ -6,7 +6,7 @@
  * approach to develop an iblock. The preferred way is to define the
  * configs 'type_name', 'data_len' and optionally 'buffer_len' and
  * carry out type checking in the iblock. Please refer to the
- * ubx/lfds_cyclic as a good example.
+ * ubx/lfrb as a good example.
  */
 
 #undef UBX_DEBUG
@@ -22,7 +22,7 @@ char fifometa[] =
 	"{ doc='a FIFO buffered, in-process interaction.',"
 	"  description=[[This FIFO interaction serves as an example interaction."
 	"               Although functional, it does not scale well to multiple"
-	"               reader/writers. For that case, the lfds_* versions should"
+	"               reader/writers. For that case, ubx/lfrb should"
 	"               be preferred.]],"
 	"  realtime=false,"
 	"}";

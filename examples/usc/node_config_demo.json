@@ -3,7 +3,7 @@
     "stdtypes",
     "random",
     "ptrig",
-    "lfds_cyclic"
+    "lfrb"
   ],
   "node_configurations": {
     "global_rnd_conf": {

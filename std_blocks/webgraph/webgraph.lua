@@ -126,9 +126,9 @@ local function build_graph(nd)
       }
    end
 
-   -- lfds_cyclic and lfrb connecting two cblocks are shown as direct edges (minimal label);
+   -- lfrb connecting two cblocks are shown as direct edges (minimal label);
    -- dangling ones (only one side connected) and all other iblock types are shown as nodes.
-   local TRANSPARENT = { ["ubx/lfds_cyclic"]=true, ["ubx/lfrb"]=true }
+   local TRANSPARENT = { ["ubx/lfrb"]=true }
 
    local function is_transparent(iname)
       return TRANSPARENT[(iblocks[iname] or {}).prototype or ""]

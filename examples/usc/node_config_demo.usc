@@ -8,7 +8,7 @@ return bd.system
       "stdtypes",
       "random",
       "ptrig",
-      "lfds_cyclic"
+      "lfrb"
    },
 
    blocks = {

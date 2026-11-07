@@ -12,7 +12,7 @@ return bd.system
    },
 
    imports = {
-      "stdtypes", "random", "ptrig", "lfds_cyclic"
+      "stdtypes", "random", "ptrig", "lfrb"
    },
 
    blocks = {

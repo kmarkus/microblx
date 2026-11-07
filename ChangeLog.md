@@ -5,6 +5,11 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- **incompatible**: the deprecated `ubx/lfds_cyclic` iblock and the
+  `BLOCK_LFDS_CYCLIC` option are removed, together with the liblfds 6.1.1
+  patches. Use `ubx/lfrb` instead: load the `lfrb` module and connect with
+  `ubx/lfrb`, which is now always the default iblock.
+
 - new tool `ubx-pack`: `list` the `ubx/pack` blocks, `read` one as CSV, Lua
   or JSON, and `write` to replay a recording.
 - several nodes in a process can load the same module: each node now keeps its

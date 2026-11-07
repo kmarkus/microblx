@@ -7,7 +7,6 @@ UBX_MODDIR=${exec_prefix}/lib/ubx/@VERSION_MAJOR@.@VERSION_MINOR@
 Name: microblx
 Description: microblx realtime function blocks
 URL: https://github.com/kmarkus/microblx
-# Requires: lfds6 >= 6.1.1
 Version: @PROJECT_VERSION@
 Cflags: -I${includedir}/ubx/ -Wall -Wextra
 Libs: -L${libdir} -lubx
