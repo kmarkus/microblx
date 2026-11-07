@@ -256,4 +256,119 @@ function TestLatch:TestTypeMismatch()
    lu.assert_equals(rdat:tolua(), 7)
 end
 
+--- a single scalar takes the atomic path: round trip, including a one
+--- byte type, and no data before the first write
+function TestLatch:TestScalarAtomic()
+   for _, t in ipairs{ { "uint64_t", 0xfedcba9876543210ULL }, { "int8_t", -5 }, { "double", -1.5 } } do
+      local ib = setup_ib("TestLatchScalar", { type_name = t[1] })
+      local wdat = ubx.data_alloc(ni, t[1], 1)
+      local rdat = ubx.data_alloc(ni, t[1], 1)
+
+      lu.assert_equals(tonumber(ubx.interaction_read(ib, rdat)), 0)
+
+      ubx.data_set(wdat, t[2])
+      ubx.interaction_write(ib, wdat)
+      local rval = ffi.cast(t[1].."*", rdat.data)
+      for _ = 1, 2 do	-- a read does not consume
+	 lu.assert_equals(tonumber(ubx.interaction_read(ib, rdat)), 1)
+	 lu.assert_true(rval[0] == t[2])
+      end
+      ubx.node_rm(ni)
+      ni = nil
+   end
+end
+
+--- a struct takes the seqlock path: round trip, and no data before the
+--- first write
+function TestLatch:TestStruct()
+   local ib = setup_ib("TestLatchStruct", { type_name = "struct ubx_tstat" })
+   local wdat = ubx.data_alloc(ni, "struct ubx_tstat", 1)
+   local rdat = ubx.data_alloc(ni, "struct ubx_tstat", 1)
+
+   lu.assert_equals(tonumber(ubx.interaction_read(ib, rdat)), 0)
+
+   ubx.data_set(wdat, { id = "chain0", min = { sec = 1, nsec = 2 }, cnt = 678 })
+   ubx.interaction_write(ib, wdat)
+   lu.assert_equals(tonumber(ubx.interaction_read(ib, rdat)), 1)
+   local v = rdat:tolua()
+   lu.assert_equals(v.id, "chain0")
+   lu.assert_equals(tonumber(v.min.nsec), 2)
+   lu.assert_equals(tonumber(v.cnt), 678)
+end
+
+--- reader and writer in two free-running ptrig threads. The ramp writes
+--- data_len equal elements counting up: a reader sees them unequal on a
+--- torn read, and decreasing on a reordered one.
+local stress_checker = [[
+local ubx = require("ubx")
+local ffi = require("ffi")
+local p_in, p_stat, sample, val
+local last, nread, nerr = 0ULL, 0, 0
+
+function init(b)
+   ubx.inport_add(b, "in", "ramp values", 0, "uint64_t", %d)
+   ubx.outport_add(b, "stat", "{reads, errors}", 0, "uint64_t", 2)
+   p_in = ubx.port_get(b, "in")
+   p_stat = ubx.port_get(b, "stat")
+   sample = ubx.port_alloc_read_sample(p_in)
+   val = ffi.cast("uint64_t*", sample.data)
+   return true
+end
+
+function step(b)
+   local len = ubx.port_read(p_in, sample)
+   if len <= 0 then return end
+   nread = nread + 1
+   for i = 1, tonumber(len) - 1 do
+      if val[i] ~= val[0] then nerr = nerr + 1 end
+   end
+   if val[0] < last then nerr = nerr + 1 end
+   last = val[0]
+   ubx.port_write(p_stat, { nread, nerr })
+end
+
+function cleanup(b)
+   ubx.port_rm(b, "in")
+   ubx.port_rm(b, "stat")
+end
+]]
+
+local function stress(name, data_len)
+   local sys = bd.system {
+      imports = { "stdtypes", "latch", "lfrb", "ptrig", "ramp", "luablock" },
+      blocks = {
+	 { name = "ramp", type = "ubx/ramp" },
+	 { name = "chk", type = "ubx/luablock" },
+	 { name = "trigw", type = "ubx/ptrig" },
+	 { name = "trigr", type = "ubx/ptrig" },
+      },
+      configurations = {
+	 { name = "ramp", config = { type = "uint64_t", data_len = data_len, start = 0, slope = 1 } },
+	 { name = "chk", config = { lua_str = string.format(stress_checker, data_len) } },
+	 { name = "trigw", config = { period_ns = 0, chain0 = { { b = "#ramp" } } } },
+	 { name = "trigr", config = { period_ns = 0, chain0 = { { b = "#chk" } } } },
+      },
+      connections = {
+	 { src = "ramp.out", tgt = "chk.in", type = "ubx/latch" },
+      },
+   }
+
+   ni = sys:launch({ nodename = name, loglevel = LOGLEVEL, nostart = true })
+   lu.assert_not_nil(ni)
+   local p_stat = ubx.port_clone_conn(ni:b("chk"), "stat", 1, nil, 7, 0)
+   sys:startup(ni)
+   ubx.clock_mono_sleep(0, 300000000)
+   ni:b("trigr"):do_stop()
+   ni:b("trigw"):do_stop()
+
+   local len, stat = p_stat:read()
+   lu.assert_equals(tonumber(len), 2)
+   stat = stat:tolua()
+   lu.assert_true(tonumber(stat[1]) > 1000, "too few reads: "..tonumber(stat[1]))
+   lu.assert_equals(tonumber(stat[2]), 0)
+end
+
+function TestLatch:TestStressAtomic() stress("TestLatchStressA", 1) end
+function TestLatch:TestStressSeqlock() stress("TestLatchStressS", 256) end
+
 if not _RUNNER then os.exit(lu.LuaUnit.run()) end

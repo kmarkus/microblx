@@ -28,6 +28,10 @@ reader threads is the unsynchronised sharing this block exists to avoid.
 - Concurrency is a seqlock: the writer is wait-free, and a reader that
   catches a write in progress retries, then reports no-data rather than
   spinning forever.
+- A single scalar (`data_len` 1, a basic type of up to 8 bytes) skips the
+  seqlock: the writer publishes it with one atomic store-release, the
+  reader takes it with one load-acquire and never retries. Arrays and
+  structs, however small, keep the seqlock.
 
 > **Note**: exactly one writer is required. Two interleave the sequence
 > counter and can publish a torn value that passes the reader's check.

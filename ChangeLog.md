@@ -27,6 +27,8 @@ This file tracks user visible API changes
   new one.
 - **incompatible**: rtlog requires lock-free 64 bit atomics: a target built with
   `LFB_CTR_BITS=32` can't use it anymore.
+- `ubx/latch`: a single scalar of up to 8 bytes is passed with one
+  atomic store-release/load-acquire instead of the seqlock.
 - `ubx/trig`, `ubx/ptrig`: new ports `sync_req` and `sync_ack`
   (`uint64_t`). If `sync_req` is connected, the active chain is only
   stepped once per value greater than the last one served, which is

@@ -42,6 +42,9 @@ char latch_meta[] =
 	"                 not. Exactly one writer is required -- two concurrent"
 	"                 writers interleave the sequence counter and can"
 	"                 publish a torn value that passes the reader's check."
+	"                 A single scalar of up to 8 bytes skips the seqlock:"
+	"                 the writer publishes it with one atomic store, the"
+	"                 reader takes it with one atomic load."
 	""
 	"                 Before the first write a latch reads as no-data, so"
 	"                 the reader never sees the zeroed buffer as if it were"
@@ -64,12 +67,27 @@ ubx_proto_config_t latch_config[] = {
  * avoid.
  */
 
+/*
+ * Fast path: a single scalar that fits a lock-free 64 bit atomic is
+ * published with one store-release and read with one load-acquire,
+ * so the reader never retries and the writer has no fences. Arrays
+ * keep the seqlock even if small, as a short write must publish len
+ * and payload together.
+ */
+#if ATOMIC_LLONG_LOCK_FREE == 2
+#define LATCH_FAST_MAX	8
+#else
+#define LATCH_FAST_MAX	0
+#endif
+
 struct latch_info {
 	const ubx_type_t *type;
 	long data_len;			/* array length */
+	int fast;			/* use val instead of seq and data */
 
 	atomic_ulong seq;		/* even: stable, odd: write in progress */
 	atomic_long len;		/* elements written, 0 = never written */
+	_Atomic uint64_t val;		/* fast path payload */
 
 	uint8_t data[];			/* tail-allocated, see latch_init */
 };
@@ -116,11 +134,14 @@ int latch_init(ubx_block_t *i)
 	inf = (struct latch_info *)i->private_data;
 	inf->type = type;
 	inf->data_len = data_len;
+	inf->fast = data_len == 1 && type->type_class == TYPE_CLASS_BASIC &&
+		type->size <= LATCH_FAST_MAX;
 
 	/* calloc gives seq=0 (even, stable) and len=0 (no value yet) */
 
-	ubx_debug(i, "%s: %s [%ld], %zu bytes total", __func__, type_name,
-		  data_len, sizeof(struct latch_info) + data_len * type->size);
+	ubx_debug(i, "%s: %s [%ld], %zu bytes total, %s", __func__, type_name,
+		  data_len, sizeof(struct latch_info) + data_len * type->size,
+		  inf->fast ? "atomic" : "seqlock");
 
 	return 0;
 }
@@ -152,6 +173,21 @@ void latch_write(ubx_block_t *i, const ubx_data_t *msg)
 	 * must not be handed the stale tail as if it were data. */
 	writelen = MIN((long)msg->len, inf->data_len);
 
+	if (inf->fast) {
+		uint64_t val = 0;
+
+		/* a 0 length write leaves val to a reader which saw len */
+		if (writelen > 0) {
+			memcpy(&val, msg->data, inf->type->size * writelen);
+			atomic_store_explicit(&inf->val, val, memory_order_release);
+		}
+
+		/* only the first write (or a 0 length one) changes len */
+		if (atomic_load_explicit(&inf->len, memory_order_relaxed) != writelen)
+			atomic_store_explicit(&inf->len, writelen, memory_order_release);
+		return;
+	}
+
 	/* Odd sequence: a concurrent reader sees a write in progress and
 	 * retries rather than copying. Relaxed is enough for the counter
 	 * itself; the fence is what orders it against the payload. */
@@ -175,6 +211,22 @@ long latch_read(ubx_block_t *i, ubx_data_t *msg)
 	if (inf->type != msg->type) {
 		ubx_err(i, "%s: invalid message type %s", __func__, msg->type->name);
 		return EINVALID_TYPE;
+	}
+
+	if (inf->fast) {
+		uint64_t val;
+
+		/* len before val: a reader seeing len 1 sees at least the
+		 * first value */
+		len = atomic_load_explicit(&inf->len, memory_order_acquire);
+		readlen = MIN((long)msg->len, len);
+
+		if (readlen <= 0)
+			return readlen;
+
+		val = atomic_load_explicit(&inf->val, memory_order_acquire);
+		memcpy(msg->data, &val, inf->type->size);
+		return readlen;
 	}
 
 	for (int retries = LATCH_SPIN_RETRIES; retries > 0; retries--) {
