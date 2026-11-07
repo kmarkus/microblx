@@ -76,26 +76,9 @@ test:
     - popd
     - "ubx-launch --version | grep -q 'urcu: *no'"
     - export JUNIT_OUTPUT=test-results.xml
+    - export UBX_REQUIRE_UNIT_TESTS=1
     - mkdir -p /run/dbus
     - dbus-run-session --config-file tests/dbus-test.conf -- ./run_tests.sh
-    # run lfq tests (default cap 4 and the single-slot mailbox path)
-    - test-lfq
-    - test-lfq -c 1 -t 8 -o 50000
-    - test-lfq-unit
-    # run lfb tests (unit, shm unit, and the multi-reader stress test
-    # including forced overrun recovery)
-    - test-lfb-unit
-    - test-lfb-shm-unit
-    - test-lfb
-    - test-lfb -r 8 -O
-    - test-lfbm-unit
-    - test-lfbm
-    - test-lfbm -d 16
-    # run the rtlog stress test (multi-writer/multi-reader shm log
-    # verification): defaults, high contention and the SPSC fast path
-    - test-rtlog
-    - test-rtlog -w 32 -r 8 -n 50
-    - test-rtlog -w 1 -r 1 -n 20
   artifacts:
     when: always
     reports:
@@ -114,6 +97,7 @@ test-urcu:
     - popd
     - "ubx-launch --version | grep -q 'urcu: *yes'"
     - export JUNIT_OUTPUT=test-results.xml
+    - export UBX_REQUIRE_UNIT_TESTS=1
     - mkdir -p /run/dbus
     - dbus-run-session --config-file tests/dbus-test.conf -- ./run_tests.sh
   artifacts:
