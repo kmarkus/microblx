@@ -181,7 +181,9 @@ function TestTrigSync:TestPtrigPeriodic()
    assert_equals(steps("r1"), 1)
 
    assert_equals(trig:do_stop(), 0)
-   assert_equals(tonumber((p_ovr:read())), 0)
+   -- skipped periods would count ~50 here; allow a few real
+   -- overruns from scheduling latency on a loaded host
+   lu.assert_true(tonumber((p_ovr:read())) <= 3, "skipped periods counted as overruns")
 end
 
 --- autostop_steps counts chain steps, not passes
