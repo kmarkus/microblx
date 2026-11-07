@@ -30,6 +30,39 @@ local node_ref = nil  -- cached node pointer (set in start)
 -- Graph data extraction
 -- ============================================================
 
+--- The buffer_len config of a block, 1 if unset
+local function buffer_len_of(b)
+   for _, c in ipairs(b.configs) do
+      if c.name == "buffer_len" then return tonumber(c.value) or 1 end
+   end
+   return 1
+end
+
+--- The shm segment of a ubx/pack or ubx/unpack block, see shm_name in pack.c
+local function pack_segment(ndname, b)
+   local id
+
+   for _, c in ipairs(b.configs) do
+      if c.name == "packid" then id = c.value end
+   end
+
+   if type(id) ~= "string" then return nil end
+
+   local node, path = id:match("^([^:]+):/(.+)$")
+
+   if not node then
+      node = ndname
+      path = id:match("^/(.+)$")
+
+      if not path then
+	 local scope = b.name:match("^(.*)/[^/]*$")
+	 path = scope and (scope.."/"..id) or id
+      end
+   end
+
+   return (node.."/"..path):gsub("/", "."), node
+end
+
 -- Collect all iblock configs by name for connection metadata
 local function iblock_cfg(nd, iblock_name)
    local b = ubx.block_get(nd, iblock_name)
@@ -249,6 +282,39 @@ local function build_graph(nd)
       end
    end
 
+   -- pack -> unpack: no ports connect them, they share a shm segment. One
+   -- fat edge per pair, of the blocks in this node.
+   local writers = {}
+   local ndname = ubx.safe_tostr(nd.name)
+
+   for _, b in ipairs(cblocks) do
+      if b.prototype == "ubx/pack" then
+	 writers[pack_segment(ndname, b) or ""] = b
+      end
+   end
+
+   for _, b in ipairs(cblocks) do
+      local seg = b.prototype == "ubx/unpack" and pack_segment(ndname, b)
+      local w = seg and writers[seg]
+
+      if w then
+	 edges[#edges+1] = {
+	    id              = w.name.."=>"..seg.."=>"..b.name,
+	    kind            = "direct",
+	    fat             = true,
+	    source_block    = w.name,
+	    source_port     = "_pack",
+	    target_block    = b.name,
+	    target_port     = "_pack",
+	    type_name       = seg,
+	    data_len        = 1,
+	    buffer_len      = buffer_len_of(w),
+	    stat_num_reads  = b.stat_num_steps or 0,
+	    stat_num_writes = w.stat_num_steps or 0,
+	 }
+      end
+   end
+
    -- Trigger edges from ptrig/trig chain0 configs
    local triggers = {}
    local trig_protos = { ["ubx/ptrig"]=true, ["ubx/trig"]=true }
@@ -456,6 +522,10 @@ function UbxBlock({ id, data }) {
         style=${{ opacity:0, pointerEvents:'none', width:1, height:1 }}/>
       <${Handle} type="target" id=${trigTgt} position=${Position.Bottom}
         style=${{ opacity:0, pointerEvents:'none', width:1, height:1 }}/>
+      <${Handle} type="source" id=${id + ':_pack:out'} position=${Position.Right}
+        style=${{ opacity:0, pointerEvents:'none', width:1, height:1 }}/>
+      <${Handle} type="target" id=${id + ':_pack:in'} position=${Position.Left}
+        style=${{ opacity:0, pointerEvents:'none', width:1, height:1 }}/>
       <div className="block-header">
         <span className="block-name">${name}</span>
         <span className="block-proto">${prototype}</span>
@@ -643,7 +713,7 @@ async function applyLayout(graphData) {
         type_name: e.type_name, data_len: e.data_len, buffer_len: e.buffer_len,
         stat_num_reads: e.stat_num_reads, stat_num_writes: e.stat_num_writes,
       },
-      style: { stroke: '#7dd3fc' },
+      style: e.fat ? { stroke: '#a78bfa', strokeWidth: 6 } : { stroke: '#7dd3fc' },
     };
   });
 
@@ -664,6 +734,8 @@ async function applyLayout(graphData) {
       labelBgBorderRadius: 3,
       style: { stroke: '#fb923c', strokeDasharray: '6 3' },
       markerEnd: { type: 'arrowclosed', color: '#fb923c' },
+      // below the data edges, to not cover their labels
+      zIndex: -1,
     };
   });
 

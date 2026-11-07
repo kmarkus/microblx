@@ -8,6 +8,10 @@ Luablock serving a live React Flow + ELK.js graph of the running node
 > without authentication and allows any origin (CORS `*`). Don't run it
 > on production systems or untrusted networks.
 
+A `ubx/pack` and a `ubx/unpack` block of the same segment are joined by
+one fat edge, labelled with the segment, as all ports of a frame pass
+through it.
+
 ## Dependencies
 
 - `lua-socket`, `json.lua` (`apt install lua-socket lua-json`)
