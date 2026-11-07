@@ -17,7 +17,7 @@
  *
  *  - the producer never blocks, never fails and never allocates: it
  *    overwrites the oldest frame when the buffer is full. The write
- *    path is a memcpy plus one atomic release-store.
+ *    path is a memcpy, one atomic release-store and a release fence.
  *
  *  - consumers maintain private read cursors and do not synchronize
  *    with the producer or each other. A consumer that falls more
@@ -534,6 +534,12 @@ static inline void lfb_commit_wslot(lfb_t *b)
 
 	atomic_store_explicit(&b->w, lfb_w_inc(w, b->depth),
 			      memory_order_release);
+
+	/*
+	 * the next frame's stores must stay behind w: else a reader of
+	 * the slot they go to sees them, but not w, and passes validation
+	 */
+	atomic_thread_fence(memory_order_release);
 }
 
 /**
