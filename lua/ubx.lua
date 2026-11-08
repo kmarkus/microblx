@@ -610,12 +610,17 @@ end
 -- @param nd `ubx_node_t`
 -- @param type **prototype** name string (e.g. `"ubx/trig"`)
 -- @param name **instance** name string
--- @param conf *optional* config table `{key=val,...}`
+-- @param conf *optional* config table `{key=val,...}`. Configs created
+-- by the preinit hook are applied after running it; those created by
+-- init need `do_configure`.
 -- @return `ubx_block_t` in `preinit` state
 function M.block_create(nd, type, name, conf)
    local b=ubx.ubx_block_create(nd, type, name)
    if b==nil then error("failed to create block "..ts(name).." of type "..ts(type)) end
-   if conf then M.set_config_tab(b, conf) end
+   if conf then
+      local n = next(M.configure_preinit(b, conf))
+      if n then error(fmt("block_create: block %s has no config '%s'", ts(name), n)) end
+   end
    return b
 end
 
@@ -1113,23 +1118,17 @@ function M.set_config_tab(b, ctab)
    for n,v in pairs(ctab) do M.set_config(b, n, v) end
 end
 
---- Configure a block, handling **dynamically added configs**.
--- Applies known configs, runs `block_preinit`, applies configs created
--- by the preinit hook, calls `block_init`, then applies any configs that
--- only exist after init (e.g. added in the block's `init` hook).
--- **Requires** block to be in `preinit` state.
--- @param b `ubx_block_t`
+--- Apply a config table up to and including the preinit stage.
+-- Applies the configs that exist, then, if some don't, runs
+-- `block_preinit` (which may create them from the values just
+-- applied) and applies those it created. Preinit is not run when all
+-- configs exist, so preinit configs can still be set afterwards.
+-- @param b `ubx_block_t` in `preinit` state
 -- @param ctab `{name=value}` configuration table
-function M.do_configure(b, ctab)
+-- @return table of the configs that still don't exist `{name=value}`
+function M.configure_preinit(b, ctab)
    local deferred = {}
 
-   local state = b:get_block_state()
-
-   if state ~= 'preinit' then
-      error("do_configure: block not in state preinit but "..state)
-   end
-
-   -- apply the configs that exist after cloning (static / meta)
    for n,v in pairs(ctab) do
       if M.block_config_get(b, n) == nil then
 	 deferred[n] = v
@@ -1138,13 +1137,13 @@ function M.do_configure(b, ctab)
       end
    end
 
-   -- run preinit; it may create configs from the values just applied
+   if next(deferred) == nil then return deferred end
+
    local ret = M.block_preinit(b)
    if ret ~= 0 then
-      error(fmt("do_configure: failed to preinit %s", ffi.string(b.name)))
+      error(fmt("failed to preinit %s", ffi.string(b.name)))
    end
 
-   -- apply configs created by preinit (those that now exist)
    for n,v in pairs(deferred) do
       if M.block_config_get(b, n) ~= nil then
 	 M.set_config(b, n, v)
@@ -1152,7 +1151,26 @@ function M.do_configure(b, ctab)
       end
    end
 
-   ret = M.block_init(b)
+   return deferred
+end
+
+--- Configure a block, handling **dynamically added configs**.
+-- Applies known configs, runs `block_preinit`, applies configs created
+-- by the preinit hook, calls `block_init`, then applies any configs that
+-- only exist after init (e.g. added in the block's `init` hook).
+-- **Requires** block to be in `preinit` state.
+-- @param b `ubx_block_t`
+-- @param ctab `{name=value}` configuration table
+function M.do_configure(b, ctab)
+   local state = b:get_block_state()
+
+   if state ~= 'preinit' then
+      error("do_configure: block not in state preinit but "..state)
+   end
+
+   local deferred = M.configure_preinit(b, ctab)
+
+   local ret = M.block_init(b)
    if ret ~= 0 then
       error(fmt("do_configure: failed to initalize %s", ffi.string(b.name)))
    end

@@ -5,6 +5,9 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- `ubx.block_create` with a config table runs the preinit hook when a
+  config doesn't exist yet, and then applies the configs it created.
+
 - **incompatible**: the deprecated `ubx/lfds_cyclic` iblock and the
   `BLOCK_LFDS_CYCLIC` option are removed, together with the liblfds 6.1.1
   patches. Use `ubx/lfrb` instead: load the `lfrb` module and connect with
