@@ -5,6 +5,14 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- **incompatible**: `ubx/ramp` `start`/`slope` have the configured
+  `type` instead of `double`, so 64-bit values are exact (use a `ULL`
+  literal beyond 2^53). They are added by the preinit hook: with the C
+  API, call `ubx_block_preinit()` before setting them. `type` and
+  `data_len` can no longer be changed after preinit. Values are no
+  longer range-checked, and fractional values for integer types are
+  truncated instead of rounded.
+
 - `ubx.block_create` with a config table runs the preinit hook when a
   config doesn't exist yet, and then applies the configs it created.
 

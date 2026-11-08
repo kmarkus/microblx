@@ -1,9 +1,6 @@
 --
--- Tests for the runtime-typed ramp generator (ubx/ramp)
---
--- The legacy compile-time variants (ubx/ramp_<type>) are exercised
--- elsewhere (e.g. test_ptrig.lua); this covers the generic block, in
--- particular the *native* accumulation (exact integer counting beyond
+-- Tests for the runtime-typed ramp generator (ubx/ramp), in particular
+-- the *native* accumulation and configs (exact integer counting beyond
 -- the 2^53 double mantissa limit).
 --
 
@@ -76,6 +73,37 @@ function TestRamp:TestUint64Exact()
    end
 end
 
+--- start/slope have the native type: a 64-bit start beyond 2^53 given
+--- as a ULL literal in the model is exact
+function TestRamp:TestUint64ExactConfig()
+   local start = 1700000000000000001ULL
+   local r1, p_out = make({ type = "uint64_t", start = start, slope = 2ULL },
+			  "TestRampU64Cfg")
+
+   for i = 0, 2 do
+      r1:do_step()
+      local _, val = p_out:read()
+      local got = val:cdata()[0]
+      assert_true(got == start + 2 * i,
+		  ("step %d: got %s, expected %s"):format(i, tostring(got),
+							  tostring(start + 2 * i)))
+   end
+end
+
+--- start/slope are added by preinit, so block_create applies them,
+--- and type can't change after preinit
+function TestRamp:TestPreinitConfigs()
+   ni = ubx.node_create("TestRampPreinit", { loglevel = LOGLEVEL })
+   ubx.load_module(ni, "stdtypes")
+   ubx.load_module(ni, "ramp")
+
+   local r1 = ubx.block_create(ni, "ubx/ramp", "r1",
+			       { type = "int64_t", start = -5, slope = 3 })
+   assert_equals(ffi.string(r1:c("start").type.name), "int64_t")
+   assert_equals(r1:c("slope"):tolua(), 3)
+   lu.assert_error_msg_contains("preinit config", ubx.set_config, r1, "type", "double")
+end
+
 --- unsigned wrap-around is well-defined
 function TestRamp:TestUint8Wrap()
    local r1, p_out = make({ type = "uint8_t", start = 254, slope = 1 },
@@ -124,11 +152,9 @@ function TestRamp:TestRestartResets()
    assert_equals(step_and_read(), 5)
 end
 
---- out-of-range and invalid configs are refused at init
+--- invalid configs are refused (values are converted by LuaJIT
+--- without range checks)
 function TestRamp:TestBadConfig()
-   -- start out of range for uint8_t
-   assert_true(not pcall(make, { type = "uint8_t", start = -1, slope = 1 },
-			 "TestRampBadStart"))
    -- slope missing
    assert_true(not pcall(make, { type = "double" }, "TestRampNoSlope"))
    -- unsupported type

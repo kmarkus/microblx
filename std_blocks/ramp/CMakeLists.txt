@@ -52,7 +52,7 @@ target_include_directories(ramp
 )
 
 target_compile_options(ramp PRIVATE ${UBX_MOD_CFLAGS} )
-target_link_libraries(ramp PRIVATE ubx m)
+target_link_libraries(ramp PRIVATE ubx)
 
 set_target_properties(ramp
   PROPERTIES

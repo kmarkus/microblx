@@ -10,15 +10,10 @@
  * internally, the ramp accumulates in the *native* type: a per-type
  * increment kernel is selected once at init, so integer ramps count
  * exactly over the full type range (no 2^53 double mantissa limit) and
- * unsigned ramps wrap as expected. The 'start'/'slope' configs are
- * given as double and converted (range-checked, rounded to nearest)
- * once at init.
- *
- * This block supersedes the compile-time typed ubx/ramp_<type>
- * variants, which are kept for backwards compatibility.
+ * unsigned ramps wrap as expected. The 'start'/'slope' configs have
+ * the native type too: preinit adds them, after 'type' is known.
  */
 
-#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,10 +30,11 @@ char rampg_meta[] =
 	"{ doc='runtime-typed ramp generator', realtime=true }";
 
 ubx_proto_config_t rampg_config[] = {
-	{ .name = TYPE, .type_name = "char", .min = 1, .doc = "ubx numeric type name of the output" },
-	{ .name = DATA_LEN, .type_name = "long", .min = 0, .max = 1, .doc = "vector length (default 1)" },
-	{ .name = START, .type_name = "double", .doc = "start value: scalar or per-element [data_len] (default 0)" },
-	{ .name = SLOPE, .type_name = "double", .min = 1, .doc = "increment per step: scalar or per-element [data_len]" },
+	{ .name = TYPE, .type_name = "char", .min = 1, .attrs = CONFIG_ATTR_PREINIT,
+	  .doc = "ubx numeric type name of the output and of start/slope" },
+	{ .name = DATA_LEN, .type_name = "long", .min = 0, .max = 1, .attrs = CONFIG_ATTR_PREINIT,
+	  .doc = "vector length (default 1)" },
+	/* start and slope are added by preinit with the configured type */
 	/* if a 'loglevel' config is defined, it will automatically
 	 * affect the block loglevel. If unset the global loglevel is used */
 	{ .name = "loglevel", .type_name = "int" },
@@ -51,14 +47,8 @@ ubx_proto_port_t rampg_ports[] = {
 	{ 0 },
 };
 
-/*
- * per-type kernels: 'add' increments natively (selected once at init,
- * used every step), 'from_double' converts a config value at init
- * (range-checked, integers rounded to nearest; returns -1 if out of
- * range).
- */
+/* per-type increment kernels, selected once at init */
 typedef void (*add_fn)(void *cur, const void *slope, long n);
-typedef int (*from_double_fn)(void *dst, double v);
 
 #define DEF_RAMP_ADD(SFX, T)						\
 	static void add_##SFX(void *cur, const void *slope, long n)	\
@@ -70,53 +60,34 @@ typedef int (*from_double_fn)(void *dst, double v);
 			c[i] += s[i];					\
 	}
 
-#define DEF_RAMP_INT(SFX, T, MIN, MAX)					\
-	DEF_RAMP_ADD(SFX, T)						\
-	static int fd_##SFX(void *dst, double v)			\
-	{								\
-		if (!(v >= (double)(MIN) && v <= (double)(MAX)))	\
-			return -1;					\
-		*(T *)dst = (T)nearbyint(v);				\
-		return 0;						\
-	}
-
-#define DEF_RAMP_FLT(SFX, T)						\
-	DEF_RAMP_ADD(SFX, T)						\
-	static int fd_##SFX(void *dst, double v)			\
-	{								\
-		*(T *)dst = (T)v;					\
-		return 0;						\
-	}
-
-DEF_RAMP_INT(i8,  int8_t,   INT8_MIN,  INT8_MAX)
-DEF_RAMP_INT(i16, int16_t,  INT16_MIN, INT16_MAX)
-DEF_RAMP_INT(i32, int32_t,  INT32_MIN, INT32_MAX)
-DEF_RAMP_INT(i64, int64_t,  INT64_MIN, INT64_MAX)
-DEF_RAMP_INT(u8,  uint8_t,  0,         UINT8_MAX)
-DEF_RAMP_INT(u16, uint16_t, 0,         UINT16_MAX)
-DEF_RAMP_INT(u32, uint32_t, 0,         UINT32_MAX)
-DEF_RAMP_INT(u64, uint64_t, 0,         UINT64_MAX)
-DEF_RAMP_FLT(flt, float)
-DEF_RAMP_FLT(dbl, double)
+DEF_RAMP_ADD(i8,  int8_t)
+DEF_RAMP_ADD(i16, int16_t)
+DEF_RAMP_ADD(i32, int32_t)
+DEF_RAMP_ADD(i64, int64_t)
+DEF_RAMP_ADD(u8,  uint8_t)
+DEF_RAMP_ADD(u16, uint16_t)
+DEF_RAMP_ADD(u32, uint32_t)
+DEF_RAMP_ADD(u64, uint64_t)
+DEF_RAMP_ADD(flt, float)
+DEF_RAMP_ADD(dbl, double)
 
 struct numtype {
 	const char *name;
 	long size;
 	add_fn add;
-	from_double_fn from_double;
 };
 
 static const struct numtype numtypes[] = {
-	{ "int8_t",	sizeof(int8_t),		add_i8,		fd_i8 },
-	{ "int16_t",	sizeof(int16_t),	add_i16,	fd_i16 },
-	{ "int32_t",	sizeof(int32_t),	add_i32,	fd_i32 },
-	{ "int64_t",	sizeof(int64_t),	add_i64,	fd_i64 },
-	{ "uint8_t",	sizeof(uint8_t),	add_u8,		fd_u8 },
-	{ "uint16_t",	sizeof(uint16_t),	add_u16,	fd_u16 },
-	{ "uint32_t",	sizeof(uint32_t),	add_u32,	fd_u32 },
-	{ "uint64_t",	sizeof(uint64_t),	add_u64,	fd_u64 },
-	{ "float",	sizeof(float),		add_flt,	fd_flt },
-	{ "double",	sizeof(double),		add_dbl,	fd_dbl },
+	{ "int8_t",	sizeof(int8_t),		add_i8 },
+	{ "int16_t",	sizeof(int16_t),	add_i16 },
+	{ "int32_t",	sizeof(int32_t),	add_i32 },
+	{ "int64_t",	sizeof(int64_t),	add_i64 },
+	{ "uint8_t",	sizeof(uint8_t),	add_u8 },
+	{ "uint16_t",	sizeof(uint16_t),	add_u16 },
+	{ "uint32_t",	sizeof(uint32_t),	add_u32 },
+	{ "uint64_t",	sizeof(uint64_t),	add_u64 },
+	{ "float",	sizeof(float),		add_flt },
+	{ "double",	sizeof(double),		add_dbl },
 };
 
 static const struct numtype *lookup_conv(const char *name)
@@ -138,16 +109,85 @@ struct rampg_info {
 	ubx_port_t *p_out;
 };
 
+/* look up and check the type and data_len configs */
+static int get_type(ubx_block_t *b, const struct numtype **nt, const char **type_name,
+		    long *data_len)
+{
+	long len;
+	const long *dl;
+
+	len = cfg_getptr_char(b, TYPE, type_name);
+	assert(len >= 0);
+
+	if (len == 0) {
+		ubx_err(b, "EINVALID_CONFIG: mandatory config %s unset", TYPE);
+		return -1;
+	}
+
+	if (ubx_type_get(b->nd, *type_name) == NULL) {
+		ubx_err(b, "unknown type %s", *type_name);
+		return -1;
+	}
+
+	*nt = lookup_conv(*type_name);
+
+	if (*nt == NULL) {
+		ubx_err(b, "EINVALID_CONFIG: %s '%s' is not a supported numeric type",
+			TYPE, *type_name);
+		return -1;
+	}
+
+	len = cfg_getptr_long(b, DATA_LEN, &dl);
+	assert(len >= 0);
+	*data_len = (len > 0) ? *dl : 1;
+
+	if (*data_len < 1) {
+		ubx_err(b, "EINVALID_CONFIG: %s must be >= 1", DATA_LEN);
+		return -1;
+	}
+
+	return 0;
+}
+
+/* add start and slope with the configured type */
+static int rampg_preinit(ubx_block_t *b)
+{
+	int ret;
+	long data_len;
+	const char *type_name;
+	const struct numtype *nt;
+
+	if (get_type(b, &nt, &type_name, &data_len) != 0)
+		return EINVALID_CONFIG;
+
+	ret = ubx_config_add(b, START, "start value: scalar or per-element [data_len] (default 0)",
+			     type_name);
+	if (ret != 0)
+		return ret;
+
+	ret = ubx_config_add(b, SLOPE, "increment per step: scalar or per-element [data_len]",
+			     type_name);
+	if (ret != 0)
+		ubx_config_rm(b, START);
+
+	return ret;
+}
+
+static void rampg_preexit(ubx_block_t *b)
+{
+	ubx_config_rm(b, START);
+	ubx_config_rm(b, SLOPE);
+}
+
 /*
- * load a double config into the native array dst[data_len],
- * broadcasting a scalar. Unset is OK (dst stays zeroed) unless
- * mandatory.
+ * copy a native config into dst[data_len], broadcasting a scalar.
+ * Unset is OK (dst stays zeroed) unless mandatory.
  */
 static int load_cfg(ubx_block_t *b, const char *name, const struct numtype *nt,
 		    void *dst, long data_len, int mandatory)
 {
-	const double *v;
-	long len = cfg_getptr_double(b, name, &v);
+	void *v;
+	long len = ubx_config_get_data_ptr(b, name, &v);
 
 	assert(len >= 0);
 
@@ -165,15 +205,13 @@ static int load_cfg(ubx_block_t *b, const char *name, const struct numtype *nt,
 		return -1;
 	}
 
-	for (long i = 0; i < data_len; i++) {
-		double x = (len == 1) ? v[0] : v[i];
-
-		if (nt->from_double((char *)dst + i * nt->size, x) != 0) {
-			ubx_err(b, "EINVALID_CONFIG: %s[%ld] (%g) out of range for %s",
-				name, i, x, nt->name);
-			return -1;
-		}
+	if (len == data_len) {
+		memcpy(dst, v, data_len * nt->size);
+		return 0;
 	}
+
+	for (long i = 0; i < data_len; i++)
+		memcpy((char *)dst + i * nt->size, v, nt->size);
 
 	return 0;
 }
@@ -181,9 +219,7 @@ static int load_cfg(ubx_block_t *b, const char *name, const struct numtype *nt,
 static int rampg_init(ubx_block_t *b)
 {
 	int ret = EINVALID_CONFIG;
-	long len;
 	const char *type_name;
-	const long *data_len;
 	struct rampg_info *inf;
 
 	b->private_data = calloc(1, sizeof(struct rampg_info));
@@ -195,37 +231,8 @@ static int rampg_init(ubx_block_t *b)
 
 	inf = (struct rampg_info *)b->private_data;
 
-	/* type */
-	len = cfg_getptr_char(b, TYPE, &type_name);
-	assert(len >= 0);
-
-	if (len == 0) {
-		ubx_err(b, "EINVALID_CONFIG: mandatory config %s unset", TYPE);
+	if (get_type(b, &inf->nt, &type_name, &inf->data_len) != 0)
 		goto out_free;
-	}
-
-	if (ubx_type_get(b->nd, type_name) == NULL) {
-		ubx_err(b, "unknown type %s", type_name);
-		goto out_free;
-	}
-
-	inf->nt = lookup_conv(type_name);
-
-	if (inf->nt == NULL) {
-		ubx_err(b, "EINVALID_CONFIG: %s '%s' is not a supported numeric type",
-			TYPE, type_name);
-		goto out_free;
-	}
-
-	/* data_len, default 1 */
-	len = cfg_getptr_long(b, DATA_LEN, &data_len);
-	assert(len >= 0);
-	inf->data_len = (len > 0) ? *data_len : 1;
-
-	if (inf->data_len < 1) {
-		ubx_err(b, "EINVALID_CONFIG: %s must be >= 1", DATA_LEN);
-		goto out_free;
-	}
 
 	/* allocate the native start/slope arrays and the write buffer */
 	inf->start = calloc(inf->data_len, inf->nt->size);
@@ -238,7 +245,6 @@ static int rampg_init(ubx_block_t *b)
 		goto out_buffers;
 	}
 
-	/* convert the double configs to the native type (init-time only) */
 	if (load_cfg(b, START, inf->nt, inf->start, inf->data_len, 0) != 0 ||
 	    load_cfg(b, SLOPE, inf->nt, inf->slope, inf->data_len, 1) != 0)
 		goto out_buffers;
@@ -301,6 +307,8 @@ ubx_proto_block_t rampg_comp = {
 	.configs = rampg_config,
 	.ports = rampg_ports,
 
+	.preinit = rampg_preinit,
+	.preexit = rampg_preexit,
 	.init = rampg_init,
 	.start = rampg_start,
 	.step = rampg_step,

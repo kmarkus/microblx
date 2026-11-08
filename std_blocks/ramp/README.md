@@ -5,28 +5,31 @@ then incremented by `slope`. The numeric type is configured at runtime
 via the `type` config; array-valued signals are supported via
 `data_len` (an independent ramp per element).
 
-The ramp accumulates in the **native type**: a per-type increment
-kernel is selected once at init. Integer ramps therefore count exactly
-over the full type range (no 2^53 double mantissa limit — e.g. a
-`uint64_t` tick counter) and unsigned ramps wrap as expected. The
-`start`/`slope` configs are given as `double` and are range-checked and
-converted (integers rounded to nearest) once at init.
+The ramp accumulates in the **native type**, and `start`/`slope` have
+that type too: integer ramps count exactly over the full type range
+(e.g. a `uint64_t` tick counter) and unsigned ramps wrap as expected.
 
 ## Configuration
 
-| config     | type     | description                                                   |
-|------------|----------|---------------------------------------------------------------|
-| `type`     | `char`   | ubx numeric type name of the output (mandatory)               |
-| `data_len` | `long`   | vector length (default 1)                                     |
-| `start`    | `double` | start value: scalar (broadcast) or per-element `[data_len]` (default 0) |
-| `slope`    | `double` | increment per step: scalar (broadcast) or per-element `[data_len]` (mandatory) |
-| `loglevel` | `int`    | optional log level                                            |
+| config     | type     | description                                                         |
+|------------|----------|---------------------------------------------------------------------|
+| `type`     | `char`   | ubx numeric type name of the output (mandatory, preinit)            |
+| `data_len` | `long`   | vector length (default 1, preinit)                                  |
+| `start`    | `<type>` | start value: scalar (broadcast) or per-element `[data_len]` (def 0) |
+| `slope`    | `<type>` | increment per step: scalar (broadcast) or `[data_len]` (mandatory)  |
+| `loglevel` | `int`    | optional log level                                                  |
 
 Supported `type` values: `int8_t`..`int64_t`, `uint8_t`..`uint64_t`,
-`float` and `double`. Config values out of range for the chosen type
-are refused at init. Note that `double` configs cannot express integer
-values beyond 2^53 exactly (the ramp itself counts exactly from
-wherever it starts).
+`float` and `double`.
+
+`start` and `slope` are added by the preinit hook, once `type` is
+known. `ubx-launch`, `ubx.block_create` and `ubx.do_configure` handle
+this; with the C API, call `ubx_block_preinit()` before setting them.
+`type` and `data_len` can't be changed after preinit.
+
+Values are converted to the type by LuaJIT, without range checks. A
+Lua number is a double, so use a `ULL`/`LL` literal for exact 64-bit
+values beyond 2^53, e.g. `start = 1700000000000000001ULL`.
 
 ## Ports
 
