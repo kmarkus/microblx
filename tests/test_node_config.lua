@@ -44,7 +44,7 @@ local function setup()
 end
 
 local function teardown()
-   sys1:pulldown(nd)
+   if nd then sys1:pulldown(nd) end
    nd=nil
 end
 
