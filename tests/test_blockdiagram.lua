@@ -295,6 +295,32 @@ function TestBlockdiagram:test_load_str_json()
    assert_equals(b:get_block_state(), "inactive")
 end
 
+--- the deprecated 'type' config is applied as 'type_name'
+function TestBlockdiagram:test_deprecated_type()
+   local sys = bd.system {
+      imports = { "stdtypes", "ramp" },
+      blocks = { { name = "r1", type = "ubx/ramp" } },
+      configurations = { { name = "r1", config = { type="int32_t", slope=1 } } },
+   }
+   _nd = sys:launch{ nodename="test_deprecated_type", nostart=true }
+   local b = ubx.block_get(_nd, "r1")
+   assert_equals(b:c("type_name"):tolua(), "int32_t")
+   assert_equals(b:get_block_state(), "inactive")
+end
+
+--- setting both 'type' and 'type_name' is an error
+function TestBlockdiagram:test_deprecated_type_both()
+   local sys = bd.system {
+      imports = { "stdtypes", "ramp" },
+      blocks = { { name = "r1", type = "ubx/ramp" } },
+      configurations = {
+	 { name = "r1", config = { type="int32_t", type_name="double", slope=1 } } },
+   }
+   luaunit.assert_error_msg_contains("both 'type' and 'type_name'", function()
+      sys:launch{ nodename="test_deprecated_type_both", nostart=true }
+   end)
+end
+
 --- a launch error message containing '%' must not be used as format
 --- string when logged, which would hide the error
 function TestBlockdiagram:test_launch_error_with_percent()

@@ -1032,6 +1032,20 @@ end
 -- @param nonexist table to remember nonexisting configurations
 local function apply_config(cfg, b, NC, configured, nonexist)
 
+   -- deprecated: the 'type' config of the blocks with a configurable
+   -- data type (ramp, rand, ewma, ...) is now 'type_name'. Shortcut:
+   -- only models are fixed up, not block_create etc. Remove after 1.0.
+   if cfg.config.type ~= nil and ubx.block_config_get(b, "type") == nil and
+      ubx.block_config_get(b, "type_name") ~= nil then
+      if cfg.config.type_name ~= nil then
+	 errorf("block %s [%s]: both 'type' and 'type_name' configured",
+		cfg._tgt._fqn, cfg._tgt.type)
+      end
+      warn("block %s [%s]: config 'type' is deprecated, use 'type_name'",
+	   cfg._tgt._fqn, cfg._tgt.type)
+      cfg.config.type_name, cfg.config.type = cfg.config.type, nil
+   end
+
    for name,val in pairs(cfg.config) do
       local cfgfqn = cfg._tgt._fqn..'.'..name
 
