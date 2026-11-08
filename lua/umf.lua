@@ -67,7 +67,9 @@ function Object:init() return end
 
 --- Return the uoo type ('class' or 'instance')
 function uoo_type(x)
-   if not x then return false end
+   -- uoo objects are tables; indexing other values (e.g. 64-bit cdata
+   -- such as 1ULL in a model) can raise an error
+   if type(x) ~= 'table' then return false end
    local mt = getmetatable(x)
    if mt and mt.__index==x.static then return 'class'
    elseif mt and mt.class then return 'instance' end
