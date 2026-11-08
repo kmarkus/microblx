@@ -3,7 +3,7 @@
  *
  * Each step a fresh random sample (a vector for 'data_len' > 1) is
  * written to 'out'. The numeric type is configurable at runtime via
- * the 'type' config: floating-point types are uniform in [0, 1),
+ * the 'type_name' config: floating-point types are uniform in [0, 1),
  * integer types are uniform over the full type range.
  *
  * The PRNG state is *per instance* (erand48/jrand48 family): instances
@@ -18,7 +18,7 @@
 
 #include "ubx.h"
 
-#define TYPE		"type"
+#define TYPE		"type_name"
 #define DATA_LEN	"data_len"
 #define SEED		"seed"
 #define POUT		"out"

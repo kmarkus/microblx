@@ -63,7 +63,7 @@ end
 
 --- doubles are uniform in [0,1)
 function TestRand:TestDoubleRange()
-   local r = make({ { type = "double", seed = 42 } }, "TestRandRange")[1]
+   local r = make({ { type_name = "double", seed = 42 } }, "TestRandRange")[1]
 
    for _ = 1, 100 do
       local v = sample(r)
@@ -74,9 +74,9 @@ end
 --- same seed => same sequence; different seed => different sequence
 function TestRand:TestReproducible()
    local rs = make({
-	 { type = "double", seed = 42 },
-	 { type = "double", seed = 42 },
-	 { type = "double", seed = 43 },
+	 { type_name = "double", seed = 42 },
+	 { type_name = "double", seed = 42 },
+	 { type_name = "double", seed = 43 },
    }, "TestRandRepro")
 
    local differs = false
@@ -92,8 +92,8 @@ end
 --- (with the global-state legacy variants r1 and r2 would interleave)
 function TestRand:TestInstanceIndependence()
    local rs = make({
-	 { type = "double", seed = 7 },
-	 { type = "double", seed = 7 },
+	 { type_name = "double", seed = 7 },
+	 { type_name = "double", seed = 7 },
    }, "TestRandIndep")
 
    -- advance r1 a few extra times in between; r2 must be unaffected
@@ -105,7 +105,7 @@ end
 
 --- seeding matches the legacy srand48/drand48 sequence
 function TestRand:TestLegacyCompatSequence()
-   local r = make({ { type = "double", seed = 42 } }, "TestRandLegacy")[1]
+   local r = make({ { type_name = "double", seed = 42 } }, "TestRandLegacy")[1]
 
    -- reference: srand48(42); drand48() x 3, computed with glibc
    ffi.cdef[[ void srand48(long seedval); double drand48(void); ]]
@@ -119,7 +119,7 @@ end
 
 --- data_len > 1 yields a vector of independent values
 function TestRand:TestVector()
-   local r = make({ { type = "uint32_t", data_len = 4, seed = 1 } },
+   local r = make({ { type_name = "uint32_t", data_len = 4, seed = 1 } },
 		  "TestRandVec")[1]
 
    local v = sample(r)
@@ -131,7 +131,7 @@ end
 
 --- integer types produce values; int8 stays in range
 function TestRand:TestInt8()
-   local r = make({ { type = "int8_t", seed = 5 } }, "TestRandI8")[1]
+   local r = make({ { type_name = "int8_t", seed = 5 } }, "TestRandI8")[1]
 
    for _ = 1, 50 do
       local v = sample(r)
@@ -141,7 +141,7 @@ end
 
 --- an unsupported type is refused at init
 function TestRand:TestBadType()
-   assert_true(not pcall(make, { { type = "char" } }, "TestRandBadType"))
+   assert_true(not pcall(make, { { type_name = "char" } }, "TestRandBadType"))
 end
 
 if not _RUNNER then os.exit(lu.LuaUnit.run()) end

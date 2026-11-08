@@ -37,7 +37,7 @@ return bd.system
 
    configurations = {
       { name="pid_1", config = { Kp=Kp, Ki=Ki, Kd=Kd, data_len="&data_len" } },
-      { name="ramp_des", config = { type="double", data_len="&data_len", slope=slope_des, start=start_des } },
+      { name="ramp_des", config = { type_name="double", data_len="&data_len", slope=slope_des, start=start_des } },
       { name="trig_1", config = {
 	   tstats_mode = 0,
 	   chain0 = {

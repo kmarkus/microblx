@@ -8,7 +8,7 @@
  * assign each a sub-vector length instead, so demux doubles as a
  * slice/splice block: partition the input and connect only the
  * sub-vectors of interest. Both blocks work with any registered type
- * (data is copied bytewise), configured at runtime via the 'type'
+ * (data is copied bytewise), configured at runtime via the 'type_name'
  * config.
  *
  * Typical use is composing a vector signal for array-valued blocks
@@ -23,7 +23,7 @@
 
 #include "ubx.h"
 
-#define TYPE		"type"
+#define TYPE		"type_name"
 #define NIN		"nin"
 #define NOUT		"nout"
 #define IN_LEN		"in_len"
@@ -52,7 +52,7 @@ static const char *scalar_pname(char *buf, size_t size, const char *prefix, long
 }
 
 /*
- * common init: parse 'type', the port-count config 'cfg_n' and the
+ * common init: parse 'type_name', the port-count config 'cfg_n' and the
  * per-port sub-vector length config 'cfg_len' (unset: all 1; scalar:
  * broadcast; array [n]: individual), compute the offsets and allocate
  * state and the vector buffer. Returns 0 on success.

@@ -420,8 +420,8 @@ Messages are truncated at `UBX_LOG_MSG_MAXLEN` (see
 
 - use `long` for type related lengths and sizes: large enough, and
   errors can be returned negative (e.g. `cfg_getptr_uint32`).
-- blocks with configurable data type and length use the canonical
-  configs `type_name` and `data_len`.
+- cblocks and iblocks with configurable data type and length use the
+  canonical configs `type_name` and `data_len`.
 - cache port pointers in `start` (or `init`): simpler, and saves a
   hash lookup per `step`.
 - add `-fvisibility=hidden` to `CFLAGS` instead of making all

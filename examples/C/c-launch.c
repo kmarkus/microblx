@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 		goto out;
 
 	/* set the mandatory 'type' config to "double" */
-	if((d = ubx_config_get_data(rand1, "type")) == NULL)
+	if((d = ubx_config_get_data(rand1, "type_name")) == NULL)
 		goto out;
 
 	if(ubx_data_resize(d, strlen("double") + 1) != 0)

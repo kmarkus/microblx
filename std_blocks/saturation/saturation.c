@@ -3,7 +3,7 @@
  *
  * Clamps the values received on the 'in' port element-wise between
  * 'lower_limits' and 'upper_limits' and emits the result on the 'out'
- * port. The numeric type is configurable at runtime via the 'type'
+ * port. The numeric type is configurable at runtime via the 'type_name'
  * config; input and output share that type, so the block is a drop-in
  * signal filter. With 'data_len' > 1 the ports are vectors; the limits
  * are then either per-element (length data_len) or scalar (length 1,
@@ -16,7 +16,7 @@
 
 #include "ubx.h"
 
-#define TYPE		"type"
+#define TYPE		"type_name"
 #define DATA_LEN	"data_len"
 #define LOWER_LIMITS	"lower_limits"
 #define UPPER_LIMITS	"upper_limits"

@@ -9,7 +9,7 @@ return bd.system {
    },
 
    configurations = {
-      { name="ramp", config = { type="double", slope=1 } },
+      { name="ramp", config = { type_name="double", slope=1 } },
       { name="scale", config = { scale = { gain=2, offset=100 } } },
       { name="trig", config = { period = { sec=0, usec=100000 },
 				chain0 = { { b="#ramp" }, { b="#scale" } } } },

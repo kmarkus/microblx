@@ -657,7 +657,7 @@ function TestPack:TestThreads()
 	 { name = "trigr", type = "ubx/ptrig" },
       },
       configurations = {
-	 { name = "ramp", config = { type = "uint64_t", data_len = N, start = 1, slope = 1 } },
+	 { name = "ramp", config = { type_name = "uint64_t", data_len = N, start = 1, slope = 1 } },
 	 { name = "pk", config = { packid = "pk", ports = { { id = "v", type = "uint64_t", len = N } }, buffer_len = 4 } },
 	 { name = "up", config = { packid = "pk" } },
 	 { name = "chk", config = { lua_str = string.format(checker, N) } },

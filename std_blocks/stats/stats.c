@@ -3,7 +3,7 @@
  *
  * Accumulates min/max/mean/stddev/cnt over the values received on the
  * 'in' port and emits them as 'struct ubx_stat' on the 'stats' port.
- * The numeric input type is configurable at runtime via the 'type'
+ * The numeric input type is configurable at runtime via the 'type_name'
  * config. With 'data_len' > 1 the 'in' port is a vector and statistics
  * are kept per element (channel): index i of the output describes the
  * i-th vector element across all steps. Mean and (population) standard
@@ -19,7 +19,7 @@
 #include "types/ubx_stat.h"
 #include "types/ubx_stat.h.hexarr"
 
-#define TYPE			"type"
+#define TYPE			"type_name"
 #define DATA_LEN		"data_len"
 #define STATS_OUTPUT_RATE	"stats_output_rate"
 #define SKIP_FIRST		"skip_first"

@@ -101,7 +101,7 @@ See [luablock](../std_blocks/luablock/README.md).
 
 ```lua
 configurations = {
-   { name="ramp1", config = { type="double", data_len=2, slope={ 1, 2 } } },
+   { name="ramp1", config = { type_name="double", data_len=2, slope={ 1, 2 } } },
 }
 ```
 

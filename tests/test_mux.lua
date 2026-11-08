@@ -38,7 +38,7 @@ end
 
 --- mux: three scalar inputs are combined into one vector output
 function TestMux:TestMuxBasic()
-   local b = launch("ubx/mux", { type = "double", nin = 3 }, "TestMuxBasic")
+   local b = launch("ubx/mux", { type_name = "double", nin = 3 }, "TestMuxBasic")
 
    local p_in = {}
    for i = 0, 2 do
@@ -59,7 +59,7 @@ end
 
 --- mux: a stale input keeps its last value; all-stale steps emit nothing
 function TestMux:TestMuxStaleInput()
-   local b = launch("ubx/mux", { type = "double", nin = 2 }, "TestMuxStale")
+   local b = launch("ubx/mux", { type_name = "double", nin = 2 }, "TestMuxStale")
 
    local p0 = ubx.port_clone_conn(b, "in0", 1, nil, 7, 0)
    local p1 = ubx.port_clone_conn(b, "in1", 1, nil, 7, 0)
@@ -86,7 +86,7 @@ end
 
 --- demux: a vector input is split onto the scalar output ports
 function TestMux:TestDemuxBasic()
-   local b = launch("ubx/demux", { type = "int32_t", nout = 3 }, "TestDemuxBasic")
+   local b = launch("ubx/demux", { type_name = "int32_t", nout = 3 }, "TestDemuxBasic")
 
    local p_in = ubx.port_clone_conn(b, "in", 1, nil, 7, 0)
    local p_out = {}
@@ -108,7 +108,7 @@ end
 
 --- demux: NODATA produces no outputs
 function TestMux:TestDemuxNoData()
-   local b = launch("ubx/demux", { type = "double", nout = 2 }, "TestDemuxNoData")
+   local b = launch("ubx/demux", { type_name = "double", nout = 2 }, "TestDemuxNoData")
 
    local p_out = ubx.port_clone_conn(b, "out0", nil, 1, 7, 0)
    ubx.block_tostate(b, 'active')
@@ -127,8 +127,8 @@ function TestMux:TestMuxDemuxRoundtrip()
 	 { name = "demux1", type = "ubx/demux" },
       },
       configurations = {
-	 { name = "mux1", config = { type = "double", nin = 2 } },
-	 { name = "demux1", config = { type = "double", nout = 2 } },
+	 { name = "mux1", config = { type_name = "double", nin = 2 } },
+	 { name = "demux1", config = { type_name = "double", nout = 2 } },
       },
       connections = {
 	 { src = "mux1.out", tgt = "demux1.in" },
@@ -159,7 +159,7 @@ end
 
 --- mux with in_len: sub-vectors are concatenated in port order
 function TestMux:TestMuxSubvectors()
-   local b = launch("ubx/mux", { type = "double", nin = 2, in_len = { 2, 3 } },
+   local b = launch("ubx/mux", { type_name = "double", nin = 2, in_len = { 2, 3 } },
 		    "TestMuxSubvec")
 
    local p0 = ubx.port_clone_conn(b, "in0", 1, nil, 7, 0)
@@ -179,7 +179,7 @@ end
 --- demux with out_len: slice a sub-vector out of a larger vector
 --- (only out0 is read; out1 stays unconnected)
 function TestMux:TestDemuxSlice()
-   local b = launch("ubx/demux", { type = "double", nout = 2, out_len = { 3, 3 } },
+   local b = launch("ubx/demux", { type_name = "double", nout = 2, out_len = { 3, 3 } },
 		    "TestDemuxSlice")
 
    local p_in = ubx.port_clone_conn(b, "in", 1, nil, 7, 0)
@@ -197,7 +197,7 @@ end
 
 --- out_len broadcast: nout=3, out_len=2 partitions a len-6 vector
 function TestMux:TestDemuxLenBroadcast()
-   local b = launch("ubx/demux", { type = "int32_t", nout = 3, out_len = 2 },
+   local b = launch("ubx/demux", { type_name = "int32_t", nout = 3, out_len = 2 },
 		    "TestDemuxBcast")
 
    local p_in = ubx.port_clone_conn(b, "in", 1, nil, 7, 0)
@@ -220,17 +220,17 @@ end
 
 --- invalid configs are refused at init
 function TestMux:TestBadConfig()
-   assert_true(not pcall(launch, "ubx/mux", { type = "no_such_type", nin = 2 },
+   assert_true(not pcall(launch, "ubx/mux", { type_name = "no_such_type", nin = 2 },
 			 "TestMuxBadType"))
-   assert_true(not pcall(launch, "ubx/mux", { type = "double", nin = 0 },
+   assert_true(not pcall(launch, "ubx/mux", { type_name = "double", nin = 0 },
 			 "TestMuxBadN"))
    -- in_len array length must be 1 or nin
    assert_true(not pcall(launch, "ubx/mux",
-			 { type = "double", nin = 3, in_len = { 1, 2 } },
+			 { type_name = "double", nin = 3, in_len = { 1, 2 } },
 			 "TestMuxBadLenLen"))
    -- sub-vector lengths must be >= 1
    assert_true(not pcall(launch, "ubx/demux",
-			 { type = "double", nout = 2, out_len = { 1, 0 } },
+			 { type_name = "double", nout = 2, out_len = { 1, 0 } },
 			 "TestDemuxBadLen"))
 end
 

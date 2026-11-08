@@ -27,9 +27,9 @@ local sys1 = bd.system {
    },
 
    configurations = {
-      { name="ramp1", config = { type="uint64_t", start="&ramp_start", slope="&ramp_slope" } },
-      { name="ramp2", config = { type="uint64_t", start="&ramp_start", slope="&ramp_slope" } },
-      { name="ramp3", config = { type="uint64_t", start="&ramp_start", slope="&ramp_slope" } },
+      { name="ramp1", config = { type_name="uint64_t", start="&ramp_start", slope="&ramp_slope" } },
+      { name="ramp2", config = { type_name="uint64_t", start="&ramp_start", slope="&ramp_slope" } },
+      { name="ramp3", config = { type_name="uint64_t", start="&ramp_start", slope="&ramp_slope" } },
 
       { name="rand1", config = { min_max_config="&rand_conf" } },
       { name="rand2", config = { min_max_config="&rand_conf" } },

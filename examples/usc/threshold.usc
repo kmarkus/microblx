@@ -75,7 +75,7 @@ return bd.system
       },
       {
 	 name="ramp",
-	 config = { type="double", slope=0.05 }
+	 config = { type_name="double", slope=0.05 }
       },
       {
 	 name="sin",

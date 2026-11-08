@@ -6,31 +6,31 @@ the `out` port every step. The aggregate is selected by the `mode`
 config: **mean** (simple moving average, the default), **median**,
 **min** or **max**.
 
-The numeric type is configured at runtime via the `type` config; input
+The numeric type is configured at runtime via the `type_name` config; input
 and output share that type, so the block is a drop-in signal filter
 (compare `ubx/saturation`). The filter is computed internally in
 `double`; for integer output types the result is rounded to nearest.
 
 ## Configuration
 
-| config     | type   | description                                       |
-|------------|--------|---------------------------------------------------|
-| `type`     | `char` | ubx numeric type name of the signal (mandatory)   |
-| `window`   | `long` | number of samples in the window (≥ 1, mandatory)  |
-| `data_len` | `long` | vector length; filtered per element (default 1)   |
-| `mode`     | `char` | `mean` (default), `median`, `min` or `max`        |
-| `loglevel` | `int`  | optional log level                                |
+| config      | type   | description                                      |
+|-------------|--------|--------------------------------------------------|
+| `type_name` | `char` | ubx numeric type name of the signal (mandatory)  |
+| `window`    | `long` | number of samples in the window (≥ 1, mandatory) |
+| `data_len`  | `long` | vector length; filtered per element (default 1)  |
+| `mode`      | `char` | `mean` (default), `median`, `min` or `max`       |
+| `loglevel`  | `int`  | optional log level                               |
 
 With `data_len` > 1 the `in`/`out` ports are vectors and an independent
 filter is maintained per element (channel): each index is filtered as
 its own scalar signal.
 
-Supported `type` values are `int32_t`, `uint32_t`, `int64_t`,
+Supported `type_name` values are `int32_t`, `uint32_t`, `int64_t`,
 `uint64_t`, `float` and `double`.
 
 ## Ports
 
-Both ports are created at runtime with the configured `type`.
+Both ports are created at runtime with the configured `type_name`.
 
 | port  | direction | type     | description                        |
 |-------|-----------|----------|------------------------------------|

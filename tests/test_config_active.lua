@@ -23,7 +23,7 @@ function TestConfigActive:teardown()
 end
 
 function TestConfigActive:TestSetConfig()
-   local b = ubx.block_create(nd, "ubx/ramp", "ramp", { type = "double", slope = 1 })
+   local b = ubx.block_create(nd, "ubx/ramp", "ramp", { type_name = "double", slope = 1 })
 
    -- preinit, inactive: ok
    ubx.set_config(b, "slope", 2)
@@ -45,7 +45,7 @@ function TestConfigActive:TestSetConfig()
 end
 
 function TestConfigActive:TestConfigAssign()
-   local b = ubx.block_create(nd, "ubx/ramp", "ramp", { type = "double", slope = 1 })
+   local b = ubx.block_create(nd, "ubx/ramp", "ramp", { type_name = "double", slope = 1 })
    local d = ubx.data_alloc(nd, "double")
    local c = ubx.config_get(b, "slope")
 

@@ -10,19 +10,19 @@ step and shows no startup transient toward zero. Compared with
 `ubx/movavg` it needs O(1) state per channel and gives an infinite,
 exponentially decaying memory instead of a hard cutoff.
 
-The numeric type is configured at runtime via the `type` config; input
+The numeric type is configured at runtime via the `type_name` config; input
 and output share that type, so the block is a drop-in signal filter.
 Filtering is performed internally in `double`; for integer output types
 the result is rounded to nearest.
 
 ## Configuration
 
-| config     | type     | description                                      |
-|------------|----------|--------------------------------------------------|
-| `type`     | `char`   | ubx numeric type name of the signal (mandatory)  |
-| `alpha`    | `double` | smoothing factor, 0 < alpha <= 1 (mandatory)     |
-| `data_len` | `long`   | vector length; averaged per element (default 1)  |
-| `loglevel` | `int`    | optional log level                               |
+| config      | type     | description                                     |
+|-------------|----------|-------------------------------------------------|
+| `type_name` | `char`   | ubx numeric type name of the signal (mandatory) |
+| `alpha`     | `double` | smoothing factor, 0 < alpha <= 1 (mandatory)    |
+| `data_len`  | `long`   | vector length; averaged per element (default 1) |
+| `loglevel`  | `int`    | optional log level                              |
 
 Smaller `alpha` smooths more; `alpha = 1` is a pass-through. As a rule
 of thumb an EWMA with `alpha = 2/(N+1)` has a comparable lag to a
@@ -31,12 +31,12 @@ moving average of window N.
 With `data_len` > 1 the ports are vectors and an independent average is
 maintained per element (channel).
 
-Supported `type` values are `int32_t`, `uint32_t`, `int64_t`,
+Supported `type_name` values are `int32_t`, `uint32_t`, `int64_t`,
 `uint64_t`, `float` and `double`.
 
 ## Ports
 
-Both ports are created at runtime with the configured `type`.
+Both ports are created at runtime with the configured `type_name`.
 
 | port  | direction | type     | description       |
 |-------|-----------|----------|-------------------|

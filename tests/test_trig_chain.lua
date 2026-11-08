@@ -29,8 +29,8 @@ local sys = bd.system {
       { name = "trig", type = "ubx/trig" },
    },
    configurations = {
-      { name = "r1", config = { type = "uint64_t", start = 0, slope = 1 } },
-      { name = "r2", config = { type = "uint64_t", start = 0, slope = 1 } },
+      { name = "r1", config = { type_name = "uint64_t", start = 0, slope = 1 } },
+      { name = "r2", config = { type_name = "uint64_t", start = 0, slope = 1 } },
       { name = "trig", config = {
 	   chain0 = {
 	      { b = "#r1" },

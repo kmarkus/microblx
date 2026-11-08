@@ -5,17 +5,24 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- **incompatible**: the `type` config of `ubx/ewma`, `ubx/movavg`,
+  `ubx/mux`, `ubx/demux`, `ubx/ramp`, `ubx/rand`, `ubx/saturation` and
+  `ubx/stats` is renamed to `type_name`, like that of the iblocks and
+  `ubx/cconst`. Models (usc, json) with `type` still work, with a
+  deprecation warning; `ubx.block_create` and the C API need
+  `type_name`.
+
 - **incompatible**: the compile-time typed `ubx/ramp_<type>` (modules
   `ramp_double` ... `ramp_uint64`) and `ubx/rand_<type>` blocks are
-  removed. Use `ubx/ramp` or `ubx/rand` with the `type` config, e.g.
-  `{ type="uint64_t", start=0, slope=1 }`. Unlike legacy `rand_uint32`,
-  `ubx/rand` integers cover the full type range.
+  removed. Use `ubx/ramp` or `ubx/rand` with the `type_name` config,
+  e.g. `{ type_name="uint64_t", start=0, slope=1 }`. Unlike legacy
+  `rand_uint32`, `ubx/rand` integers cover the full type range.
 
 - **incompatible**: `ubx/ramp` `start`/`slope` have the configured
-  `type` instead of `double`, so 64-bit values are exact (use a `ULL`
-  literal beyond 2^53). They are added by the preinit hook: with the C
-  API, call `ubx_block_preinit()` before setting them. `type` and
-  `data_len` can no longer be changed after preinit. Values are no
+  `type_name` instead of `double`, so 64-bit values are exact (use a
+  `ULL` literal beyond 2^53). They are added by the preinit hook: with
+  the C API, call `ubx_block_preinit()` before setting them. `type_name`
+  and `data_len` can no longer be changed after preinit. Values are no
   longer range-checked, and fractional values for integer types are
   truncated instead of rounded.
 

@@ -29,12 +29,12 @@ function TestConnection:Test_01_Simple()
       },
       configurations = {
 	 { name = "sat1", config = {
-	      type="double",
+	      type_name="double",
 	      data_len=DATA_LEN,
 	      lower_limits = u.fill(-10, DATA_LEN),
 	      upper_limits = u.fill(3.4, DATA_LEN), } },
 	 { name = "sat2", config = {
-	      type="double",
+	      type_name="double",
 	      data_len=DATA_LEN,
 	      lower_limits = u.fill(-2, DATA_LEN),
 	      upper_limits = u.fill(2, DATA_LEN), } }
@@ -68,7 +68,7 @@ function TestConnection:Test_02_MQExisting()
       },
       configurations = {
 	 { name = "sat1", config = {
-	      type="double",
+	      type_name="double",
 	      data_len=DATA_LEN,
 	      lower_limits = u.fill(-10, DATA_LEN),
 	      upper_limits = u.fill(3.4, DATA_LEN), } },
@@ -105,7 +105,7 @@ function TestConnection:Test_03_MQNonExisting()
       },
       configurations = {
 	 { name = "sat1", config = {
-	      type="double",
+	      type_name="double",
 	      data_len=DATA_LEN,
 	      lower_limits = u.fill(-10, DATA_LEN),
 	      upper_limits = u.fill(3.4, DATA_LEN), } },
@@ -137,7 +137,7 @@ function TestConnection:Test_04_MQNonExisting()
       },
       configurations = {
 	 { name = "sat1", config = {
-	      type="double",
+	      type_name="double",
 	      data_len=DATA_LEN,
 	      lower_limits = u.fill(-10, DATA_LEN),
 	      upper_limits = u.fill(3.4, DATA_LEN), } },
@@ -166,7 +166,7 @@ end
 function TestConnection:Test_05_SharedConfig()
    local cfg = { buffer_len = 16 }
    local function sat(typ, len)
-      return { type=typ, data_len=len, lower_limits=-1, upper_limits=1 }
+      return { type_name=typ, data_len=len, lower_limits=-1, upper_limits=1 }
    end
 
    local sys = bd.system {
@@ -208,7 +208,7 @@ function TestConnection:Test_06_IBlockRmDisconnects()
    for _,m in ipairs{ "stdtypes", "lfrb", "ramp", "math_double" } do
       ubx.load_module(ni, m)
    end
-   local r = ubx.block_create(ni, "ubx/ramp", "r", { type="double", start=0, slope=1 })
+   local r = ubx.block_create(ni, "ubx/ramp", "r", { type_name="double", start=0, slope=1 })
    local m = ubx.block_create(ni, "ubx/math_double", "m", { func="sin" })
    ubx.block_init(r)
    ubx.block_init(m)
@@ -239,7 +239,7 @@ function TestConnection:Test_08_ConnectInvalidBlocks()
    for _,m in ipairs{ "stdtypes", "lfrb", "ramp", "math_double" } do
       ubx.load_module(ni, m)
    end
-   local r = ubx.block_create(ni, "ubx/ramp", "r", { type="double", start=0, slope=1 })
+   local r = ubx.block_create(ni, "ubx/ramp", "r", { type_name="double", start=0, slope=1 })
    local m = ubx.block_create(ni, "ubx/math_double", "m", { func="sin" })
    ubx.block_init(r)
    ubx.block_init(m)

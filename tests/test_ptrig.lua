@@ -59,7 +59,7 @@ local sys1 = bd.system {
    },
 
    configurations = {
-      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
+      { name="ramp", config = { type_name="uint64_t", start=0, slope=1 } },
       { name="tester", config = { lua_str=count_num_trigs } },
       { name="trig", config = { period = {sec=0, usec=100000 },
 				chain0={
@@ -386,7 +386,7 @@ local sys5 = bd.system {
       { name="ptrig", type="ubx/ptrig" },
    },
    configurations = {
-      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
+      { name="ramp", config = { type_name="uint64_t", start=0, slope=1 } },
       { name="ptrig", config = {
 	 period = { sec=0, usec=20000 },  -- 20ms / 50 Hz
 	 chain0 = { { b="#ramp" } }
@@ -436,7 +436,7 @@ local sys_sec = bd.system {
       { name="ptrig", type="ubx/ptrig" },
    },
    configurations = {
-      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
+      { name="ramp", config = { type_name="uint64_t", start=0, slope=1 } },
       { name="ptrig", config = {
 	 period = { sec=1, usec=0 },  -- 1s
 	 chain0 = { { b="#ramp" } }
@@ -474,7 +474,7 @@ local sys_ns = bd.system {
       { name="ptrig", type="ubx/ptrig" },
    },
    configurations = {
-      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
+      { name="ramp", config = { type_name="uint64_t", start=0, slope=1 } },
       { name="ptrig", config = {
 	 period_ns = 20000000,  -- 20ms / 50 Hz, via int64 ns config
 	 chain0 = { { b="#ramp" } }
@@ -684,7 +684,7 @@ local sys_dl = bd.system {
       { name="ptrig", type="ubx/ptrig" },
    },
    configurations = {
-      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
+      { name="ramp", config = { type_name="uint64_t", start=0, slope=1 } },
       { name="ptrig", config = {
          period         = { sec=0, usec=10000 },  -- 10ms / 100Hz
          sched_policy   = "SCHED_DEADLINE",
@@ -724,7 +724,7 @@ local sys_cycle = bd.system {
       { name="ptrig", type="ubx/ptrig" },
    },
    configurations = {
-      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
+      { name="ramp", config = { type_name="uint64_t", start=0, slope=1 } },
       { name="ptrig", config = {
 	   period      = { sec=0, usec=1000 },  -- 1ms
 	   tstats_mode = 2,                     -- per-block: blk_tstats alloc'd
@@ -764,7 +764,7 @@ local sys_hybrid = bd.system {
       { name="ptrig", type="ubx/ptrig" },
    },
    configurations = {
-      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
+      { name="ramp", config = { type_name="uint64_t", start=0, slope=1 } },
       { name="ptrig", config = {
 	   period_ns     = 1000000,   -- 1ms
 	   sleep_mode    = 2,         -- hybrid

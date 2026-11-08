@@ -41,7 +41,7 @@ end
 
 function TestSaturation:TestLen1()
    local sat1, pin, pout = make(
-      { type = "double", lower_limits = -10, upper_limits = 3.3 }, "TestLen1")
+      { type_name = "double", lower_limits = -10, upper_limits = 3.3 }, "TestLen1")
 
    local in_data =  { 1, 0, 2, 5,  10000, 3.2, -1, -1000, -9.9999, -10.1 }
    local exp_data = { 1, 0, 2, 3.3, 3.3,  3.2, -1, -10,   -9.9999, -10 }
@@ -60,7 +60,7 @@ function TestSaturation:TestLen5()
    local data_len = 5
 
    local sat1, pin, pout = make({
-	 type = "double",
+	 type_name = "double",
 	 data_len = data_len,
 	 lower_limits = { -1, -2, -3, -4, -5 },
 	 upper_limits = { 1, 22, 333, 4444, 55555 } }, "TestLen5")
@@ -107,7 +107,7 @@ end
 --- scalar limits broadcast over a vector signal
 function TestSaturation:TestScalarBroadcast()
    local sat1, pin, pout = make({
-	 type = "double", data_len = 3,
+	 type_name = "double", data_len = 3,
 	 lower_limits = -1, upper_limits = 1 }, "TestScalarBroadcast")
 
    pin:write({ -5, 0.5, 5 })
@@ -120,7 +120,7 @@ end
 --- integer signals: pass-through is exact, clamped values take the limit
 function TestSaturation:TestInt32()
    local sat1, pin, pout = make({
-	 type = "int32_t", lower_limits = -100, upper_limits = 100 }, "TestInt32")
+	 type_name = "int32_t", lower_limits = -100, upper_limits = 100 }, "TestInt32")
 
    local in_data =  { 0, 99, 101, -99, -101, 100, -100 }
    local exp_data = { 0, 99, 100, -99, -100, 100, -100 }
@@ -136,14 +136,14 @@ end
 --- lower > upper is refused at init
 function TestSaturation:TestInvalidLimits()
    lu.assert_false(pcall(make,
-			 { type = "double", lower_limits = 1, upper_limits = -1 },
+			 { type_name = "double", lower_limits = 1, upper_limits = -1 },
 			 "TestInvalidLimits"))
 end
 
 --- limits of length != 1 and != data_len are refused at init
 function TestSaturation:TestInvalidLimitLen()
    lu.assert_false(pcall(make,
-			 { type = "double", data_len = 3,
+			 { type_name = "double", data_len = 3,
 			   lower_limits = { 0, 0 }, upper_limits = 1 },
 			 "TestInvalidLimitLen"))
 end
@@ -151,7 +151,7 @@ end
 --- an unsupported type is refused at init
 function TestSaturation:TestInvalidType()
    lu.assert_false(pcall(make,
-			 { type = "char", lower_limits = 0, upper_limits = 1 },
+			 { type_name = "char", lower_limits = 0, upper_limits = 1 },
 			 "TestInvalidType"))
 end
 

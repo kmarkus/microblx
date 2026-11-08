@@ -30,7 +30,7 @@ local function mksys(trigtype, trigcfg)
 	 { name = "trig", type = trigtype },
       },
       configurations = {
-	 { name = "r1", config = { type = "uint64_t", start = 0, slope = 1 } },
+	 { name = "r1", config = { type_name = "uint64_t", start = 0, slope = 1 } },
 	 { name = "trig", config = trigcfg },
       },
    }

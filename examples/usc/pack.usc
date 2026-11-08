@@ -56,7 +56,7 @@ return bd.system {
    },
 
    configurations = {
-      { name = "count", config = { type = "uint64_t", slope = 1 } },
+      { name = "count", config = { type_name = "uint64_t", slope = 1 } },
       { name = "pk", config = { packid = "pk", ports = PORTS } },
       -- with ports, it creates its segment: there is no writer yet
       { name = "echo_up", config = { packid = "echo_up", ports = PORTS, buffer_len = 16 } },

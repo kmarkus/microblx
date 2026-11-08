@@ -3,7 +3,7 @@
  *
  * Each step the current value is written to 'out' and then incremented
  * by 'slope'. The numeric type is configurable at runtime via the
- * 'type' config; with 'data_len' > 1 the output is a vector with an
+ * 'type_name' config; with 'data_len' > 1 the output is a vector with an
  * independent ramp per element.
  *
  * Unlike the filter blocks (movavg, ewma, ...) that compute in double
@@ -11,7 +11,7 @@
  * increment kernel is selected once at init, so integer ramps count
  * exactly over the full type range (no 2^53 double mantissa limit) and
  * unsigned ramps wrap as expected. The 'start'/'slope' configs have
- * the native type too: preinit adds them, after 'type' is known.
+ * the native type too: preinit adds them, after 'type_name' is known.
  */
 
 #include <stdint.h>
@@ -20,7 +20,7 @@
 
 #include "ubx.h"
 
-#define TYPE		"type"
+#define TYPE		"type_name"
 #define DATA_LEN	"data_len"
 #define START		"start"
 #define SLOPE		"slope"

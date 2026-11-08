@@ -52,7 +52,7 @@ end
 --   out: 1  1.5      2      3      4
 --
 function TestMovavg:TestSlidingDouble()
-   local _, p_in, p_out = make({ type = "double", window = 3 }, "TestMovavgDouble")
+   local _, p_in, p_out = make({ type_name = "double", window = 3 }, "TestMovavgDouble")
 
    local expected = { 1.0, 1.5, 2.0, 3.0, 4.0 }
    local data = { 1, 2, 3, 4, 5 }
@@ -73,7 +73,7 @@ end
 --   rounded (round-half-away-from-zero via llround): 1, 2, 3, 4
 --
 function TestMovavg:TestIntRounding()
-   local ma1, p_in, p_out = make({ type = "int32_t", window = 2 }, "TestMovavgInt")
+   local ma1, p_in, p_out = make({ type_name = "int32_t", window = 2 }, "TestMovavgInt")
 
    assert_equals(ffi.string(ubx.port_get(ma1, "in").in_type.name), "int32_t")
    assert_equals(ffi.string(ubx.port_get(ma1, "out").out_type.name), "int32_t")
@@ -94,7 +94,7 @@ end
 --   out: {1,10}   {2,15}    {4,25}
 --
 function TestMovavg:TestPerElement()
-   local ma1, p_in, p_out = make({ type = "double", window = 2, data_len = 2 },
+   local ma1, p_in, p_out = make({ type_name = "double", window = 2, data_len = 2 },
 				 "TestMovavgVec")
 
    assert_equals(tonumber(ubx.port_get(ma1, "in").in_data_len), 2)
@@ -114,7 +114,7 @@ end
 -- A window of 1 is a pass-through filter.
 --
 function TestMovavg:TestWindowOne()
-   local _, p_in, p_out = make({ type = "double", window = 1 }, "TestMovavgOne")
+   local _, p_in, p_out = make({ type_name = "double", window = 1 }, "TestMovavgOne")
 
    for _, v in ipairs({ 7, -3, 42 }) do
       p_in:write(v)
@@ -132,7 +132,7 @@ end
 --   out:            1   50.5    2         3         3
 --
 function TestMovavg:TestMedian()
-   local _, p_in, p_out = make({ type = "double", window = 3, mode = "median" },
+   local _, p_in, p_out = make({ type_name = "double", window = 3, mode = "median" },
 			       "TestMovavgMedian")
 
    local in_data  = { 1, 100, 2, 3, 4 }
@@ -154,7 +154,7 @@ end
 function TestMovavg:TestMinMax()
    local results = {}
    for _, mode in ipairs({ "min", "max" }) do
-      local _, p_in, p_out = make({ type = "double", window = 2, mode = mode },
+      local _, p_in, p_out = make({ type_name = "double", window = 2, mode = mode },
 				  "TestMovavg" .. mode)
       results[mode] = {}
       for _, v in ipairs({ 5, 3, 7, 1 }) do
@@ -178,7 +178,7 @@ end
 --   out: {1,10} {50.5,-45} {2,10}
 --
 function TestMovavg:TestMedianPerElement()
-   local _, p_in, p_out = make({ type = "double", window = 3, data_len = 2,
+   local _, p_in, p_out = make({ type_name = "double", window = 3, data_len = 2,
 				 mode = "median" }, "TestMovavgMedianVec")
 
    local in_data  = { { 1, 10 }, { 100, -100 }, { 2, 20 } }
@@ -195,7 +195,7 @@ end
 -- An unknown mode is refused at init.
 --
 function TestMovavg:TestBadMode()
-   assert_true(not pcall(make, { type = "double", window = 3, mode = "avg" },
+   assert_true(not pcall(make, { type_name = "double", window = 3, mode = "avg" },
 			 "TestMovavgBadMode"))
 end
 
@@ -203,7 +203,7 @@ end
 -- No input on the port must produce no output (NODATA).
 --
 function TestMovavg:TestNoData()
-   local ma1, _, p_out = make({ type = "double", window = 3 }, "TestMovavgNoData")
+   local ma1, _, p_out = make({ type_name = "double", window = 3 }, "TestMovavgNoData")
 
    ma1:do_step()
    local len = p_out:read()

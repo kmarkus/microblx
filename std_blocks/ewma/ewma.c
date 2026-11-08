@@ -3,7 +3,7 @@
  *
  * First-order exponential smoothing: y += alpha * (x - y), with the
  * first sample initializing y = x. The numeric type is configurable at
- * runtime via the 'type' config; input and output share that type, so
+ * runtime via the 'type_name' config; input and output share that type, so
  * the block acts as a drop-in signal filter. With 'data_len' > 1 the
  * ports are vectors and an independent average is kept per element
  * (channel).
@@ -15,7 +15,7 @@
 
 #include "ubx.h"
 
-#define TYPE		"type"
+#define TYPE		"type_name"
 #define ALPHA		"alpha"
 #define DATA_LEN	"data_len"
 #define PIN		"in"

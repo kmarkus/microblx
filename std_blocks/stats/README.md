@@ -3,19 +3,19 @@
 Running statistics of a numeric signal: `min`, `max`, `mean`, `std`
 (population standard deviation, Welford's algorithm) and `cnt`, output
 as `struct ubx_stat`. The input type is configured at runtime via
-`type`.
+`type_name`.
 
 ## Configuration
 
-| config              | type     | description                                                       |
-|---------------------|----------|-------------------------------------------------------------------|
-| `type`              | `char`   | ubx numeric type name of the input (mandatory)                    |
-| `data_len`          | `long`   | vector length; statistics are kept per element (default 1)        |
-| `stats_output_rate` | `double` | min seconds between `stats` outputs (0/unset: every step)         |
-| `skip_first`        | `long`   | discard the first N samples, e.g. startup transients (default 0)  |
-| `loglevel`          | `int`    | optional log level                                                |
+| config              | type     | description                                                      |
+|---------------------|----------|------------------------------------------------------------------|
+| `type_name`         | `char`   | ubx numeric type name of the input (mandatory)                   |
+| `data_len`          | `long`   | vector length; statistics are kept per element (default 1)       |
+| `stats_output_rate` | `double` | min seconds between `stats` outputs (0/unset: every step)        |
+| `skip_first`        | `long`   | discard the first N samples, e.g. startup transients (default 0) |
+| `loglevel`          | `int`    | optional log level                                               |
 
-Supported `type` values are `int32_t`, `uint32_t`, `int64_t`,
+Supported `type_name` values are `int32_t`, `uint32_t`, `int64_t`,
 `uint64_t`, `float` and `double`.
 
 ## Ports

@@ -47,7 +47,7 @@ end
 --   y:  1, 2,  2.5, 6.75
 --
 function TestEwma:TestBasic()
-   local ew1, p_in, p_out = make({ type = "double", alpha = 0.5 }, "TestEwmaBasic")
+   local ew1, p_in, p_out = make({ type_name = "double", alpha = 0.5 }, "TestEwmaBasic")
 
    local in_data  = { 1, 3, 3, 11 }
    local expected = { 1, 2, 2.5, 6.75 }
@@ -65,7 +65,7 @@ end
 -- alpha = 1 is a pass-through.
 --
 function TestEwma:TestAlphaOne()
-   local ew1, p_in, p_out = make({ type = "double", alpha = 1.0 }, "TestEwmaOne")
+   local ew1, p_in, p_out = make({ type_name = "double", alpha = 1.0 }, "TestEwmaOne")
 
    for _, v in ipairs({ 7, -3, 42 }) do
       p_in:write(v)
@@ -80,7 +80,7 @@ end
 --   alpha = 0.5, in: {0,100} {10,0} => y: {0,100} {5,50}
 --
 function TestEwma:TestPerElementInt()
-   local ew1, p_in, p_out = make({ type = "int32_t", alpha = 0.5, data_len = 2 },
+   local ew1, p_in, p_out = make({ type_name = "int32_t", alpha = 0.5, data_len = 2 },
 				 "TestEwmaVec")
 
    assert_equals(ffi.string(ubx.port_get(ew1, "in").in_type.name), "int32_t")
@@ -101,7 +101,7 @@ end
 -- No input on the port must produce no output (NODATA).
 --
 function TestEwma:TestNoData()
-   local ew1, _, p_out = make({ type = "double", alpha = 0.5 }, "TestEwmaNoData")
+   local ew1, _, p_out = make({ type_name = "double", alpha = 0.5 }, "TestEwmaNoData")
 
    ew1:do_step()
    local len = p_out:read()
@@ -112,8 +112,8 @@ end
 -- An out-of-range alpha is refused at init.
 --
 function TestEwma:TestBadAlpha()
-   assert_true(not pcall(make, { type = "double", alpha = 0 }, "TestEwmaBadAlpha1"))
-   assert_true(not pcall(make, { type = "double", alpha = 1.5 }, "TestEwmaBadAlpha2"))
+   assert_true(not pcall(make, { type_name = "double", alpha = 0 }, "TestEwmaBadAlpha1"))
+   assert_true(not pcall(make, { type_name = "double", alpha = 1.5 }, "TestEwmaBadAlpha2"))
 end
 
 if not _RUNNER then os.exit(lu.LuaUnit.run()) end

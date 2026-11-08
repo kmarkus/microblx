@@ -27,8 +27,8 @@ function TestConnectionErrors:TestTypeMismatch()
 	 { name = "r_int", type = "ubx/ramp" },
       },
       configurations = {
-	 { name = "r_uint", config = { type = "uint32_t", start = 0, slope = 1 } },
-	 { name = "r_int", config = { type = "int32_t", start = 0, slope = 1 } },
+	 { name = "r_uint", config = { type_name = "uint32_t", start = 0, slope = 1 } },
+	 { name = "r_int", config = { type_name = "int32_t", start = 0, slope = 1 } },
       },
       connections = {
 	 { src = "r_uint.out", tgt = "r_int.out" },
@@ -55,8 +55,8 @@ function TestConnectionErrors:TestNonExistentPort()
 	 { name = "r2", type = "ubx/ramp" },
       },
       configurations = {
-	 { name = "r1", config = { type = "uint32_t", start = 0, slope = 1 } },
-	 { name = "r2", config = { type = "uint32_t", start = 0, slope = 1 } },
+	 { name = "r1", config = { type_name = "uint32_t", start = 0, slope = 1 } },
+	 { name = "r2", config = { type_name = "uint32_t", start = 0, slope = 1 } },
       },
       connections = {
 	 { src = "r1.out", tgt = "r2.nonexistent" },
@@ -78,7 +78,7 @@ function TestConnectionErrors:TestNonExistentBlock()
 	 { name = "r1", type = "ubx/ramp" },
       },
       configurations = {
-	 { name = "r1", config = { type = "uint32_t", start = 0, slope = 1 } },
+	 { name = "r1", config = { type_name = "uint32_t", start = 0, slope = 1 } },
       },
       connections = {
 	 { src = "r1.out", tgt = "ghost_block.in" },
@@ -99,9 +99,9 @@ function TestConnectionErrors:TestFanOut()
 	 { name = "sat3", type = "ubx/saturation" },
       },
       configurations = {
-	 { name = "sat1", config = { type="double", lower_limits = -10, upper_limits = 10 } },
-	 { name = "sat2", config = { type="double", lower_limits = -10, upper_limits = 10 } },
-	 { name = "sat3", config = { type="double", lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat1", config = { type_name="double", lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat2", config = { type_name="double", lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat3", config = { type_name="double", lower_limits = -10, upper_limits = 10 } },
       },
       connections = {
 	 { src = "sat1.out", tgt = "sat2.in" },
@@ -131,9 +131,9 @@ function TestConnectionErrors:TestFanIn()
 	 { name = "sat3", type = "ubx/saturation" },
       },
       configurations = {
-	 { name = "sat1", config = { type="double", lower_limits = -10, upper_limits = 10 } },
-	 { name = "sat2", config = { type="double", lower_limits = -10, upper_limits = 10 } },
-	 { name = "sat3", config = { type="double", lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat1", config = { type_name="double", lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat2", config = { type_name="double", lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat3", config = { type_name="double", lower_limits = -10, upper_limits = 10 } },
       },
       connections = {
 	 { src = "sat1.out", tgt = "sat3.in" },
@@ -156,8 +156,8 @@ function TestConnectionErrors:TestBufferLenConfig()
 	 { name = "sat2", type = "ubx/saturation" },
       },
       configurations = {
-	 { name = "sat1", config = { type="double", lower_limits = -10, upper_limits = 10 } },
-	 { name = "sat2", config = { type="double", lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat1", config = { type_name="double", lower_limits = -10, upper_limits = 10 } },
+	 { name = "sat2", config = { type_name="double", lower_limits = -10, upper_limits = 10 } },
       },
       connections = {
 	 { src = "sat1.out", tgt = "sat2.in", config = { buffer_len = 42 } },

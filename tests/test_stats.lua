@@ -37,7 +37,7 @@ function TestStats:TestBasicDouble()
       imports = { "stdtypes", "lfrb", "stats" },
       blocks = { { name = "st1", type = "ubx/stats" } },
       configurations = {
-	 { name = "st1", config = { type = "double" } },
+	 { name = "st1", config = { type_name = "double" } },
       },
    }
 
@@ -75,7 +75,7 @@ function TestStats:TestIntType()
       imports = { "stdtypes", "lfrb", "stats" },
       blocks = { { name = "st1", type = "ubx/stats" } },
       configurations = {
-	 { name = "st1", config = { type = "int32_t" } },
+	 { name = "st1", config = { type_name = "int32_t" } },
       },
    }
 
@@ -115,7 +115,7 @@ function TestStats:TestPerElement()
       imports = { "stdtypes", "lfrb", "stats" },
       blocks = { { name = "st1", type = "ubx/stats" } },
       configurations = {
-	 { name = "st1", config = { type = "double", data_len = 2 } },
+	 { name = "st1", config = { type_name = "double", data_len = 2 } },
       },
    }
 
@@ -160,7 +160,7 @@ function TestStats:TestSingleSample()
       imports = { "stdtypes", "lfrb", "stats" },
       blocks = { { name = "st1", type = "ubx/stats" } },
       configurations = {
-	 { name = "st1", config = { type = "double" } },
+	 { name = "st1", config = { type_name = "double" } },
       },
    }
 
@@ -193,7 +193,7 @@ function TestStats:TestNoData()
       imports = { "stdtypes", "lfrb", "stats" },
       blocks = { { name = "st1", type = "ubx/stats" } },
       configurations = {
-	 { name = "st1", config = { type = "double" } },
+	 { name = "st1", config = { type_name = "double" } },
       },
    }
 
@@ -223,7 +223,7 @@ function TestStats:TestOutputRateThrottle()
       configurations = {
 	 -- deliberately larger than any possible system uptime: the first
 	 -- emission must happen regardless of the monotonic clock value
-	 { name = "st1", config = { type = "double", stats_output_rate = 1e9 } },
+	 { name = "st1", config = { type_name = "double", stats_output_rate = 1e9 } },
       },
    }
 

@@ -44,7 +44,7 @@ end
 
 --- basic double ramp: first output is start, then increments by slope
 function TestRamp:TestBasicDouble()
-   local r1, p_out = make({ type = "double", start = 1.5, slope = 0.5 },
+   local r1, p_out = make({ type_name = "double", start = 1.5, slope = 0.5 },
 			  "TestRampDouble")
 
    local expected = { 1.5, 2.0, 2.5, 3.0 }
@@ -59,7 +59,7 @@ end
 --- native accumulation: a uint64 ramp counts exactly beyond 2^53
 --- (a double-internal implementation would get stuck at 2^53)
 function TestRamp:TestUint64Exact()
-   local r1, p_out = make({ type = "uint64_t", start = 2^53, slope = 1 },
+   local r1, p_out = make({ type_name = "uint64_t", start = 2^53, slope = 1 },
 			  "TestRampU64")
 
    local base = 9007199254740992ULL	-- 2^53
@@ -77,7 +77,7 @@ end
 --- as a ULL literal in the model is exact
 function TestRamp:TestUint64ExactConfig()
    local start = 1700000000000000001ULL
-   local r1, p_out = make({ type = "uint64_t", start = start, slope = 2ULL },
+   local r1, p_out = make({ type_name = "uint64_t", start = start, slope = 2ULL },
 			  "TestRampU64Cfg")
 
    for i = 0, 2 do
@@ -98,15 +98,15 @@ function TestRamp:TestPreinitConfigs()
    ubx.load_module(ni, "ramp")
 
    local r1 = ubx.block_create(ni, "ubx/ramp", "r1",
-			       { type = "int64_t", start = -5, slope = 3 })
+			       { type_name = "int64_t", start = -5, slope = 3 })
    assert_equals(ffi.string(r1:c("start").type.name), "int64_t")
    assert_equals(r1:c("slope"):tolua(), 3)
-   lu.assert_error_msg_contains("preinit config", ubx.set_config, r1, "type", "double")
+   lu.assert_error_msg_contains("preinit config", ubx.set_config, r1, "type_name", "double")
 end
 
 --- unsigned wrap-around is well-defined
 function TestRamp:TestUint8Wrap()
-   local r1, p_out = make({ type = "uint8_t", start = 254, slope = 1 },
+   local r1, p_out = make({ type_name = "uint8_t", start = 254, slope = 1 },
 			  "TestRampU8")
 
    local expected = { 254, 255, 0, 1 }
@@ -119,7 +119,7 @@ end
 
 --- data_len > 1 with per-element start and scalar (broadcast) slope
 function TestRamp:TestPerElement()
-   local r1, p_out = make({ type = "int32_t", data_len = 3,
+   local r1, p_out = make({ type_name = "int32_t", data_len = 3,
 			    start = { 0, 10, -10 }, slope = 2 },
 			  "TestRampVec")
 
@@ -134,7 +134,7 @@ end
 
 --- restart resets the ramp to start
 function TestRamp:TestRestartResets()
-   local r1, p_out = make({ type = "double", start = 5, slope = 1 },
+   local r1, p_out = make({ type_name = "double", start = 5, slope = 1 },
 			  "TestRampRestart")
 
    local function step_and_read()
@@ -156,9 +156,9 @@ end
 --- without range checks)
 function TestRamp:TestBadConfig()
    -- slope missing
-   assert_true(not pcall(make, { type = "double" }, "TestRampNoSlope"))
+   assert_true(not pcall(make, { type_name = "double" }, "TestRampNoSlope"))
    -- unsupported type
-   assert_true(not pcall(make, { type = "char", slope = 1 }, "TestRampBadType"))
+   assert_true(not pcall(make, { type_name = "char", slope = 1 }, "TestRampBadType"))
 end
 
 if not _RUNNER then os.exit(lu.LuaUnit.run()) end

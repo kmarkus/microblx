@@ -33,10 +33,10 @@ function TestLfrb:TestSimpleConnection()
       },
       configurations = {
 	 { name = "sat1", config = {
-	      type="double",
+	      type_name="double",
 	      lower_limits = -10, upper_limits = 10 } },
 	 { name = "sat2", config = {
-	      type="double",
+	      type_name="double",
 	      lower_limits = -5, upper_limits = 5 } },
       },
       connections = {
@@ -83,12 +83,12 @@ function TestLfrb:TestVectorData()
       },
       configurations = {
 	 { name = "sat1", config = {
-	      type="double",
+	      type_name="double",
 	      data_len = DATA_LEN,
 	      lower_limits = { -10, -10, -10 },
 	      upper_limits = { 10, 10, 10 } } },
 	 { name = "sat2", config = {
-	      type="double",
+	      type_name="double",
 	      data_len = DATA_LEN,
 	      lower_limits = { -5, -5, -5 },
 	      upper_limits = { 5, 5, 5 } } },
@@ -125,10 +125,10 @@ function TestLfrb:TestConnTab()
       },
       configurations = {
 	 { name = "sat1", config = {
-	      type="double",
+	      type_name="double",
 	      lower_limits = -10, upper_limits = 10 } },
 	 { name = "sat2", config = {
-	      type="double",
+	      type_name="double",
 	      lower_limits = -5, upper_limits = 5 } },
       },
       connections = {

@@ -36,8 +36,8 @@ local function make_double_pipe(nodename)
 	 { name = "sat2", type = "ubx/saturation" },
       },
       configurations = {
-	 { name = "sat1", config = { type="double", lower_limits = -1e9, upper_limits = 1e9 } },
-	 { name = "sat2", config = { type="double", lower_limits = -1e9, upper_limits = 1e9 } },
+	 { name = "sat1", config = { type_name="double", lower_limits = -1e9, upper_limits = 1e9 } },
+	 { name = "sat2", config = { type_name="double", lower_limits = -1e9, upper_limits = 1e9 } },
       },
       connections = {
 	 { src = "sat1.out", tgt = "sat2.in", config = { buffer_len = 4 } },

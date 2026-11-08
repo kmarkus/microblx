@@ -4,7 +4,7 @@
  * Maintains a ring buffer of the last 'window' values received on the
  * 'in' port and emits an aggregate ('mode': mean (default), median, min
  * or max) on the 'out' port. The numeric type is configurable at
- * runtime via the 'type' config; input and output share that type, so
+ * runtime via the 'type_name' config; input and output share that type, so
  * the block acts as a drop-in signal filter. With 'data_len' > 1 the
  * ports are vectors and an independent filter is kept per element
  * (channel). Before the window has filled, the aggregate is computed
@@ -17,7 +17,7 @@
 
 #include "ubx.h"
 
-#define TYPE		"type"
+#define TYPE		"type_name"
 #define WINDOW		"window"
 #define DATA_LEN	"data_len"
 #define MODE		"mode"

@@ -15,7 +15,7 @@ them — connecting only some of demux's outputs makes it a
 
 Both work with **any registered type** — numeric or struct — since the
 data is copied bytewise; the element type is configured at runtime via
-the `type` config. Typical use is composing the measurement vector of
+the `type_name` config. Typical use is composing the measurement vector of
 an array-valued block from independent sources, and extracting
 sub-vectors (e.g. the position part of a state estimate) the other way.
 
@@ -23,12 +23,12 @@ sub-vectors (e.g. the position part of a state estimate) the other way.
 
 ### Configuration
 
-| config     | type   | description                                            |
-|------------|--------|--------------------------------------------------------|
-| `type`     | `char` | ubx type name of the signal (mandatory)                |
-| `nin`      | `long` | number of input ports (mandatory, ≥ 1)                 |
-| `in_len`   | `long` | sub-vector length per input: scalar (broadcast) or per-port `[nin]` (default 1) |
-| `loglevel` | `int`  | optional log level                                     |
+| config      | type   | description                                                                     |
+|-------------|--------|---------------------------------------------------------------------------------|
+| `type_name` | `char` | ubx type name of the signal (mandatory)                                         |
+| `nin`       | `long` | number of input ports (mandatory, ≥ 1)                                          |
+| `in_len`    | `long` | sub-vector length per input: scalar (broadcast) or per-port `[nin]` (default 1) |
+| `loglevel`  | `int`  | optional log level                                                              |
 
 ### Ports
 
@@ -49,12 +49,12 @@ a latest-value snapshot.
 
 ### Configuration
 
-| config     | type   | description                                            |
-|------------|--------|--------------------------------------------------------|
-| `type`     | `char` | ubx type name of the signal (mandatory)                |
-| `nout`     | `long` | number of output ports (mandatory, ≥ 1)                |
-| `out_len`  | `long` | sub-vector length per output: scalar (broadcast) or per-port `[nout]` (default 1) |
-| `loglevel` | `int`  | optional log level                                     |
+| config      | type   | description                                                                       |
+|-------------|--------|-----------------------------------------------------------------------------------|
+| `type_name` | `char` | ubx type name of the signal (mandatory)                                           |
+| `nout`      | `long` | number of output ports (mandatory, ≥ 1)                                           |
+| `out_len`   | `long` | sub-vector length per output: scalar (broadcast) or per-port `[nout]` (default 1) |
+| `loglevel`  | `int`  | optional log level                                                                |
 
 ### Ports
 
@@ -76,7 +76,7 @@ Kalman state and ignore the velocities:
 ```lua
 { name="slice", type="ubx/demux" },
 -- ...
-{ name="slice", config = { type="double", nout=2, out_len={3, 3} } },
+{ name="slice", config = { type_name="double", nout=2, out_len={3, 3} } },
 -- ...
 { src="kf.x", tgt="slice.in" },
 { src="slice.out0", tgt="plot.pos" },   -- out1 (velocity) left unconnected

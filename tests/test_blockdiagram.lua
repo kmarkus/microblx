@@ -52,7 +52,7 @@ end
 local function sys1_gen_configurations()
    local res = {}
    for i=1,NUM_BLOCKS do
-      res[#res+1] = { name="uint32_ramp"..tostring(i), config = { type="uint32_t", slope=1 } }
+      res[#res+1] = { name="uint32_ramp"..tostring(i), config = { type_name="uint32_t", slope=1 } }
    end
 
    for i=1,NUM_BLOCKS do
@@ -89,7 +89,7 @@ local sys_ndcfg_res = bd.system {
    imports = { "stdtypes", "ramp" },
    blocks = { { name = "r1", type = "ubx/ramp" } },
    node_configurations = { foo = { type="int32_t", config = 33 } },
-   configurations = { { name = "r1", config = { type="int32_t", start = 0, slope="&foo" } } }
+   configurations = { { name = "r1", config = { type_name="int32_t", start = 0, slope="&foo" } } }
 }
 
 function TestBlockdiagram:test_resolve_ndcfg()
@@ -102,7 +102,7 @@ local sys_invalid_ndcfg = bd.system {
    imports = { "stdtypes", "ramp" },
    blocks = { { name = "r1", type = "ubx/ramp" } },
    node_configurations = { foo = { type="int32_t", config = 33 } },
-   configurations = { { name = "r1", config = { type="int32_t", start = 0, slope="&fooX" } } }
+   configurations = { { name = "r1", config = { type_name="int32_t", start = 0, slope="&fooX" } } }
 }
 
 function TestBlockdiagram:test_resolve_ndcfg_invalid()
@@ -123,7 +123,7 @@ function TestBlockdiagram:test_resolve_block_hash()
       },
 
       configurations = {
-	 { name = "r1", config = { type="int32_t", start=0, slope=1 } },
+	 { name = "r1", config = { type_name="int32_t", start=0, slope=1 } },
 	 { name="t1",
 	    config = {
 	       chain0 = {
@@ -144,7 +144,7 @@ function TestBlockdiagram:test_resolve_block_hash_invalid()
       },
 
       configurations = {
-	 { name = "r1", config = { type="int32_t", start=0, slope=1 } },
+	 { name = "r1", config = { type_name="int32_t", start=0, slope=1 } },
 	 { name="t1",
 	    config = {
 	       chain0 = {
@@ -169,7 +169,7 @@ function TestBlockdiagram:test_extern_blocks_valid()
 	 { src = "r1.out", tgt = "ext_blk.in" },
       },
       configurations = {
-	 { name = "r1", config = { type="int32_t", start=0, slope=1 } },
+	 { name = "r1", config = { type_name="int32_t", start=0, slope=1 } },
       },
    }
 
@@ -190,7 +190,7 @@ function TestBlockdiagram:test_extern_blocks_invalid()
 	 { src = "r1.out", tgt = "typo_blk.in" },
       },
       configurations = {
-	 { name = "r1", config = { type="int32_t", start=0, slope=1 } },
+	 { name = "r1", config = { type_name="int32_t", start=0, slope=1 } },
       },
    }
 
@@ -251,7 +251,7 @@ return bd.system {
       { name = "r1", type = "ubx/ramp" },
    },
    configurations = {
-      { name = "r1", config = { type="int32_t", start=0, slope=1 } },
+      { name = "r1", config = { type_name="int32_t", start=0, slope=1 } },
    },
 }
 ]]
@@ -283,7 +283,7 @@ function TestBlockdiagram:test_load_str_json()
       { "name": "jr1", "type": "ubx/ramp" }
    ],
    "configurations": [
-      { "name": "jr1", "config": { "type": "int32_t", "start": 0, "slope": 1 } }
+      { "name": "jr1", "config": { "type_name": "int32_t", "start": 0, "slope": 1 } }
    ]
 }
 ]]
@@ -321,7 +321,7 @@ function TestBlockdiagram:test_launch_connect_with_percent()
 	 { name="q%d1", type="ubx/lfrb" },
       },
       configurations = {
-	 { name="r%d1", config = { type="double", slope=1 } },
+	 { name="r%d1", config = { type_name="double", slope=1 } },
 	 { name="t%d1", config = { threshold=1 } },
 	 { name="t%d2", config = { threshold=1 } },
 	 { name="q%d1", config = { type_name="double", buffer_len=4 } },

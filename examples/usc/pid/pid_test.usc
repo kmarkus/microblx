@@ -30,7 +30,7 @@ return bd.system {
       -- configure the sensor signal
       { name="ramp_msr",
 	config = {
-	   type="double",
+	   type_name="double",
 	   data_len=10,
 	   slope = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
 	   start = { 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 }

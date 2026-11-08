@@ -166,10 +166,10 @@ local function build_sys()
       end
       blocks[#blocks+1] = { name = "trig"..i, type = "ubx/ptrig" }
       if MEASURE and i == 1 then
-	 configs[#configs+1] = { name = "w1", config = { type = "double", slope = fill(1, LOAD_N), data_len = LOAD_N } }
+	 configs[#configs+1] = { name = "w1", config = { type_name = "double", slope = fill(1, LOAD_N), data_len = LOAD_N } }
 	 configs[#configs+1] = { name = "c1", config = { func = "sin", data_len = LOAD_N } }
       else
-	 configs[#configs+1] = { name = "w"..i, config = { type = "uint64_t", start = i * 2^40, slope = 1 } }
+	 configs[#configs+1] = { name = "w"..i, config = { type_name = "uint64_t", start = i * 2^40, slope = 1 } }
 	 configs[#configs+1] = { name = "c"..i, config = { lua_str = string.format(checker, NTRIG) } }
       end
       local tc = { period = { sec = 0, usec = PERIOD_US },

@@ -361,7 +361,7 @@ return bd.system {
    },
 
    configurations = {
-      { name="ramp", config = { type="double", slope=0.05 } },
+      { name="ramp", config = { type_name="double", slope=0.05 } },
       { name="sin", config = { func="sin" } },
       { name="trigger", config = {
            period = { sec=0, usec=1000 },

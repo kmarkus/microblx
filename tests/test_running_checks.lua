@@ -37,7 +37,7 @@ local sys = bd.system {
       { src="ramp.out", tgt="sink.in" },
    },
    configurations = {
-      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
+      { name="ramp", config = { type_name="uint64_t", start=0, slope=1 } },
       { name="sink", config = { lua_str=sink } },
       { name="inner", config = { chain0={ { b="#sink" } } } },
       { name="trig", config = { period = {sec=0, usec=1000 },
@@ -140,7 +140,7 @@ local idle_sys = bd.system {
       { src="ramp.out", tgt="sink.in" },
    },
    configurations = {
-      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
+      { name="ramp", config = { type_name="uint64_t", start=0, slope=1 } },
       { name="sink", config = { lua_str=sink } },
       { name="idle", config = { chain0={ { b="#ramp" }, { b="#sink" } } } },
       { name="ca", config = { chain0={ { b="#cb" } } } },

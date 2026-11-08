@@ -435,7 +435,7 @@ end
 function TestLsdbIntf:test_connect_disconnect()
    _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_connect")
    ubx.load_module(_nd, "ramp")
-   local r1 = ubx.block_create(_nd, "ubx/ramp", "r1", { type="double", slope=1 })
+   local r1 = ubx.block_create(_nd, "ubx/ramp", "r1", { type_name="double", slope=1 })
    ubx.block_init(r1)
    ubx.block_create(_nd, "ubx/threshold", "t1", { threshold=1 })
    ubx.block_create(_nd, "ubx/threshold", "t2", { threshold=1 })

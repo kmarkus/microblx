@@ -28,7 +28,7 @@ local function make_chain(i)
          { name="trig_" ..s, type="ubx/trig"        },
       },
       configurations = {
-         { name="ramp_" ..s, config = { type="double", slope = 0.01 * i } },
+         { name="ramp_" ..s, config = { type_name="double", slope = 0.01 * i } },
          { name="sin_"  ..s, config = { func  = "sin"    } },
          { name="thres_"..s, config = { threshold = 0.5  } },
          { name="trig_" ..s, config = {

@@ -44,8 +44,8 @@ local function mksys(nodename, cfg)
    return n
 end
 
-local SAT1 = { type="double", lower_limits = -10, upper_limits = 10 }
-local SAT2 = { type="double", lower_limits = -5, upper_limits = 5 }
+local SAT1 = { type_name="double", lower_limits = -10, upper_limits = 10 }
+local SAT2 = { type_name="double", lower_limits = -5, upper_limits = 5 }
 
 --- Basic connection through a latch
 function TestLatch:TestSimpleConnection()
@@ -157,9 +157,9 @@ function TestLatch:TestVectorData()
    local DATA_LEN = 3
 
    ni = mksys("TestLatchVec", {
-      sat1 = { type="double", data_len = DATA_LEN,
+      sat1 = { type_name="double", data_len = DATA_LEN,
 	       lower_limits = { -10, -10, -10 }, upper_limits = { 10, 10, 10 } },
-      sat2 = { type="double", data_len = DATA_LEN,
+      sat2 = { type_name="double", data_len = DATA_LEN,
 	       lower_limits = { -5, -5, -5 }, upper_limits = { 5, 5, 5 } },
    })
 
@@ -343,7 +343,7 @@ local function stress(name, data_len)
 	 { name = "trigr", type = "ubx/ptrig" },
       },
       configurations = {
-	 { name = "ramp", config = { type = "uint64_t", data_len = data_len, start = 0, slope = 1 } },
+	 { name = "ramp", config = { type_name = "uint64_t", data_len = data_len, start = 0, slope = 1 } },
 	 { name = "chk", config = { lua_str = string.format(stress_checker, data_len) } },
 	 { name = "trigw", config = { period_ns = 0, chain0 = { { b = "#ramp" } } } },
 	 { name = "trigr", config = { period_ns = 0, chain0 = { { b = "#chk" } } } },
