@@ -30,7 +30,7 @@ local function sys1_gen_blocks()
    local res = {}
    for i=1,NUM_BLOCKS do
       res[#res+1] = { name="uint32_ramp"..tostring(i),
-		      type="ubx/ramp_uint32" }
+		      type="ubx/ramp" }
    end
 
    for i=1,NUM_BLOCKS do
@@ -52,7 +52,7 @@ end
 local function sys1_gen_configurations()
    local res = {}
    for i=1,NUM_BLOCKS do
-      res[#res+1] = { name="uint32_ramp"..tostring(i), config = { slope=1} }
+      res[#res+1] = { name="uint32_ramp"..tostring(i), config = { type="uint32_t", slope=1 } }
    end
 
    for i=1,NUM_BLOCKS do
@@ -72,7 +72,7 @@ end
 
 --- Test launching a simple composition
 local sys1 = bd.system {
-   imports = { "stdtypes", "ramp_uint32", "lfrb", "luablock" },
+   imports = { "stdtypes", "ramp", "lfrb", "luablock" },
    blocks = sys1_gen_blocks(),
    connections = sys1_gen_connections(),
    configurations = sys1_gen_configurations(),
@@ -86,10 +86,10 @@ end
 
 --- Test resolving a node config
 local sys_ndcfg_res = bd.system {
-   imports = { "stdtypes", "ramp_int32" },
-   blocks = { { name = "r1", type = "ubx/ramp_int32" } },
+   imports = { "stdtypes", "ramp" },
+   blocks = { { name = "r1", type = "ubx/ramp" } },
    node_configurations = { foo = { type="int32_t", config = 33 } },
-   configurations = { { name = "r1", config = { start = 0, slope="&foo" } } }
+   configurations = { { name = "r1", config = { type="int32_t", start = 0, slope="&foo" } } }
 }
 
 function TestBlockdiagram:test_resolve_ndcfg()
@@ -99,10 +99,10 @@ end
 
 --- Test that an invalid node config is caught
 local sys_invalid_ndcfg = bd.system {
-   imports = { "stdtypes", "ramp_int32" },
-   blocks = { { name = "r1", type = "ubx/ramp_int32" } },
+   imports = { "stdtypes", "ramp" },
+   blocks = { { name = "r1", type = "ubx/ramp" } },
    node_configurations = { foo = { type="int32_t", config = 33 } },
-   configurations = { { name = "r1", config = { start = 0, slope="&fooX" } } }
+   configurations = { { name = "r1", config = { type="int32_t", start = 0, slope="&fooX" } } }
 }
 
 function TestBlockdiagram:test_resolve_ndcfg_invalid()
@@ -116,14 +116,14 @@ end
 function TestBlockdiagram:test_resolve_block_hash()
 
    local sys = bd.system {
-      imports = { "stdtypes", "ramp_int32", "trig" },
+      imports = { "stdtypes", "ramp", "trig" },
       blocks = {
-	 { name = "r1", type = "ubx/ramp_int32" },
+	 { name = "r1", type = "ubx/ramp" },
 	 { name = "t1", type = "ubx/trig" }
       },
 
       configurations = {
-	 { name = "r1", config = { start=0, slope=1 } },
+	 { name = "r1", config = { type="int32_t", start=0, slope=1 } },
 	 { name="t1",
 	    config = {
 	       chain0 = {
@@ -137,14 +137,14 @@ end
 function TestBlockdiagram:test_resolve_block_hash_invalid()
 
    local sys = bd.system {
-      imports = { "stdtypes", "ramp_int32", "trig" },
+      imports = { "stdtypes", "ramp", "trig" },
       blocks = {
-	 { name = "r1", type = "ubx/ramp_int32" },
+	 { name = "r1", type = "ubx/ramp" },
 	 { name = "t1", type = "ubx/trig" }
       },
 
       configurations = {
-	 { name = "r1", config = { start=0, slope=1 } },
+	 { name = "r1", config = { type="int32_t", start=0, slope=1 } },
 	 { name="t1",
 	    config = {
 	       chain0 = {
@@ -160,16 +160,16 @@ end
 function TestBlockdiagram:test_extern_blocks_valid()
 
    local sys = bd.system {
-      imports = { "stdtypes", "ramp_int32", "lfrb" },
+      imports = { "stdtypes", "ramp", "lfrb" },
       extern_blocks = { "ext_blk" },
       blocks = {
-	 { name = "r1", type = "ubx/ramp_int32" },
+	 { name = "r1", type = "ubx/ramp" },
       },
       connections = {
 	 { src = "r1.out", tgt = "ext_blk.in" },
       },
       configurations = {
-	 { name = "r1", config = { start=0, slope=1 } },
+	 { name = "r1", config = { type="int32_t", start=0, slope=1 } },
       },
    }
 
@@ -181,16 +181,16 @@ end
 function TestBlockdiagram:test_extern_blocks_invalid()
 
    local sys = bd.system {
-      imports = { "stdtypes", "ramp_int32", "lfrb" },
+      imports = { "stdtypes", "ramp", "lfrb" },
       extern_blocks = { "ext_blk" },
       blocks = {
-	 { name = "r1", type = "ubx/ramp_int32" },
+	 { name = "r1", type = "ubx/ramp" },
       },
       connections = {
 	 { src = "r1.out", tgt = "typo_blk.in" },
       },
       configurations = {
-	 { name = "r1", config = { start=0, slope=1 } },
+	 { name = "r1", config = { type="int32_t", start=0, slope=1 } },
       },
    }
 
@@ -242,16 +242,16 @@ function TestBlockdiagram:test_load_str_lua()
    _nd = ubx.node_create("test_load_str_lua",
 			   { loglevel=7 })
    ubx.load_module(_nd, "stdtypes")
-   ubx.load_module(_nd, "ramp_int32")
+   ubx.load_module(_nd, "ramp")
 
    local usc_lua = [[
 return bd.system {
-   imports = { "stdtypes", "ramp_int32" },
+   imports = { "stdtypes", "ramp" },
    blocks = {
-      { name = "r1", type = "ubx/ramp_int32" },
+      { name = "r1", type = "ubx/ramp" },
    },
    configurations = {
-      { name = "r1", config = { start=0, slope=1 } },
+      { name = "r1", config = { type="int32_t", start=0, slope=1 } },
    },
 }
 ]]
@@ -274,16 +274,16 @@ function TestBlockdiagram:test_load_str_json()
    _nd = ubx.node_create("test_load_str_json",
 			  { loglevel=7 })
    ubx.load_module(_nd, "stdtypes")
-   ubx.load_module(_nd, "ramp_int32")
+   ubx.load_module(_nd, "ramp")
 
    local usc_json = [[
 {
-   "imports": [ "stdtypes", "ramp_int32" ],
+   "imports": [ "stdtypes", "ramp" ],
    "blocks": [
-      { "name": "jr1", "type": "ubx/ramp_int32" }
+      { "name": "jr1", "type": "ubx/ramp" }
    ],
    "configurations": [
-      { "name": "jr1", "config": { "start": 0, "slope": 1 } }
+      { "name": "jr1", "config": { "type": "int32_t", "start": 0, "slope": 1 } }
    ]
 }
 ]]
@@ -313,15 +313,15 @@ end
 --- latter two with an ignored config and type
 function TestBlockdiagram:test_launch_connect_with_percent()
    local sys = bd.system {
-      imports = { "stdtypes", "lfrb", "ramp_double", "threshold" },
+      imports = { "stdtypes", "lfrb", "ramp", "threshold" },
       blocks = {
-	 { name="r%d1", type="ubx/ramp_double" },
+	 { name="r%d1", type="ubx/ramp" },
 	 { name="t%d1", type="ubx/threshold" },
 	 { name="t%d2", type="ubx/threshold" },
 	 { name="q%d1", type="ubx/lfrb" },
       },
       configurations = {
-	 { name="r%d1", config = { slope=1 } },
+	 { name="r%d1", config = { type="double", slope=1 } },
 	 { name="t%d1", config = { threshold=1 } },
 	 { name="t%d2", config = { threshold=1 } },
 	 { name="q%d1", config = { type_name="double", buffer_len=4 } },

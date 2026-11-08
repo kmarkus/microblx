@@ -5,6 +5,12 @@ This file tracks user visible API changes
 
 ## 1.0.0
 
+- **incompatible**: the compile-time typed `ubx/ramp_<type>` (modules
+  `ramp_double` ... `ramp_uint64`) and `ubx/rand_<type>` blocks are
+  removed. Use `ubx/ramp` or `ubx/rand` with the `type` config, e.g.
+  `{ type="uint64_t", start=0, slope=1 }`. Unlike legacy `rand_uint32`,
+  `ubx/rand` integers cover the full type range.
+
 - **incompatible**: `ubx/ramp` `start`/`slope` have the configured
   `type` instead of `double`, so 64-bit values are exact (use a `ULL`
   literal beyond 2^53). They are added by the preinit hook: with the C

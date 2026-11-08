@@ -44,10 +44,3 @@ The port is created at runtime with the configured `type`.
 - The first output equals `start`; the value is incremented *after*
   writing.
 - The ramp is reset to `start` on every (re-)start.
-
-## Legacy variants: ubx/ramp_*
-
-The compile-time typed variants `ubx/ramp_double`, `ubx/ramp_float`,
-`ubx/ramp_int8` ... `ubx/ramp_uint64` (one module each, configs typed
-*T*, no scalar broadcast) predate `ubx/ramp` and are kept for backwards
-compatibility. Prefer `ubx/ramp` in new compositions.

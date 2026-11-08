@@ -16,11 +16,11 @@ $ ubx-launch -c /usr/local/share/ubx/examples/usc/threshold.usc --dbus
 $ ubx-dbus -i
 node:         n
 modules:      { {"/usr/local/lib/ubx/0.9/stdtypes.so", "BSD-3-Clause"}, ... }
-cblock types: {"ubx/ptrig", "ubx/threshold", "ubx/ramp_double", "ubx/math_double", "ubx/luablock"}
+cblock types: {"ubx/ptrig", "ubx/threshold", "ubx/ramp", "ubx/math_double", "ubx/luablock"}
 iblock types: {"ubx/lfrb", "ubx/mqueue"}
 cblocks:      {
   {"thres", "ubx/threshold", "active"},
-  {"ramp", "ubx/ramp_double", "active"},
+  {"ramp", "ubx/ramp", "active"},
   {"sin", "ubx/math_double", "active"},
   {"trigger", "ubx/ptrig", "inactive"},
   {"lsdb0", "ubx/luablock", "active"},

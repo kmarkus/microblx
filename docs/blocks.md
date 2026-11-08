@@ -243,7 +243,7 @@ else
 `read_<TYPE>_array` and `write_<TYPE>_array` handle arrays. Accessors
 for all basic types are in `<ubx.h>`, for custom types see
 [type safe accessors](#type-safe-accessors). Example:
-[ramp](../std_blocks/ramp/ramp.c).
+[pid](../std_blocks/pid/pid.c).
 
 ## Declaring the block
 
@@ -427,8 +427,8 @@ Messages are truncated at `UBX_LOG_MSG_MAXLEN` (see
 - add `-fvisibility=hidden` to `CFLAGS` instead of making all
   functions `static`.
 - configurable array size: see [saturation](../std_blocks/saturation/saturation.c).
-  Multiple types at compile time: [ramp](../std_blocks/ramp/ramp.c), at
-  runtime: [lfrb](../std_blocks/lfrb/lfrb.c).
+  Configurable type at runtime: [ramp](../std_blocks/ramp/ramp_generic.c),
+  [lfrb](../std_blocks/lfrb/lfrb.c).
 
 ## C++ and Lua blocks
 

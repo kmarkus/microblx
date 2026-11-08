@@ -205,10 +205,10 @@ end
 --- removing a connected iblock must drop the port references to it
 function TestConnection:Test_06_IBlockRmDisconnects()
    ni = ubx.node_create("Test_06", { loglevel = LOGLEVEL })
-   for _,m in ipairs{ "stdtypes", "lfrb", "ramp_double", "math_double" } do
+   for _,m in ipairs{ "stdtypes", "lfrb", "ramp", "math_double" } do
       ubx.load_module(ni, m)
    end
-   local r = ubx.block_create(ni, "ubx/ramp_double", "r", { start=0, slope=1 })
+   local r = ubx.block_create(ni, "ubx/ramp", "r", { type="double", start=0, slope=1 })
    local m = ubx.block_create(ni, "ubx/math_double", "m", { func="sin" })
    ubx.block_init(r)
    ubx.block_init(m)
@@ -236,10 +236,10 @@ end
 --- connect must reject a missing block or a non-iblock without port
 function TestConnection:Test_08_ConnectInvalidBlocks()
    ni = ubx.node_create("Test_08", { loglevel = LOGLEVEL })
-   for _,m in ipairs{ "stdtypes", "lfrb", "ramp_double", "math_double" } do
+   for _,m in ipairs{ "stdtypes", "lfrb", "ramp", "math_double" } do
       ubx.load_module(ni, m)
    end
-   local r = ubx.block_create(ni, "ubx/ramp_double", "r", { start=0, slope=1 })
+   local r = ubx.block_create(ni, "ubx/ramp", "r", { type="double", start=0, slope=1 })
    local m = ubx.block_create(ni, "ubx/math_double", "m", { func="sin" })
    ubx.block_init(r)
    ubx.block_init(m)

@@ -6,11 +6,10 @@
  * the 'type' config: floating-point types are uniform in [0, 1),
  * integer types are uniform over the full type range.
  *
- * Unlike the legacy compile-time typed ubx/rand_<type> variants (kept
- * for backwards compatibility), the PRNG state is *per instance*
- * (erand48/jrand48 family): instances do not race on the global
- * drand48 state across trigger threads and seeding one block does not
- * re-seed the others, so sequences are reproducible per instance.
+ * The PRNG state is *per instance* (erand48/jrand48 family): instances
+ * do not race on the global drand48 state across trigger threads and
+ * seeding one block does not re-seed the others, so sequences are
+ * reproducible per instance.
  */
 
 #include <stdint.h>

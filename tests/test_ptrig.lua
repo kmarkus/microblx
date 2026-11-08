@@ -48,9 +48,9 @@ end
 ]]
 
 local sys1 = bd.system {
-   imports = { "stdtypes", "ptrig", "ramp_uint64", "lfrb", "luablock" },
+   imports = { "stdtypes", "ptrig", "ramp", "lfrb", "luablock" },
    blocks = {
-      { name="ramp", type="ubx/ramp_uint64" },
+      { name="ramp", type="ubx/ramp" },
       { name="tester", type="ubx/luablock" },
       { name="trig", type="ubx/ptrig" },
    },
@@ -59,7 +59,7 @@ local sys1 = bd.system {
    },
 
    configurations = {
-      { name="ramp", config = { start=0, slope=1 } },
+      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
       { name="tester", config = { lua_str=count_num_trigs } },
       { name="trig", config = { period = {sec=0, usec=100000 },
 				chain0={
@@ -380,13 +380,13 @@ end
 --
 
 local sys5 = bd.system {
-   imports = { "stdtypes", "ptrig", "ramp_uint64", "lfrb" },
+   imports = { "stdtypes", "ptrig", "ramp", "lfrb" },
    blocks = {
-      { name="ramp",  type="ubx/ramp_uint64" },
+      { name="ramp",  type="ubx/ramp" },
       { name="ptrig", type="ubx/ptrig" },
    },
    configurations = {
-      { name="ramp", config = { start=0, slope=1 } },
+      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
       { name="ptrig", config = {
 	 period = { sec=0, usec=20000 },  -- 20ms / 50 Hz
 	 chain0 = { { b="#ramp" } }
@@ -430,13 +430,13 @@ end
 -- 0 -> busy loop) would otherwise go unnoticed. With a 1s period only the
 -- immediate startup trigger fits into the run window.
 local sys_sec = bd.system {
-   imports = { "stdtypes", "ptrig", "ramp_uint64" },
+   imports = { "stdtypes", "ptrig", "ramp" },
    blocks = {
-      { name="ramp",  type="ubx/ramp_uint64" },
+      { name="ramp",  type="ubx/ramp" },
       { name="ptrig", type="ubx/ptrig" },
    },
    configurations = {
-      { name="ramp", config = { start=0, slope=1 } },
+      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
       { name="ptrig", config = {
 	 period = { sec=1, usec=0 },  -- 1s
 	 chain0 = { { b="#ramp" } }
@@ -468,13 +468,13 @@ end
 --
 
 local sys_ns = bd.system {
-   imports = { "stdtypes", "ptrig", "ramp_uint64", "lfrb" },
+   imports = { "stdtypes", "ptrig", "ramp", "lfrb" },
    blocks = {
-      { name="ramp",  type="ubx/ramp_uint64" },
+      { name="ramp",  type="ubx/ramp" },
       { name="ptrig", type="ubx/ptrig" },
    },
    configurations = {
-      { name="ramp", config = { start=0, slope=1 } },
+      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
       { name="ptrig", config = {
 	 period_ns = 20000000,  -- 20ms / 50 Hz, via int64 ns config
 	 chain0 = { { b="#ramp" } }
@@ -678,13 +678,13 @@ end
 -- Functional test: ptrig with SCHED_DEADLINE config runs and steps correctly.
 -- Requires CAP_SYS_NICE (run via run_tests.sh which grants it through capsh).
 local sys_dl = bd.system {
-   imports = { "stdtypes", "ptrig", "ramp_uint64", "lfrb" },
+   imports = { "stdtypes", "ptrig", "ramp", "lfrb" },
    blocks = {
-      { name="ramp",  type="ubx/ramp_uint64" },
+      { name="ramp",  type="ubx/ramp" },
       { name="ptrig", type="ubx/ptrig" },
    },
    configurations = {
-      { name="ramp", config = { start=0, slope=1 } },
+      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
       { name="ptrig", config = {
          period         = { sec=0, usec=10000 },  -- 10ms / 100Hz
          sched_policy   = "SCHED_DEADLINE",
@@ -718,13 +718,13 @@ end
 -- reallocated on start; cleanup shuts the thread down cleanly
 --
 local sys_cycle = bd.system {
-   imports = { "stdtypes", "ptrig", "ramp_uint64" },
+   imports = { "stdtypes", "ptrig", "ramp" },
    blocks = {
-      { name="ramp",  type="ubx/ramp_uint64" },
+      { name="ramp",  type="ubx/ramp" },
       { name="ptrig", type="ubx/ptrig" },
    },
    configurations = {
-      { name="ramp", config = { start=0, slope=1 } },
+      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
       { name="ptrig", config = {
 	   period      = { sec=0, usec=1000 },  -- 1ms
 	   tstats_mode = 2,                     -- per-block: blk_tstats alloc'd
@@ -758,13 +758,13 @@ function TestPtrig:TestStartStopCycles()
 end
 
 local sys_hybrid = bd.system {
-   imports = { "stdtypes", "ptrig", "ramp_uint64" },
+   imports = { "stdtypes", "ptrig", "ramp" },
    blocks = {
-      { name="ramp",  type="ubx/ramp_uint64" },
+      { name="ramp",  type="ubx/ramp" },
       { name="ptrig", type="ubx/ptrig" },
    },
    configurations = {
-      { name="ramp", config = { start=0, slope=1 } },
+      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
       { name="ptrig", config = {
 	   period_ns     = 1000000,   -- 1ms
 	   sleep_mode    = 2,         -- hybrid

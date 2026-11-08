@@ -64,7 +64,7 @@ function TestNodeName:TestSharedModule()
    local nd1 = create("TestNodeNameMod1")
    local nd2 = create("TestNodeNameMod2")
 
-   for _, m in ipairs { "stdtypes", "lfrb", "trig", "ramp_uint64" } do
+   for _, m in ipairs { "stdtypes", "lfrb", "trig", "ramp" } do
       ubx.load_module(nd1, m)
       ubx.load_module(nd2, m)
    end
@@ -73,7 +73,7 @@ function TestNodeName:TestSharedModule()
    assert_equals(ubx.type_get(nd2, "double").nd, nd2)
 
    ubx.node_rm(nd1)
-   ubx.block_create(nd2, "ubx/ramp_uint64", "r1")	-- still intact
+   ubx.block_create(nd2, "ubx/ramp", "r1")	-- still intact
    ubx.node_rm(nd2)
 end
 

@@ -24,13 +24,13 @@ end
 local function mksys(trigtype, trigcfg)
    trigcfg.chain0 = { { b = "#r1" } }
    return bd.system {
-      imports = { "stdtypes", "trig", "ptrig", "lfrb", "ramp_uint64" },
+      imports = { "stdtypes", "trig", "ptrig", "lfrb", "ramp" },
       blocks = {
-	 { name = "r1", type = "ubx/ramp_uint64" },
+	 { name = "r1", type = "ubx/ramp" },
 	 { name = "trig", type = trigtype },
       },
       configurations = {
-	 { name = "r1", config = { start = 0, slope = 1 } },
+	 { name = "r1", config = { type = "uint64_t", start = 0, slope = 1 } },
 	 { name = "trig", config = trigcfg },
       },
    }

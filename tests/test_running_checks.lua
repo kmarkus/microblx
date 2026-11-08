@@ -26,9 +26,9 @@ function cleanup(b) ubx.port_rm(b, "in"); ubx.port_rm(b, "in2") end
 ]]
 
 local sys = bd.system {
-   imports = { "stdtypes", "ptrig", "trig", "ramp_uint64", "lfrb", "luablock" },
+   imports = { "stdtypes", "ptrig", "trig", "ramp", "lfrb", "luablock" },
    blocks = {
-      { name="ramp", type="ubx/ramp_uint64" },
+      { name="ramp", type="ubx/ramp" },
       { name="sink", type="ubx/luablock" },
       { name="inner", type="ubx/trig" },
       { name="trig", type="ubx/ptrig" },
@@ -37,7 +37,7 @@ local sys = bd.system {
       { src="ramp.out", tgt="sink.in" },
    },
    configurations = {
-      { name="ramp", config = { start=0, slope=1 } },
+      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
       { name="sink", config = { lua_str=sink } },
       { name="inner", config = { chain0={ { b="#sink" } } } },
       { name="trig", config = { period = {sec=0, usec=1000 },
@@ -128,9 +128,9 @@ end
 
 -- passive triggers stepped by no thread, one pair in a chain cycle
 local idle_sys = bd.system {
-   imports = { "stdtypes", "trig", "ramp_uint64", "lfrb", "luablock" },
+   imports = { "stdtypes", "trig", "ramp", "lfrb", "luablock" },
    blocks = {
-      { name="ramp", type="ubx/ramp_uint64" },
+      { name="ramp", type="ubx/ramp" },
       { name="sink", type="ubx/luablock" },
       { name="idle", type="ubx/trig" },
       { name="ca", type="ubx/trig" },
@@ -140,7 +140,7 @@ local idle_sys = bd.system {
       { src="ramp.out", tgt="sink.in" },
    },
    configurations = {
-      { name="ramp", config = { start=0, slope=1 } },
+      { name="ramp", config = { type="uint64_t", start=0, slope=1 } },
       { name="sink", config = { lua_str=sink } },
       { name="idle", config = { chain0={ { b="#ramp" }, { b="#sink" } } } },
       { name="ca", config = { chain0={ { b="#cb" } } } },

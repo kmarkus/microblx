@@ -21,14 +21,14 @@ end
 --- Test that connecting ports with mismatched types fails validation
 function TestConnectionErrors:TestTypeMismatch()
    local sys = bd.system {
-      imports = { "stdtypes", "lfrb", "ramp_uint32", "ramp_int32" },
+      imports = { "stdtypes", "lfrb", "ramp" },
       blocks = {
-	 { name = "r_uint", type = "ubx/ramp_uint32" },
-	 { name = "r_int", type = "ubx/ramp_int32" },
+	 { name = "r_uint", type = "ubx/ramp" },
+	 { name = "r_int", type = "ubx/ramp" },
       },
       configurations = {
-	 { name = "r_uint", config = { start = 0, slope = 1 } },
-	 { name = "r_int", config = { start = 0, slope = 1 } },
+	 { name = "r_uint", config = { type = "uint32_t", start = 0, slope = 1 } },
+	 { name = "r_int", config = { type = "int32_t", start = 0, slope = 1 } },
       },
       connections = {
 	 { src = "r_uint.out", tgt = "r_int.out" },
@@ -49,14 +49,14 @@ end
 --- Test that connecting to a non-existent port fails
 function TestConnectionErrors:TestNonExistentPort()
    local sys = bd.system {
-      imports = { "stdtypes", "lfrb", "ramp_uint32" },
+      imports = { "stdtypes", "lfrb", "ramp" },
       blocks = {
-	 { name = "r1", type = "ubx/ramp_uint32" },
-	 { name = "r2", type = "ubx/ramp_uint32" },
+	 { name = "r1", type = "ubx/ramp" },
+	 { name = "r2", type = "ubx/ramp" },
       },
       configurations = {
-	 { name = "r1", config = { start = 0, slope = 1 } },
-	 { name = "r2", config = { start = 0, slope = 1 } },
+	 { name = "r1", config = { type = "uint32_t", start = 0, slope = 1 } },
+	 { name = "r2", config = { type = "uint32_t", start = 0, slope = 1 } },
       },
       connections = {
 	 { src = "r1.out", tgt = "r2.nonexistent" },
@@ -73,12 +73,12 @@ end
 --- Test that connecting to a non-existent block fails validation
 function TestConnectionErrors:TestNonExistentBlock()
    local sys = bd.system {
-      imports = { "stdtypes", "lfrb", "ramp_uint32" },
+      imports = { "stdtypes", "lfrb", "ramp" },
       blocks = {
-	 { name = "r1", type = "ubx/ramp_uint32" },
+	 { name = "r1", type = "ubx/ramp" },
       },
       configurations = {
-	 { name = "r1", config = { start = 0, slope = 1 } },
+	 { name = "r1", config = { type = "uint32_t", start = 0, slope = 1 } },
       },
       connections = {
 	 { src = "r1.out", tgt = "ghost_block.in" },

@@ -54,7 +54,7 @@ local RATE = tonumber(os.getenv("HOTC_RATE"))		-- main thread ops/s (def: max)
 -- HOTC_MEASURE=1: trig1 is only measured: static w1 -> c1 connection,
 -- RT/CPU/stats settings apply to it alone, rewiring uses trig2..N
 local MEASURE = os.getenv("HOTC_MEASURE")
--- trig1 load in measure mode: C only, ramp_double -> math_double (sin)
+-- trig1 load in measure mode: C only, ramp (double) -> math_double (sin)
 -- on vectors of this length
 local LOAD_N = tonumber(os.getenv("HOTC_LOAD_N") or 4000)
 local FIRST = MEASURE and 2 or 1			-- first rewired trigger
@@ -158,18 +158,18 @@ local function build_sys()
 
    for i = 1, NTRIG do
       if MEASURE and i == 1 then
-	 blocks[#blocks+1] = { name = "w1", type = "ubx/ramp_double" }
+	 blocks[#blocks+1] = { name = "w1", type = "ubx/ramp" }
 	 blocks[#blocks+1] = { name = "c1", type = "ubx/math_double" }
       else
-	 blocks[#blocks+1] = { name = "w"..i, type = "ubx/ramp_uint64" }
+	 blocks[#blocks+1] = { name = "w"..i, type = "ubx/ramp" }
 	 blocks[#blocks+1] = { name = "c"..i, type = "ubx/luablock" }
       end
       blocks[#blocks+1] = { name = "trig"..i, type = "ubx/ptrig" }
       if MEASURE and i == 1 then
-	 configs[#configs+1] = { name = "w1", config = { slope = fill(1, LOAD_N), data_len = LOAD_N } }
+	 configs[#configs+1] = { name = "w1", config = { type = "double", slope = fill(1, LOAD_N), data_len = LOAD_N } }
 	 configs[#configs+1] = { name = "c1", config = { func = "sin", data_len = LOAD_N } }
       else
-	 configs[#configs+1] = { name = "w"..i, config = { start = i * 2^40, slope = 1 } }
+	 configs[#configs+1] = { name = "w"..i, config = { type = "uint64_t", start = i * 2^40, slope = 1 } }
 	 configs[#configs+1] = { name = "c"..i, config = { lua_str = string.format(checker, NTRIG) } }
       end
       local tc = { period = { sec = 0, usec = PERIOD_US },
@@ -192,8 +192,8 @@ local function build_sys()
 
    -- rewirer is created after the start, see below
    return bd.system {
-      imports = { "stdtypes", "ptrig", "lfrb", "ramp_uint64", "luablock",
-		  "ramp_double", "math_double" },
+      imports = { "stdtypes", "ptrig", "lfrb", "ramp", "luablock",
+		  "math_double" },
       blocks = blocks,
       configurations = configs,
       connections = MEASURE and { { src = "w1.out", tgt = "c1.x", config = { buffer_len = 1 } } } or nil,

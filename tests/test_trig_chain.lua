@@ -22,15 +22,15 @@ function TestTrigChain:teardown()
 end
 
 local sys = bd.system {
-   imports = { "stdtypes", "trig", "ramp_uint64" },
+   imports = { "stdtypes", "trig", "ramp" },
    blocks = {
-      { name = "r1", type = "ubx/ramp_uint64" },
-      { name = "r2", type = "ubx/ramp_uint64" },
+      { name = "r1", type = "ubx/ramp" },
+      { name = "r2", type = "ubx/ramp" },
       { name = "trig", type = "ubx/trig" },
    },
    configurations = {
-      { name = "r1", config = { start = 0, slope = 1 } },
-      { name = "r2", config = { start = 0, slope = 1 } },
+      { name = "r1", config = { type = "uint64_t", start = 0, slope = 1 } },
+      { name = "r2", config = { type = "uint64_t", start = 0, slope = 1 } },
       { name = "trig", config = {
 	   chain0 = {
 	      { b = "#r1" },

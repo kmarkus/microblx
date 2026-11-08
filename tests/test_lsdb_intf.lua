@@ -272,14 +272,14 @@ function TestLsdbIntf:test_load_module()
    _nd, _lsdb_blk, _bus, _proxy, _pm_proxy = create_node("test_loadmod")
 
    local cbt_before = _proxy.CBlockTypes
-   assert_true(not list_contains(cbt_before, "ubx/ramp_uint32"),
-               "ramp_uint32 should not be loaded yet")
+   assert_true(not list_contains(cbt_before, "ubx/ramp"),
+               "ramp should not be loaded yet")
 
-   _proxy('LoadModule', "ramp_uint32")
+   _proxy('LoadModule', "ramp")
 
    local cbt_after = _proxy.CBlockTypes
-   assert_true(list_contains(cbt_after, "ubx/ramp_uint32"),
-               "ramp_uint32 should be loaded")
+   assert_true(list_contains(cbt_after, "ubx/ramp"),
+               "ramp should be loaded")
 end
 
 ---
