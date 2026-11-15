@@ -11,14 +11,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sched.h>
+#include <time.h>
 #include <sys/syscall.h>
 
 #include "ubx.h"
 #include "rtthread.h"
 
 /* wait 1 second for thread to stop */
-#define	THREAD_STOP_TIMEOUT_US	50000
-#define	THREAD_STOP_RETRIES	20
+#define	THREAD_STOP_TIMEOUT_NS	1000000000L
 
 const char *schedpol_tostr(unsigned int schedpol)
 {
@@ -45,7 +45,13 @@ void rtthread_init(struct rtthread *rt)
 	rt->thread_state = THREAD_INACTIVE;
 	rt->state = BLOCK_STATE_INACTIVE;
 
+	pthread_condattr_t ca;
+
 	pthread_cond_init(&rt->active_cond, NULL);
+	pthread_condattr_init(&ca);
+	pthread_condattr_setclock(&ca, CLOCK_MONOTONIC);
+	pthread_cond_init(&rt->park_cond, &ca);
+	pthread_condattr_destroy(&ca);
 	pthread_mutex_init(&rt->mutex, NULL);
 	pthread_attr_init(&rt->attr);
 	pthread_attr_setdetachstate(&rt->attr, PTHREAD_CREATE_JOINABLE);
@@ -336,17 +342,33 @@ void rtthread_set_state(struct rtthread *rt, uint32_t state)
  */
 int rtthread_wait_inactive(ubx_block_t *b, struct rtthread *rt)
 {
-	for (int i=THREAD_STOP_RETRIES; i>=0; i--) {
-		uint32_t state;
-		pthread_mutex_lock(&rt->mutex);
-		state = rt->thread_state;
-		pthread_mutex_unlock(&rt->mutex);
-		if (state == THREAD_INACTIVE)
-			return 0;
-		usleep(THREAD_STOP_TIMEOUT_US);
+	int ret = 0;
+	struct timespec deadline;
+
+	clock_gettime(CLOCK_MONOTONIC, &deadline);
+	deadline.tv_nsec += THREAD_STOP_TIMEOUT_NS;
+	deadline.tv_sec += deadline.tv_nsec / 1000000000L;
+	deadline.tv_nsec %= 1000000000L;
+
+	pthread_mutex_lock(&rt->mutex);
+	while (rt->thread_state != THREAD_INACTIVE && ret == 0)
+		ret = pthread_cond_timedwait(&rt->park_cond, &rt->mutex, &deadline);
+	if (rt->thread_state == THREAD_INACTIVE)
+		ret = 0;
+	pthread_mutex_unlock(&rt->mutex);
+
+	if (ret != 0) {
+		ubx_warn(b, "timeout waiting for pthread to stop");
+		return -1;
 	}
-	ubx_warn(b, "timeout waiting for pthread to stop");
-	return -1;
+	return 0;
+}
+
+/* report the thread parked or exited, with rt->mutex held */
+void rtthread_park(struct rtthread *rt)
+{
+	rt->thread_state = THREAD_INACTIVE;
+	pthread_cond_broadcast(&rt->park_cond);
 }
 
 /* request thread shutdown and wake it up. The thread checks the flag
@@ -376,5 +398,6 @@ void rtthread_destroy(struct rtthread *rt)
 {
 	pthread_mutex_destroy(&rt->mutex);
 	pthread_cond_destroy(&rt->active_cond);
+	pthread_cond_destroy(&rt->park_cond);
 	pthread_attr_destroy(&rt->attr);
 }

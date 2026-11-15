@@ -494,7 +494,7 @@ void *thread_startup(void *arg)
 		}
 
 		while (inf->rt.state != BLOCK_STATE_ACTIVE && !inf->rt.shutdown) {
-			inf->rt.thread_state = THREAD_INACTIVE;
+			rtthread_park(&inf->rt);
 			pthread_cond_wait(&inf->rt.active_cond, &inf->rt.mutex);
 			/* we slept: rearm the deadline on re-activation so
 			 * we don't try to "catch up" the idle interval */
@@ -694,7 +694,7 @@ lat_done:		;
 
  out:
 	pthread_mutex_lock(&inf->rt.mutex);
-	inf->rt.thread_state = THREAD_INACTIVE;
+	rtthread_park(&inf->rt);
 	pthread_mutex_unlock(&inf->rt.mutex);
 	pthread_exit(NULL);
 }

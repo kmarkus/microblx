@@ -332,7 +332,7 @@ static void *fdtrig_thread(void *arg)
 		}
 
 		while (inf->rt.state != BLOCK_STATE_ACTIVE && !inf->rt.shutdown) {
-			inf->rt.thread_state = THREAD_INACTIVE;
+			rtthread_park(&inf->rt);
 			pthread_cond_wait(&inf->rt.active_cond, &inf->rt.mutex);
 		}
 
@@ -393,7 +393,7 @@ static void *fdtrig_thread(void *arg)
 
 out:
 	pthread_mutex_lock(&inf->rt.mutex);
-	inf->rt.thread_state = THREAD_INACTIVE;
+	rtthread_park(&inf->rt);
 	pthread_mutex_unlock(&inf->rt.mutex);
 	return NULL;
 }

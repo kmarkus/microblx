@@ -58,6 +58,7 @@ struct rtthread {
 
 	pthread_mutex_t mutex;
 	pthread_cond_t active_cond;
+	pthread_cond_t park_cond;	/* signals THREAD_INACTIVE */
 
 	int policy;
 	int priority;
@@ -81,6 +82,7 @@ int rtthread_create(ubx_block_t *b, struct rtthread *rt, void *(*fn)(void *));
 int rtthread_setup(ubx_block_t *b, struct rtthread *rt);
 void rtthread_set_state(struct rtthread *rt, uint32_t state);
 int rtthread_wait_inactive(ubx_block_t *b, struct rtthread *rt);
+void rtthread_park(struct rtthread *rt);
 void rtthread_shutdown(struct rtthread *rt);
 void rtthread_cleanup(ubx_block_t *b, struct rtthread *rt);
 void rtthread_destroy(struct rtthread *rt);

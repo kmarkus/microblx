@@ -222,7 +222,8 @@ function TestFdtrig:TestPathDevZero()
    assert_true(coalesced >= steps * 62, "coalesced " .. coalesced .. ", steps " .. steps)
 end
 
--- the eventfd wakes a thread blocked in poll without a timeout
+-- the eventfd wakes a thread blocked in poll without a timeout, and
+-- stop returns once it parked
 function TestFdtrig:TestStopWakesPoll()
    local nd = launch("TestStopWakesPoll",
 		     { source="timerfd", period_ns=10000*MS })
@@ -231,7 +232,7 @@ function TestFdtrig:TestStopWakesPoll()
    ubx.node_rm(nd)
 
    assert_equals(ret, 0)
-   assert_true(t_stop < 200, "stop took " .. t_stop .. " ms")
+   assert_true(t_stop < 40, "stop took " .. t_stop .. " ms")
 end
 
 local function run_timeouts(name, timeout_step)
