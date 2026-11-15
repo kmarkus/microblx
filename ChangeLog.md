@@ -211,6 +211,16 @@ This file tracks user visible API changes
   now always keeps `webgraph0`.
 - `webgraph`: all iblocks connecting two blocks (not only `lfrb`) are
   shown as edges, labelled with the iblock name and type.
+- `webgraph`: denser, wider layout for landscape screens.
+- `webgraph`: header toggles to show/hide connection edges, trigger
+  edges and connection labels. Hovering an edge shows what it connects
+  and its label.
+- `webgraph`: the header and page title show the node name, the JSON
+  has a new top-level `node` field.
+- `webgraph`: with auto refresh on, the page polls the new `/api/stats`
+  (block states and counters, ~2 ms) instead of the full `/api/graph`
+  (~250 ms on a Cortex-A53 with 67 blocks). The full graph is fetched
+  again on refresh or when blocks are added or removed.
 - `lsdb-intf`: **incompatible** `LoadUSCLua` signature change from
   `(s)` to `(s usc, a{ss} params) -> as warnings`. Pass an empty dict
   for no parameters. The plugin API `load_usc_lua(str)` takes an

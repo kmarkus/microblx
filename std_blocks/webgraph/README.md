@@ -2,7 +2,12 @@
 
 Luablock serving a live React Flow + ELK.js graph of the running node
 (blocks, states, configs, ports, connections) on
-<http://localhost:8888>. The page refreshes every 3 s.
+<http://localhost:8888>. With `auto refresh` on, states and counters
+update every 3 s; configs only on `refresh` or when blocks are added or
+removed.
+
+Endpoints: `/api/graph` (full graph, JSON) and `/api/stats` (block states
+and counters only, cheap enough to poll on small targets).
 
 > **Note**: development tool only. It listens on all interfaces
 > without authentication and allows any origin (CORS `*`). Don't run it

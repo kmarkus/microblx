@@ -348,6 +348,7 @@ local function build_graph(nd)
    end
 
    return json.encode({
+      node     = ndname,
       nodes    = json_array(nodes),
       edges    = json_array(edges),
       triggers = json_array(triggers),
@@ -360,7 +361,8 @@ end
 
 -- Inline the full single-page app; JS libs loaded from CDN.
 -- The page polls /api/graph every 3 s and re-runs ELK layout.
-local HTML = [[<!DOCTYPE html>
+-- [==[ ]==]: the JS uses ]] (nested arrays)
+local HTML = [==[<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -451,6 +453,22 @@ body { font-family: monospace; background: #1a1a2e; color: #eee; }
 .iblock-proto { color: #6b7280; font-size: 10px; }
 .iblock-type  { color: #4ade80; font-size: 10px; }
 
+/* data edge labels (EdgeLabelRenderer, above the edges) */
+.edge-label {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(15,20,40,0.9);
+  border: 1px solid #2a4a70;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: monospace;
+  font-size: 9px;
+  line-height: 12px;
+  color: #94a3b8;
+  text-align: center;
+  white-space: nowrap;
+}
+
 </style>
 </head>
 <body>
@@ -471,13 +489,13 @@ body { font-family: monospace; background: #1a1a2e; color: #eee; }
 </script>
 
 <script type="module" defer>
-import { createElement, useState, useEffect, useCallback, useRef } from 'react';
+import { createElement, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ReactFlow, Background, Controls, MiniMap,
   useNodesState, useEdgesState,
   Handle, Position, ReactFlowProvider,
-  getBezierPath, BaseEdge,
+  getBezierPath, BaseEdge, EdgeLabelRenderer,
 } from '@xyflow/react';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import htm from 'htm';
@@ -487,12 +505,23 @@ const html = htm.bind(createElement);
 // ---------- ELK instance ----------
 const elk = new ELK();
 
+// layerBound caps the blocks per layer (column), so larger graphs get
+// more columns and fit a landscape screen. SIMPLE placement packs the
+// layers tighter than the default BRANDES_KOEPF.
 const ELK_OPTS = {
   'elk.algorithm':                             'layered',
   'elk.direction':                             'RIGHT',
-  'elk.spacing.nodeNode':                      '80',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '160',
+  'elk.spacing.nodeNode':                      '30',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '120',
+  'elk.layered.nodePlacement.strategy':        'SIMPLE',
+  'elk.layered.layering.strategy':             'COFFMAN_GRAHAM',
 };
+
+// blocks per layer, ~ sqrt(n)/2: the trigger blocks are placed below
+// the layout afterwards, which adds height
+function layerBound(n) {
+  return String(Math.max(3, Math.round(Math.sqrt(n) / 2)));
+}
 
 // Approximate node height for ELK — exact value doesn't need to match rendering
 const NODE_W    = 220;
@@ -580,34 +609,35 @@ const NODE_TYPES = { ubxBlock: UbxBlock, ubxIBlock: UbxIBlock };
 
 // ---------- Custom edge: used for all data edges (direct, write, read) ----------
 // Two-line SVG label built with createElement to avoid htm/SVG namespace issues.
+// the two label lines of a data edge
+// bridged iblock: "name [type]" / "dtype r w", else "dtype" / "r w"
+function dataLabelLines(data) {
+  const dtype = (data.type_name||'') + (data.data_len > 1 ? '['+data.data_len+']' : '')
+              + (data.buffer_len != null ? '×' + data.buffer_len : '');
+  const rw = 'r:' + (data.stat_num_reads ?? 0) + ' w:' + (data.stat_num_writes ?? 0);
+  return data.iblock_type
+    ? [data.iblock + ' [' + data.iblock_type + ']', dtype + ' ' + rw]
+    : [dtype, rw];
+}
+
 function DirectEdge({ id, sourceX, sourceY, targetX, targetY,
                       sourcePosition, targetPosition, data, style }) {
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition,
   });
-  const dtype = (data.type_name||'') + (data.data_len > 1 ? '['+data.data_len+']' : '')
-              + (data.buffer_len != null ? '×' + data.buffer_len : '');
-  const rw = 'r:' + (data.stat_num_reads ?? 0) + ' w:' + (data.stat_num_writes ?? 0);
-  // bridged iblock: "name [type]" / "dtype r w", else "dtype" / "r w"
-  const line1 = data.iblock_type ? data.iblock + ' [' + data.iblock_type + ']' : dtype;
-  const line2 = data.iblock_type ? dtype + ' ' + rw : rw;
-  const lw = Math.max(line1.length, line2.length) * 6 + 14;
+  const path = html`<${BaseEdge} key="p" id=${id} path=${edgePath} style=${style}/>`;
+  if (data.hideLabel) return path;
+  const [line1, line2] = dataLabelLines(data);
+  // HTML layer above all edges: an SVG label would be covered by the
+  // paths of edges drawn after it
   return [
-    html`<${BaseEdge} key="p" id=${id} path=${edgePath} style=${style}/>`,
-    createElement('g', { key: 'l' },
-      createElement('rect', {
-        x: labelX - lw/2, y: labelY - 14, width: lw, height: 28, rx: 3,
-        fill: 'rgba(15,20,40,0.9)', stroke: '#2a4a70', strokeWidth: 1,
-      }),
-      createElement('text', {
-        x: labelX, y: labelY - 4,
-        textAnchor: 'middle', fontFamily: 'monospace', fontSize: 9, fill: '#94a3b8',
-      }, line1),
-      createElement('text', {
-        x: labelX, y: labelY + 9,
-        textAnchor: 'middle', fontFamily: 'monospace', fontSize: 9, fill: '#94a3b8',
-      }, line2),
-    ),
+    path,
+    html`<${EdgeLabelRenderer} key="l">
+      <div className="edge-label nodrag nopan"
+        style=${{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}>
+        <div>${line1}</div><div>${line2}</div>
+      </div>
+    </${EdgeLabelRenderer}>`,
   ];
 }
 
@@ -623,8 +653,10 @@ const EDGE_LABEL_BG_STYLE = { fill: 'rgba(15,20,40,0.9)', stroke: '#2a4a70', str
 async function applyLayout(graphData) {
   const triggers = graphData.triggers || [];
 
-  // Run ELK on all nodes and edges
-  const elkNodes = graphData.nodes.map(b => ({
+  // Run ELK on all but the trigger blocks, which are placed below
+  // afterwards (else they leave holes in the ELK layout)
+  const trigIds = new Set(triggers.map(t => t.from));
+  const elkNodes = graphData.nodes.filter(b => !trigIds.has(b.id)).map(b => ({
     id: b.id,
     width:  b.node_type === 'iblock' ? IBLOCK_W : NODE_W,
     height: nodeHeight(b),
@@ -636,11 +668,12 @@ async function applyLayout(graphData) {
             : e.kind === 'write'  ? e.cblock : e.iblock],
     targets: [e.kind === 'direct' ? e.target_block
             : e.kind === 'write'  ? e.iblock  : e.cblock],
-  }));
+  })).filter(e => !trigIds.has(e.sources[0]) && !trigIds.has(e.targets[0]));
 
   const layout = await elk.layout({
     id: 'root',
-    layoutOptions: ELK_OPTS,
+    layoutOptions: { ...ELK_OPTS,
+      'elk.layered.layering.coffmanGraham.layerBound': layerBound(elkNodes.length) },
     children: elkNodes,
     edges: elkEdges,
   });
@@ -719,8 +752,12 @@ async function applyLayout(graphData) {
       target: tgt, targetHandle: tgtH,
       data: {
         type_name: e.type_name, data_len: e.data_len, buffer_len: e.buffer_len,
-        iblock: e.iblock, iblock_type: e.iblock_type,
+        iblock: e.iblock, iblock_type: e.iblock_type, fat: e.fat,
         stat_num_reads: e.stat_num_reads, stat_num_writes: e.stat_num_writes,
+        // for the hover tooltip
+        conn: e.kind === 'direct' ? e.source_block+'.'+e.source_port+' -> '+e.target_block+'.'+e.target_port
+            : e.kind === 'write'  ? e.cblock+'.'+e.port+' -> '+e.iblock
+            :                       e.iblock+' -> '+e.cblock+'.'+e.port,
       },
       style: e.fat ? { stroke: '#a78bfa', strokeWidth: 6 } : { stroke: '#7dd3fc' },
     };
@@ -737,6 +774,7 @@ async function applyLayout(graphData) {
       target: t.to,
       targetHandle: t.to + ':_trig:in',
       label: parts.join(' '),
+      data: { conn: t.from + ' -> ' + t.to, trig: true },
       labelStyle: { ...EDGE_LABEL_STYLE, fill: '#fb923c' },
       labelBgStyle: EDGE_LABEL_BG_STYLE,
       labelBgPadding: [3, 5],
@@ -749,6 +787,37 @@ async function applyLayout(graphData) {
   });
 
   return { nodes, edges: [...dataEdges, ...trigEdges] };
+}
+
+// all block instance names of a full graph: the nodes plus the iblocks
+// shown as edges. Compared with the names in /api/stats.
+function instKey(names) { return [...new Set(names)].sort().join(','); }
+function graphInstKey(data) {
+  return instKey([...data.nodes.map(n => n.id), ...data.edges.map(e => e.iblock).filter(Boolean)]);
+}
+
+// apply /api/stats (states and counters) to nodes and edges
+function applyStats(blocks, setNodes, setEdges) {
+  setNodes(prev => prev.map(node => {
+    const st = blocks[node.id];
+    if (!st) return node;
+    const d = { ...node.data, state: st[0] };
+    if (d.node_type === 'iblock') { d.stat_num_reads = st[1]; d.stat_num_writes = st[2]; }
+    else d.stat_num_steps = st[1];
+    return { ...node, data: d };
+  }));
+  setEdges(prev => prev.map(edge => {
+    if (edge.type !== 'directEdge') return edge;
+    const d = edge.data;
+    let r, w;
+    if (d.fat) {   // pack -> unpack: steps of the two blocks
+      r = (blocks[edge.target] || [])[1]; w = (blocks[edge.source] || [])[1];
+    } else if (blocks[d.iblock]) {
+      [, r, w] = blocks[d.iblock];
+    }
+    if (r === undefined) return edge;
+    return { ...edge, data: { ...d, stat_num_reads: r, stat_num_writes: w } };
+  }));
 }
 
 // Stable topology key: changes only when blocks/connections are added/removed
@@ -767,9 +836,32 @@ function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [status, setStatus] = useState('');
+  const [ndname, setNdname] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [show, setShow] = useState({ conns: true, trig: true, labels: true });
+  const [tip, setTip] = useState(null);   // hover tooltip { x, y, lines }
+
+  // apply the show/hide toggles without touching the edge state
+  const viewEdges = useMemo(() => edges.map(e => {
+    if (e.type === 'directEdge')
+      return { ...e, hidden: !show.conns, data: { ...e.data, hideLabel: !show.labels } };
+    return { ...e, hidden: !show.trig };
+  }), [edges, show]);
+
+  const tipLines = (edge) => {
+    const d = edge.data || {};
+    if (d.trig) return [d.conn, 'trigger ' + edge.label];
+    return [d.conn, ...dataLabelLines(d)];
+  };
+  const onEdgeHover = useCallback((ev, edge) => {
+    // look up the current edge: the r/w counters are refreshed
+    const cur = edges.find(e => e.id === edge.id) || edge;
+    setTip({ x: ev.clientX, y: ev.clientY, lines: tipLines(cur) });
+  }, [edges]);
+
   const timerRef  = useRef(null);
   const topoRef   = useRef(null);  // last seen topology key
+  const instRef   = useRef(null);  // block names of the last full graph
 
   const refresh = useCallback(async () => {
     try {
@@ -777,6 +869,7 @@ function App() {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       const key = topoKey(data);
+      instRef.current = graphInstKey(data);
 
       if (key !== topoRef.current) {
         // Topology changed: full re-layout, resets positions
@@ -800,6 +893,7 @@ function App() {
         }));
       }
 
+      if (data.node) { setNdname(data.node); document.title = 'ubx: ' + data.node; }
       setStatus('blocks: ' + data.nodes.length + '  edges: ' + data.edges.length
                 + '  updated: ' + new Date().toLocaleTimeString());
     } catch (err) {
@@ -807,40 +901,64 @@ function App() {
     }
   }, []);
 
+  // periodic update: only states and counters. The full graph (configs,
+  // layout) is fetched again when blocks were added or removed, or on
+  // refresh.
+  const tick = useCallback(async () => {
+    try {
+      const res = await fetch('/api/stats');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const { blocks } = await res.json();
+      if (instKey(Object.keys(blocks)) !== instRef.current) return refresh();
+      applyStats(blocks, setNodes, setEdges);
+      setStatus(s => s.replace(/updated: .*/, 'updated: ' + new Date().toLocaleTimeString()));
+    } catch (err) {
+      setStatus('error: ' + err.message);
+    }
+  }, [refresh]);
+
   // Load once on mount
   useEffect(() => { refresh(); }, []);
 
   // Auto-refresh interval — managed separately from the initial load
   useEffect(() => {
     if (!autoRefresh) return;
-    timerRef.current = setInterval(refresh, 3000);
+    timerRef.current = setInterval(tick, 3000);
     return () => clearInterval(timerRef.current);
-  }, [autoRefresh, refresh]);
+  }, [autoRefresh, tick]);
 
   const btnStyle = (active) => ({
     background: active ? '#1e5a3f' : '#1e3a5f',
     color: active ? '#4ade80' : '#e2e8f0',
-    border: 'none', cursor: 'pointer', padding: '2px 10px', borderRadius: 4,
+    border: 'none', cursor: 'pointer', padding: '0 6px', borderRadius: 3,
+    fontSize: 11, lineHeight: '16px', fontFamily: 'inherit',
   });
 
   return html`
     <div style=${{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <div style=${{ padding: '4px 12px', background: '#0f3460', color: '#94a3b8',
+      <div style=${{ padding: '2px 8px', background: '#0f3460', color: '#94a3b8',
                      fontSize: 11, display: 'flex', alignItems: 'center',
                      justifyContent: 'space-between' }}>
-        <span style=${{ color: '#7dd3fc', fontWeight: 'bold' }}>ubx node graph</span>
+        <span style=${{ color: '#7dd3fc', fontWeight: 'bold' }}>ubx node graph${ndname && ': ' + ndname}</span>
         <span>${status}</span>
-        <div style=${{ display: 'flex', gap: '6px' }}>
+        <div style=${{ display: 'flex', gap: '4px' }}>
+          ${[['conns', 'show the connection edges'], ['trig', 'show the trigger edges'],
+             ['labels', 'show the connection labels']].map(([k, t]) => html`
+            <button key=${k} title=${t}
+              onClick=${() => setShow(s => ({ ...s, [k]: !s[k] }))}
+              style=${btnStyle(show[k])}>${k}</button>`)}
+          <span style=${{ borderLeft: '1px solid #1e3a5f' }}/>
+          <button title="update states and counters every 3 s"
+            onClick=${() => setAutoRefresh(a => !a)} style=${btnStyle(autoRefresh)}>auto refresh</button>
           <button onClick=${refresh} style=${btnStyle(false)}>refresh</button>
-          <button onClick=${() => setAutoRefresh(a => !a)} style=${btnStyle(autoRefresh)}>
-            auto ${autoRefresh ? 'on' : 'off'}
-          </button>
         </div>
       </div>
       <div style=${{ flex: 1 }}>
         <${ReactFlow}
-          nodes=${nodes} edges=${edges}
+          nodes=${nodes} edges=${viewEdges}
           onNodesChange=${onNodesChange} onEdgesChange=${onEdgesChange}
+          onEdgeMouseEnter=${onEdgeHover} onEdgeMouseMove=${onEdgeHover}
+          onEdgeMouseLeave=${() => setTip(null)}
           nodeTypes=${NODE_TYPES}
           edgeTypes=${EDGE_TYPES}
           fitView=${true}
@@ -849,6 +967,15 @@ function App() {
           <${Controls}/>
           <${MiniMap} nodeColor=${() => '#0f3460'} maskColor="rgba(10,20,40,0.7)"/>
         </${ReactFlow}>
+        ${tip && html`
+          <div style=${{ position: 'fixed', left: tip.x + 12, top: tip.y + 12, zIndex: 10,
+                         pointerEvents: 'none', background: 'rgba(15,20,40,0.95)',
+                         border: '1px solid #2a4a70', borderRadius: 3, padding: '3px 6px',
+                         fontFamily: 'monospace', fontSize: 11, color: '#94a3b8',
+                         whiteSpace: 'pre' }}>
+            <div style=${{ color: '#e2e8f0' }}>${tip.lines[0]}</div>
+            ${tip.lines.slice(1).map((l, i) => html`<div key=${i}>${l}</div>`)}
+          </div>`}
       </div>
     </div>`;
 }
@@ -859,7 +986,24 @@ createRoot(document.getElementById('root')).render(
 </script>
 </body>
 </html>
-]]
+]==]
+
+-- Block states and counters only, for the periodic update: ~2 ms vs
+-- ~250 ms for build_graph on a Cortex-A53 with 67 blocks.
+-- { blocks = { name = { state, steps } (cblock) | { state, reads, writes } } }
+local function build_stats(nd)
+   local blocks = {}
+   ubx.blocks_map(nd, function(b)
+      -- steps and reads/writes share a union
+      if ubx.is_iblock(b) then
+	 blocks[b:get_name()] = { b:get_block_state(), tonumber(b.stat_num_reads),
+				  tonumber(b.stat_num_writes) }
+      else
+	 blocks[b:get_name()] = { b:get_block_state(), tonumber(b.stat_num_steps) }
+      end
+   end, ubx.is_instance)
+   return json.encode({ blocks = blocks })
+end
 
 -- ============================================================
 -- HTTP server (LuaSocket, single-threaded, non-blocking accept)
@@ -910,6 +1054,13 @@ local function handle_request(client, nd)
 
    if path == "/" then
       send_response(client, "200 OK", "text/html; charset=utf-8", HTML)
+   elseif path == "/api/stats" then
+      local ok, result = pcall(build_stats, nd)
+      if ok then
+         send_response(client, "200 OK", "application/json", result)
+      else
+         send_response(client, "500 Internal Server Error", "text/plain", tostring(result))
+      end
    elseif path == "/api/graph" then
       local ok, result = pcall(build_graph, nd)
       if ok then
