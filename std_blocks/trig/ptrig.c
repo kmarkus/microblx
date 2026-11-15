@@ -51,19 +51,13 @@ static int __ubx_sched_setattr(pid_t pid, struct sched_attr *attr, unsigned int 
 #include "ubx_trace.h"
 #include "trig_utils.h"
 #include "common.h"
+#include "rtthread.h"
 
 #include "types/ptrig_period.h"
 #include "types/ptrig_period.h.hexarr"
 
 #include "types/ptrig_deadline.h"
 #include "types/ptrig_deadline.h.hexarr"
-
-/* where a relative cpuset config resolves to */
-#define CPUSET_ROOT		"/sys/fs/cgroup/cpuset"
-
-/* wait 1 second for thread to stop */
-#define	THREAD_STOP_TIMEOUT_US	50000
-#define	THREAD_STOP_RETRIES	20
 
 /* default sleep_mode=2 busy-wait tail. Sized to cover the worst-case
  * wakeup latency of an RT-tuned ARM SoC; trim it on faster targets. */
@@ -119,14 +113,7 @@ static void __ptrig_stop(ubx_block_t *b);
 ubx_proto_config_t ptrig_config[] = {
 	{ .name = "period", .type_name = "struct ptrig_period", .doc = "trigger period in { sec, usec }", },
 	{ .name = "period_ns", .type_name = "int64_t", .max = 1, .doc = "trigger period [ns] (mutually exclusive with 'period')", },
-	{ .name = "stacksize", .type_name = "size_t", .doc = "stacksize as per pthread_attr_setstacksize(3)" },
-	{ .name = "sched_priority", .type_name = "int", .doc = "thread priority (unused with SCHED_DEADLINE)" },
-	{ .name = "sched_policy", .type_name = "char", .doc = "scheduling policy: SCHED_OTHER (default), SCHED_FIFO, SCHED_RR, SCHED_DEADLINE (Linux>=3.14)" },
-#ifdef CONFIG_PTHREAD_SETAFFINITY
-	{ .name = "affinity", .type_name = "int", .doc = "list of CPUs to set the pthread CPU affinity to" },
-#endif
-	{ .name = "cpuset", .type_name = "char", .doc = "cgroup v1 cpuset the thread joins on creation: a name under " CPUSET_ROOT " or an absolute path" },
-	{ .name = "thread_name", .type_name = "char", .doc = "thread name (for dbg), default is block name" },
+	RTTHREAD_CONFIG_ENTRIES,
 	{ .name = "autostop_steps", .type_name = "int64_t", .doc = "if set and > 0, block stops itself after X steps", .max=1 },
 	{ .name = "num_chains", .type_name = "int", .max = 1, .doc = "number of trigger chains (def: 1)" },
 
@@ -149,38 +136,11 @@ ubx_proto_config_t ptrig_config[] = {
 };
 
 
-/* used by the thread to report its actual state */
-enum thread_state {
-	THREAD_INACTIVE,
-	THREAD_ACTIVE
-};
-
-const char* schedpol_tostr(unsigned int schedpol)
-{
-	switch(schedpol) {
-	case SCHED_OTHER:   return "SCHED_OTHER";
-	case SCHED_FIFO:    return "SCHED_FIFO";
-	case SCHED_RR:      return "SCHED_RR";
-	case SCHED_IDLE:    return "SCHED_IDLE";
-	case SCHED_BATCH:   return "SCHED_BATCH";
-	case SCHED_DEADLINE: return "SCHED_DEADLINE";
-	default:            return "unknown";
-	}
-}
-
 /**
  * block info
  */
 struct ptrig_inf {
-	pthread_t tid;
-	pthread_attr_t attr;
-
-	uint32_t state;		/* desired state requested by main */
-	uint32_t thread_state;	/* actual state reported by thread */
-	int shutdown;		/* request thread to exit (for cleanup) */
-
-	pthread_mutex_t mutex;
-	pthread_cond_t active_cond;
+	struct rtthread rt;
 
 	uint64_t period_ns;	/* canonical trigger period in nanoseconds */
 
@@ -222,14 +182,6 @@ struct ptrig_inf {
 	struct sched_attr deadline_attr;
 	ubx_port_t *p_deadline;
 	ubx_port_t *p_deadline_throt_cnt;
-
-	char cpuset_tasks[PATH_MAX];	/* tasks file of the cpuset to join, "" if none */
-#ifdef CONFIG_PTHREAD_SETAFFINITY
-	int thread_affinity;		/* with cpuset: thread sets the affinity itself */
-	cpu_set_t affinity;
-#endif
-	int setup_done;			/* thread_setup has run */
-	int setup_ret;			/* its result */
 };
 
 
@@ -434,45 +386,6 @@ static int ptrig_deadline_apply(ubx_block_t *b, struct ptrig_inf *inf,
 	return 0;
 }
 
-/*
- * Join the cpuset and set the affinity from the thread itself. A thread
- * cannot be created with an affinity outside its creator's cpuset, and
- * joining a cpuset resets the affinity to the cpuset's CPUs, so both
- * happen here, in that order.
- */
-static int thread_setup(ubx_block_t *b, struct ptrig_inf *inf)
-{
-	int fd, ret;
-
-	if (inf->cpuset_tasks[0] == '\0')
-		return 0;
-
-	fd = open(inf->cpuset_tasks, O_WRONLY);
-	if (fd < 0) {
-		ubx_err(b, "failed to open %s: %s", inf->cpuset_tasks, strerror(errno));
-		return -1;
-	}
-
-	ret = dprintf(fd, "%ld\n", (long)syscall(SYS_gettid));
-	if (ret < 0)
-		ubx_err(b, "failed to join cpuset %s: %s", inf->cpuset_tasks, strerror(errno));
-	close(fd);
-
-	if (ret < 0)
-		return -1;
-
-#ifdef CONFIG_PTHREAD_SETAFFINITY
-	if (inf->thread_affinity) {
-		ret = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &inf->affinity);
-		if (ret != 0) {
-			ubx_err(b, "pthread_setaffinity_np failed: %s", strerror(ret));
-			return -1;
-		}
-	}
-#endif
-	return 0;
-}
-
 /* thread entry */
 void *thread_startup(void *arg)
 {
@@ -496,15 +409,7 @@ void *thread_startup(void *arg)
 
 	cur_period_ns = inf->period_ns;
 
-	/* report the setup result to ptrig_init, which waits for it */
-	ret = thread_setup(b, inf);
-	pthread_mutex_lock(&inf->mutex);
-	inf->setup_ret = ret;
-	inf->setup_done = 1;
-	pthread_cond_broadcast(&inf->active_cond);
-	pthread_mutex_unlock(&inf->mutex);
-
-	if (ret != 0)
+	if (rtthread_setup(b, &inf->rt) != 0)
 		goto out;
 
 	/* register now, not on the first port access in the RT loop */
@@ -544,9 +449,9 @@ void *thread_startup(void *arg)
 
 	while (1) {
 
-		pthread_mutex_lock(&inf->mutex);
+		pthread_mutex_lock(&inf->rt.mutex);
 
-		if (inf->state != BLOCK_STATE_ACTIVE && !inf->shutdown && ran) {
+		if (inf->rt.state != BLOCK_STATE_ACTIVE && !inf->rt.shutdown && ran) {
 			/*
 			 * going inactive: flush stats once. This must
 			 * happen before setting THREAD_INACTIVE,
@@ -588,21 +493,21 @@ void *thread_startup(void *arg)
 			ran = 0;
 		}
 
-		while (inf->state != BLOCK_STATE_ACTIVE && !inf->shutdown) {
-			inf->thread_state = THREAD_INACTIVE;
-			pthread_cond_wait(&inf->active_cond, &inf->mutex);
+		while (inf->rt.state != BLOCK_STATE_ACTIVE && !inf->rt.shutdown) {
+			inf->rt.thread_state = THREAD_INACTIVE;
+			pthread_cond_wait(&inf->rt.active_cond, &inf->rt.mutex);
 			/* we slept: rearm the deadline on re-activation so
 			 * we don't try to "catch up" the idle interval */
 			rearm = 1;
 		}
 
-		if (inf->shutdown) {
-			pthread_mutex_unlock(&inf->mutex);
+		if (inf->rt.shutdown) {
+			pthread_mutex_unlock(&inf->rt.mutex);
 			goto out;
 		}
 
-		inf->thread_state = THREAD_ACTIVE;
-		pthread_mutex_unlock(&inf->mutex);
+		inf->rt.thread_state = THREAD_ACTIVE;
+		pthread_mutex_unlock(&inf->rt.mutex);
 		ran = 1;
 
 		if (rearm) {
@@ -788,17 +693,10 @@ lat_done:		;
 	}
 
  out:
-	pthread_mutex_lock(&inf->mutex);
-	inf->thread_state = THREAD_INACTIVE;
-	pthread_mutex_unlock(&inf->mutex);
+	pthread_mutex_lock(&inf->rt.mutex);
+	inf->rt.thread_state = THREAD_INACTIVE;
+	pthread_mutex_unlock(&inf->rt.mutex);
 	pthread_exit(NULL);
-}
-
-/* exact match of a (possibly not NUL-terminated) char config against s */
-static int cfg_strmatch(const char *cfg, long len, const char *s)
-{
-	size_t n = strnlen(cfg, len);
-	return n == strlen(s) && strncmp(cfg, s, n) == 0;
 }
 
 /* Called from ptrig_handle_config to parse and validate the sched_deadline
@@ -833,11 +731,7 @@ int ptrig_handle_config(ubx_block_t *b)
 {
 	long len;
 	int ret = EINVALID_CONFIG;
-	int pret;
-	unsigned int schedpol;
 	const int64_t *autostop_steps;
-	const char *schedpol_str;
-	const size_t *stacksize = NULL;
 	struct ptrig_inf *inf = (struct ptrig_inf *)b->private_data;
 
 	/* autostop_steps */
@@ -953,52 +847,13 @@ int ptrig_handle_config(ubx_block_t *b)
 				 (inf->busy_slack_ns * 100) / inf->period_ns);
 	}
 
-	/* stacksize */
-	len = cfg_getptr_size_t(b, "stacksize", &stacksize);
-	assert(len >= 0);
+	ret = rtthread_handle_config(b, &inf->rt);
+	if (ret != 0)
+		goto out;
 
-	if (len > 0) {
-		if (*stacksize < (size_t)PTHREAD_STACK_MIN) {
-			ubx_err(b, "stacksize (%zd) less than PTHREAD_STACK_MIN (%ld)",
-				*stacksize, (long)PTHREAD_STACK_MIN);
-			goto out;
-		}
+	ret = EINVALID_CONFIG;
 
-		pret = pthread_attr_setstacksize(&inf->attr, *stacksize);
-		if (pret) {
-			ubx_err(b, "pthread_attr_setstacksize failed: %s",
-				strerror(pret));
-			goto out;
-		}
-	}
-
-	char stackbuf[32] = "default";
-	if (stacksize != NULL)
-		snprintf(stackbuf, sizeof(stackbuf), "%#zx", *stacksize);
-
-	/* schedpolicy */
-	len = cfg_getptr_char(b, "sched_policy", &schedpol_str);
-	assert(len >= 0);
-
-	if (len > 0) {
-		if (cfg_strmatch(schedpol_str, len, "SCHED_OTHER")) {
-			schedpol = SCHED_OTHER;
-		} else if (cfg_strmatch(schedpol_str, len, "SCHED_FIFO")) {
-			schedpol = SCHED_FIFO;
-		} else if (cfg_strmatch(schedpol_str, len, "SCHED_RR")) {
-			schedpol = SCHED_RR;
-		} else if (cfg_strmatch(schedpol_str, len, "SCHED_DEADLINE")) {
-			schedpol = SCHED_DEADLINE;
-		} else {
-			ubx_err(b, "sched_policy config: illegal value %s",
-				schedpol_str);
-			goto out;
-		}
-	} else {
-		schedpol = SCHED_OTHER;
-	}
-
-	if (schedpol == SCHED_DEADLINE) {
+	if (inf->rt.policy == SCHED_DEADLINE) {
 		if (ptrig_deadline_config(b, inf) != 0)
 			goto out;
 
@@ -1012,44 +867,10 @@ int ptrig_handle_config(ubx_block_t *b)
 			 (unsigned long long)inf->deadline_attr.sched_runtime,
 			 (unsigned long long)inf->deadline_attr.sched_deadline,
 			 (unsigned long long)inf->deadline_attr.sched_period,
-			 stackbuf);
+			 inf->rt.stackbuf);
 	} else {
-		const int *prio;
-		struct sched_param sched_param;
-
 		if (inf->period_ns == 0)
 			ubx_warn(b, "period is 0: trigger will free-run (busy loop) without sleeping");
-
-		if (pthread_attr_setschedpolicy(&inf->attr, schedpol))
-			ubx_err(b, "pthread_attr_setschedpolicy failed");
-
-		/* see PTHREAD_ATTR_SETSCHEDPOLICY(3) */
-		pret = pthread_attr_setinheritsched(&inf->attr, PTHREAD_EXPLICIT_SCHED);
-
-		if (pret != 0)
-			ubx_err(b, "failed to set PTHREAD_EXPLICIT_SCHED: %s",
-				strerror(pret));
-
-		/* priority */
-		len = cfg_getptr_int(b, "sched_priority", &prio);
-		assert(len >= 0);
-
-		sched_param.sched_priority = (len > 0) ? *prio : 0;
-
-		if (((schedpol == SCHED_FIFO || schedpol == SCHED_RR) &&
-		     sched_param.sched_priority == 0) ||
-		    (schedpol == SCHED_OTHER && sched_param.sched_priority > 0)) {
-			ubx_err(b, "invalid sched_priority %d with policy %s",
-				sched_param.sched_priority, schedpol_tostr(schedpol));
-		}
-
-		pret = pthread_attr_setschedparam(&inf->attr, &sched_param);
-
-		if (pret != 0) {
-			ubx_err(b, "failed to set sched_policy.sched_priority to %d: %s",
-				sched_param.sched_priority, strerror(pret));
-			goto out;
-		}
 
 		char slackbuf[64] = "";
 		if (inf->sleep_mode == 2)
@@ -1063,9 +884,9 @@ int ptrig_handle_config(ubx_block_t *b)
 
 		ubx_info(b, "period %" PRIu64 "ns, policy %s, prio %d, stacksize %s, sleep_mode %s%s%s",
 			 inf->period_ns,
-			 schedpol_tostr(schedpol),
-			 sched_param.sched_priority,
-			 stackbuf, sleep_mode_tostr(inf->sleep_mode),
+			 schedpol_tostr(inf->rt.policy),
+			 inf->rt.priority,
+			 inf->rt.stackbuf, sleep_mode_tostr(inf->sleep_mode),
 			 slackbuf, tslackbuf);
 	}
 
@@ -1077,10 +898,7 @@ out:
 /* init */
 int ptrig_init(ubx_block_t *b)
 {
-	long len;
 	int ret = EOUTOFMEM;
-	const char *threadname;
-	const char *cpuset_cfg;
 	struct ptrig_inf *inf;
 
 	b->private_data = calloc(1, sizeof(struct ptrig_inf));
@@ -1117,13 +935,7 @@ int ptrig_init(ubx_block_t *b)
 	if (inf->num_chains <= 0)
 		goto out_err;
 
-	inf->thread_state = THREAD_INACTIVE;
-	inf->state = BLOCK_STATE_INACTIVE;
-
-	pthread_cond_init(&inf->active_cond, NULL);
-	pthread_mutex_init(&inf->mutex, NULL);
-	pthread_attr_init(&inf->attr);
-	pthread_attr_setdetachstate(&inf->attr, PTHREAD_CREATE_JOINABLE);
+	rtthread_init(&inf->rt);
 
 	ret = ptrig_handle_config(b);
 	if (ret != 0)
@@ -1132,62 +944,6 @@ int ptrig_init(ubx_block_t *b)
 	ret = ptrig_break_init(b, inf);
 	if (ret != 0)
 		goto out_err;
-
-	len = cfg_getptr_char(b, "cpuset", &cpuset_cfg);
-	assert(len >= 0);
-
-	if (len > 0) {
-		int n = (int)strnlen(cpuset_cfg, len);
-
-		ret = snprintf(inf->cpuset_tasks, sizeof(inf->cpuset_tasks), "%s%.*s/tasks",
-			       cpuset_cfg[0] == '/' ? "" : CPUSET_ROOT "/", n, cpuset_cfg);
-		if (ret < 0 || (size_t)ret >= sizeof(inf->cpuset_tasks)) {
-			ubx_err(b, "cpuset path too long: %.*s", n, cpuset_cfg);
-			ret = -1;
-			goto out_err;
-		}
-		ubx_info(b, "joining cpuset %s", inf->cpuset_tasks);
-	}
-
-#ifdef CONFIG_PTHREAD_SETAFFINITY
-	/* cpu affinity: set on attr so it is validated before the thread
-	 * starts, or with a cpuset by the thread after joining it */
-	const int *aff;
-	len = cfg_getptr_int(b, "affinity", &aff);
-	assert(len>=0);
-
-	if (len > 0 && inf->use_deadline) {
-		ubx_warn(b, "affinity with SCHED_DEADLINE requires the affinity mask "
-			 "to match a cpuset root domain (see cpuset(7) with "
-			 "sched_load_balance=0); sched_setattr will fail with EPERM otherwise.");
-	}
-
-	if (len > 0) {
-		cpu_set_t cpuset;
-		CPU_ZERO(&cpuset);
-
-		for (int i=0; i<len; i++) {
-			ubx_info(b, "setting affinity to CPU core %i",	aff[i]);
-			CPU_SET(aff[i], &cpuset);
-		}
-
-		if (inf->cpuset_tasks[0] != '\0') {
-			inf->affinity = cpuset;
-			inf->thread_affinity = 1;
-			ret = 0;
-		} else {
-			ret = pthread_attr_setaffinity_np(&inf->attr, sizeof(cpu_set_t), &cpuset);
-		}
-
-		if (ret != 0) {
-			ubx_err(b, "pthread_attr_setaffinity_np failed: %s", strerror(ret));
-			ret = -1;
-			goto out_err;
-		}
-	} else {
-		ubx_debug(b, "setting no thread affinity");
-	}
-#endif
 
 	/* block SIGXCPU on this (creating) thread so it is inherited by the new
 	 * thread; thread_startup unblocks it again after installing the handler */
@@ -1199,42 +955,14 @@ int ptrig_init(ubx_block_t *b)
 		pthread_sigmask(SIG_BLOCK, &sigxcpu_set, &oldmask);
 	}
 
-	/* create thread */
-	ret = pthread_create(&inf->tid, &inf->attr, thread_startup, b);
+	ret = rtthread_create(b, &inf->rt, thread_startup);
 
 	/* restore the creating thread's mask */
 	if (inf->use_deadline)
 		pthread_sigmask(SIG_SETMASK, &oldmask, NULL);
 
-	if (ret != 0) {
-		ubx_err(b, "pthread_create failed: %s", strerror(ret));
+	if (ret != 0)
 		goto out_err;
-	}
-
-#ifdef CONFIG_PTHREAD_SETNAME
-	/* pthread_setname_np */
-	len = cfg_getptr_char(b, "thread_name", &threadname);
-	assert(len>=0);
-
-	threadname = (len > 0) ? threadname : b->name;
-
-	if (pthread_setname_np(inf->tid, threadname))
-		ubx_err(b, "failed to set thread_name to %s", threadname);
-#endif
-
-	/* with a cpuset, fail here rather than run outside of it */
-	if (inf->cpuset_tasks[0] != '\0') {
-		pthread_mutex_lock(&inf->mutex);
-		while (!inf->setup_done)
-			pthread_cond_wait(&inf->active_cond, &inf->mutex);
-		ret = inf->setup_ret;
-		pthread_mutex_unlock(&inf->mutex);
-
-		if (ret != 0) {
-			pthread_join(inf->tid, NULL);
-			goto out_err;
-		}
-	}
 
 	/* OK */
 	ret = 0;
@@ -1263,10 +991,7 @@ int ptrig_start(ubx_block_t *b)
 	/* published to the thread by the mutex */
 	common_sync_init(b, &inf->sync);
 
-	pthread_mutex_lock(&inf->mutex);
-	inf->state = BLOCK_STATE_ACTIVE;
-	pthread_cond_signal(&inf->active_cond);
-	pthread_mutex_unlock(&inf->mutex);
+	rtthread_set_state(&inf->rt, BLOCK_STATE_ACTIVE);
 
 	ret = 0;
 out:
@@ -1277,9 +1002,7 @@ void __ptrig_stop(ubx_block_t *b)
 {
 	struct ptrig_inf *inf = (struct ptrig_inf *)b->private_data;
 
-	pthread_mutex_lock(&inf->mutex);
-	inf->state = BLOCK_STATE_INACTIVE;
-	pthread_mutex_unlock(&inf->mutex);
+	rtthread_set_state(&inf->rt, BLOCK_STATE_INACTIVE);
 }
 
 
@@ -1292,41 +1015,16 @@ void ptrig_stop(ubx_block_t *b)
 	/* wait for the thread to park, then release the chain
 	 * resources. On timeout skip the unconfig, as the thread may
 	 * still be using the chains (cleanup will release them). */
-	for (int i=THREAD_STOP_RETRIES; i>=0; i--) {
-		uint32_t state;
-		pthread_mutex_lock(&inf->mutex);
-		state = inf->thread_state;
-		pthread_mutex_unlock(&inf->mutex);
-		if (state == THREAD_INACTIVE) {
-			common_unconfig(inf->chains, inf->num_chains);
-			return;
-		}
-		usleep(THREAD_STOP_TIMEOUT_US);
-	}
-	ubx_warn(b, "timeout waiting for pthread to stop");
+	if (rtthread_wait_inactive(b, &inf->rt) == 0)
+		common_unconfig(inf->chains, inf->num_chains);
 }
 
 void ptrig_cleanup(ubx_block_t *b)
 {
-	int ret;
-
 	struct ptrig_inf *inf = (struct ptrig_inf *)b->private_data;
 
-	/* request thread shutdown and wake it up. The thread checks
-	 * the flag with the mutex held before waiting, so the signal
-	 * cannot get lost. */
-	pthread_mutex_lock(&inf->mutex);
-	inf->shutdown = 1;
-	pthread_cond_signal(&inf->active_cond);
-	pthread_mutex_unlock(&inf->mutex);
-
-	ret = pthread_join(inf->tid, NULL);
-	if (ret != 0)
-		ubx_err(b, "pthread_join failed: %s", strerror(ret));
-
-	pthread_mutex_destroy(&inf->mutex);
-	pthread_cond_destroy(&inf->active_cond);
-	pthread_attr_destroy(&inf->attr);
+	rtthread_shutdown(&inf->rt);
+	rtthread_cleanup(b, &inf->rt);
 
 	/* even though we call ubx_chain_init in start, it is OK to do
 	 * this in cleanup only since start calls realloc which will

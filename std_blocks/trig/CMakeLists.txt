@@ -21,6 +21,7 @@ generate_hexarr(${MOD_SRC_DIR}/types/ptrig_period.h   ${MOD_BUILD_DIR}/types/ptr
 generate_hexarr(${MOD_SRC_DIR}/types/ptrig_deadline.h ${MOD_BUILD_DIR}/types/ptrig_deadline.h.hexarr)
 
 set(COMMON_SRCS ${MOD_SRC_DIR}/common.c ${MOD_SRC_DIR}/common.h )
+set(RTTHREAD_SRCS ${MOD_SRC_DIR}/rtthread.c ${MOD_SRC_DIR}/rtthread.h )
 
 # trig
 add_library(trig MODULE  ${MOD_SRC_DIR}/trig.c ${COMMON_SRCS})
@@ -36,7 +37,7 @@ set_target_properties(trig
 )
 
 # ptrig
-add_library(ptrig MODULE  ${MOD_SRC_DIR}/ptrig.c ${COMMON_SRCS} ${MOD_HDRS_GEN})
+add_library(ptrig MODULE  ${MOD_SRC_DIR}/ptrig.c ${COMMON_SRCS} ${RTTHREAD_SRCS} ${MOD_HDRS_GEN})
 target_include_directories(ptrig PRIVATE ${CMAKE_SOURCE_DIR}/libubx/ ${MOD_BUILD_DIR} )
 target_compile_options(ptrig PRIVATE ${UBX_MODE_CFLAGS})
 target_link_libraries(ptrig PRIVATE ubx)
