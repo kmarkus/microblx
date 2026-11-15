@@ -267,14 +267,18 @@ local function keeplist_match(name, keeplist)
    return false
 end
 
--- like ubx_node_clear, but with filters
+-- webgraph block as created by ubx-launch/ubx-dbus --webgraph
+local WEBGRAPH_BLK = "webgraph0"
+
+-- like ubx_node_clear, but with filters. Always keeps the lsdb-intf
+-- block itself and webgraph0
 local function clear_node(vt, keeplist)
    keeplist = keeplist or {}
 
    local function filter(b)
       if not ubx.is_instance(b) then return false end
       local name = b:get_name()
-      if name == vt.blkname then return false end
+      if name == vt.blkname or name == WEBGRAPH_BLK then return false end
       if keeplist_match(name, keeplist) then return false end
       return true
    end

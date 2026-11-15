@@ -23,6 +23,7 @@ through it.
 ubx-launch --webgraph -c app.usc          # port 8888
 ubx-launch --webgraph=9090 -c app.usc
 ubx-launch -c app.usc,/usr/local/share/ubx/examples/usc/webgraph.usc   # as usc mixin
+ubx-dbus --webgraph=9090                  # into a running node (--dbus)
 ```
 
 As a block (self-triggering every 50 ms, `port` config defaults to 8888):

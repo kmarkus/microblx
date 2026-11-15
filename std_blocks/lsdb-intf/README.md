@@ -147,12 +147,22 @@ $ ubx-dbus -W myblock:io:42:true
 ### Clear a node
 
 ```sh
-$ ubx-dbus -C                 # clear all blocks (lsdb-intf itself is always kept)
+$ ubx-dbus -C                 # clear all blocks (lsdb-intf and webgraph0 are always kept)
 $ ubx-dbus -C=ptrig0:^logger  # keep ptrig0 and any block matching ^logger
 ```
 
 Keeplist entries: plain strings match exactly; entries starting with `^` or ending with `$`
 are Lua [string.match](https://www.lua.org/manual/5.1/manual.html#pdf-string.match) patterns.
+
+### Webgraph
+
+```sh
+$ ubx-dbus --webgraph         # create and start webgraph0 on port 8888
+$ ubx-dbus --webgraph=9090
+$ ubx-dbus --remove=webgraph0
+```
+
+The block is created in the node, so the port is opened on the node's host.
 
 ### Load a model with parameters
 

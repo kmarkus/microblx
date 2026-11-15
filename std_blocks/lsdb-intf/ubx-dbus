@@ -91,7 +91,8 @@ Commands
       --params                    with --load-usc: list the parameters
                                   declared by the model locally and exit.
                                   -D values are checked as for loading
-  -C  --clear=[KEEPLIST]          clear all blocks except the dbus block.
+  -C  --clear=[KEEPLIST]          clear all blocks except the dbus and the
+                                  webgraph0 block.
                                   KEEPLIST is an optional colon-separated list
                                   of block names or Lua match patterns to keep.
                                   Patterns are distinguished by ^/$ anchoring.
@@ -99,6 +100,9 @@ Commands
   -p  --load-plugin=NAME          load a plugin by name or absolute path
   -u  --unload-plugin=NAME        unload a loaded plugin
   -P  --list-plugins              list loaded plugins
+      --webgraph=[PORT]           create and start a webgraph block
+                                  (webgraph0) in the node, serving on PORT
+                                  (default 8888) of the node's host
 
 
 Options
@@ -563,6 +567,38 @@ if opts.load_usc then
    handled = true
 end
 
+-- checked node-side: bd.param validates PORT
+local WEBGRAPH_USC = [=[
+local PORT = bd.param("PORT", 8888, "webgraph HTTP port", function(v)
+   return v >= 1 and v <= 65535 and v % 1 == 0, "port must be 1..65535"
+end)
+return bd.system {
+   imports = { "stdtypes" },
+   blocks = { { name="webgraph0", type="luablock:webgraph" } },
+   configurations = {
+      { name="webgraph0", config = { thread=1, period=50, port=PORT } },
+   },
+}
+]=]
+
+if opts.webgraph then
+   local p = get_proxy(ndname)
+   for _, b in ipairs(p.CBlocks) do
+      if b[1] == "webgraph0" then
+	 errexit(1, "webgraph0 already exists (port %s), remove it with --remove=webgraph0",
+		 tostring(p('GetConfig', "webgraph0", "port")))
+      end
+   end
+   local params = {}
+   if opts.webgraph ~= true then params.PORT = opts.webgraph end
+   local warnings = p('LoadUSCLua', WEBGRAPH_USC, params)
+   for _,w in ipairs(warnings or {}) do
+      io.stderr:write("warning: ", w, "\n")
+   end
+   printf("webgraph: http://<node-host>:%s", params.PORT or 8888)
+   handled = true
+end
+
 if opts.load_plugin then
    local pm = get_pm_proxy(ndname)
    pm('LoadPlugin', opts.load_plugin)
@@ -633,6 +669,10 @@ Examples:
   # load a plugin by short name or absolute path
   ubx-dbus -p myplugin.lua
   ubx-dbus -p /path/to/myplugin.lua
+
+  # start the webgraph on port 9090, stop it again
+  ubx-dbus --webgraph=9090
+  ubx-dbus --remove=webgraph0
 
   # list loaded plugins
   ubx-dbus -P

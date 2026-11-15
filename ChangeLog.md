@@ -206,6 +206,9 @@ This file tracks user visible API changes
   or a tableshape type. A conversion function as default, e.g.
   `tonumber`, makes the parameter required.
 - `ubx-dbus`: new `-D` and `--params` options for `--load-usc`.
+- `ubx-dbus`: new `--webgraph[=PORT]`, creates and starts a webgraph
+  block `webgraph0` in a running node. lsdb-intf `ClearNode` (`-C`)
+  now always keeps `webgraph0`.
 - `lsdb-intf`: **incompatible** `LoadUSCLua` signature change from
   `(s)` to `(s usc, a{ss} params) -> as warnings`. Pass an empty dict
   for no parameters. The plugin API `load_usc_lua(str)` takes an
