@@ -4,8 +4,8 @@ set(MOD_SRC_DIR ${CMAKE_SOURCE_DIR}/std_blocks/${MOD_NAME})
 set(MOD_BUILD_DIR ${CMAKE_BINARY_DIR}/std_blocks/${MOD_NAME})
 
 # HAVE_STRUCT_SCHED_ATTR, HAVE_SCHED_FLAG_DL_OVERRUN,
-# HAVE_PTHREAD_SETNAME_NP and HAVE_PTHREAD_SETAFFINITY_NP are detected
-# in the top level CMakeLists.txt.
+# HAVE_PTHREAD_SETNAME_NP, HAVE_PTHREAD_SETAFFINITY_NP and HAVE_GPIO_V2
+# are detected in the top level CMakeLists.txt.
 
 file(MAKE_DIRECTORY ${MOD_BUILD_DIR}/types)
 
@@ -63,8 +63,31 @@ set_target_properties(ptrig
   PUBLIC_HEADER "${MOD_HDRS}"
 )
 
+# fdtrig
+add_library(fdtrig MODULE  ${MOD_SRC_DIR}/fdtrig.c ${COMMON_SRCS} ${RTTHREAD_SRCS})
+target_include_directories(fdtrig PRIVATE ${CMAKE_SOURCE_DIR}/libubx/ ${MOD_SRC_DIR} )
+target_compile_options(fdtrig PRIVATE ${UBX_MODE_CFLAGS})
+target_link_libraries(fdtrig PRIVATE ubx)
+
+if(HAVE_GPIO_V2)
+  target_compile_definitions(fdtrig PRIVATE HAVE_GPIO_V2)
+endif()
+if(HAVE_PTHREAD_SETNAME_NP)
+  target_compile_definitions(fdtrig PRIVATE CONFIG_PTHREAD_SETNAME _GNU_SOURCE)
+endif()
+if(HAVE_PTHREAD_SETAFFINITY_NP)
+  target_compile_definitions(fdtrig PRIVATE CONFIG_PTHREAD_SETAFFINITY)
+endif()
+
+set_target_properties(fdtrig
+  PROPERTIES
+  POSITION_INDEPENDENT_CODE ON
+  PREFIX ""
+  OUTPUT_NAME "fdtrig"
+)
+
 install(
-  TARGETS trig ptrig
+  TARGETS trig ptrig fdtrig
   LIBRARY DESTINATION ${UBX_MOD_DIR} COMPONENT libraries
   PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ubx/ COMPONENT dev
 )

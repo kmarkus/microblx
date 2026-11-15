@@ -111,6 +111,9 @@ check_c_source_compiles("
 int main(void) { return SCHED_FLAG_DL_OVERRUN; }
 " HAVE_SCHED_FLAG_DL_OVERRUN)
 
+# GPIO character device v2 uAPI (Linux >= 5.10), for fdtrig
+check_symbol_exists(GPIO_V2_GET_LINE_IOCTL "linux/gpio.h" HAVE_GPIO_V2)
+
 # timesource: POSIX clock_gettime (default), the x86 TSC or the
 # aarch64 CNTVCT counter. Selected here rather than on the ubx target
 # so that the choice lands in config.h, which is both what ubx_time.c

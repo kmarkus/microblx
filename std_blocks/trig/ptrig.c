@@ -113,7 +113,7 @@ static void __ptrig_stop(ubx_block_t *b);
 ubx_proto_config_t ptrig_config[] = {
 	{ .name = "period", .type_name = "struct ptrig_period", .doc = "trigger period in { sec, usec }", },
 	{ .name = "period_ns", .type_name = "int64_t", .max = 1, .doc = "trigger period [ns] (mutually exclusive with 'period')", },
-	RTTHREAD_CONFIG_ENTRIES,
+	RTTHREAD_CONFIG_ENTRIES("scheduling policy: SCHED_OTHER (default), SCHED_FIFO, SCHED_RR, SCHED_DEADLINE (Linux>=3.14)"),
 	{ .name = "autostop_steps", .type_name = "int64_t", .doc = "if set and > 0, block stops itself after X steps", .max=1 },
 	{ .name = "num_chains", .type_name = "int", .max = 1, .doc = "number of trigger chains (def: 1)" },
 
@@ -847,7 +847,7 @@ int ptrig_handle_config(ubx_block_t *b)
 				 (inf->busy_slack_ns * 100) / inf->period_ns);
 	}
 
-	ret = rtthread_handle_config(b, &inf->rt);
+	ret = rtthread_handle_config(b, &inf->rt, 1);
 	if (ret != 0)
 		goto out;
 

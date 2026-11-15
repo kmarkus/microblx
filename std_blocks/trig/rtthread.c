@@ -118,11 +118,11 @@ static int rtthread_cpu_config(ubx_block_t *b, struct rtthread *rt)
  * rtthread_handle_config - parse the RTTHREAD_CONFIG_ENTRIES
  *
  * With SCHED_DEADLINE only rt->policy is set, the attr is left to
- * the caller.
+ * the caller. Without allow_deadline, SCHED_DEADLINE is rejected.
  *
  * @return 0, EINVALID_CONFIG or -1 (cpuset/affinity)
  */
-int rtthread_handle_config(ubx_block_t *b, struct rtthread *rt)
+int rtthread_handle_config(ubx_block_t *b, struct rtthread *rt, int allow_deadline)
 {
 	long len;
 	int pret;
@@ -172,6 +172,11 @@ int rtthread_handle_config(ubx_block_t *b, struct rtthread *rt)
 		}
 	} else {
 		rt->policy = SCHED_OTHER;
+	}
+
+	if (rt->policy == SCHED_DEADLINE && !allow_deadline) {
+		ubx_err(b, "SCHED_DEADLINE is not supported by this block");
+		return EINVALID_CONFIG;
 	}
 
 	if (rt->policy != SCHED_DEADLINE) {
@@ -363,6 +368,12 @@ void rtthread_cleanup(ubx_block_t *b, struct rtthread *rt)
 	if (ret != 0)
 		ubx_err(b, "pthread_join failed: %s", strerror(ret));
 
+	rtthread_destroy(rt);
+}
+
+/* release the resources of rtthread_init */
+void rtthread_destroy(struct rtthread *rt)
+{
 	pthread_mutex_destroy(&rt->mutex);
 	pthread_cond_destroy(&rt->active_cond);
 	pthread_attr_destroy(&rt->attr);

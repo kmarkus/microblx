@@ -22,10 +22,10 @@
 #endif
 
 /* thread configs, shared by the ptrig and fdtrig config arrays */
-#define RTTHREAD_CONFIG_ENTRIES						\
+#define RTTHREAD_CONFIG_ENTRIES(policy_doc)				\
 	{ .name = "stacksize", .type_name = "size_t", .doc = "stacksize as per pthread_attr_setstacksize(3)" }, \
 	{ .name = "sched_priority", .type_name = "int", .doc = "thread priority (unused with SCHED_DEADLINE)" }, \
-	{ .name = "sched_policy", .type_name = "char", .doc = "scheduling policy: SCHED_OTHER (default), SCHED_FIFO, SCHED_RR, SCHED_DEADLINE (Linux>=3.14)" }, \
+	{ .name = "sched_policy", .type_name = "char", .doc = policy_doc }, \
 	RTTHREAD_AFFINITY_ENTRY						\
 	{ .name = "cpuset", .type_name = "char", .doc = "cgroup v1 cpuset the thread joins on creation: a name under " CPUSET_ROOT " or an absolute path" }, \
 	{ .name = "thread_name", .type_name = "char", .doc = "thread name (for dbg), default is block name" }
@@ -76,12 +76,13 @@ const char *schedpol_tostr(unsigned int schedpol);
 int cfg_strmatch(const char *cfg, long len, const char *s);
 
 void rtthread_init(struct rtthread *rt);
-int rtthread_handle_config(ubx_block_t *b, struct rtthread *rt);
+int rtthread_handle_config(ubx_block_t *b, struct rtthread *rt, int allow_deadline);
 int rtthread_create(ubx_block_t *b, struct rtthread *rt, void *(*fn)(void *));
 int rtthread_setup(ubx_block_t *b, struct rtthread *rt);
 void rtthread_set_state(struct rtthread *rt, uint32_t state);
 int rtthread_wait_inactive(ubx_block_t *b, struct rtthread *rt);
 void rtthread_shutdown(struct rtthread *rt);
 void rtthread_cleanup(ubx_block_t *b, struct rtthread *rt);
+void rtthread_destroy(struct rtthread *rt);
 
 #endif /* _TRIG_RTTHREAD_H */
