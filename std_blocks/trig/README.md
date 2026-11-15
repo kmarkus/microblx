@@ -1,11 +1,12 @@
-# ubx/trig, ubx/ptrig
+# ubx/trig, ubx/ptrig, ubx/fdtrig
 
 Trigger blocks that call a sequence of blocks (`chain0`, `chain1`, …) each step.
 
 - **`ubx/trig`** — passive, activity-less; must be called by another trigger or the application.
 - **`ubx/ptrig`** — active; runs its own POSIX thread at a configurable period and scheduling policy.
+- **`ubx/fdtrig`** — active; its own POSIX thread steps the chain on events from a gpio line, a timerfd or a file, see [ubx/fdtrig](#ubxfdtrig).
 
-Both support multiple trigger chains, per-block timing statistics, and runtime chain switching.
+All support multiple trigger chains, per-block timing statistics, and runtime chain switching.
 
 ## Configuration — common
 
@@ -288,3 +289,104 @@ warning on stop.
 > subset, create an isolated cpuset partition (`cpuset.cpus` plus
 > `cpuset.sched_load_balance=0`, see `cpuset(7)`) so a matching root
 > domain exists; the `affinity` config can then be set accordingly.
+
+## ubx/fdtrig
+
+`fdtrig` runs its own thread, like `ptrig`, but blocks in `poll(2)` on
+one file descriptor and steps the active chain once per wakeup. Events
+pending at the wakeup are read, at most 64 reads, and stepped once; the
+extra ones are counted on `coalesced_cnt`. Events queued while the block
+is stopped are dropped on `start`. `stop` wakes the thread through an
+eventfd, so it returns as soon as the running step is done.
+
+The common configs and ports above apply, as do the thread configs of
+`ptrig`: `sched_policy`, `sched_priority`, `affinity`, `cpuset`,
+`stacksize` and `thread_name`. `SCHED_DEADLINE` is rejected, it needs a
+period.
+
+### Sources
+
+| source    | fd                                    | one event is                          |
+|-----------|---------------------------------------|---------------------------------------|
+| `gpio`    | line request on the gpio chardev (v2) | one `struct gpio_v2_line_event`       |
+| `timerfd` | periodic `CLOCK_MONOTONIC` timerfd    | one timer expiration                  |
+| `path`    | `open(path, O_RDONLY\|O_NONBLOCK)`    | one `read` of up to `read_size` bytes |
+
+- **gpio**: uses the GPIO character device v2 uAPI (`linux/gpio.h`,
+  Linux >= 5.10), no libgpiod. Event timestamps are `CLOCK_MONOTONIC`.
+  The kernel buffers 16 events per line and drops the oldest when it is
+  full; `lost_cnt` counts them from gaps in the event sequence numbers.
+  If the build headers lack the v2 uAPI, `source="gpio"` fails at init.
+- **timerfd**: armed on `start`, disarmed on `stop` and when the block
+  stops itself.
+- **path**: a FIFO, character device or similar pollable file. The data
+  is read and discarded. `init` checks that the path opens; the file is
+  opened on `start` and closed on `stop`. A source that is always
+  readable, such as `/dev/zero`, steps the chain back to back.
+
+On `POLLERR`, `POLLHUP`, `POLLNVAL`, EOF or a read error the block logs
+an error and stops itself, as with `autostop_steps`. It can be started
+again; for `path` that reopens the file, so a FIFO is served again when
+a new writer opens it after the last one closed.
+
+### Timeout
+
+`timeout_ns` is the poll timeout. It restarts on every wakeup (event,
+stop wake or signal), so it measures the time since the last activity
+and is not a fallback period: with `timeout_step=1` the chain is stepped
+`timeout_ns` after the last event, and then every `timeout_ns` while no
+event arrives. With `SCHED_OTHER` the thread's timer slack (50 us by
+default) delays the timeout.
+
+### Configuration - fdtrig only
+
+| field            | type       | description                                                |
+|------------------|------------|------------------------------------------------------------|
+| `source`         | `char`     | `gpio`, `timerfd` or `path` (required)                     |
+| `gpio_chip`      | `char`     | gpio: `gpiochip0` or `/dev/gpiochip0`                      |
+| `gpio_line`      | `uint32_t` | gpio: line offset (required)                               |
+| `gpio_edge`      | `char`     | gpio: `rising` (default), `falling` or `both`              |
+| `period_ns`      | `int64_t`  | timerfd: period [ns], > 0                                  |
+| `path`           | `char`     | path: file to poll                                         |
+| `read_size`      | `uint32_t` | path: bytes per `read` (default: 64)                       |
+| `timeout_ns`     | `int64_t`  | poll timeout [ns]; 0 = none (default), see above           |
+| `timeout_step`   | `int`      | 1: step the chain on a timeout; 0: only count it (default) |
+| `autostop_steps` | `int64_t`  | stop automatically after N steps                           |
+
+### Ports - fdtrig only
+
+| port            | direction | type       | description                                            |
+|-----------------|-----------|------------|--------------------------------------------------------|
+| `event_cnt`     | out       | `uint64_t` | cumulative event wakeups                               |
+| `timeout_cnt`   | out       | `uint64_t` | cumulative poll timeouts                               |
+| `coalesced_cnt` | out       | `uint64_t` | cumulative events beyond the first per wakeup          |
+| `lost_cnt`      | out       | `uint64_t` | gpio: cumulative events lost in the kernel buffer      |
+| `latency_ns`    | out       | `int64_t`  | gpio: `CLOCK_MONOTONIC` at step start minus event time |
+| `event_ts_ns`   | out       | `uint64_t` | gpio: kernel timestamp of the event                    |
+
+All are written before the chain is stepped, so blocks in the chain see
+the values of the current event. With several gpio events per wakeup,
+`latency_ns` and `event_ts_ns` refer to the first one. On stop, the
+counters are logged with the tstats (`EVENTS: n, coalesced n, lost n,
+timeouts n`).
+
+### Example
+
+Step a chain on each rising edge of line 17 of `gpiochip0`, at
+`SCHED_FIFO` 80 on CPU 3, and step it anyway after 10 ms without an
+edge:
+
+```lua
+imports = { "stdtypes", "fdtrig", ... },
+blocks = {
+   { name="gpiotrig", type="ubx/fdtrig" },
+   ...
+},
+configurations = {
+   { name="gpiotrig", config = {
+        source="gpio", gpio_chip="gpiochip0", gpio_line=17, gpio_edge="rising",
+        timeout_ns=10000000, timeout_step=1,
+        sched_policy="SCHED_FIFO", sched_priority=80, affinity={ 3 },
+        chain0={ { b="#ctrl" } } } },
+}
+```

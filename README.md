@@ -443,7 +443,7 @@ Standard blocks
 | [ubx/rand](std_blocks/rand/README.md)                                 | c-block   | pseudo-random number generator (any numeric type)                      |
 | [ubx/saturation](std_blocks/saturation/README.md)                     | c-block   | element-wise signal clamp (any numeric type)                           |
 | [ubx/threshold](std_blocks/threshold/README.md)                       | c-block   | threshold detector with crossing events and optional hysteresis        |
-| [ubx/trig, ubx/ptrig](std_blocks/trig/README.md)                      | trigger   | passive and pthread-based triggers with timing stats                   |
+| [ubx/trig, ubx/ptrig, ubx/fdtrig](std_blocks/trig/README.md)          | trigger   | passive, periodic and fd event triggers with timing stats              |
 | [ubx/gpio](std_blocks/gpio/README.md)                                 | c-block   | Linux GPIO via libgpiod v2                                             |
 | [ubx/gps](std_blocks/gps/README.md)                                   | c-block   | GPS via gpsd shared memory interface                                   |
 | [ubx/iio, ubx/iio_buf](std_blocks/iio/README.md)                      | c-block   | Linux IIO (ADC/DAC/IMU/sensor) via libiio                              |
