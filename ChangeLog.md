@@ -209,6 +209,8 @@ This file tracks user visible API changes
 - `ubx-dbus`: new `--webgraph[=PORT]`, creates and starts a webgraph
   block `webgraph0` in a running node. lsdb-intf `ClearNode` (`-C`)
   now always keeps `webgraph0`.
+- `webgraph`: all iblocks connecting two blocks (not only `lfrb`) are
+  shown as edges, labelled with the iblock name and type.
 - `lsdb-intf`: **incompatible** `LoadUSCLua` signature change from
   `(s)` to `(s usc, a{ss} params) -> as warnings`. Pass an empty dict
   for no parameters. The plugin API `load_usc_lua(str)` takes an

@@ -8,6 +8,11 @@ Luablock serving a live React Flow + ELK.js graph of the running node
 > without authentication and allows any origin (CORS `*`). Don't run it
 > on production systems or untrusted networks.
 
+An iblock connecting two blocks (e.g. `lfrb`, `vstore`, `latch`) is
+shown as an edge, labelled with the iblock name and type, the data type
+and the read/write counts, e.g. `i_00000003 [vstore]` / `double r:12 w:12`.
+iblocks with only one side connected (e.g. `mqueue`) are shown as nodes.
+
 A `ubx/pack` and a `ubx/unpack` block of the same segment are joined by
 one fat edge, labelled with the segment, as all ports of a frame pass
 through it.

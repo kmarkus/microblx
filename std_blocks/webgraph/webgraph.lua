@@ -126,12 +126,11 @@ local function build_graph(nd)
       }
    end
 
-   -- lfrb connecting two cblocks are shown as direct edges (minimal label);
-   -- dangling ones (only one side connected) and all other iblock types are shown as nodes.
-   local TRANSPARENT = { ["ubx/lfrb"]=true }
-
+   -- iblocks connecting two cblocks are shown as direct edges, labelled
+   -- with the iblock name and type; dangling ones (only one side
+   -- connected, e.g. mqueue, hexdump) are shown as nodes.
    local function is_transparent(iname)
-      return TRANSPARENT[(iblocks[iname] or {}).prototype or ""]
+      return iblocks[iname] ~= nil
    end
 
    -- Determine which transparent iblocks have both a writer and a reader (bridging)
@@ -212,8 +211,12 @@ local function build_graph(nd)
          for _, ib in ipairs(p.connections.outgoing) do
             if is_bridging(ib) then
                -- bridging: direct cblock→cblock edge (iblock shown as label)
-               local icfg = iblock_cfg(nd, ib)
-               local buf_len = tonumber(icfg.buffer_len) or 1
+               -- unset defaults to 1 (lfrb); nil without such a config
+               -- (vstore, latch)
+               local buf_len = nil
+               if ubx.block_config_get(ubx.block_get(nd, ib), "buffer_len") ~= nil then
+                  buf_len = tonumber(iblock_cfg(nd, ib).buffer_len) or 1
+               end
                for _, tgt in ipairs(incoming_map[ib] or {}) do
                   local eid = b.name..":"..p.name.."->"..ib.."->"..tgt.block..":"..tgt.port
                   if not seen[eid] then
@@ -226,6 +229,8 @@ local function build_graph(nd)
                         source_port     = p.name,
                         target_block    = tgt.block,
                         target_port     = tgt.port,
+                        iblock          = ib,
+                        iblock_type     = (ib_data and ib_data.prototype or ""):gsub("^ubx/", ""),
                         type_name       = p.out_type_name or tgt.type or "",
                         data_len        = p.out_data_len or tgt.len or 1,
                         buffer_len      = buf_len,
@@ -580,15 +585,18 @@ function DirectEdge({ id, sourceX, sourceY, targetX, targetY,
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition,
   });
-  const line1 = (data.type_name||'') + (data.data_len > 1 ? '['+data.data_len+']' : '')
-              + '×' + (data.buffer_len ?? 1);
-  const line2 = 'r:' + (data.stat_num_reads ?? 0) + ' w:' + (data.stat_num_writes ?? 0);
-  const rw = Math.max(line1.length, line2.length) * 6 + 14;
+  const dtype = (data.type_name||'') + (data.data_len > 1 ? '['+data.data_len+']' : '')
+              + (data.buffer_len != null ? '×' + data.buffer_len : '');
+  const rw = 'r:' + (data.stat_num_reads ?? 0) + ' w:' + (data.stat_num_writes ?? 0);
+  // bridged iblock: "name [type]" / "dtype r w", else "dtype" / "r w"
+  const line1 = data.iblock_type ? data.iblock + ' [' + data.iblock_type + ']' : dtype;
+  const line2 = data.iblock_type ? dtype + ' ' + rw : rw;
+  const lw = Math.max(line1.length, line2.length) * 6 + 14;
   return [
     html`<${BaseEdge} key="p" id=${id} path=${edgePath} style=${style}/>`,
     createElement('g', { key: 'l' },
       createElement('rect', {
-        x: labelX - rw/2, y: labelY - 14, width: rw, height: 28, rx: 3,
+        x: labelX - lw/2, y: labelY - 14, width: lw, height: 28, rx: 3,
         fill: 'rgba(15,20,40,0.9)', stroke: '#2a4a70', strokeWidth: 1,
       }),
       createElement('text', {
@@ -711,6 +719,7 @@ async function applyLayout(graphData) {
       target: tgt, targetHandle: tgtH,
       data: {
         type_name: e.type_name, data_len: e.data_len, buffer_len: e.buffer_len,
+        iblock: e.iblock, iblock_type: e.iblock_type,
         stat_num_reads: e.stat_num_reads, stat_num_writes: e.stat_num_writes,
       },
       style: e.fat ? { stroke: '#a78bfa', strokeWidth: 6 } : { stroke: '#7dd3fc' },
