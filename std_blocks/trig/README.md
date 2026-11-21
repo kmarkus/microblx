@@ -322,7 +322,10 @@ period.
 - **path**: a FIFO, character device or similar pollable file. The data
   is read and discarded. `init` checks that the path opens; the file is
   opened on `start` and closed on `stop`. A source that is always
-  readable, such as `/dev/zero`, steps the chain back to back.
+  readable, such as `/dev/zero`, steps the chain back to back. Not
+  sysfs attributes: they signal changes with `POLLPRI` and need a seek
+  before each read. UIO devices need `read_size=4`. A read error while
+  dropping the stale data fails `start`.
 
 On `POLLERR`, `POLLHUP`, `POLLNVAL`, EOF or a read error the block logs
 an error and stops itself, as with `autostop_steps`. It can be started

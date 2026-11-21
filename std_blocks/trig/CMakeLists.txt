@@ -69,11 +69,13 @@ target_include_directories(fdtrig PRIVATE ${CMAKE_SOURCE_DIR}/libubx/ ${MOD_SRC_
 target_compile_options(fdtrig PRIVATE ${UBX_MODE_CFLAGS})
 target_link_libraries(fdtrig PRIVATE ubx)
 
+# _GNU_SOURCE for ppoll
+target_compile_definitions(fdtrig PRIVATE _GNU_SOURCE)
 if(HAVE_GPIO_V2)
   target_compile_definitions(fdtrig PRIVATE HAVE_GPIO_V2)
 endif()
 if(HAVE_PTHREAD_SETNAME_NP)
-  target_compile_definitions(fdtrig PRIVATE CONFIG_PTHREAD_SETNAME _GNU_SOURCE)
+  target_compile_definitions(fdtrig PRIVATE CONFIG_PTHREAD_SETNAME)
 endif()
 if(HAVE_PTHREAD_SETAFFINITY_NP)
   target_compile_definitions(fdtrig PRIVATE CONFIG_PTHREAD_SETAFFINITY)

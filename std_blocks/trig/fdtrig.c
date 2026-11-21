@@ -788,8 +788,15 @@ static int fdtrig_start(ubx_block_t *b)
 	inf->configured = 1;
 	common_sync_init(b, &inf->sync);
 
-	/* the thread is parked: drop events queued while stopped */
-	fdtrig_drain(b, inf);
+	/* the thread is parked: drop events queued while stopped, gaps
+	 * before them are not losses */
+	inf->have_seqno = 0;
+	if (fdtrig_drain(b, inf) < 0) {
+		common_unconfig(inf->chains, inf->num_chains);
+		inf->configured = 0;
+		ret = EINVALID_CONFIG;
+		goto out_close;
+	}
 	inf->eof = 0;
 
 	if (inf->source == SRC_TIMERFD &&
