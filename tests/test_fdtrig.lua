@@ -349,4 +349,125 @@ function TestFdtrig:TestValidConfigInits()
    assert_equals(ret, 0)
 end
 
+-- gpio tests on a gpio-sim line: need root and the gpio-sim module
+local GPIOSIM = "/sys/kernel/config/gpio-sim/fdtrig_test"
+
+local function write_file(path, val)
+   local f = assert(io.open(path, "w"))
+   f:write(val)
+   f:close()
+end
+
+local function read_line(path)
+   local f = assert(io.open(path, "r"))
+   local l = f:read("*l")
+   f:close()
+   return l
+end
+
+local function gpiosim_rm()
+   local f = io.open(GPIOSIM .. "/live", "w")
+   if f then f:write("0"); f:close() end
+   os.remove(GPIOSIM .. "/bank0")
+   os.remove(GPIOSIM)
+end
+
+-- returns the chip name and a function setting the line level, or
+-- skips the test
+local function gpiosim_setup()
+   gpiosim_rm()
+   local ok = os.execute("mkdir " .. GPIOSIM .. " 2>/dev/null")
+   luaunit.skipIf(not (ok == 0 or ok == true),
+		  "gpio-sim unavailable (needs root and the gpio-sim module)")
+   sh("mkdir " .. GPIOSIM .. "/bank0")
+   write_file(GPIOSIM .. "/bank0/num_lines", "1")
+   write_file(GPIOSIM .. "/live", "1")
+
+   local chip = read_line(GPIOSIM .. "/bank0/chip_name")
+   local pull = "/sys/devices/platform/" .. read_line(GPIOSIM .. "/dev_name") ..
+      "/" .. chip .. "/sim_gpio0/pull"
+   local function set(level)
+      write_file(pull, level == 1 and "pull-up" or "pull-down")
+   end
+   set(0)
+   return chip, set
+end
+
+-- n pulses of 10 ms high, 10 ms low. Shorter ones lose edges on the
+-- BBB before gpiolib-cdev sees them (no seqno gap): 1 ms with rising
+-- edges, 5 ms with both
+local function pulses(set, n)
+   for _ = 1, n do
+      set(1); ms(10)
+      set(0); ms(10)
+   end
+end
+
+local GPIO_PORTS = { "event_cnt", "lost_cnt", "latency_ns", "event_ts_ns" }
+
+function TestFdtrig:TestGpioRising()
+   local chip, set = gpiosim_setup()
+   local nd, p = launch("TestGpioRising",
+			{ source="gpio", gpio_chip=chip, gpio_line=0 },
+			GPIO_PORTS)
+   pulses(set, 10)
+   ms(20)
+   assert_equals(nd:b("fdtrig"):do_stop(), 0)
+   local steps = #drain(p.steps)
+   local events = last(p.event_cnt)
+   local lost = last(p.lost_cnt)
+   local lat = drain(p.latency_ns)
+   local ts = drain(p.event_ts_ns)
+   ubx.node_rm(nd)
+   gpiosim_rm()
+
+   assert_equals(steps, 10)
+   assert_equals(events, 10)
+   assert_equals(lost, 0)
+   assert_equals(#lat, 10)
+   for i, l in ipairs(lat) do
+      assert_true(l > 0 and l < 100 * MS, "latency " .. l)
+      if i > 1 then assert_true(ts[i] > ts[i-1], "event_ts not increasing") end
+   end
+end
+
+function TestFdtrig:TestGpioBoth()
+   local chip, set = gpiosim_setup()
+   local nd, p = launch("TestGpioBoth",
+			{ source="gpio", gpio_chip=chip, gpio_line=0, gpio_edge="both" })
+   pulses(set, 5)
+   ms(20)
+   assert_equals(nd:b("fdtrig"):do_stop(), 0)
+   local steps = #drain(p.steps)
+   ubx.node_rm(nd)
+   gpiosim_rm()
+
+   assert_equals(steps, 10)
+end
+
+-- edges while stopped overflow the kernel buffer (16): dropped on
+-- start, not counted as lost
+function TestFdtrig:TestGpioRestartNotLost()
+   local chip, set = gpiosim_setup()
+   local nd, p = launch("TestGpioRestartNotLost",
+			{ source="gpio", gpio_chip=chip, gpio_line=0 },
+			{ "lost_cnt" })
+   local b = nd:b("fdtrig")
+   pulses(set, 2)
+   ms(20)
+   assert_equals(b:do_stop(), 0)
+   pulses(set, 20)
+   assert_equals(b:do_start(), 0)
+   pulses(set, 2)
+   ms(20)
+   assert_equals(b:do_stop(), 0)
+   local steps = #drain(p.steps)
+   local lost = last(p.lost_cnt)
+   ubx.node_rm(nd)
+   gpiosim_rm()
+
+   assert_equals(steps, 4)
+   assert_equals(lost, 0)
+end
+
 if not _RUNNER then os.exit( luaunit.LuaUnit.run() ) end
